@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor de Partitura – VexFlow</title>
+  <style>
+    :root{
+      --gap:12px; --primary:#1976d2; --primary-light:#e3f2fd; --primary-dark:#0d47a1;
+      --text:#212121; --text-light:#757575; --border:#e0e0e0; --bg:#f8f9fa; --card:#fff;
+      --shadow:0 2px 8px rgba(0,0,0,.08); --radius:8px;
+    }
+    body{font-family:Segoe UI,Roboto,Ubuntu,Open Sans,sans-serif;margin:0;background:var(--bg);color:var(--text);line-height:1.5;}
+    header{padding:12px 20px;background:var(--primary);color:#fff;box-shadow:var(--shadow);position:sticky;top:0;z-index:10}
+    h1{font-size:20px;margin:0;font-weight:500}
+    main{padding:10px;display:grid;grid-template-columns:280px 1fr;gap:10px;max-width:1600px;margin:0 auto}
+    @media (max-width:900px){main{grid-template-columns:1fr}}
+    .card{background:var(--card);border-radius:var(--radius);padding:8px;box-shadow:var(--shadow)}
+    .row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+    .controls label{display:block;font-size:11px;color:var(--text-light);margin-bottom:2px;font-weight:500}
+    select,input[type="text"]{padding:4px 6px;border:1px solid var(--border);border-radius:3px;font:inherit;background:#fff;font-size:12px}
+    select:focus,input:focus{outline:1px solid var(--primary-light);border-color:var(--primary)}
+    .btn{padding:4px 8px;border:1px solid var(--border);background:#fff;border-radius:3px;cursor:pointer;font-size:12px;transition:.2s;min-height:24px}
+    .btn:hover{background:var(--primary-light);border-color:var(--primary)}
+    .btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .btn.active:hover{background:var(--primary-dark)}
+    .kbd{font-size:10px;padding:2px 4px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;background:#fff;color:var(--text-light)}
+    .score-wrap{overflow-x:auto;padding:8px;border-radius:var(--radius);background:#fff;box-shadow:inset 0 0 0 1px var(--border)}
+    small{color:var(--text-light);font-size:10px;display:block;margin-top:6px}
+    .group-title{font-size:11px;color:var(--text-light);margin-right:4px;font-weight:500}
+    .control-group{background:var(--bg);border-radius:var(--radius);padding:6px;margin-bottom:8px;border:1px solid var(--border)}
+    .control-group-title{font-size:12px;font-weight:500;margin-bottom:4px;color:var(--text);display:block}
+    .action-btn{background:var(--primary);color:#fff;border:none;padding:6px 10px;font-weight:500;font-size:11px}
+    .action-btn:hover{background:var(--primary-dark);color:#fff}
+    .dur,.rest-btn{min-width:28px;text-align:center;font-size:14px;padding:3px 4px}
+    .score-section{display:flex;flex-direction:column}
+    .score-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px}
+    .score-header h2{font-size:16px;font-weight:500;margin:0;color:var(--text)}
+    .zoom-controls{display:flex;align-items:center;gap:4px}
+    .zoom-controls .btn{min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;padding:0;font-size:12px}
+    #zoomLevel{font-size:12px;color:var(--text-light);min-width:40px;text-align:center}
+  </style>
+</head>
+<body>
+<!-- Abas de navegação do U-Control -->
+<div style="display:flex;background:white;border-bottom:1px solid #e0e0e0;padding:0 20px;gap:20px;">
+  <div style="padding:12px 0;border-bottom:3px solid transparent;"><a href="/order" style="text-decoration:none;color:#212121;font-weight:500;">Ordem do Culto</a></div>
+  <div style="padding:12px 0;border-bottom:3px solid transparent;"><a href="/songs" style="text-decoration:none;color:#212121;font-weight:500;">Biblioteca de Música</a></div>
+  <div style="padding:12px 0;border-bottom:3px solid #1976d2;"><a href="/sheet_editor" style="text-decoration:none;color:#1976d2;font-weight:500;">🎼 Editor de Partitura</a></div>
+  <div style="padding:12px 0;border-bottom:3px solid transparent;"><a href="/" style="text-decoration:none;color:#212121;font-weight:500;">Home</a></div>
+</div>
+
+<header><h1>Editor de Partitura</h1></header>
+
+<main>
+  <section class="card controls">
+    <div class="control-group">
+      <span class="control-group-title">Configurações da Partitura</span>
+      <div class="row">
+        <div>
+          <label>Clave</label>
+          <select id="clef">
+            <option value="treble">Sol (G)</option>
+            <option value="bass">Fá (F)</option>
+          </select>
+        </div>
+        <div>
+          <label>Armadura</label>
+          <select id="keysig">
+            <option>C</option><option>G</option><option>D</option><option>A</option><option>E</option><option>B</option><option>F#</option><option>C#</option>
+            <option>F</option><option>Bb</option><option>Eb</option><option>Ab</option><option>Db</option><option>Gb</option><option>Cb</option>
+          </select>
+        </div>
+        <div>
+          <label>Compasso</label>
+          <select id="timesig">
+            <option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>2/2</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-group-title">Notas</span>
+      <div class="row"><div id="noteButtons" class="row"></div></div>
+      <div class="row">
+        <div>
+          <span class="group-title">Oitava:</span>
+          <button type="button" class="btn" id="octDown" title="Oitava - ( [ )">–</button>
+          <span id="octDisplay" class="kbd">4</span>
+          <button type="button" class="btn" id="octUp" title="Oitava + ( ] )">+</button>
+        </div>
+        <div><button type="button" class="btn" id="tieBtn" title="Armar ligadura manual (T)">Ligadura</button></div>
+      </div>
+      <div class="row">
+        <span class="group-title">Acidentes:</span>
+        <button type="button" class="btn" id="accSharpBtn" title="Sustenido (#)">#</button>
+        <button type="button" class="btn" id="accFlatBtn" title="Bemol (b)">b</button>
+        <button type="button" class="btn" id="accNaturalBtn" title="Bequadro (♮)">♮</button>
+        <button type="button" class="btn" id="accDoubleSharpBtn" title="Dobrado sustenido (𝄪)">𝄪</button>
+        <button type="button" class="btn" id="accDoubleFlatBtn" title="Dobrado bemol (𝄫)">𝄫</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-group-title">Duração</span>
+      <div class="row">
+        <button type="button" class="btn dur" data-dur="w"  title="Semibreve (1)" aria-pressed="false">𝅝</button>
+        <button type="button" class="btn dur active" data-dur="h" title="Mínima (2)"    aria-pressed="true">𝅗𝅥</button>
+        <button type="button" class="btn dur" data-dur="q"  title="Semínima (3)"  aria-pressed="false">𝅘𝅥</button>
+        <button type="button" class="btn dur" data-dur="8"  title="Colcheia (4)"  aria-pressed="false">𝅘𝅥𝅮</button>
+        <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (5)" aria-pressed="false">𝅘𝅥𝅯</button>
+        <button type="button" class="btn" id="dotBtn" title="Ponto (.)">.</button>
+      </div>
+      <div class="row">
+        <label class="row" style="margin-left:0"><input type="checkbox" id="isRest"> Pausa (R)</label>
+      </div>
+      <div class="row">
+        <span class="group-title">Pausas rápidas:</span>
+        <button type="button" class="btn rest-btn" data-dur="w">𝅝</button>
+        <button type="button" class="btn rest-btn" data-dur="h">𝅗𝅥</button>
+        <button type="button" class="btn rest-btn" data-dur="q">𝅘𝅥</button>
+        <button type="button" class="btn rest-btn" data-dur="8">𝅘𝅥𝅮</button>
+        <button type="button" class="btn rest-btn" data-dur="16">𝅘𝅥𝅯</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-group-title">Editar Nota Selecionada</span>
+      <div class="row">
+        <div>
+          <label>Altura:</label>
+          <select id="editPitch" style="width: 60px;" disabled>
+            <option value="">-</option>
+            <option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option>
+            <option value="G">G</option><option value="A">A</option><option value="B">B</option>
+          </select>
+        </div>
+        <div>
+          <label>Oitava:</label>
+          <select id="editOctave" style="width: 50px;" disabled>
+            <option value="">-</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+          </select>
+        </div>
+        <div>
+          <label>Duração:</label>
+          <select id="editDuration" style="width: 60px;" disabled>
+            <option value="">-</option>
+            <option value="w">𝅝</option><option value="h">𝅗𝅥</option><option value="q">𝅘𝅥</option>
+            <option value="8">𝅘𝅥𝅮</option><option value="16">𝅘𝅥𝅯</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Acidente:</label>
+          <select id="editAccidental" style="width: 60px;" disabled>
+            <option value="">Nenhum</option>
+            <option value="#">♯</option><option value="b">♭</option><option value="n">♮</option>
+            <option value="##">𝄪</option><option value="bb">𝄫</option>
+          </select>
+        </div>
+        <div>
+          <label><input type="checkbox" id="editDotted" disabled> Ponto</label>
+        </div>
+        <div>
+          <label><input type="checkbox" id="editRest" disabled> Pausa</label>
+        </div>
+        <div>
+          <button type="button" class="btn" id="applyEditBtn" disabled>Aplicar Mudanças</button>
+        </div>
+      </div>
+      <div class="row">
+        <small>💡 Clique em uma nota para editá-la. Modifique as propriedades e clique em "Aplicar"</small>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-group-title">Cifras</span>
+      <div class="row">
+        <div>
+          <label>Cifra:</label>
+          <input type="text" id="chordInput" placeholder="C, Am, F#m7" style="width: 80px;">
+        </div>
+        <div>
+          <button type="button" class="btn" id="addChordBtn">Adicionar Cifra</button>
+          <button type="button" class="btn" id="removeChordBtn">Remover Cifra</button>
+        </div>
+      </div>
+      <div class="row">
+        <small>💡 Clique em uma nota para selecioná-la, depois digite a cifra e clique em "Adicionar"</small>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-group-title">Edição</span>
+      <div class="row">
+        <button type="button" class="btn" id="undoBtn">Desfazer</button>
+        <button type="button" class="btn" id="redoBtn">Refazer</button>
+        <button type="button" class="btn" id="removeBtn">Remover última</button>
+        <button type="button" class="btn" id="clearBtn">Limpar</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-group-title">Exportação</span>
+      <div class="row">
+        <button type="button" class="btn action-btn" id="exportSVGBtn">Exportar SVG</button>
+        <button type="button" class="btn action-btn" id="saveJSONBtn">Salvar JSON</button>
+        <label class="btn" for="loadJSONInput">Carregar JSON</label>
+        <input id="loadJSONInput" type="file" accept="application/json" hidden>
+      </div>
+    </div>
+
+    <small>
+      Atalhos: 1=w · 2=h · 3=q · 4=8 · 5=16 · . ponto · R pausa · [ ] oitava · T ligadura · C..B notas · Backspace remove · Ctrl/⌘+Z / Y · Editar: clique na nota, modifique e clique "Aplicar"
+    </small>
+  </section>
+
+  <section class="card score-section">
+    <div class="score-header">
+      <h2>Partitura</h2>
+      <div class="zoom-controls">
+        <button type="button" class="btn" id="zoomOutBtn">-</button>
+        <span id="zoomLevel">100%</span>
+        <button type="button" class="btn" id="zoomInBtn">+</button>
+      </div>
+    </div>
+    <div class="score-wrap"><div id="score"></div></div>
+  </section>
+</main>
+
+<!-- Dados da música para JavaScript -->
+<script id="song-data" type="application/json">
+{% if song %}{{ song|tojson }}{% else %}null{% endif %}
+</script>
+
+<script type="module">
+  // ===== Dados da música (se editando uma existente) =====
+  const songDataElement = document.getElementById('song-data');
+  const songData = songDataElement ? JSON.parse(songDataElement.textContent) : null;
+  
+  // ===== Estado =====
+  const state = {
+    clef:'treble', keySig:'C', timeSig:'4/4',
+    duration:'h', dotted:false, isRest:false,
+    currentOctave:4, minOctave:1, maxOctave:7,
+    accArmed:'',      // '', '#', 'b', 'n', '##', 'bb'
+    tieArmed:false,
+    measures:[[]],
+    selectedNote: null,   // {m:0, i:0} - nota selecionada para cifra
+    chords:[],            // [{m:0, i:0, symbol:'C'}] - acordes por posição
+    ties:[],          // {from:{m,i}, to:{m,i}}
+    lastNoteRef:null,
+    undo:[], redo:[],
+    zoomLevel:100
+  };
+
+  // ===== VexFlow =====
+  let Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam;
+  let VF_READY=false;
+  try{
+    const VF = await import('https://unpkg.com/vexflow@4/build/esm/entry/vexflow.js')
+      .catch(()=>import('https://cdn.jsdelivr.net/npm/vexflow@4/build/esm/entry/vexflow.js'));
+    ({ Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam } = VF);
+    VF_READY=true;
+  }catch(e){ console.warn('VexFlow não carregou.', e); }
+
+  // ===== UI helpers =====
+  const $=id=>document.getElementById(id);
+  const $score=$('score');
+  const $clef=$('clef'), $keysig=$('keysig'), $timesig=$('timesig');
+  const $isRest=$('isRest'), $dot=$('dotBtn'), $tie=$('tieBtn');
+  const $accSharp=$('accSharpBtn'), $accFlat=$('accFlatBtn'),
+        $accNatural=$('accNaturalBtn'), $accDoubleSharp=$('accDoubleSharpBtn'),
+        $accDoubleFlat=$('accDoubleFlatBtn');
+  const $chordInput=$('chordInput'), $addChordBtn=$('addChordBtn'), $removeChordBtn=$('removeChordBtn');
+  const $editPitch=$('editPitch'), $editOctave=$('editOctave'), $editDuration=$('editDuration'),
+        $editAccidental=$('editAccidental'), $editDotted=$('editDotted'), $editRest=$('editRest'),
+        $applyEditBtn=$('applyEditBtn');
+
+  $clef.onchange=()=>{state.clef=$clef.value; render();};
+  $keysig.onchange=()=>{state.keySig=$keysig.value; render();};
+  $timesig.onchange=()=>{state.timeSig=$timesig.value; render();};
+  $isRest.onchange=()=>state.isRest=$isRest.checked;
+  $dot.onclick=()=>{state.dotted=!state.dotted; $dot.classList.toggle('active',state.dotted);};
+  $tie.onclick=()=>{state.tieArmed=!state.tieArmed; $tie.classList.toggle('active',state.tieArmed);};
+
+  function setAccArmed(v){
+    state.accArmed = (state.accArmed===v?'':v);
+    $accSharp.classList.toggle('active',state.accArmed==='#');
+    $accFlat.classList.toggle('active',state.accArmed==='b');
+    $accNatural.classList.toggle('active',state.accArmed==='n');
+    $accDoubleSharp.classList.toggle('active',state.accArmed==='##');
+    $accDoubleFlat.classList.toggle('active',state.accArmed==='bb');
+  }
+  $accSharp.onclick=()=>setAccArmed('#');
+  $accFlat.onclick=()=>setAccArmed('b');
+  $accNatural.onclick=()=>setAccArmed('n');
+  $accDoubleSharp.onclick=()=>setAccArmed('##');
+  $accDoubleFlat.onclick=()=>setAccArmed('bb');
+
+  // ===== Duração (delegação) =====
+  function setDuration(d){
+    state.duration=d;
+    document.querySelectorAll('.dur').forEach(b=>{
+      const on=b.dataset.dur===d;
+      b.classList.toggle('active',on);
+      b.setAttribute('aria-pressed',on?'true':'false');
+    });
+  }
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('.dur'); if(!btn) return;
+    ev.preventDefault(); const d=btn.dataset.dur; if(d) setDuration(d);
+  });
+
+  // ===== Notas =====
+  const LETTERS=['C','D','E','F','G','A','B'];
+  function buildNoteButtons(){
+    const wrap=$('noteButtons');
+    LETTERS.forEach(L=>{
+      const b=document.createElement('button');
+      b.type='button'; b.className='btn'; b.textContent=L;
+      b.title=`Adicionar ${L}${state.currentOctave}`;
+      b.onclick=()=>addNoteFromLetter(L);
+      wrap.appendChild(b);
+    });
+  }
+  function setOctave(o){
+    state.currentOctave=Math.max(state.minOctave,Math.min(state.maxOctave,o));
+    $('octDisplay').textContent=String(state.currentOctave);
+    document.querySelectorAll('#noteButtons .btn').forEach((btn,i)=>{
+      btn.title=`Adicionar ${LETTERS[i]}${state.currentOctave}`;
+    });
+  }
+
+  // ===== Funções de cifras =====
+  function selectNote(measureIndex, noteIndex) {
+    state.selectedNote = { m: measureIndex, i: noteIndex };
+    updateEditControls();
+    render();
+  }
+
+  function deselectNote() {
+    state.selectedNote = null;
+    updateEditControls();
+    render();
+  }
+
+  // ===== Funções de edição de notas =====
+  function updateEditControls() {
+    console.log('updateEditControls chamada, selectedNote:', state.selectedNote);
+    
+    const hasSelection = state.selectedNote !== null;
+    const note = hasSelection ? state.measures[state.selectedNote.m]?.[state.selectedNote.i] : null;
+
+    console.log('Nota encontrada:', note);
+
+    // Habilita/desabilita controles
+    $editPitch.disabled = !hasSelection || (note && note.rest);
+    $editOctave.disabled = !hasSelection || (note && note.rest);
+    $editDuration.disabled = !hasSelection;
+    $editAccidental.disabled = !hasSelection || (note && note.rest);
+    $editDotted.disabled = !hasSelection;
+    $editRest.disabled = !hasSelection;
+    $applyEditBtn.disabled = !hasSelection;
+
+    if (note) {
+      // Preenche valores atuais
+      if (!note.rest) {
+        const pitchMatch = note.pitch.match(/^([A-G])/);
+        const octaveMatch = note.pitch.match(/(\d)$/);
+        const pitch = pitchMatch ? pitchMatch[1] : '';
+        const octave = octaveMatch ? octaveMatch[1] : '';
+        const accidental = note.accidental || '';
+        
+        console.log('Preenchendo campos:', { pitch, octave, accidental, duration: note.duration });
+        
+        $editPitch.value = pitch;
+        $editOctave.value = octave;
+        $editAccidental.value = accidental;
+      } else {
+        $editPitch.value = '';
+        $editOctave.value = '';
+        $editAccidental.value = '';
+      }
+      $editDuration.value = note.duration;
+      $editDotted.checked = !!note.dotted;
+      $editRest.checked = !!note.rest;
+      
+      console.log('Campos preenchidos com:', {
+        pitch: $editPitch.value,
+        octave: $editOctave.value,
+        duration: $editDuration.value,
+        accidental: $editAccidental.value,
+        dotted: $editDotted.checked,
+        rest: $editRest.checked
+      });
+    } else {
+      // Limpa valores
+      $editPitch.value = '';
+      $editOctave.value = '';
+      $editDuration.value = '';
+      $editAccidental.value = '';
+      $editDotted.checked = false;
+      $editRest.checked = false;
+    }
+  }
+
+
+  function addChordToNote(measureIndex, noteIndex, symbol) {
+    if (!symbol) return;
+
+    // Remove cifra existente na mesma posição
+    state.chords = state.chords.filter(c =>
+      !(c.m === measureIndex && c.i === noteIndex)
+    );
+
+    // Adiciona nova cifra
+    state.chords.push({
+      m: measureIndex,
+      i: noteIndex,
+      symbol: symbol
+    });
+
+    render();
+  }
+
+  function removeChordFromNote(measureIndex, noteIndex) {
+    state.chords = state.chords.filter(c =>
+      !(c.m === measureIndex && c.i === noteIndex)
+    );
+    render();
+  }
+
+  function addChordToSelectedNote(symbol) {
+    if (!symbol || !state.selectedNote) return;
+
+    const { m, i } = state.selectedNote;
+    addChordToNote(m, i, symbol);
+    $chordInput.value = '';
+  }
+
+  function removeChordFromSelectedNote() {
+    if (!state.selectedNote) return;
+
+    const { m, i } = state.selectedNote;
+    removeChordFromNote(m, i);
+  }
+
+  // Eventos dos botões de acordes
+  $addChordBtn.onclick = () => {
+    const symbol = $chordInput.value.trim();
+    if (symbol) addChordToSelectedNote(symbol);
+  };
+
+  $removeChordBtn.onclick = () => removeChordFromSelectedNote();
+
+  // Enter no campo de cifra
+  $chordInput.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $addChordBtn.click();
+    }
+  };
+
+  // ===== Métrica =====
+  const timeValues=(ts)=>{ const [b,v]=ts.split('/').map(n=>parseInt(n,10)); return {beats:b, beatValue:v, capacity:b/v}; };
+  const DUR_BASE={w:1, h:1/2, q:1/4, 8:1/8, 16:1/16};
+  const durValue=(d, dotted=false)=>DUR_BASE[d]*(dotted?1.5:1);
+  const EPS=1e-6;
+
+  const snapshot=()=>JSON.parse(JSON.stringify({measures:state.measures, ties:state.ties, chords:state.chords}));
+  const pushUndo=()=>state.undo.push(snapshot());
+  const clearRedo=()=>state.redo=[];
+  const restoreSnapshot=(s)=>{
+    const wasSelected = state.selectedNote; // Salva seleção atual
+    state.measures=s.measures; 
+    state.ties=s.ties; 
+    state.chords=s.chords||[]; 
+    state.lastNoteRef=null; 
+    // Só limpa seleção se não estamos aplicando edição
+    if(!s.preserveSelection) state.selectedNote=null;
+    else state.selectedNote = wasSelected; // Restaura seleção se preservada
+  };
+
+  // Decomposição gulosa
+  const ATOMS=[
+    {dur:'w', dotted:true},{dur:'w', dotted:false},
+    {dur:'h', dotted:true},{dur:'h', dotted:false},
+    {dur:'q', dotted:true},{dur:'q', dotted:false},
+    {dur:'8', dotted:true},{dur:'8', dotted:false},
+    {dur:'16', dotted:true},{dur:'16', dotted:false},
+  ];
+  function decomposeAmount(amount){
+    const parts=[]; let remaining=amount;
+    while(remaining>EPS){
+      let took=false;
+      for(const a of ATOMS){
+        const val=durValue(a.dur,a.dotted);
+        if(val<=remaining+EPS){ parts.push({duration:a.dur,dotted:a.dotted}); remaining-=val; took=true; break; }
+      }
+      if(!took) break;
+    }
+    return parts;
+  }
+  const measureUsed=(m)=>m.reduce((s,n)=>s+durValue(n.duration,!!n.dotted),0);
+
+  // Inserção (split + ties)
+  function addNoteFromLetter(letter){
+    const L=letter.toUpperCase();
+    const accText = state.accArmed==='n' ? '' : (state.accArmed||''); // 'n' não entra no pitch
+    const pitch=`${L}${accText}${state.currentOctave}`;
+    addNoteSplit(pitch,false);
+  }
+  function addRest(dur){
+    const prevDur=state.duration, prevRest=state.isRest, prevDot=state.dotted;
+    setDuration(dur); state.isRest=true;
+    addNoteSplit('B4',true);
+    setDuration(prevDur); state.isRest=prevRest; state.dotted=prevDot;
+    $('dotBtn').classList.toggle('active',state.dotted);
+  }
+  function addNoteSplit(pitch, isRestFlag){
+    const targetVal=durValue(state.duration,state.dotted);
+    let remaining=targetVal;
+
+    const measures=JSON.parse(JSON.stringify(state.measures));
+    const ties=JSON.parse(JSON.stringify(state.ties));
+    pushUndo(); clearRedo();
+
+    let prevRef=null;
+
+    while(remaining>EPS){
+      const {capacity}=timeValues(state.timeSig);
+      let mIndex=measures.length-1;
+      let measureArr=measures[mIndex];
+
+      const used=measureUsed(measureArr);
+      const free=Math.max(0, capacity-used);
+      const chunk=Math.min(remaining, free>EPS?free:capacity);
+
+      if(free<=EPS){ measures.push([]); mIndex=measures.length-1; measureArr=measures[mIndex]; }
+
+      const parts=decomposeAmount(Math.min(chunk,capacity));
+      for(const p of parts){
+        const noteObj={ pitch, duration:p.duration, dotted:p.dotted,
+                        accidental:state.accArmed, rest:isRestFlag??state.isRest };
+        measureArr.push(noteObj);
+        const iIndex=measureArr.length-1;
+
+        if(!noteObj.rest && prevRef){
+          ties.push({from:{m:prevRef.m,i:prevRef.i}, to:{m:mIndex,i:iIndex}});
+        }
+        if(!noteObj.rest) prevRef={m:mIndex,i:iIndex};
+        remaining-=durValue(p.duration,p.dotted);
+      }
+    }
+
+    // tie manual com a primeira parte nova (mesma altura)
+    if(state.tieArmed && state.lastNoteRef && !isRestFlag){
+      const firstRef=findFirstNewNoteRef(state.measures,measures);
+      if(firstRef && state.lastNoteRef.pitch===pitch){
+        ties.push({from:{m:state.lastNoteRef.m,i:state.lastNoteRef.i}, to:{m:firstRef.m,i:firstRef.i}});
+      }
+    }
+
+    state.measures=measures; state.ties=ties;
+    if(!isRestFlag){
+      const lm=state.measures.length-1; const li=state.measures[lm].length-1;
+      state.lastNoteRef={m:lm,i:li,pitch};
+    }else{ state.lastNoteRef=null; }
+    render();
+  }
+  function findFirstNewNoteRef(oldM,newM){
+    let m=oldM.length-1; let i=(oldM[m]||[]).length;
+    for(let mm=m; mm<newM.length; mm++){
+      const startI=(mm===m)?i:0;
+      for(let ii=startI; ii<newM[mm].length; ii++){
+        const n=newM[mm][ii]; if(!n.rest) return {m:mm,i:ii,pitch:n.pitch};
+      }
+    }
+    return null;
+  }
+  function removeLast(){
+    if(!state.measures.length) return;
+    const measures=JSON.parse(JSON.stringify(state.measures));
+    const m=measures.length-1;
+    const i=(measures[m]?.length??0)-1;
+    if(i>=0){
+      const tiesFiltered=state.ties.filter(t=>!(t.to.m===m&&t.to.i===i)&&!(t.from.m===m&&t.from.i===i));
+      pushUndo(); clearRedo(); measures[m].pop();
+      if(measures[m].length===0 && measures.length>1) measures.pop();
+      state.measures=measures; state.ties=tiesFiltered; state.lastNoteRef=null; render(); return;
+    }
+    if(measures.length>1){
+      pushUndo(); clearRedo(); measures.pop(); state.measures=measures;
+      state.ties=state.ties.filter(t=>t.from.m<measures.length && t.to.m<measures.length);
+      state.lastNoteRef=null; render();
+    }
+  }
+  const undo=()=>{ if(!state.undo.length) return; state.redo.push(snapshot()); restoreSnapshot(state.undo.pop()); render(); };
+  const redo=()=>{ if(!state.redo.length) return; state.undo.push(snapshot()); restoreSnapshot(state.redo.pop()); render(); };
+  const clearAll=()=>{ pushUndo(); clearRedo(); state.measures=[[]]; state.ties=[]; state.chords=[]; state.lastNoteRef=null; state.selectedNote=null; render(); };
+
+  // ===== Função de aplicar edição de nota =====
+  function applyNoteEdit() {
+    console.log('applyNoteEdit chamada!', state.selectedNote);
+    
+    if (!state.selectedNote) {
+      console.log('Nenhuma nota selecionada');
+      return;
+    }
+
+    const { m, i } = state.selectedNote;
+    const note = state.measures[m][i];
+    if (!note) {
+      console.log('Nota não encontrada');
+      return;
+    }
+
+    console.log('Nota antes:', JSON.stringify(note));
+    
+    // Salva estado para undo (sem afetar seleção)
+    pushUndo();
+    clearRedo();
+
+    // Aplica mudanças
+    const isRest = $editRest.checked;
+    
+    if (isRest) {
+      note.rest = true;
+      note.pitch = 'B4'; // Pitch padrão para pausas
+      note.accidental = '';
+    } else {
+      note.rest = false;
+      const pitch = $editPitch.value;
+      const octave = $editOctave.value;
+      const accidental = $editAccidental.value;
+      
+      console.log('Valores dos campos:', { pitch, octave, accidental });
+      
+      if (pitch && octave) {
+        note.pitch = pitch + (accidental || '') + octave;
+        note.accidental = accidental;
+      }
+    }
+
+    note.duration = $editDuration.value || note.duration;
+    note.dotted = $editDotted.checked;
+
+    console.log('Nota depois:', JSON.stringify(note));
+    
+    // Renderiza mantendo a seleção
+    render();
+    
+    console.log('Após render, selectedNote:', state.selectedNote);
+  }
+
+  $applyEditBtn.onclick = (e) => {
+    console.log('Botão "Aplicar Mudanças" clicado!');
+    e.preventDefault();
+    e.stopPropagation();
+    applyNoteEdit();
+  };
+
+  // pitchToKey
+  function pitchToKey(p){
+    // Aceita tanto "C4" quanto "C/4"
+    const m=/^([A-Ga-g])(?:(?:#{1,2}|b{1,2}|n))?[\/]?(\d)$/.exec(p);
+    if(!m) return 'c/4'; return m[1].toLowerCase()+'/'+m[2];
+  }
+
+  // ===== Beaming (barramento de colcheias) =====
+  function createBeams(notes){
+    if(!notes.length || !Beam) return [];
+    
+    const beams = [];
+    let currentGroup = [];
+    
+    for(let i = 0; i < notes.length; i++){
+      const note = notes[i];
+      const duration = note.getDuration();
+      
+      // Verifica se é uma nota que pode ser barrada (8, 16, 32, etc.)
+      const canBeam = ['8', '16', '32', '64'].includes(duration.replace('r', ''));
+      const isRest = duration.includes('r');
+      
+      if(canBeam && !isRest){
+        currentGroup.push(note);
+      } else {
+        // Finaliza o grupo atual se tiver 2+ notas
+        if(currentGroup.length >= 2){
+          try {
+            beams.push(new Beam(currentGroup));
+          } catch(e) {
+            console.warn('Erro ao criar beam:', e);
+          }
+        }
+        currentGroup = [];
+      }
+    }
+    
+    // Finaliza o último grupo se necessário
+    if(currentGroup.length >= 2){
+      try {
+        beams.push(new Beam(currentGroup));
+      } catch(e) {
+        console.warn('Erro ao criar beam final:', e);
+      }
+    }
+    
+    return beams;
+  }
+
+  // ===== Layout helpers =====
+  function measureVisualWidth(measure, baseW){
+    const NOTE_W = 14;              // largura incremental por nota
+    const MEASURE_PAD_R = 24;       // respiro antes da barra
+    const count = measure?.length ?? 0;
+    return Math.max(baseW*0.75, baseW) + count*NOTE_W + MEASURE_PAD_R;
+  }
+  function splitIntoSystems(widths, maxWidth){
+    const systems=[]; let row=[], acc=0;
+    for(let i=0;i<widths.length;i++){
+      const w=widths[i];
+      if(row.length>0 && acc+w>maxWidth){ systems.push(row); row=[i]; acc=w; }
+      else { row.push(i); acc+=w; }
+    }
+    if(row.length) systems.push(row);
+    return systems;
+  }
+
+  // ===== Render =====
+  function render(){
+    if(!VF_READY||!Factory) return;
+    $score.innerHTML='';
+
+    const BASE_MEASURE_W = 220;
+    const STAVE_H=140, SYSTEM_GAP=30, LEFT=24, RIGHT=24, TOP=20;
+
+    const {beats, beatValue}=timeValues(state.timeSig);
+    const viewportW = ($score.parentElement?.clientWidth ?? 900);
+    const maxSystemW = viewportW - (LEFT+RIGHT);
+
+    // largura base proporcional ao compasso (ex.: 6/8 < 4/4)
+    const proportion = (beats/beatValue) / (4/4); // 4/4 => 1
+    const baseW = BASE_MEASURE_W * Math.max(0.7, proportion);
+
+    // larguras dinâmicas por compasso
+    const widths = state.measures.map(m=>measureVisualWidth(m, baseW));
+    const systemsIdx = splitIntoSystems(widths, Math.max(260, maxSystemW));
+    const totalH = TOP + systemsIdx.length*STAVE_H + (systemsIdx.length-1)*SYSTEM_GAP + 20;
+    const totalW = viewportW;
+
+    const vf = new Factory({ renderer:{ elementId:'score', width: totalW, height: totalH }});
+    const ctx = vf.getContext();
+
+    // mapa de notas para ties
+    const vfNotesByMI = Array(state.measures.length).fill(null).map(()=>[]);
+
+    systemsIdx.forEach((row, s)=>{
+      const y = TOP + s*(STAVE_H+SYSTEM_GAP);
+      let x = LEFT;
+
+      row.forEach((mIndex, j)=>{
+        const measureNotes = state.measures[mIndex] ?? [];
+        const w = widths[mIndex];
+
+        const stave = vf.Stave({ x, y, width: w });
+        // desenha claves/armadura/compasso apenas no primeiro compasso do sistema
+        if(j===0){ stave.addClef(state.clef).addKeySignature(state.keySig).addTimeSignature(state.timeSig); }
+        stave.setContext(ctx).draw();
+
+        const tickables = measureNotes.map(m=>{
+          const dur = m.duration + (m.rest ? 'r' : '');
+          const key = m.rest ? 'b/4' : pitchToKey(m.pitch);
+          const sn = new StaveNote({ clef:state.clef, keys:[key], duration:dur, dots:m.dotted?1:0 });
+
+          if(!m.rest && m.accidental && m.accidental!==''){
+            const type = (m.accidental==='n') ? 'n' : m.accidental; // '#','b','n','##','bb'
+            try{
+              if(typeof sn.addAccidental==='function') sn.addAccidental(0, new Accidental(type));
+              else if(typeof sn.addModifier==='function') sn.addModifier(new Accidental(type), 0);
+            }catch(e){ console.warn('Falha ao anexar acidente:', e); }
+          }
+          if(m.dotted){
+            if(typeof sn.addDotToAll==='function') sn.addDotToAll();
+            else Dot.buildAndAttach([sn], { all:true });
+          }
+          return sn;
+        });
+
+        vfNotesByMI[mIndex]=tickables;
+
+        if(tickables.length){
+          const voice = new Voice({ num_beats:beats, beat_value:beatValue, resolution:4 }).setStrict(false);
+          voice.addTickables(tickables);
+          
+          // Criar beams para colcheias e semicolcheias
+          const beams = createBeams(tickables);
+          
+          const formatter = new Formatter();
+          formatter.joinVoices([voice]);
+
+          // >>> AQUI: formata dentro do espaço útil do Stave (sem invadir a barra!)
+          if(typeof formatter.formatToStave === 'function'){
+            formatter.formatToStave([voice], stave, { stavePadding: 0 });
+          }else{
+            // fallback seguro
+            const startX = (typeof stave.getNoteStartX==='function') ? stave.getNoteStartX() : (stave.getX()+12);
+            const endX   = (typeof stave.getNoteEndX==='function')   ? stave.getNoteEndX()   : (stave.getX()+stave.getWidth()-14);
+            const avail  = Math.max(20, endX - startX);
+            formatter.format([voice], avail);
+          }
+          
+          voice.draw(ctx, stave);
+          
+          // Desenhar os beams (barramento)
+          beams.forEach(beam => {
+            try {
+              beam.setContext(ctx).draw();
+            } catch(e) {
+              console.warn('Erro ao desenhar beam:', e);
+            }
+          });
+        }
+
+        x += w;
+      });
+    });
+
+    // desenha ties
+    state.ties.forEach(t=>{
+      const first=vfNotesByMI[t.from.m]?.[t.from.i];
+      const last =vfNotesByMI[t.to.m]?.[t.to.i];
+      if(first&&last) new StaveTie({first_note:first,last_note:last}).setContext(ctx).draw();
+    });
+
+    // desenha acordes (cifras)
+    state.chords.forEach(chord=>{
+      const note = vfNotesByMI[chord.m]?.[chord.i];
+      if(note){
+        try {
+          // Renderiza texto da cifra acima da pauta
+          const bbox = note.getBoundingBox();
+          if(bbox){
+            // Calcula qual sistema (linha) esta nota está
+            const TOP = 20;
+            const STAVE_H = 140;
+            const SYSTEM_GAP = 30;
+            const systemIndex = Math.floor((bbox.y - TOP) / (STAVE_H + SYSTEM_GAP));
+            const staveY = TOP + systemIndex * (STAVE_H + SYSTEM_GAP);
+            
+            ctx.save();
+            ctx.font = '14px Arial, sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            // Posiciona sempre acima da pauta (Y fixo = staveY + 2)
+            ctx.fillText(chord.symbol, bbox.x + bbox.w/2, staveY + 2);
+            ctx.restore();
+          }
+        } catch(e) {
+          console.warn('Erro ao desenhar acorde:', e);
+        }
+      }
+    });
+
+    // Destaca nota selecionada
+    if(state.selectedNote){
+      const note = vfNotesByMI[state.selectedNote.m]?.[state.selectedNote.i];
+      if(note){
+        try {
+          const bbox = note.getBoundingBox();
+          if(bbox){
+            const canvas = ctx.canvas || ctx.element;
+            if(canvas && canvas.getContext) {
+              const canvasCtx = canvas.getContext('2d');
+              canvasCtx.save();
+              canvasCtx.strokeStyle = '#ff0000';
+              canvasCtx.lineWidth = 2;
+              canvasCtx.strokeRect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4);
+              canvasCtx.restore();
+            } else {
+              // Fallback para SVG - criar um retângulo SVG
+              const svg = $score.querySelector('svg');
+              if(svg) {
+                // Remove destaque anterior
+                const oldHighlight = svg.querySelector('.note-highlight');
+                if(oldHighlight) oldHighlight.remove();
+                
+                // Cria novo destaque
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'note-highlight');
+                rect.setAttribute('x', bbox.x - 2);
+                rect.setAttribute('y', bbox.y - 2);
+                rect.setAttribute('width', bbox.w + 4);
+                rect.setAttribute('height', bbox.h + 4);
+                rect.setAttribute('fill', 'none');
+                rect.setAttribute('stroke', '#ff0000');
+                rect.setAttribute('stroke-width', '2');
+                rect.setAttribute('pointer-events', 'none');
+                svg.appendChild(rect);
+              }
+            }
+          }
+        } catch(e) {
+          console.warn('Erro ao destacar nota:', e);
+        }
+      }
+    } else {
+      // Remove destaque quando não há seleção
+      const svg = $score.querySelector('svg');
+      if(svg) {
+        const oldHighlight = svg.querySelector('.note-highlight');
+        if(oldHighlight) oldHighlight.remove();
+      }
+    }
+  }
+
+  // ===== Export/Import =====
+  function exportSVG(){
+    const svg=$score.querySelector('svg'); if(!svg) return;
+    const data=new XMLSerializer().serializeToString(svg);
+    const blob=new Blob([data],{type:'image/svg+xml;charset=utf-8'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='partitura.svg'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function saveJSON(){
+    const data={clef:state.clef,keySig:state.keySig,timeSig:state.timeSig,measures:state.measures,ties:state.ties,chords:state.chords};
+    
+    // Salva no localStorage para integração com U-Control
+    try {
+      localStorage.setItem('vexflow_sheet_data', JSON.stringify(data));
+      
+      // Salva também o SVG visual
+      const svg = $score.querySelector('svg');
+      if (svg) {
+        const svgData = new XMLSerializer().serializeToString(svg);
+        localStorage.setItem('vexflow_sheet_svg', svgData);
+        console.log('✅ Partitura (dados + SVG) salva no localStorage para U-Control');
+      } else {
+        console.log('✅ Apenas dados salvos no localStorage (SVG não encontrado)');
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro ao salvar no localStorage:', e);
+    }
+    
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='partitura.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function loadJSON(file){
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const o=JSON.parse(String(r.result));
+        if(o?.measures){
+          state.clef=o.clef||'treble'; state.keySig=o.keySig||'C'; state.timeSig=o.timeSig||'4/4';
+          state.measures=o.measures; state.ties=o.ties||[]; state.chords=o.chords||[]; state.lastNoteRef=null; state.selectedNote=null; render();
+        }
+      }catch{ alert('JSON inválido'); }
+    };
+    r.readAsText(file);
+  }
+
+  // ===== Botões & atalhos =====
+  $('exportSVGBtn').onclick=exportSVG;
+  $('saveJSONBtn').onclick=saveJSON;
+  $('loadJSONInput').onchange=(e)=>{ const f=e.target.files?.[0]; if(f) loadJSON(f); e.target.value=''; };
+  $('removeBtn').onclick=removeLast;
+  $('clearBtn').onclick=clearAll;
+  $('undoBtn').onclick=undo;
+  $('redoBtn').onclick=redo;
+  $('octDown').onclick=()=>setOctave(state.currentOctave-1);
+  $('octUp').onclick=()=>setOctave(state.currentOctave+1);
+  document.querySelectorAll('.rest-btn').forEach(btn=>btn.onclick=()=>addRest(btn.dataset.dur));
+
+  window.addEventListener('keydown',(ev)=>{
+    if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return;
+    if (ev.key==='Backspace'){ ev.preventDefault(); removeLast(); }
+    if (ev.key==='.') $dot.click();
+    if (/^[rR]$/.test(ev.key)) $isRest.click();
+    if (ev.key==='1') setDuration('w');
+    if (ev.key==='2') setDuration('h');
+    if (ev.key==='3') setDuration('q');
+    if (ev.key==='4') setDuration('8');
+    if (ev.key==='5') setDuration('16');
+    if (ev.key==='[' || ev.key==='-') setOctave(state.currentOctave-1);
+    if (ev.key===']' || ev.key==='=' || ev.key==='+') setOctave(state.currentOctave+1);
+    if (/^[cdefgab]$/i.test(ev.key)) addNoteFromLetter(ev.key.toUpperCase());
+    if (ev.key==='t' || ev.key==='T') $tie.click();
+    if ((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='z') undo();
+    if ((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='y') redo();
+  });
+
+  // ===== Zoom =====
+  function setZoom(level){
+    state.zoomLevel=Math.max(50,Math.min(200,level));
+    $('zoomLevel').textContent=`${state.zoomLevel}%`;
+    const el=$('score'); if(el){ el.style.transform=`scale(${state.zoomLevel/100})`; el.style.transformOrigin='top left'; }
+  }
+  $('zoomInBtn').onclick=()=>{ setZoom(state.zoomLevel+10); render(); };
+  $('zoomOutBtn').onclick=()=>{ setZoom(state.zoomLevel-10); render(); };
+
+  // ===== Funcionalidade de seleção de notas =====
+  let noteClickHandlers = [];
+
+  function addNoteClickHandlers() {
+    // Remove handlers anteriores
+    noteClickHandlers.forEach(removeHandler => removeHandler());
+    noteClickHandlers = [];
+
+    // Adiciona evento de clique em todas as notas
+    const svg = $score.querySelector('svg');
+    if (!svg) return;
+
+    const notes = svg.querySelectorAll('.vf-stavenote');
+    notes.forEach((noteElement, globalIndex) => {
+      const clickHandler = (e) => {
+        e.stopPropagation();
+
+        // Encontra qual nota foi clicada baseado na posição
+        let foundNote = null;
+        let noteIndex = 0;
+        
+        for (let m = 0; m < state.measures.length; m++) {
+          const measure = state.measures[m];
+          for (let i = 0; i < measure.length; i++) {
+            if (!measure[i].rest) { // Só notas, não pausas
+              if (noteIndex === globalIndex) {
+                foundNote = { m, i };
+                break;
+              }
+              noteIndex++;
+            }
+          }
+          if (foundNote) break;
+        }
+
+        if (foundNote) {
+          selectNote(foundNote.m, foundNote.i);
+        }
+      };
+
+      noteElement.addEventListener('click', clickHandler);
+      noteClickHandlers.push(() => noteElement.removeEventListener('click', clickHandler));
+
+      // Adiciona cursor pointer
+      noteElement.style.cursor = 'pointer';
+    });
+
+    // Clique fora desmarca (mas não nos controles de edição)
+    const deselectHandler = (e) => {
+      if (!e.target.closest('.vf-stavenote') && 
+          !e.target.closest('#applyEditBtn') &&
+          !e.target.closest('#editPitch') &&
+          !e.target.closest('#editOctave') &&
+          !e.target.closest('#editDuration') &&
+          !e.target.closest('#editAccidental') &&
+          !e.target.closest('#editDotted') &&
+          !e.target.closest('#editRest') &&
+          !e.target.closest('#chordInput') &&
+          !e.target.closest('#addChordBtn') &&
+          !e.target.closest('#removeChordBtn')) {
+        deselectNote();
+      }
+    };
+
+    document.addEventListener('click', deselectHandler);
+    noteClickHandlers.push(() => document.removeEventListener('click', deselectHandler));
+  }
+
+  // Função para salvar automaticamente no localStorage
+  function autoSaveToLocalStorage() {
+    try {
+      const data = {
+        clef: state.clef,
+        keySig: state.keySig,
+        timeSig: state.timeSig,
+        measures: state.measures,
+        ties: state.ties,
+        chords: state.chords
+      };
+      localStorage.setItem('vexflow_sheet_data', JSON.stringify(data));
+      
+      // Salva também o SVG visual
+      const svg = $score.querySelector('svg');
+      if (svg) {
+        const svgData = new XMLSerializer().serializeToString(svg);
+        localStorage.setItem('vexflow_sheet_svg', svgData);
+        console.log('💾 Auto-save: Partitura (dados + SVG) salva no localStorage');
+      } else {
+        console.log('💾 Auto-save: Apenas dados salvos (SVG não encontrado)');
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro no auto-save:', e);
+    }
+  }
+
+  // Chama após render
+  let editorInitialized = false; // Flag para evitar auto-save antes de carregar dados
+  const originalRender = render;
+  render = function() {
+    originalRender();
+    setTimeout(addNoteClickHandlers, 100); // Delay para garantir que o SVG foi renderizado
+    if (editorInitialized) {
+      autoSaveToLocalStorage(); // Salva automaticamente a cada mudança (só após inicialização)
+    }
+  };
+
+  // ===== Integração U-Control =====
+  // Função para carregar dados do localStorage
+  function loadFromLocalStorage() {
+    try {
+      const data = localStorage.getItem('vexflow_sheet_data');
+      console.log('🔍 LOAD DEBUG - Raw data from localStorage:', data);
+      
+      if (data) {
+        const parsed = JSON.parse(data);
+        console.log('📄 Dados parseados do localStorage:', parsed);
+        console.log('📊 Estrutura dos dados:');
+        console.log('  - clef:', parsed.clef);
+        console.log('  - keySig:', parsed.keySig);
+        console.log('  - timeSig:', parsed.timeSig);
+        console.log('  - measures:', parsed.measures);
+        console.log('  - ties:', parsed.ties);
+        console.log('  - chords:', parsed.chords);
+        
+        // Verifica se há notas válidas
+        if (parsed.measures && parsed.measures.length > 0 && parsed.measures[0].length === 0) {
+          console.log('⚠️ Partitura vazia detectada - dados vazios no localStorage');
+          console.log('🧹 Limpando localStorage e iniciando partitura nova...');
+          localStorage.removeItem('vexflow_sheet_data');
+          localStorage.removeItem('vexflow_sheet_svg');
+          return false;
+        }
+        
+        // Restaura o estado
+        if (parsed.clef) state.clef = parsed.clef;
+        if (parsed.keySig) state.keySig = parsed.keySig;
+        if (parsed.timeSig) state.timeSig = parsed.timeSig;
+        if (parsed.measures) state.measures = parsed.measures;
+        if (parsed.ties) state.ties = parsed.ties;
+        if (parsed.chords) state.chords = parsed.chords;
+        
+        console.log('🔄 Estado atualizado:', state);
+        
+        // Atualiza os controles da interface (com verificação de segurança)
+        const clefEl = document.getElementById('clef');
+        const keySigEl = document.getElementById('keySig');
+        const timeSigEl = document.getElementById('timeSig');
+        
+        if (clefEl) clefEl.value = state.clef;
+        if (keySigEl) keySigEl.value = state.keySig;
+        if (timeSigEl) timeSigEl.value = state.timeSig;
+        
+        console.log('🎛️ Controles da interface atualizados');
+        
+        // Re-renderiza a partitura
+        console.log('🎨 Iniciando renderização...');
+        render();
+        
+        console.log('✅ Partitura carregada com sucesso!');
+        return true;
+      } else {
+        console.log('❌ Nenhum dado encontrado no localStorage');
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro ao carregar do localStorage:', e);
+      console.warn('Stack trace:', e.stack);
+    }
+    return false;
+  }
+  
+  // Função para carregar dados da partitura de uma música específica
+  function loadSheetDataFromSong(sheetData) {
+    try {
+      console.log('🎵 Carregando dados da partitura da música...', sheetData);
+      
+      // Restaura o estado da partitura
+      if (sheetData.clef) state.clef = sheetData.clef;
+      if (sheetData.keySig) state.keySig = sheetData.keySig;
+      if (sheetData.timeSig) state.timeSig = sheetData.timeSig;
+      if (sheetData.measures) state.measures = sheetData.measures;
+      if (sheetData.ties) state.ties = sheetData.ties;
+      if (sheetData.chords) state.chords = sheetData.chords;
+      
+      // Atualiza os controles da interface
+      document.getElementById('clef').value = state.clef;
+      document.getElementById('keySig').value = state.keySig;
+      document.getElementById('timeSig').value = state.timeSig;
+      
+      // Re-renderiza a partitura
+      render();
+      
+      console.log('✅ Dados da música carregados com sucesso!');
+      return true;
+    } catch (e) {
+      console.warn('⚠️ Erro ao carregar dados da música:', e);
+      return false;
+    }
+  }
+  
+  // DEBUG: Verificação imediata se o JavaScript está rodando
+  console.log('🚀 JavaScript do sheet_editor iniciado!');
+  
+  // Verifica se há dados de música para carregar
+  const urlParams = new URLSearchParams(window.location.search);
+  const songId = window.location.pathname.match(/\/sheet_editor\/(\d+)/)?.[1];
+  
+  // Carrega dados do localStorage quando o editor abre
+  function initializeEditor() {
+    console.log('🎼 Editor VexFlow carregado, verificando dados...');
+    console.log('🔍 songData:', songData);
+    
+    // Debug: mostra todos os dados disponíveis
+      // Debug: mostra todos os dados disponíveis
+      const localStorageData = localStorage.getItem('vexflow_sheet_data');
+      const localStorageSvg = localStorage.getItem('vexflow_sheet_svg');
+      
+      console.log('🔍 DEBUG - Dados disponíveis:');
+      console.log('  - songData:', songData);
+      console.log('  - localStorage data:', localStorageData ? 'Presente (' + localStorageData.length + ' chars)' : 'Ausente');
+      console.log('  - localStorage SVG:', localStorageSvg ? 'Presente (' + localStorageSvg.length + ' chars)' : 'Ausente');
+      
+      // Primeiro verifica se há dados da música passados pelo Flask
+      if (songData && songData.sheet_data) {
+        console.log('📄 Carregando dados da música do servidor:', songData.title || 'Sem título');
+        loadSheetDataFromSong(songData.sheet_data);
+        console.log('✅ Editor iniciado com partitura da música');
+      } else {
+        // Se não há dados da música, tenta carregar do localStorage
+        console.log('📂 Tentando carregar do localStorage...');
+        
+        if (localStorageData) {
+          console.log('📄 Dados encontrados no localStorage, tentando carregar...');
+          if (loadFromLocalStorage()) {
+            console.log('✅ Editor iniciado com partitura do localStorage');
+          } else {
+            console.log('❌ Falha ao carregar do localStorage');
+          }
+        } else {
+          console.log('🆕 Editor iniciado com partitura nova (sem dados)');
+        }
+      }
+      
+      // Marca como inicializado para permitir auto-save a partir de agora
+      editorInitialized = true;
+      console.log('✅ Editor totalmente inicializado - auto-save habilitado');
+  }
+  
+  // Executa a inicialização com delay maior para aguardar dados do new_song
+  setTimeout(initializeEditor, 2000);
+  
+  // Também tenta carregar quando a página fica visível (caso venha de outra aba)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      console.log('👁️ Página ficou visível, verificando dados...');
+      setTimeout(() => {
+        loadFromLocalStorage();
+      }, 200);
+    }
+  });
+  
+  // Função para salvar no U-Control
+  async function saveToUControl() {
+    if (!songId) {
+      alert('❌ Esta é uma partitura nova. Salve primeiro como JSON.');
+      return;
+    }
+    
+    try {
+      const sheetData = {
+        clef: state.clef,
+        keySig: state.keySig,
+        timeSig: state.timeSig,
+        measures: state.measures,
+        ties: state.ties,
+        chords: state.chords
+      };
+
+      const response = await fetch(`/api/save_sheet/${songId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sheetData)
+      });
+
+      if (response.ok) {
+        alert('✅ Partitura salva na música com sucesso!');
+      } else {
+        alert('❌ Erro ao salvar partitura');
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('❌ Erro ao salvar partitura');
+    }
+  }
+
+  // Adiciona botão de salvar no U-Control se for edição de música
+  if (songId) {
+    const exportSection = document.querySelector('.control-group:last-child .row');
+    if (exportSection) {
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn action-btn';
+      saveBtn.textContent = '💾 Salvar na Música';
+      saveBtn.onclick = saveToUControl;
+      exportSection.appendChild(saveBtn);
+    }
+  }
+
+  // ===== Init =====
+  buildNoteButtons();
+  setOctave(state.currentOctave);
+  setDuration(state.duration||'h');
+  setZoom(state.zoomLevel);
+  render();
+</script>
+</body>
+</html>

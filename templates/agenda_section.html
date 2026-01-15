@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda {{ section|capitalize }} - {{ date }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f5f7fa; color: #0f172a; }
+        .page { max-width: 800px; margin: 32px auto; padding: 0 16px 80px; }
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+        .title { font-size: 22px; font-weight: 700; }
+        .badge { padding: 6px 12px; background: #ecfeff; color: #0891b2; border: 1px solid #bae6fd; border-radius: 10px; font-weight: 600; }
+        .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 8px 24px rgba(15,23,42,0.08); margin-bottom: 16px; }
+        .line { display: flex; gap: 8px; font-size: 14px; color: #334155; margin-bottom: 8px; }
+        .line strong { color: #0f172a; }
+        ul { margin: 0; padding-left: 18px; color: #334155; }
+        .empty { color: #94a3b8; font-size: 14px; }
+        .btn { background: #0ea5e9; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 18px rgba(14,165,233,0.25); }
+        .btn:hover { box-shadow: 0 10px 22px rgba(14,165,233,0.3); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        .back { text-decoration: none; color: #0ea5e9; font-weight: 700; }
+        label { display: block; font-weight: 600; margin: 10px 0 6px; color: #0f172a; }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            font-family: inherit;
+            background: #f8fafc;
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .status { margin-top: 10px; font-size: 13px; }
+        .status.ok { color: #059669; }
+        .status.err { color: #b91c1c; }
+        /* Itens (músicas/texto/bíblia) */
+        .items-card { margin-top: 10px; }
+        .search-section { margin: 12px 0 8px; }
+        .search-box { position: relative; margin-bottom: 15px; }
+        #searchInput {
+            width: 100%;
+            padding: 15px 20px 15px 50px;
+            border: 2px solid #00bcd4;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2300bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>');
+            background-repeat: no-repeat;
+            background-position: 15px center;
+        }
+        #searchInput:focus { border-color: #0097a7; box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3); }
+        #searchInput::placeholder { color: #94a3b8; }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 2px solid #00bcd4;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+        .autocomplete-list.show { display: block; }
+        .autocomplete-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+        }
+        .autocomplete-item:hover { background: linear-gradient(135deg, #e0f7fa, #f1f8e9); }
+        .song-title { font-weight: bold; color: #00695c; }
+        .song-author { color: #666; font-size: 0.85rem; }
+        .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .actions-row input { flex: 1; min-width: 180px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: #f8fafc; }
+        .actions-row button { padding: 12px 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; color: white; box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
+        .btn-text { background: linear-gradient(135deg, #4CAF50, #43a047); }
+        .btn-bible { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+        #songList { margin-top: 12px; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; background: #fff; min-height: 80px; }
+        #songList:empty::before { content: 'Nenhum item. Use a busca ou botões para adicionar.'; color: #94a3b8; font-size: 13px; }
+        .song-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; background: #f8fafc; }
+        .song-item.bible { background: linear-gradient(135deg, #f3e8ff, #ede9fe); border-left: 4px solid #7c3aed; }
+        .song-item.text-item { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-left: 4px solid #fb923c; }
+        .drag-handle {
+            cursor: grab;
+            font-size: 18px;
+            color: #94a3b8;
+            display: inline-flex;
+            align-items: center;
+            user-select: none;
+            padding: 0 4px;
+        }
+        .drag-handle:hover { color: #0ea5e9; }
+        .song-info a { text-decoration: none; color: #0f172a; font-weight: 600; }
+        .remove-btn { border: none; background: linear-gradient(135deg, #ef5350, #e53935); color: white; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+        .remove-btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header">
+        <div>
+            <a class="back" href="{% if current_user.is_authenticated %}/agenda/{{ date }}/admin{% else %}/agenda/{{ date }}{% endif %}">← Voltar</a>
+            <div class="title">{{ section == 'louvor' and 'Louvor e Dirigência' or section == 'midia' and 'Escala Mídia' or 'Eventos' }} — {{ date }}</div>
+        </div>
+    </div>
+
+    <div class="card">
+        {% if section == 'louvor' %}
+            <label for="tipo">Tipo de Culto</label>
+            <select id="tipo">
+                {% set tipo_sel = order.get('tipo','') %}
+                {% set tipos = ['Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Santa Ceia','Culto Especial','Outro'] %}
+                {% for t in tipos %}
+                    <option value="{{ t }}" {{ 'selected' if tipo_sel == t else '' }}>{{ t }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="dirigente">Dirigente</label>
+            <input id="dirigente" value="{{ order.get('dirigente','') }}">
+
+            <label for="pregador">Pregador</label>
+            <input id="pregador" value="{{ order.get('pregador','') }}">
+
+            <label for="musicos">Músicos (um por linha: Instrumento - Pessoa)</label>
+            <textarea id="musicos">{% for m in order.get('louvor', {}).get('musicos', []) %}{{ m.get('instrumento','') }} - {{ m.get('pessoa','') }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Guitarra - Leo</div>
+
+            <label for="cantores">Cantores (um por linha: Nome)</label>
+            <textarea id="cantores">{% for c in order.get('louvor', {}).get('cantores', []) %}{{ c }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Ana</div>
+
+            <div class="items-card">
+                <label>Adicionar Itens</label>
+                <div class="search-section">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar música por título, autor ou letra...">
+                        <div id="autocompleteList" class="autocomplete-list" style="display:none;"></div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                        <a href="/new_song" target="_blank" rel="noopener noreferrer" class="btn" style="background: linear-gradient(135deg, #8e44ad, #6c3483); box-shadow: 0 6px 16px rgba(142,68,173,0.35); text-decoration: none;">➕ Nova Música</a>
+                        <span class="hint">Use se a música não existir na biblioteca.</span>
+                    </div>
+                    <div class="actions-row">
+                        <input type="text" id="freeTextInput" placeholder="Texto livre (ex: Oração, Anúncios...)">
+                        <button type="button" class="btn-text" onclick="addToList()">➕ Adicionar</button>
+                        <input type="text" id="bibleRefInput" placeholder="Referência bíblica (ex: João 3:16)">
+                        <button type="button" class="btn-bible" onclick="addBibleToList()">📖 Adicionar</button>
+                    </div>
+                </div>
+                <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+        {% elif section == 'midia' %}
+            {% set midia = order.get('midia', {}) %}
+            {% if midia is not mapping %}
+                {% set midia = {} %}
+            {% endif %}
+
+            <label for="midia_lider">Líder</label>
+            <input id="midia_lider" value="{{ midia.get('lider','') }}">
+
+            <label for="midia_palco">Palco</label>
+            <input id="midia_palco" value="{{ midia.get('palco','') }}">
+
+            <label for="midia_visual">Visual</label>
+            <input id="midia_visual" value="{{ midia.get('visual','') }}">
+
+            <label for="midia_team">Equipe (um por linha: Função - Pessoa)</label>
+            <textarea id="midia_team">{% for m in midia.get('equipe', []) %}{{ m.get('nome','') }} - {{ m.get('pessoa','') }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Projeção - Ana</div>
+
+            <label for="midia_extras">Cargos extras (um por linha: Função - Pessoa)</label>
+            <textarea id="midia_extras">{% for m in midia.get('extras', []) %}{{ m.get('nome','') }} - {{ m.get('pessoa','') }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Fotógrafo - João</div>
+
+            <label for="midia_obs">Observações</label>
+            <textarea id="midia_obs">{{ midia.get('obs','') }}</textarea>
+        {% else %}
+            {% set evento = (order.get('eventos') or [])|first or {} %}
+
+            <label for="ev_titulo">Título do evento</label>
+            <input id="ev_titulo" value="{{ evento.get('titulo','') }}">
+
+            <label for="ev_hora">Horário</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('18:00')">18:00</button>
+                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('19:00')">19:00</button>
+                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('20:00')">20:00</button>
+                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('20:30')">20:30</button>
+            </div>
+            <input id="ev_hora" value="{{ evento.get('hora','') }}" placeholder="Ex.: 19:30">
+
+            <label for="ev_responsavel">Responsáveis</label>
+            <textarea id="ev_responsavel" placeholder="Ex.: João; Maria">{{ evento.get('responsavel','') }}</textarea>
+
+            <label for="ev_obs">Observações</label>
+            <textarea id="ev_obs" placeholder="Detalhes adicionais">{{ evento.get('obs','') }}</textarea>
+        {% endif %}
+    </div>
+
+    <button class="btn" id="saveBtn">Salvar</button>
+    <div class="status" id="status"></div>
+</div>
+<script id="order-data" type="application/json">{{ (order or {}) | tojson }}</script>
+<script>
+    const section = "{{ section }}";
+    const date = "{{ date }}";
+    const orderData = JSON.parse(document.getElementById('order-data').textContent || '{}');
+    let draggedElement = null;
+    let searchTimeout = null;
+    let currentSearchTerm = '';
+
+    function parseMusicos(text) {
+        return text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => {
+            const [instrumento='', pessoa=''] = l.split(' - ');
+            return { instrumento: instrumento.trim(), pessoa: pessoa.trim() };
+        });
+    }
+    function parseCantores(text) {
+        return text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    }
+    function buildItemListPayload() {
+        const songList = document.getElementById('songList');
+        const items = Array.from(songList.children);
+        return items.map(item => {
+            const link = item.querySelector('a');
+            const title = link ? link.textContent : null;
+            let url = link ? link.getAttribute('href') : null;
+
+            if (item.dataset.isBible === "true") {
+                return { isBible: true, reference: item.dataset.reference, title: title };
+            }
+
+            if (url) {
+                const urlObject = new URL(url, window.location.origin);
+                url = urlObject.pathname;
+            }
+
+            return url && url !== '/' && url !== '#' ? { url, title } : { anyText: title };
+        });
+    }
+    function parseFuncoes(text) {
+        return text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => {
+            const [nome='', pessoa=''] = l.split(' - ');
+            return { nome: nome.trim(), pessoa: pessoa.trim() };
+        });
+    }
+    function parseEventoForm() {
+        const titulo = document.getElementById('ev_titulo').value.trim();
+        const hora = document.getElementById('ev_hora').value.trim();
+        const responsavel = document.getElementById('ev_responsavel').value.trim();
+        const obs = document.getElementById('ev_obs').value.trim();
+        return titulo ? [{ titulo, hora, responsavel, obs }] : [];
+    }
+
+    async function save() {
+        const btn = document.getElementById('saveBtn');
+        const status = document.getElementById('status');
+        btn.disabled = true; status.textContent = 'Salvando...'; status.className = 'status';
+        const payload = { ...(orderData || {}) };
+
+        if (section === 'louvor') {
+            payload.tipo = document.getElementById('tipo').value;
+            payload.dirigente = document.getElementById('dirigente').value.trim();
+            payload.pregador = document.getElementById('pregador').value.trim();
+            payload.louvor = payload.louvor || {};
+            payload.louvor.musicos = parseMusicos(document.getElementById('musicos').value);
+            payload.louvor.cantores = parseCantores(document.getElementById('cantores').value);
+            payload.itens = buildItemListPayload();
+        } else if (section === 'midia') {
+            payload.midia = {
+                lider: document.getElementById('midia_lider').value.trim(),
+                palco: document.getElementById('midia_palco').value.trim(),
+                visual: document.getElementById('midia_visual').value.trim(),
+                equipe: parseFuncoes(document.getElementById('midia_team').value),
+                extras: parseFuncoes(document.getElementById('midia_extras').value),
+                obs: document.getElementById('midia_obs').value.trim()
+            };
+        } else {
+            payload.eventos = parseEventoForm();
+        }
+
+        try {
+            const resp = await fetch(`/api/orders/${date}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) throw new Error('Falha ao salvar');
+            status.textContent = 'Salvo com sucesso!';
+            status.className = 'status ok';
+        } catch (e) {
+            status.textContent = 'Erro ao salvar';
+            status.className = 'status err';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+    document.getElementById('saveBtn').addEventListener('click', save);
+
+    // ---- Itens (louvor) helpers ----
+    async function searchSongs(query) {
+        const list = document.getElementById("autocompleteList");
+        if (!query || query.trim().length === 0) {
+            list.style.display = 'none';
+            return;
+        }
+        currentSearchTerm = query;
+        try {
+            const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+            const songs = await response.json();
+            if (currentSearchTerm !== query) return;
+            list.innerHTML = "";
+            if (songs.length === 0) {
+                list.innerHTML = '<div class="autocomplete-item" style="padding:10px 14px; color:#94a3b8;">Nenhuma música encontrada</div>';
+                list.style.display = 'block';
+                return;
+            }
+            songs.forEach(song => {
+                const item = document.createElement("div");
+                item.className = "autocomplete-item";
+                item.style.padding = '10px 14px';
+                item.style.cursor = 'pointer';
+                item.style.borderBottom = '1px solid #e2e8f0';
+                item.innerHTML = `
+                    <div style="font-weight:700; color:#0f172a;">${song.title}</div>
+                    <div style="color:#64748b; font-size:12px;">${song.author || 'Autor desconhecido'}</div>
+                `;
+                item.onclick = () => {
+                    addSongToList(song);
+                    list.style.display = 'none';
+                    document.getElementById("searchInput").value = "";
+                };
+                list.appendChild(item);
+            });
+            list.style.display = 'block';
+        } catch (error) {
+            console.error("Erro ao buscar músicas:", error);
+        }
+    }
+    function debouncedSearch(query) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchSongs(query), 300);
+    }
+
+    function addSongToList(song) {
+        const songList = document.getElementById("songList");
+        const songItem = document.createElement("div");
+        songItem.className = "song-item";
+        songItem.setAttribute("draggable", "true");
+        songItem.id = `song-${Date.now()}`;
+
+        const displayText = song.author ? `${song.title} | ${song.author}` : song.title;
+        const baseUrl = song.url || (song.id ? `/lyrics/${song.id}` : "#");
+        const url = baseUrl.includes('/lyrics/') ? `${baseUrl}?order=${date}` : baseUrl;
+
+        songItem.innerHTML = `
+            <span class="drag-handle">⋮⋮</span>
+            <div class="song-info">
+                <a href="${url}" target="_blank">${displayText}</a>
+            </div>
+            <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+
+        songItem.ondragstart = (e) => {
+            draggedElement = songItem;
+            e.dataTransfer.effectAllowed = "move";
+        };
+
+        songList.appendChild(songItem);
+    }
+
+    function addToList() {
+        const input = document.getElementById("freeTextInput");
+        const text = input.value.trim();
+        if (!text) return;
+        const songList = document.getElementById("songList");
+        const item = document.createElement("div");
+        item.className = "song-item text-item";
+        item.setAttribute("draggable", "true");
+        item.id = `text-${Date.now()}`;
+
+        item.innerHTML = `
+            <span class="drag-handle">⋮⋮</span>
+            <div class="song-info">
+                <a href="#">📝 ${text}</a>
+            </div>
+            <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+
+        item.ondragstart = (e) => {
+            draggedElement = item;
+            e.dataTransfer.effectAllowed = "move";
+        };
+
+        songList.appendChild(item);
+        input.value = "";
+    }
+
+    function addBibleToList() {
+        const input = document.getElementById("bibleRefInput");
+        const ref = input.value.trim();
+        if (!ref) return;
+        const songList = document.getElementById("songList");
+        const item = document.createElement("div");
+        item.className = "song-item bible";
+        item.setAttribute("draggable", "true");
+        item.id = `bible-${Date.now()}`;
+        item.dataset.isBible = "true";
+        item.dataset.reference = ref;
+
+        const url = `/bible?search=${encodeURIComponent(ref)}`;
+        item.innerHTML = `
+            <div class="song-info">
+                <a href="${url}" target="_blank">📖 ${ref}</a>
+            </div>
+            <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+
+        item.ondragstart = (e) => {
+            draggedElement = item;
+            e.dataTransfer.effectAllowed = "move";
+        };
+
+        songList.appendChild(item);
+        input.value = "";
+    }
+
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drop(ev) {
+        ev.preventDefault();
+        if (ev.target.classList.contains("song-item") && draggedElement) {
+            const target = ev.target;
+            const songList = document.getElementById("songList");
+            const allItems = Array.from(songList.children);
+            const draggedIndex = allItems.indexOf(draggedElement);
+            const targetIndex = allItems.indexOf(target);
+            if (draggedIndex < targetIndex) {
+                songList.insertBefore(draggedElement, target.nextSibling);
+            } else {
+                songList.insertBefore(draggedElement, target);
+            }
+        }
+    }
+
+    function loadExistingItens() {
+        if (!orderData || !orderData.itens) return;
+        orderData.itens.forEach(item => {
+            if (item.isBible) {
+                const songList = document.getElementById("songList");
+                const elem = document.createElement("div");
+                elem.className = "song-item bible";
+                elem.setAttribute("draggable", "true");
+                elem.id = `bible-${Date.now()}-${Math.random()}`;
+                elem.dataset.isBible = "true";
+                elem.dataset.reference = item.reference;
+                elem.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="song-info">
+                        <a href="/bible?search=${encodeURIComponent(item.reference)}" target="_blank">${item.title || '📖 ' + item.reference}</a>
+                    </div>
+                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                `;
+                elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
+                songList.appendChild(elem);
+            } else if (item.url && item.title) {
+                const songList = document.getElementById("songList");
+                const elem = document.createElement("div");
+                elem.className = "song-item";
+                elem.setAttribute("draggable", "true");
+                elem.id = `song-${Date.now()}-${Math.random()}`;
+                const linkUrl = item.url.includes('/lyrics/') ? `${item.url}?order=${date}` : item.url;
+                elem.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="song-info">
+                        <a href="${linkUrl}" target="_blank">${item.title}</a>
+                    </div>
+                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                `;
+                elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
+                songList.appendChild(elem);
+            } else if (item.anyText || item.title) {
+                const songList = document.getElementById("songList");
+                const elem = document.createElement("div");
+                elem.className = "song-item text-item";
+                elem.setAttribute("draggable", "true");
+                elem.id = `text-${Date.now()}-${Math.random()}`;
+                const text = item.anyText || item.title;
+                elem.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="song-info">
+                        <a href="#">${text}</a>
+                    </div>
+                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                `;
+                elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
+                songList.appendChild(elem);
+            }
+        });
+    }
+
+    // Listeners para busca/enter
+    document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+            searchInput.addEventListener("input", (e) => debouncedSearch(e.target.value.trim()));
+            searchInput.addEventListener("keydown", (e) => { if (e.key === 'Escape') document.getElementById("autocompleteList").style.display = 'none'; });
+        }
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".search-box")) {
+                const list = document.getElementById("autocompleteList");
+                if (list) list.style.display = 'none';
+            }
+        });
+        const freeText = document.getElementById("freeTextInput");
+        const bibleInput = document.getElementById("bibleRefInput");
+        if (freeText) freeText.addEventListener("keydown", (e) => { if (e.key === 'Enter') { e.preventDefault(); addToList(); } });
+        if (bibleInput) bibleInput.addEventListener("keydown", (e) => { if (e.key === 'Enter') { e.preventDefault(); addBibleToList(); } });
+        loadExistingItens();
+    });
+</script>
+</body>
+</html>

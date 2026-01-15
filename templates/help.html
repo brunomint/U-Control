@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Ajuda - Como Usar o U-Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1 {
+            color: #0056b3;
+        }
+        h2 {
+            color: #007bff;
+        }
+        ul {
+            margin-left: 20px;
+        }
+        .highlight {
+            background-color: #e7f3ff;
+            padding: 5px;
+            border-left: 4px solid #007bff;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: "Courier New", Courier, monospace;
+        }
+        .menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 100%;
+            background-color: #0056b3;
+            color: white;
+            padding: 10px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .menu h3 {
+            margin-top: 0;
+            color: #f9f9f9;
+        }
+        .menu a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            margin: 10px 0;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .menu a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+        .image-container {
+            display: flex; /* Usar Flexbox para centralizar */
+            justify-content: center; /* Centraliza horizontalmente */
+            align-items: center; /* Centraliza verticalmente, se necessário */
+            margin: 20px 0; /* Espaço acima e abaixo da imagem */
+        }
+        .centered-image {
+            max-width: 100%; /* Garante que a imagem não ultrapasse a largura do contêiner */
+            height: auto; /* Mantém a proporção da imagem */
+        }
+    </style>
+</head> 
+<body>
+    <div class="menu">
+        <h3>Menu de Ajuda</h3>
+        <a onclick="loadContent('funcionalidades')">1. Principais Funcionalidades</a>
+        <a onclick="loadContent('iniciando')">2. Iniciando o Programa</a>
+        <a onclick="loadContent('credenciais')">3. Credenciais de Login</a>
+        <a onclick="loadContent('dicas')">4. Dicas e Truques</a>
+        <a onclick="loadContent('problemas')">5. Solução de Problemas</a>
+        <a onclick="loadContent('contato')">6. Contato</a>
+    </div>
+    <div class="content" id="content">
+        <h1>Bem-vindo à Ajuda do Programa U-Control</h1>
+        <p>
+            Bem-vindo à ajuda do programa <strong>U-Control</strong>, um sistema revolucionário de projeção de mídia projetado para transformar a maneira como você apresenta, organiza e sincroniza conteúdos visuais.
+        </p>
+        <p>Com o <strong>U-Control</strong>, você tem em mãos uma ferramenta poderosa e intuitiva que permite:</p>
+        <ul>
+            <li><strong>Gerenciar mídia em tempo real:</strong> Controle apresentações, vídeos e imagens com precisão.</li>
+            <li><strong>Sincronização perfeita:</strong> Sincronize telas de controle e monitor com agilidade, garantindo apresentações impecáveis.</li>
+            <li><strong>Interface amigável:</strong> Navegue facilmente por um sistema desenvolvido para simplificar seu fluxo de trabalho.</li>
+        </ul>
+        <p>
+            Nosso objetivo é proporcionar a melhor experiência, seja em eventos, reuniões, aulas ou apresentações. Explore esta seção de ajuda para aprender como aproveitar ao máximo as funcionalidades do <strong>U-Control</strong>.
+        </p>
+        <p>Selecione uma opção no menu para saber mais sobre como usar o programa.</p>
+    </div>
+
+    <script>
+        function loadContent(section) {
+            const content = document.getElementById('content');
+            let html = '';
+
+            switch (section) {
+                case 'funcionalidades':
+    html = `
+        <h2>Principais Funcionalidades</h2>
+        <p>
+            O <strong>U-Control</strong> pode ser instalado em um único dispositivo e controlado remotamente por outros aparelhos conectados à mesma rede local, oferecendo flexibilidade e praticidade no gerenciamento de apresentações.
+        </p>
+        <p>
+            As telas de apresentação destinadas ao público podem ser exibidas de forma remota. Para maior segurança ou estabilidade, o computador pode ser conectado diretamente à tela utilizando um cabo HDMI.
+        </p>
+        <ul>
+            <li><strong>Gerenciar mídia em tempo real:</strong> Controle apresentações, vídeos e imagens com precisão.</li>
+            <li><strong>Sincronização de telas:</strong> Sincronize telas de controle e monitor com agilidade, garantindo apresentações impecáveis.</li>
+            <li><strong>Interface amigável:</strong> Navegue facilmente por um sistema desenvolvido para simplificar seu fluxo de trabalho.</li>
+            <li><strong>Controle em rede local:</strong> Instale o U-Control em uma única máquina e controle-o de outros dispositivos na mesma rede local.</li>
+        </ul>`;
+    break;
+
+                case 'iniciando':
+                    html = `
+                        <h2>Iniciando o Programa</h2>
+                        <p>Para iniciar o programa, siga os passos abaixo:</p>
+                        <ul>
+                            <li>Certifique-se de que o programa está instalado corretamente.</li>
+                            <li>Abra o programa clicando duas vezes no ícone na área de trabalho.</li>
+                            <li>Insira suas credenciais de login.</li>
+                        </ul>`;
+                    break;
+                case 'credenciais':
+                    html = `
+                        <h2>Credenciais de Login</h2>
+                        <p>Para garantir a segurança do sistema, é fundamental que os usuários sejam previamente cadastrados com login e senha. Esse controle de acesso evita que pessoas não autorizadas tenham acesso às funções principais do programa, prevenindo interferências que possam comprometer a apresentação.
+                        </p>
+                        <p>
+                            Embora o controle de acesso com login e senha seja essencial para proteger as funções principais do programa, algumas rotas podem ser acessadas remotamente sem a necessidade de autenticação. Essas rotas incluem a Tela do Apresentador de Imagens (presenter), o Monitor de Palco e a Tela do Público, garantindo maior praticidade para exibição e acompanhamento durante as apresentações.
+                        </p>
+                        <p>
+                            Assim que o programa é iniciado, a seguinte página é exibida, solicitando que o usuário insira suas credenciais de acesso:
+                        </p>
+                        <div class="image-container">
+                            <img src="static/imges_help/Login.png" alt="Login" class="centered-image">
+                        </div>
+                        <p>Para o primeiro acesso, utilize as seguintes credenciais:</p>
+                        <div style="background-color: #f0f8ff; padding: 10px; border-left: 4px solid #007bff; font-family: Arial, sans-serif;">
+                            <strong>Usuário:</strong> <code>admin</code><br>
+                            <strong>Senha:</strong> <code>1234</code>
+                        </div>
+                        <p>
+                            Após o primeiro acesso ao sistema utilizando as credenciais padrão (<strong>Usuário: admin</strong>, <strong>Senha: 1234</strong>), recomendamos que o cadastro do usuário "admin" seja removido por questões de segurança. Isso garantirá que apenas usuários cadastrados com permissões específicas possam acessar as funcionalidades principais do programa.
+                        </p> 
+                        <p>
+                            Para eliminar o cadastro do admin, siga os passos abaixo:
+                        </p>
+                        <ul> 
+                            <li>Acesse o painel de controle do sistema clicando na opção 'Links' e em seguida 'Novo Usuário'.</li>
+                                <div class="image-container">
+                                    <img src="static/imges_help/link_novo-usuario.png" alt="Login" class="centered-image">
+                                </div>  
+                            <li>Na página "Usuários Registrados", localize o usuário "admin" na lista de usuários cadastrados e Selecione a opção para <strong><span style="color: red;">remover</span></strong>.</li> 
+                                <div class="image-container">
+                                    <img src="static/imges_help/remover_usuario.png" alt="Login" class="centered-image">
+                                </div>                            
+                        </ul> 
+                        <p>
+                            Ao excluir o usuário "admin", o sistema estará mais seguro, garantindo que apenas pessoas autorizadas possam controlar o programa.
+                        </p>
+                        <p>
+                            Na página "Usuários Registrados", você pode adicionar novos usuários ao sistema de forma simples. Preencha os campos "Nome de Usuário" e "Senha" e clique no botão "Adicionar Usuário" para concluir o cadastro.
+                        </p>
+                                <div class="image-container">
+                                    <img src="static/imges_help/cadastrar_usuario.png" alt="Login" class="centered-image">
+                                </div> `;
+                    break;
+                case 'dicas':
+                    html = `
+                        <h2>3. Dicas e Truques</h2>
+                        <div class="highlight">
+                            <p><strong>Dica:</strong> Utilize a combinação de teclas <code>Ctrl + S</code> para salvar rapidamente seu progresso.</p>
+                        </div>
+                        <p>Mais algumas dicas úteis:</p>
+                        <ul>
+                            <li>Pressione <code>F1</code> para acessar a ajuda a qualquer momento.</li>
+                            <li>Ative o modo escuro nas configurações para reduzir o cansaço visual.</li>
+                        </ul>`;
+                    break;
+                case 'problemas':
+                    html = `
+                        <h2>4. Solução de Problemas</h2>
+                        <p>Se encontrar problemas, tente as seguintes soluções:</p>
+                        <ul>
+                            <li>Reinicie o programa e tente novamente.</li>
+                            <li>Consulte o manual na seção "FAQ".</li>
+                            <li>Entre em contato com o suporte técnico pelo e-mail <a href="mailto:suporte@exemplo.com">suporte@exemplo.com</a>.</li>
+                        </ul>`;
+                    break;
+                case 'contato':
+                    html = `
+                        <h2>5. Contato</h2>
+                        <p>Se precisar de mais ajuda, entre em contato conosco:</p>
+                        <ul>
+                            <li><strong>Suporte:</strong> <a href="mailto:suporte@exemplo.com">suporte@exemplo.com</a></li>
+                            <li><strong>Telefone:</strong> (11) 1234-5678</li>
+                        </ul>`;
+                    break;
+            }
+
+            content.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

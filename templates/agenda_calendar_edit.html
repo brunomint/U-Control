@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda (edição)</title>
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .page { max-width: 1100px; margin: 36px auto; padding: 0 16px 80px; }
+        .header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .title { font-size: 26px; font-weight: 800; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+        .subtitle { color: rgba(255,255,255,0.8); font-size: 14px; }
+        .badge { background: linear-gradient(135deg, #00bcd4, #0097a7); color: white; border-radius: 999px; padding: 6px 14px; font-weight: 700; box-shadow: 0 6px 18px rgba(0,188,212,0.3); }
+        .card { background: rgba(255,255,255,0.06); border-radius: 16px; padding: 18px; box-shadow: 0 12px 32px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); }
+        .calendar-shell { display: grid; grid-template-rows: auto 1fr; gap: 10px; }
+        .calendar-head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; font-size: 12px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.08em; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .day { border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.06); transition: all 0.18s ease; min-height: 122px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; color: white; }
+        .day:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); border-color: rgba(0,188,212,0.6); background: rgba(255,255,255,0.1); }
+        .day-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .day-date { font-weight: 800; color: white; font-size: 14px; letter-spacing: 0.01em; }
+        .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid rgba(255,255,255,0.25); line-height: 1.2; }
+        .time-pill { background: rgba(0,188,212,0.15); color: #a5f3fc; border-color: rgba(0,188,212,0.35); }
+        .event-pill { background: rgba(255,255,255,0.14); color: white; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; background: rgba(0,188,212,0.18); color: white; border: 1px solid rgba(0,188,212,0.35); }
+        .info-line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.4; }
+        .info-line strong { color: white; }
+        .empty { text-align: center; padding: 32px 16px; color: rgba(255,255,255,0.65); border: 1px dashed rgba(255,255,255,0.25); border-radius: 12px; background: rgba(255,255,255,0.04); }
+        .nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn { background: linear-gradient(135deg, #00bcd4, #0097a7); color: white; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 24px rgba(0,188,212,0.35); transition: transform 0.12s ease, box-shadow 0.12s ease; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(0,188,212,0.4); }
+        .month-label { font-weight: 700; color: white; }
+        .note { margin-top: 12px; font-size: 12px; color: rgba(255,255,255,0.75); }
+        .back-dash {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            text-decoration: none;
+            color: white;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,188,212,0.35);
+        }
+        .back-dash:hover { box-shadow: 0 14px 34px rgba(0,188,212,0.45); transform: translateY(-1px); }
+        @media (max-width: 700px) {
+            .calendar-head { display: none; }
+            .calendar-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header">
+        <div>
+            <div class="title">Agenda (edição)</div>
+            <div class="subtitle">Calendário privado para abrir a edição de uma data</div>
+        </div>
+        <div class="nav">
+            <button class="btn" id="prevBtn">◀ Mês anterior</button>
+            <div class="month-label" id="monthLabel"></div>
+            <button class="btn" id="nextBtn">Próximo mês ▶</button>
+            <span class="badge">Privado</span>
+            <button class="btn" id="saveImgBtn" title="Salvar calendário como imagem">💾 Salvar como imagem</button>
+        </div>
+    </div>
+
+    <div class="card calendar-shell">
+        <div class="month-label" id="monthLabelInner" style="text-align:center;font-weight:800;color:white;letter-spacing:0.03em;"></div>
+        <div class="calendar-head" id="calendarHead"></div>
+        <div id="calendar" class="calendar-grid"></div>
+        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada em orders.json</div>
+    </div>
+
+    <div class="note">
+        Clique em qualquer dia para abrir a edição em /agenda/&lt;data&gt;/edit. Se não houver dados, o formulário abre vazio para cadastrar.
+        <br>
+        <a class="back-dash" href="/agenda/dashboard">← Voltar ao Dashboard da Agenda de Equipes</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+    const weekdayShort = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+    const monthLong = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    let ordersData = {};
+    let currentMonth = new Date();
+
+    function hasOrderData(o) {
+        if (!o || typeof o !== 'object') return false;
+        const hasMain = (val) => typeof val === 'string' && val.trim() !== '';
+        const hasArray = (arr) => Array.isArray(arr) && arr.length > 0;
+
+        const hasTipo = hasMain(o.tipo);
+        const hasOther = hasMain(o.horario) || hasMain(o.dirigente) || hasMain(o.pregador) || hasMain(o.tema);
+
+        if (hasOther) return true;
+        if (hasArray(o.eventos)) return true;
+        if (hasArray(o.itens)) return true;
+        if (o.louvor && (hasArray(o.louvor.musicos) || hasArray(o.louvor.cantores))) return true;
+        if (o.midia && (hasMain(o.midia.lider) || hasMain(o.midia.palco) || hasMain(o.midia.visual) || hasArray(o.midia.equipe) || hasArray(o.midia.extras) || hasMain(o.midia.obs))) return true;
+
+        // Se só o tipo estiver preenchido e nada mais, considera como vazio
+        if (hasTipo && !hasOther && !hasArray(o.eventos) && !hasArray(o.itens)) return false;
+
+        return hasTipo;
+    }
+
+    function buildHead() {
+        const head = document.getElementById('calendarHead');
+        head.innerHTML = weekdayShort.map(w => `<div>${w}</div>`).join('');
+    }
+
+    function formatDateISO(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function renderCalendar() {
+        const calendar = document.getElementById('calendar');
+        const empty = document.getElementById('emptyState');
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month+1, 0);
+        const startWeekday = firstDay.getDay();
+        const totalDays = lastDay.getDate();
+
+        const monthText = `${monthLong[month]} de ${year}`;
+        document.getElementById('monthLabel').textContent = monthText;
+        const inner = document.getElementById('monthLabelInner');
+        if (inner) inner.textContent = monthText;
+
+        const cells = [];
+        for (let i=0; i<startWeekday; i++) cells.push({ blank:true });
+        for (let d=1; d<=totalDays; d++) {
+            const dateStr = formatDateISO(new Date(year, month, d));
+            const order = ordersData[dateStr] || {};
+            const hasData = hasOrderData(order);
+            cells.push({ dateStr, hasData, order });
+        }
+
+        calendar.innerHTML = cells.map(cell => {
+            if (cell.blank) return `<div class="day" style="background:transparent; border:none; cursor:default;"></div>`;
+            const o = cell.order;
+            const dirigente = o?.dirigente || '—';
+            const pregador = o?.pregador || '—';
+            const horario = o?.horario || (Array.isArray(o?.eventos) && o.eventos.length ? (o.eventos[0]?.hora || '') : '');
+            const eventTitle = o?.tipo || (Array.isArray(o?.eventos) && o.eventos.length ? o.eventos[0].titulo : '');
+            const dayNumber = String(new Date(cell.dateStr+'T00:00:00').getDate()).padStart(2,'0');
+            const body = cell.hasData ? `
+                <div class="day-top">
+                    <div class="day-date">${dayNumber}</div>
+                    ${eventTitle ? `<div class="pill event-pill" title="${eventTitle}">${eventTitle}</div>` : ''}
+                    ${horario ? `<div class="pill time-pill">${horario}</div>` : ''}
+                </div>
+                <div class="info-line"><strong>Dirigente:</strong> ${dirigente}</div>
+                <div class="info-line"><strong>Pregador:</strong> ${pregador}</div>
+                <div class="tag">Ver detalhes</div>
+            ` : `
+                <div class="day-top">
+                    <div class="day-date">${dayNumber}</div>
+                </div>
+                <div class="info-line" style="color:#94a3b8;">Sem escala cadastrada</div>
+                <div class="tag" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">Abrir</div>
+            `;
+            const click = `onclick="window.location='/agenda/${cell.dateStr}/admin'"`;
+            return `
+                <div class="day" ${click}>
+                    ${body}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadOrders() {
+        try {
+            const resp = await fetch('/api/orders');
+            ordersData = await resp.json();
+            renderCalendar();
+        } catch (e) {
+            const calendar = document.getElementById('calendar');
+            const empty = document.getElementById('emptyState');
+            calendar.style.display = 'none';
+            empty.style.display = 'block';
+            empty.textContent = 'Erro ao carregar agenda';
+        }
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
+        renderCalendar();
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
+        renderCalendar();
+    });
+
+    document.getElementById('saveImgBtn').addEventListener('click', async () => {
+        const calendarShell = document.querySelector('.card.calendar-shell');
+        if (!calendarShell) return;
+        const label = document.getElementById('monthLabel')?.textContent || 'agenda';
+        const safeLabel = label.toLowerCase().replace(/\s+/g, '-');
+        try {
+            const canvas = await html2canvas(calendarShell, {
+                backgroundColor: '#0f172a',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${safeLabel}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Erro ao salvar imagem do calendário:', err);
+            alert('Não foi possível salvar o calendário como imagem.');
+        }
+    });
+
+    buildHead();
+    loadOrders();
+</script>
+</body>
+</html>

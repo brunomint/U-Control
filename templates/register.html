@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Cadastro</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222222; /* Fundo escuro */
+            color: white; /* Texto branco */
+            font-family: Arial, sans-serif;
+        }
+        .register-container {
+            background: #333; /* Fundo do container */
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2); /* Box shadow mais evidente */
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .logo-container img {
+            max-width: 150px;
+            height: auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        label {
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+        input {
+            padding: 0.5rem;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #222;
+            color: white;
+            font-size: 1rem;
+        }
+        input:focus {
+            border-color: #00bcd4;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 188, 212, 0.8);
+        }
+        button {
+            padding: 0.7rem;
+            background-color: #00bcd4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0199a8;
+        }
+        p {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        a {
+            color: #00bcd4;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo-container">
+            <img src="/static/U-Control.png" alt="U Control">
+        </div>
+        <h1>Cadastro de Usuário</h1>
+        <form method="POST" action="{{ url_for('register') }}">
+            <label for="username">Nome de Usuário:</label>
+            <input type="text" name="username" id="username" class="form-control" required>
+            
+            <label for="password">Senha:</label>
+            <input type="password" name="password" id="password" class="form-control" required>
+            
+            <button type="submit">Cadastrar</button>
+        </form>
+        <p>
+            <a href="{{ url_for('login') }}">Já tem uma conta? Faça login</a>
+        </p>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,24 @@
+# Virtual envs
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+
+# Local data (não subir)
+orders.json
+image_paths.json
+
+# Logs
+*.log
+
+# Node / frontend caches (se houver)
+node_modules/
+dist/
+build/

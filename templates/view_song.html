@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <!-- Adicione no <head> -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="/static/js/youtube-player.js?v=10"></script>
+
+    <title>Visualizar Músicas</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0a;
+            color: #e2e8f0;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: auto;
+            overflow-y: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Estilo do menu - Tema Moderno */
+        .menu {
+            width: 260px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            color: #e2e8f0;
+            height: 100vh;
+            padding-top: 20px;
+            padding-bottom: 80px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            transition: transform 0.3s ease;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+            border-right: 1px solid rgba(74, 222, 128, 0.2);
+            overflow-y: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            scrollbar-width: thin;
+            scrollbar-color: #4ade80 #1a1a2e;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+        
+        .menu h1 {
+            font-weight: bold;
+            font-size: 22px;
+            color: #4ade80;
+            text-align: center;
+            margin: 0 0 20px 0;
+            padding: 0 15px;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+        
+        .menu.hidden {
+            transform: translateX(-100%);
+        }
+        
+        .menu-title {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+            margin-bottom: 5px;
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .menu a {
+            display: block;
+            color: #e2e8f0;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 3px solid transparent;
+        }
+        
+        .menu a:hover {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 3px solid #4ade80;
+            color: #4ade80;
+            padding-left: 24px;
+        }
+        
+        .menu a.active {
+            background: rgba(74, 222, 128, 0.15);
+            border-left: 3px solid #4ade80;
+            color: #4ade80;
+        }
+        
+        /* Conteúdo principal */
+        .content {
+            margin-left: 280px;
+            padding: 20px;
+            width: auto;
+            min-width: calc(100vw - 280px);
+            box-sizing: border-box;
+            transition: margin-left 0.3s ease;
+            margin-top: 60px; /* Afasta do topo */
+            overflow: visible;
+            display: inline-block;
+        }
+        
+        h1, h4 {
+            font-size: 28px;
+            color: #4ade80;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Header da Música - Estilo Moderno */
+        .song-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 25px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+        
+        .song-header-icon {
+            font-size: 48px;
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(74, 222, 128, 0.4);
+            flex-shrink: 0;
+        }
+        
+        .song-header-info {
+            flex: 1;
+        }
+        
+        .song-header-title {
+            color: #fff !important;
+            font-size: 28px !important;
+            font-weight: 700;
+            margin: 0 0 8px 0 !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .song-header-author {
+            color: #a0aec0;
+            font-size: 16px;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .song-header-author::before {
+            content: '🎤 ';
+        }
+        
+        /* Seções - Divisores internos (sem cards separados) */
+        .section-card {
+            background: transparent;
+            border-radius: 0;
+            margin: 0;
+            overflow: visible;
+            box-shadow: none;
+        }
+        
+        .section-card-header {
+            background: rgba(74, 222, 128, 0.08);
+            border-left: 4px solid #4ade80;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-card-header h5 {
+            color: #4ade80 !important;
+            margin: 0 !important;
+            font-size: 15px !important;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+        
+        .section-card-content {
+            padding: 0 0 0 20px;
+        }
+        
+        .section-card-content pre,
+        .song-content-card pre {
+            background: transparent !important;
+            color: #e2e8f0 !important;
+            padding: 0 !important;
+            margin: 0 0 15px 0 !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
+        }
+        
+        .section-card-content pre *,
+        .song-content-card pre * {
+            font-size: inherit !important;
+            line-height: inherit !important;
+            font-family: inherit !important;
+        }
+        
+        /* Card único para toda a música */
+        .song-content-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            min-width: fit-content;
+        }
+        
+        h3 {
+            color: #a0aec0;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        h5 {
+            color: #4ade80 !important;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Garante que títulos de seção sempre sejam verdes */
+        .section-title, h5, .song-section {
+            color: #4ade80 !important;
+        }
+        
+        pre {
+            background-color: transparent;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1.4;
+            margin: 5px 0;
+            margin-right: 50px;
+            white-space: pre !important;
+            overflow-x: visible;
+            word-wrap: normal;
+            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+            box-sizing: border-box;
+        }
+        
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007BFF;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Partitura responsiva - com fundo claro para visibilidade */
+        .sheet-display {
+            overflow-x: visible;
+            max-width: none;
+            width: auto;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        
+        .sheet-display svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .sheet-display {
+                overflow-x: visible;
+            }
+            
+            .sheet-display svg {
+                width: 100%;
+                height: auto;
+                transform: scale(0.9);
+                transform-origin: center top;
+            }
+        }
+        
+        @media print {
+            a, a:visited {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            #toggle-menu {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .menu {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .menu a, .menu a:visited {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .controls {
+                visibility: hidden;
+            }
+        }
+        
+        /* Estilo do botão de esconder/exibir - escondido em telas grandes */
+        #toggle-menu {
+            display: none; /* Escondido por padrão em telas grandes */
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #4ade80;
+            border: 2px solid #4ade80;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        #toggle-menu:hover {
+            background: rgba(74, 222, 128, 0.15);
+            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
+            transform: scale(1.05);
+        }
+        
+        /* Ajuste para dispositivos móveis */
+        @media (max-width: 768px) {
+            /* Menu escondido por padrão em mobile */
+            .menu {
+                width: 240px;
+                font-size: 16px;
+                height: 100vh;
+                max-height: 100vh;
+                overflow-y: auto;
+                transform: translateX(-100%); /* Escondido por padrão */
+            }
+            
+            .menu.visible {
+                transform: translateX(0); /* Visível quando tem classe .visible */
+            }
+        
+            /* Botão visível em mobile */
+            #toggle-menu {
+                display: block !important;
+                top: 8px;
+                left: 8px;
+                padding: 10px 12px;
+                font-size: 20px;
+            }
+        
+            .content {
+                margin-left: 0; /* Remove a margem esquerda em dispositivos móveis */
+                padding: 10px;
+                padding-right: 10px;
+                width: auto;
+                min-width: 100%;
+                box-sizing: border-box;
+                transition: margin-left 0.3s ease;
+                margin-top: 60px;
+                margin-bottom: 140px;
+                padding-bottom: 120px;
+                height: auto;
+                min-height: calc(100vh - 120px);
+                overflow-x: visible;
+            }
+            
+            /* Fonte menor no mobile para caber na tela */
+            .section-card-content pre,
+            .song-content-card pre {
+                font-size: 11px !important;
+                line-height: 1.4 !important;
+            }
+            
+            .section-card-content pre *,
+            .song-content-card pre * {
+                font-size: 11px !important;
+                line-height: 1.4 !important;
+            }
+            
+            .chord {
+                font-size: 11px !important;
+            }
+        }
+        
+        /* Botões flutuantes de scroll para touch/iPad */
+        .scroll-buttons {
+            position: fixed;
+            right: 15px;
+            bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+        }
+        
+        .scroll-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #4ade80;
+            color: #4ade80;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .scroll-btn:hover,
+        .scroll-btn:active {
+            background: rgba(74, 222, 128, 0.2);
+            transform: scale(1.1);
+        }
+        
+        /* Esconde botões em telas grandes com mouse */
+        @media (min-width: 1024px) and (hover: hover) {
+            .scroll-buttons {
+                display: none;
+            }
+        }
+        
+        .footer {
+            position: fixed;
+            font-size: 12px;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+        }
+        
+        @media (min-width: 769px) {
+            body {
+                font-size: 18px;
+            }
+        
+            .menu {
+                width: 280px;
+                font-size: 18px;
+            }
+            
+            .menu a {
+                font-size: 16px;
+                padding: 14px 20px;
+            }
+            
+            .menu-title {
+                font-size: 14px;
+                padding: 14px 20px;
+            }
+            
+            .content {
+                margin-left: 300px;
+            }
+        
+            h1, h2, h3 {
+                font-size: 24px;
+            }
+            
+            .section-card-content pre,
+            .song-content-card pre {
+                font-size: 18px !important;
+                line-height: 1.7 !important;
+            }
+            
+            .section-card-content pre *,
+            .song-content-card pre * {
+                font-size: 18px !important;
+                line-height: 1.7 !important;
+            }
+            
+            .chord {
+                font-size: 18px !important;
+            }
+        }
+        
+        /* Barra de Controles - Estilo Moderno */
+        .controls {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 13px;
+            z-index: 999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+        
+        .controls input[type="range"] {
+            width: 100px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            accent-color: #4ade80;
+            cursor: pointer;
+        }
+        
+        .scroll-toggle {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border: none;
+            color: #1a1a2e;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
+        }
+        
+        .scroll-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.5);
+        }
+        
+        /* Acordes Destacados */
+        .chord {
+            color: #4ade80;
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+        }
+        
+        .section-card-content pre,
+        pre {
+            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace !important;
+            white-space: pre !important;
+            tab-size: 4;
+        }
+        </style>
+</head>
+<body>
+    <!-- Botão para esconder/exibir o menu -->
+    <button id="toggle-menu" onclick="toggleMenu()">☰</button>
+
+    <!-- Menu -->
+    <div class="menu" id="menu">
+        <div id="song-list" class="menu-item"><h1>Ordem do Culto</h1></div>
+        
+        {% if bible_items %}
+        <div class="menu-title" style="color: #7c3aed; font-size: 14px; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <i class="fas fa-book-bible"></i> Textos Bíblicos
+        </div>
+        {% for item in bible_items %}
+        <a href="{{ item.url }}" style="color: #e1bee7;">
+            <i class="fas fa-bookmark"></i> {{ item.reference }}
+        </a>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="content" id="content">
+        <!-- Header da Música - Estilo Moderno -->
+        <div class="song-header">
+            <div class="song-header-icon">🎵</div>
+            <div class="song-header-info">
+                <h1 class="song-header-title">{{ song.title }}</h1>
+                <p class="song-header-author">{{ song.author }}</p>
+            </div>
+        </div>
+        
+        <!-- Card único para toda a música -->
+        <div class="song-content-card">
+        {% if song.sections %}
+            {% for section in song.sections %}
+                {% if section.title and section.title.strip() %}
+                    {% set clean_title = section.title | replace('[', '') | replace(']', '') | trim %}
+                    
+                    {# Verifica se é um marcador de partitura #}
+                    {% if '🎼 PARTITURA_INTEGRADA' in clean_title %}
+                        {# Extrai o ID da partitura do título #}
+                        {% set sheet_id = clean_title.split('_')[-1] | int %}
+                        
+                        {# Renderiza a partitura correspondente #}
+                        <div style="margin: 5px 0 20px 0;">
+                            <div id="sheet-display-{{ sheet_id }}" class="sheet-display" data-sheet-id="{{ sheet_id }}">
+                            </div>
+                        </div>
+                    {% else %}
+                        {# Renderiza título de seção normal em card #}
+                        <div class="section-card">
+                            <div class="section-card-header">
+                                <h5>{{ clean_title }}</h5>
+                            </div>
+                            <div class="section-card-content">
+                    {% endif %}
+                {% endif %}
+                
+                {% set section_text = section.text | join('\n') | replace('\r\n', '\n') | replace('\r', '\n') %}
+                
+                {# Verifica se há marcações de partitura no texto #}
+                {% if '🎼 PARTITURA_INTEGRADA' in section_text %}
+                    {# Divide o texto por marcações de partitura #}
+                    {% set text_parts = section_text.split('🎼 PARTITURA_INTEGRADA_') %}
+                    {% for part in text_parts %}
+                        {% if loop.index0 == 0 %}
+                            {# Primeira parte: texto antes da partitura #}
+                            {% if part.strip() %}
+                                <pre>{{ part | safe }}</pre>
+                            {% endif %}
+                        {% else %}
+                            {# Extrai o ID da partitura (primeiros caracteres até encontrar não-dígito) #}
+                            {% set ns = namespace(sheet_id_str='', found_non_digit=false) %}
+                            {% for char in part %}
+                                {% if not ns.found_non_digit %}
+                                    {% if char.isdigit() %}
+                                        {% set ns.sheet_id_str = ns.sheet_id_str + char %}
+                                    {% else %}
+                                        {% set ns.found_non_digit = true %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if ns.sheet_id_str %}
+                                {% set sheet_id = ns.sheet_id_str | int %}
+                                
+                                {# Renderiza a partitura #}
+                                <div style="margin: 5px 0 20px 0;">
+                                    <div id="sheet-display-{{ sheet_id }}" class="sheet-display" data-sheet-id="{{ sheet_id }}">
+                                    </div>
+                                </div>
+                                
+                                {# Renderiza o texto após o ID da partitura (remove os dígitos do início) #}
+                                {% set remaining_text = part[ns.sheet_id_str|length:] | trim %}
+                                {% if remaining_text %}
+                                    <pre>{{ remaining_text | safe }}</pre>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {# Processamento normal do texto sem partituras #}
+                    {% set lines = section_text.split('\n') %}
+                    
+                    {% set current_block = [] %}
+                    {% set last_was_empty = false %}
+                    {% for line in lines %}
+                    {% if line.strip().startswith('[') and line.strip().endswith(']') %}
+                        {% if current_block %}
+                            {% set clean_block = [] %}
+                            {% for block_line in current_block %}
+                                {% if block_line.strip() or (clean_block and not clean_block[-1].strip()) %}
+                                    {% set _ = clean_block.append(block_line) %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if clean_block %}
+                                <pre>{{ clean_block | join('\n') | safe }}</pre>
+                            {% endif %}
+                            {% set current_block = [] %}
+                        {% endif %}
+                        {% set section_name = line.strip() | replace('[', '') | replace(']', '') %}
+                        <h5 class="section-title">{{ section_name }}</h5>
+                        {% set last_was_empty = false %}
+                    {% else %}
+                        {% if line.strip() %}
+                            {% set _ = current_block.append(line) %}
+                            {% set last_was_empty = false %}
+                        {% elif current_block and not last_was_empty %}
+                            {% set _ = current_block.append('') %}
+                            {% set last_was_empty = true %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% if current_block %}
+                    {% set clean_block = [] %}
+                    {% for block_line in current_block %}
+                        {% if block_line.strip() or (clean_block and not clean_block[-1].strip()) %}
+                            {% set _ = clean_block.append(block_line) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if clean_block %}
+                        {% set block_text = clean_block | join('\n') %}
+                        <pre>{{ block_text | safe }}</pre>
+                    {% endif %}
+                {% endif %}
+                {% endif %}
+                
+                {# Fecha o card se foi aberto #}
+                {% if section.title and section.title.strip() and '🎼 PARTITURA_INTEGRADA' not in section.title %}
+                            </div>
+                        </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <p>Não há letra disponível para esta música.</p>
+        {% endif %}
+        </div> <!-- Fecha song-content-card -->
+    </div>
+
+    <div class="controls">
+        <span title="Velocidade da rolagem">🐢</span>
+        <input type="range" id="speedControl" min="250" max="400" value="250" />
+        <button id="toggleScroll" class="scroll-toggle" title="Iniciar/Pausar">
+            <i class="fas fa-play"></i></button>
+      
+    </div>
+    
+    <!-- Botões flutuantes de scroll para touch/iPad -->
+    <div class="scroll-buttons">
+        <button class="scroll-btn" id="scrollUpBtn" title="Scroll para cima">
+            <i class="fas fa-chevron-up"></i>
+        </button>
+        <button class="scroll-btn" id="scrollDownBtn" title="Scroll para baixo">
+            <i class="fas fa-chevron-down"></i>
+        </button>
+    </div>
+    
+    <script>
+        // Função para carregar conteúdo via AJAX
+        function loadContent(url) {
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    $('#content').html(response);  // Atualiza o conteúdo da página
+                },
+                error: function() {
+                    $('#content').html('<p>Erro ao carregar o conteúdo.</p>');
+                }
+            });
+        }
+
+        // Função para gerar URL de controle bíblico a partir de referência
+        function generateBibleUrl(reference) {
+            const bookMap = {
+                'gênesis': 'gn', 'genesis': 'gn', 'gn': 'gn',
+                'salmos': 'sl', 'salmo': 'sl', 'sl': 'sl',
+                'joão': 'jo', 'joao': 'jo', 'jo': 'jo',
+                'romanos': 'rm', 'rm': 'rm',
+                'mateus': 'mt', 'mt': 'mt',
+                'marcos': 'mc', 'mc': 'mc',
+                'lucas': 'lc', 'lc': 'lc',
+                'atos': 'at', 'at': 'at',
+                'hebreus': 'hb', 'hb': 'hb',
+                'apocalipse': 'ap', 'ap': 'ap'
+            };
+            const regex = /^(.+?)\s*(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?$/i;
+            const match = reference.match(regex);
+            if (!match) return `/bible?search=${encodeURIComponent(reference)}`;
+            const bookName = match[1].trim().toLowerCase();
+            const chapter = match[2];
+            const verseStart = match[3];
+            const verseEnd = match[4];
+            const bookAbbrev = bookMap[bookName];
+            if (!bookAbbrev) return `/bible?search=${encodeURIComponent(reference)}`;
+            let url = `/bible/control/${bookAbbrev}/${chapter}`;
+            if (verseStart) {
+                url += verseEnd && verseEnd !== verseStart ? `/${verseStart}-${verseEnd}` : `/${verseStart}`;
+            }
+            return url;
+        }
+
+        // Função para carregar a lista de músicas
+        async function loadList() {
+            try {
+                // Usa a data passada pelo backend ou busca da URL
+                let orderDate = '{{ order_date or "" }}';
+                if (!orderDate) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    orderDate = urlParams.get('order');
+                }
+                
+                let data = [];
+                
+                if (orderDate) {
+                    // Carrega ordem específica por data
+                    const response = await fetch(`/load?date=${orderDate}`);
+                    data = await response.json();
+                } else {
+                    // Busca a ordem mais próxima (hoje ou futura)
+                    const ordersResponse = await fetch('/api/orders');
+                    const orders = await ordersResponse.json();
+                    const dates = Object.keys(orders).sort();
+                    
+                    if (dates.length > 0) {
+                        const today = new Date().toISOString().split('T')[0];
+                        // Encontra ordem de hoje ou a próxima futura, senão pega a mais recente
+                        orderDate = dates.find(d => d >= today) || dates[dates.length - 1];
+                        data = orders[orderDate]?.itens || [];
+                    } else {
+                        // Fallback para sistema antigo
+                        const response = await fetch('/load');
+                        data = await response.json();
+                    }
+                }
+
+                const menu = document.getElementById("menu");
+
+                // Adiciona a lista de músicas diretamente no menu
+                // Pega o ID da música atual da URL
+                const currentSongId = window.location.pathname.split('/').pop();
+                
+                data.forEach((item, index) => {
+                    if (item.isBible) {
+                        // Item de Bíblia - usa URL de controle
+                        const url = generateBibleUrl(item.reference);
+                        menu.innerHTML += `<a href="${url}" class="song-link" style="color: #b39ddb;">📖 ${item.reference}</a>`;
+                    } else if (item.url && item.title) {
+                        let modifiedUrl = item.url;
+
+                        // Substitui "/lyrics/" por "/view/"
+                        modifiedUrl = modifiedUrl.replace("/lyrics/", "/view/");
+
+                        // Se terminar com "/order" ou "/order/new", mostra como texto
+                        if (modifiedUrl.includes("/order")) {
+                            menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.title}</a>`;
+                        } else {
+                            // Adiciona o parâmetro order para manter a lista correta no menu
+                            const urlWithOrder = orderDate ? `${modifiedUrl}?order=${orderDate}` : modifiedUrl;
+                            // Verifica se é a música atual para adicionar classe active
+                            const songId = modifiedUrl.split('/').pop();
+                            const isActive = songId === currentSongId ? ' active' : '';
+                            menu.innerHTML += `<a href="${urlWithOrder}" class="song-link${isActive}">${item.title}</a>`;
+                        }
+                    } else if (item.anyText) {
+                        menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.anyText}</a>`;
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao carregar a lista:", error);
+                alert("Erro ao carregar a lista de músicas.");
+            }
+        }
+
+        loadList();
+
+        // Função para alternar a visibilidade do menu (mobile)
+        function toggleMenu() {
+            const menu = document.querySelector('.menu');
+            menu.classList.toggle('visible');
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.querySelector('.menu');
+            const toggleButton = document.querySelector('#toggle-menu');
+            const isClickInsideMenu = menu.contains(event.target);
+            const isClickOnToggleButton = event.target.matches('#toggle-menu');
+
+            // Em mobile, fecha o menu ao clicar fora
+            if (window.innerWidth <= 768 && menu.classList.contains('visible') && !isClickInsideMenu && !isClickOnToggleButton) {
+                menu.classList.remove('visible');
+            }
+        });
+
+        let isScrolling = false;
+let scrollInterval;
+
+function startScrolling() {
+    const speed = 400 - document.getElementById("speedControl").value + 1;
+    scrollInterval = setInterval(() => {
+        window.scrollBy(0, 1);
+    }, speed);
+}
+
+function stopScrolling() {
+    clearInterval(scrollInterval);
+}
+
+function toggleScrolling() {
+    const icon = document.querySelector('#toggleScroll i');
+    if (isScrolling) {
+        stopScrolling();
+        isScrolling = false;
+        icon.classList.remove("fa-pause");
+        icon.classList.add("fa-play");
+    } else {
+        startScrolling();
+        isScrolling = true;
+        icon.classList.remove("fa-play");
+        icon.classList.add("fa-pause");
+    }
+}
+
+window.onload = () => {
+  const icon = document.querySelector('#toggleScroll i');
+  icon.classList.add("fa-play");
+
+  document.getElementById("toggleScroll").addEventListener("click", toggleScrolling);
+
+  document.getElementById("speedControl").addEventListener("input", () => {
+    if (isScrolling) {
+      stopScrolling();
+      startScrolling();
+    }
+  });
+  
+  // Inicializa o player de vídeo/áudio flutuante se houver mídia (modo somente leitura, minimizado em mobile)
+  {% if song.audio_url or song.video_url %}
+  const isMobile = window.innerWidth <= 768;
+  window.ytPlayer = new YouTubeFloatingPlayer({ readOnly: true, startMinimized: isMobile });
+  console.log('🎬 Player inicializado (modo somente leitura)');
+  {% if song.audio_url %}
+  // Prioridade para áudio local
+  window.ytPlayer.loadLocalAudio('{{ song.audio_url }}', '{{ song.title }}', '{{ song.author }}');
+  console.log('🎵 Áudio local carregado:', '{{ song.audio_url }}');
+  {% elif song.video_url %}
+  window.ytPlayer.loadVideoFromUrl('{{ song.video_url }}');
+  console.log('🎬 Vídeo carregado:', '{{ song.video_url }}');
+  {% endif %}
+  {% endif %}
+  
+  // Destaca acordes em verde
+  function highlightChords() {
+    const preElements = document.querySelectorAll('pre');
+    
+    preElements.forEach(pre => {
+      // Evita processar se já foi processado
+      if (pre.dataset.chordsHighlighted) return;
+      pre.dataset.chordsHighlighted = 'true';
+      
+      const originalContent = pre.innerHTML;
+      
+      // Regex que captura acordes musicais comuns
+      // Captura: C, Cm, C7, C7M, Cmaj7, C/G, C9, Csus4, Cdim, Caug, D#, A#, D#7M, Gm, Em7, G4(6), F7M, D#°, |A|, D/F#, etc.
+      // Observação: o delimitador após o acorde é checado via lookahead para não consumir caracteres.
+      const chordRegex = /(^|[\s\[(\|\|])([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\([0-9/]+\))?(?:\/[A-G][#b]?)?)(?=$|[\s\]\)\n,\|])/gm;
+      
+      // Palavras em português que parecem acordes mas não são
+      const notChords = ['DA', 'DE', 'DO', 'EU', 'ELA', 'ELE', 'SE', 'ME', 'TE', 'AS', 'OS', 'BEM', 'MAL', 'CÉU', 'DEU', 'FEZ'];
+      
+      // Heurística: decide por linha se ela é "linha de cifra" (maioria de tokens parecem acordes)
+      const lineLooksLikeChordLine = (line) => {
+        const plain = line.replace(/<[^>]*>/g, '');
+        const tokens = plain.trim().split(/\s+/).filter(Boolean);
+        if (tokens.length === 0) return false;
+        
+        // Se tem qualquer token com 2+ chars ou com #/b/m/7/etc, tende a ser cifra
+        const chordLikeToken = /^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\([0-9/]+\))?(?:\/[A-G][#b]?)?$/;
+        let chordLikeCount = 0;
+        
+        for (const t of tokens) {
+          const up = t.toUpperCase();
+          if (notChords.includes(up)) continue;
+          if (chordLikeToken.test(t)) chordLikeCount += 1;
+        }
+        
+        // Considera "linha de cifra" se >= 60% dos tokens parecem acordes
+        // OU se houver pelo menos 2 tokens de acorde na linha (caso comum: "E11+  E  A")
+        return (chordLikeCount / tokens.length >= 0.6) || chordLikeCount >= 2;
+      };
+      
+      const lines = originalContent.split('\n');
+      const processedLines = lines.map((line) => {
+        const isChordLine = lineLooksLikeChordLine(line);
+        let processedLine = line.replace(chordRegex, (match, prefix, chord) => {
+          const upper = chord.toUpperCase();
+          
+          // Ignora palavras comuns em português
+          if (notChords.includes(upper)) {
+            return match;
+          }
+
+          // "Em" (e similares) pode ser preposição no início da frase.
+          // Se a linha não é de cifra e o token parece estar iniciando uma frase (seguido de palavra), não destaca.
+          if (!isChordLine) {
+            // Caso clássico reportado: "Em nome..." (Em + espaço + letra minúscula)
+            if (/^[A-G]m$/.test(chord)) {
+              const pos = line.indexOf(match);
+              const nextChar = pos >= 0 ? line.charAt(pos + match.length) : '';
+              if (nextChar && /[a-zàáâãéêíóôõúç]/.test(nextChar)) {
+                return match;
+              }
+            }
+
+            // Em linhas de letra, evita destacar acordes "curtos" que colidem com palavras (Em, Am, etc.).
+            // Permite apenas acordes com modificadores (7, sus, add, dim, aug, slash, #/b, etc.) ou mais longos.
+            const isPotentiallyAmbiguousShortChord = /^[A-G](?:m|min|M|maj)?$/.test(chord);
+            const hasChordModifiers = /[#b]|\/(?:[A-G])|\d|sus|dim|aug|add|°|º|maj|min/i.test(chord);
+            if (isPotentiallyAmbiguousShortChord && !hasChordModifiers) {
+              return match;
+            }
+          }
+          
+          // A/E isolados: só pinta se a linha inteira aparentar ser linha de cifra
+          if ((chord === 'A' || chord === 'E') && chord.length === 1 && !isChordLine) {
+            // Se está entre barras de compasso (| A |), deve ser acorde
+            const isBarChord = match.includes('|') || prefix.includes('|');
+            if (!isBarChord) {
+              return match;
+            }
+          }
+          
+          return `${prefix}<span class="chord">${chord}</span>`;
+        });
+
+        // Se for linha de cifra, pinta também barras de compasso e parênteses
+        if (isChordLine) {
+          processedLine = processedLine
+            .replace(/\|/g, '<span class="chord">|</span>')
+            .replace(/\(/g, '<span class="chord">(</span>')
+            .replace(/\)/g, '<span class="chord">)</span>');
+        }
+
+        // Segunda passada: destaca acordes explicitamente entre barras de compasso, ex: "|  A   |"
+        // (não depende do contexto da linha ser cifra)
+        processedLine = processedLine.replace(/\|\s*([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\/[A-G][#b]?)?)\s*\|/g, (m, chord) => {
+          return `<span class="chord">|</span> <span class="chord">${chord}</span> <span class="chord">|</span>`;
+        });
+
+        return processedLine;
+      });
+      
+      pre.innerHTML = processedLines.join('\n');
+    });
+  }
+  
+  // Executa após carregar a página
+  highlightChords();
+  
+  // Habilita teclas de seta para scroll da página
+  document.addEventListener('keydown', function(e) {
+    const scrollAmount = 100; // pixels por tecla
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      window.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+    } else if (e.key === 'PageDown') {
+      e.preventDefault();
+      window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+    } else if (e.key === 'PageUp') {
+      e.preventDefault();
+      window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' });
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+  });
+  
+  // Botões flutuantes de scroll para touch/iPad
+  const scrollUpBtn = document.getElementById('scrollUpBtn');
+  const scrollDownBtn = document.getElementById('scrollDownBtn');
+  const scrollAmount = 150;
+  
+  if (scrollUpBtn) {
+    scrollUpBtn.addEventListener('click', function() {
+      window.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+    });
+    
+    // Suporte para toque contínuo (segurar o botão)
+    let scrollInterval;
+    scrollUpBtn.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      window.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+      scrollInterval = setInterval(() => {
+        window.scrollBy({ top: -scrollAmount, behavior: 'auto' });
+      }, 150);
+    });
+    scrollUpBtn.addEventListener('touchend', function() {
+      clearInterval(scrollInterval);
+    });
+  }
+  
+  if (scrollDownBtn) {
+    scrollDownBtn.addEventListener('click', function() {
+      window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    });
+    
+    // Suporte para toque contínuo (segurar o botão)
+    let scrollInterval;
+    scrollDownBtn.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+      scrollInterval = setInterval(() => {
+        window.scrollBy({ top: scrollAmount, behavior: 'auto' });
+      }, 150);
+    });
+    scrollDownBtn.addEventListener('touchend', function() {
+      clearInterval(scrollInterval);
+    });
+  }
+  
+  // Gestos de swipe para scroll (iPad/touch)
+  let touchStartY = 0;
+  let touchEndY = 0;
+  
+  document.addEventListener('touchstart', function(e) {
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  
+  document.addEventListener('touchend', function(e) {
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+  
+  function handleSwipe() {
+    const swipeThreshold = 50; // pixels mínimos para considerar swipe
+    const diff = touchStartY - touchEndY;
+    
+    if (Math.abs(diff) > swipeThreshold) {
+      // Swipe detectado - o scroll nativo já cuida disso
+      // Mas podemos adicionar feedback visual se necessário
+    }
+  }
+};
+
+
+
+    </script>
+
+    <!-- Script para renderizar partituras (múltiplas) se disponível -->
+    {% if song.sheet_data %}
+    <script src="https://unpkg.com/vexflow@4.2.2/releases/vexflow-min.js"></script>
+    <script>
+        function renderPartituras() {
+            console.log('🎼 Iniciando renderização das partituras...');
+            
+            // Verifica se VexFlow está carregado
+            if (typeof Vex === 'undefined' || !Vex.Flow) {
+                console.error('❌ VexFlow não está carregado');
+                setTimeout(renderPartituras, 1000); // Tenta novamente em 1 segundo
+                return;
+            }
+            
+            console.log('✅ VexFlow carregado com sucesso');
+            
+            const allSheetData = {{ song.sheet_data | tojson | safe }};
+            console.log('📊 Dados das partituras:', allSheetData);
+            
+            // Verifica se é array (múltiplas partituras) ou objeto (partitura única)
+            const sheetDataArray = Array.isArray(allSheetData) ? allSheetData : [allSheetData];
+            
+            // Renderiza cada partitura
+            sheetDataArray.forEach(function(sheetData) {
+                const sheetId = sheetData.id;
+                const sheetElement = document.getElementById('sheet-display-' + sheetId);
+                
+                if (!sheetElement) {
+                    console.error('❌ Elemento sheet-display-' + sheetId + ' não encontrado');
+                    return;
+                }
+                
+                console.log('🎵 Renderizando partitura ID:', sheetId);
+                
+                if (!sheetData || !sheetData.notes || sheetData.notes.length === 0) {
+                    sheetElement.innerHTML = '<p style="text-align: center; color: #666;">Nenhuma nota encontrada</p>';
+                    return;
+                }
+                
+                try {
+                    // Limpa o elemento antes de renderizar
+                    sheetElement.innerHTML = '';
+                    
+                    const VF = Vex.Flow;
+                    
+                    // Detecta se é mobile
+                    const isMobile = window.innerWidth <= 768;
+                    const availableWidth = isMobile ? window.innerWidth - 40 : 800;
+                    
+                    const renderer = new VF.Renderer(sheetElement, VF.Renderer.Backends.SVG);
+                    const context = renderer.getContext();
+                    
+                    const notes = sheetData.notes.map(function(noteData, index) {
+                        console.log(`🎵 Processando nota ${index}:`, noteData);
+                    
+                    // Verifica se é uma pausa
+                    const isRest = noteData.type === 'rest' || noteData.rest === true || 
+                                   (noteData.keys && noteData.keys[0] === 'rest');
+                    
+                    let note;
+                    if (isRest) {
+                        // Cria pausa
+                        const duration = noteData.duration || 'qr';
+                        const restDuration = duration.includes('r') ? duration : duration + 'r';
+                        console.log(`🎵 Criando pausa com duration: ${restDuration}`);
+                        
+                        note = new VF.StaveNote({
+                            clef: sheetData.clef || 'treble',
+                            keys: ['b/4'],
+                            duration: restDuration
+                        });
+                    } else {
+                        // Converte formato C4 para c/4 se necessário
+                        let keys = noteData.keys || ['c/4'];
+                        if (keys[0] && !keys[0].includes('/')) {
+                            // Converte C4 para c/4
+                            const pitch = keys[0].charAt(0).toLowerCase();
+                            const octave = keys[0].slice(-1);
+                            keys = [pitch + '/' + octave];
+                            console.log(`🔄 Convertido ${noteData.keys[0]} para ${keys[0]}`);
+                        }
+                        
+                        console.log(`✅ Criando nota com keys: ${keys}, duration: ${noteData.duration}`);
+                        
+                        note = new VF.StaveNote({
+                            clef: sheetData.clef || 'treble',
+                            keys: keys,
+                            duration: noteData.duration || 'q'
+                        });
+                    }
+                    
+                    return note;
+                });
+                
+                if (notes.length > 0) {
+                    // Calcula quantos compassos são necessários baseado nas notas
+                    const ticksMap = { 
+                        'w': 4096, 'wr': 4096,
+                        'h': 2048, 'hr': 2048,
+                        'q': 1024, 'qr': 1024,
+                        '8': 512, '8r': 512,
+                        '16': 256, '16r': 256
+                    };
+                    let totalTicks = 0;
+                    notes.forEach(note => {
+                        const duration = note.duration;
+                        totalTicks += ticksMap[duration] || 1024;
+                    });
+                    
+                    console.log(`📏 Total ticks das notas: ${totalTicks}`);
+                    
+                    // Calcula quantos compassos completos são necessários
+                    const ticksPerMeasure = 4096; // 4/4 = 4096 ticks
+                    const measuresNeeded = Math.ceil(totalTicks / ticksPerMeasure);
+                    
+                    console.log(`📊 Compassos necessários: ${measuresNeeded}`);
+                    
+                    // Define largura de cada compasso para caber na tela
+                    let measureWidth, measuresPerLine, totalWidth, totalHeight;
+                    
+                    if (isMobile) {
+                        // Tenta 2 compassos por linha, se não couber usa 1
+                        const widthFor2 = (availableWidth - 60) / 2;
+                        if (widthFor2 >= 150) {
+                            measuresPerLine = 2;
+                            measureWidth = widthFor2;
+                        } else {
+                            measuresPerLine = 1;
+                            measureWidth = availableWidth - 40;
+                        }
+                        totalWidth = availableWidth;
+                        totalHeight = Math.ceil(measuresNeeded / measuresPerLine) * 120 + 40;
+                    } else {
+                        // Desktop: máximo 3 compassos por linha
+                        measureWidth = 250;
+                        measuresPerLine = Math.min(3, measuresNeeded);
+                        totalWidth = Math.min(measuresNeeded, measuresPerLine) * measureWidth + 100;
+                        totalHeight = Math.ceil(measuresNeeded / measuresPerLine) * 120 + 40;
+                    }
+                    
+                    renderer.resize(totalWidth, totalHeight);
+                    
+                    // Cria múltiplos staves (um para cada compasso)
+                    const staves = [];
+                    for (let i = 0; i < measuresNeeded; i++) {
+                        const lineNumber = Math.floor(i / measuresPerLine);
+                        const posInLine = i % measuresPerLine;
+                        const xPos = 20 + (posInLine * measureWidth);
+                        const yPos = 20 + (lineNumber * 120);
+                        
+                        const stave = new VF.Stave(xPos, yPos, measureWidth);
+                        
+                        // Adiciona clave e fórmula de compasso no primeiro de cada linha
+                        if (posInLine === 0) {
+                            stave.addClef(sheetData.clef || 'treble')
+                                 .addTimeSignature(sheetData.time_signature || '4/4');
+                            
+                            // Adiciona armadura de clave se existir
+                            if (sheetData.key_signature) {
+                                stave.addKeySignature(sheetData.key_signature);
+                            }
+                        }
+                        
+                        stave.setContext(context).draw();
+                        staves.push(stave);
+                    }
+                    
+                    // Distribui as notas pelos compassos
+                    let currentMeasure = 0;
+                    let currentTicks = 0;
+                    const measureVoices = [];
+                    
+                    for (let i = 0; i < measuresNeeded; i++) {
+                        measureVoices.push([]);
+                    }
+                    
+                    notes.forEach(note => {
+                        const noteTicks = ticksMap[note.duration] || 1024;
+                        
+                        // Se a nota não cabe no compasso atual, vai para o próximo
+                        if (currentTicks + noteTicks > ticksPerMeasure && currentMeasure < measuresNeeded - 1) {
+                            currentMeasure++;
+                            currentTicks = 0;
+                        }
+                        
+                        measureVoices[currentMeasure].push(note);
+                        currentTicks += noteTicks;
+                    });
+                    
+                    // Renderiza cada compasso com suas notas
+                    let globalNoteIndex = 0; // Índice global das notas
+                    measureVoices.forEach((measureNotes, measureIndex) => {
+                        if (measureNotes.length > 0) {
+                            const voice = new VF.Voice({
+                                num_beats: 4,
+                                beat_value: 4
+                            }).setMode(Vex.Flow.Voice.Mode.SOFT);
+                            
+                            voice.addTickables(measureNotes);
+                            
+                            // Gera beams automáticos para colcheias e semicolcheias
+                            const beams = VF.Beam.generateBeams(measureNotes);
+                            
+                            const formatterWidth = isMobile ? Math.max(measureWidth - 80, 100) : measureWidth - 60;
+                            new VF.Formatter()
+                                .joinVoices([voice])
+                                .format([voice], formatterWidth);
+                            
+                            voice.draw(context, staves[measureIndex]);
+                            
+                            // Desenha os beams (ligaduras entre colcheias)
+                            beams.forEach(beam => beam.setContext(context).draw());
+                            
+                            // Renderiza cifras se existirem
+                            if (sheetData.chords && sheetData.chords.length > 0) {
+                                measureNotes.forEach((note, localIndex) => {
+                                    // Procura cifra para esta nota
+                                    const chord = sheetData.chords.find(c => 
+                                        c.m === measureIndex && c.i === localIndex
+                                    );
+                                    
+                                    if (chord && chord.symbol) {
+                                        try {
+                                            const bbox = note.getBoundingBox();
+                                            context.save();
+                                            context.setFont('Arial', 14, 'bold');
+                                            context.fillStyle = '#000';
+                                            // Posiciona sempre acima da pauta (Y fixo = 22, logo acima do stave que está em Y=20)
+                                            context.fillText(chord.symbol, bbox.x + bbox.w/2, 22);
+                                            context.restore();
+                                        } catch(e) {
+                                            console.log('⚠️ Erro ao renderizar cifra:', e);
+                                        }
+                                    }
+                                    globalNoteIndex++;
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                console.log('✅ Partitura ' + sheetId + ' renderizada com sucesso!');
+                
+            } catch (error) {
+                console.error('❌ Erro ao renderizar partitura ' + sheetId + ':', error);
+                sheetElement.innerHTML = '<p style="text-align: center; color: #f44336;">Erro: ' + error.message + '</p>';
+            }
+            }); // Fecha forEach
+        }
+        
+        // Chama a função quando a página carrega
+        document.addEventListener('DOMContentLoaded', renderPartituras);
+    </script>
+    {% endif %}
+</body>
+</html>

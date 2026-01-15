@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Monitor</title>
+    <style>
+        /* Estilo para o layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        .iframe-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .iframe-container iframe {
+            border: 0px solid #CCC;
+            transition: width 0.5s ease, height 0.5s ease;
+        }
+
+        .single-iframe iframe {
+            width: 100%;
+            height: 100%;
+        }
+
+        .double-iframe iframe {
+            width: 50%;
+            height: 100%;
+        }
+
+        /* Estilos para uma imagem responsiva */
+        .responsive-image {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: auto;
+            object-fit: contain; /* Ajusta a imagem para caber no espaço sem cortar */
+            display: none; /* Oculta a imagem por padrão */
+}
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+
+    <!-- Container para a imagem e os iframes -->
+    <div class="iframe-container" id="iframeContainer">
+        <!-- Imagem que será exibida se o link for uma imagem -->
+        <img id="displayImage" src="" alt="Imagem" class="responsive-image">
+        
+        <!-- Iframes para exibir URLs -->
+        <iframe id="monitorIframe1" src="about:blank" title="Iframe Esquerdo"></iframe>
+        <iframe id="monitorIframe2" src="about:blank" title="Iframe Direito"></iframe>
+    </div>
+
+    <script>
+        const iframeContainer = document.getElementById('iframeContainer');
+        const iframe1 = document.getElementById('monitorIframe1');
+        const iframe2 = document.getElementById('monitorIframe2');
+        const displayImage = document.getElementById('displayImage');
+        const socket = io.connect(window.location.protocol + '//' + window.location.host);
+
+        socket.emit('identify', { role: 'monitor' });
+
+        // Verifica se a URL é de uma imagem com base na extensão
+        function isImageUrl(url) {
+            return url.match(/\.(jpeg|jpg|gif|png|bmp)$/i);
+        }
+
+        // Função para mostrar a imagem em vez dos iframes
+        function showImage(imageUrl) {
+            if (isImageUrl(imageUrl)) {
+
+            } else {
+                // Se não for uma imagem, mostra o iframe padrão com uma URL de backup
+                iframe1.src = imageUrl || "about:blank"; // Definindo um `src` padrão
+                showSingleIframe();
+            }
+        }
+
+        // Função para ajustar layout com um iframe
+        function showSingleIframe() {
+            iframeContainer.className = 'iframe-container single-iframe';
+            displayImage.style.display = 'none'; // Oculta a imagem se estiver visível
+            iframe1.style.display = 'block';
+            iframe2.style.display = 'none';
+        }
+
+        // Função para ajustar layout com dois iframes
+        function showDoubleIframe() {
+            iframeContainer.className = 'iframe-container double-iframe';
+            displayImage.style.display = 'none'; // Oculta a imagem se estiver visível
+            iframe1.style.display = 'block';
+            iframe2.style.display = 'block';
+        }
+
+        // Carrega o estado salvo do banco de dados ao iniciar
+        function loadDisplayState() {
+            fetch('/get_display_state')
+                .then(res => res.json())
+                .then(state => {
+                    console.log('💾 Monitor: Estado do display carregado:', state);
+                    
+                    if (state.url1 && state.url2) {
+                        // Duas URLs - tela dividida
+                        iframe1.src = state.url1;
+                        iframe2.src = state.url2;
+                        showDoubleIframe();
+                    } else if (state.url1) {
+                        // Uma URL - tela cheia
+                        console.log(`🎵 Monitor: Carregando URL do display: ${state.url1}`);
+                        showImage(state.url1);
+                    } else {
+                        // Se não há estado do display, tenta carregar estado das letras
+                        console.log('🔄 Monitor: Nenhuma URL no display, buscando estado das letras...');
+                        loadLyricsState();
+                    }
+                })
+                .catch(err => {
+                    console.error('❌ Monitor: Erro ao carregar estado do display:', err);
+                    loadLyricsState(); // Fallback para estado das letras
+                });
+        }
+
+        // Carrega o estado das letras (música + seção) e exibe no monitor
+        function loadLyricsState() {
+            console.log('🔍 Monitor: Buscando estado das letras...');
+            fetch('/get_lyrics_state')
+                .then(res => {
+                    console.log('📡 Monitor: Resposta recebida:', res.status);
+                    return res.json();
+                })
+                .then(state => {
+                    console.log('💾 Monitor: Estado das letras carregado:', state);
+                    
+                    if (state.song_id) {
+                        // Monta URL para a música/seção específica
+                        const lyricsUrl = `/lyrics/display?song_id=${state.song_id}&section=${state.section_index || 0}`;
+                        console.log(`🎵 Monitor: Carregando iframe com URL: ${lyricsUrl}`);
+                        console.log(`🎵 Monitor: iframe1 atual:`, iframe1);
+                        iframe1.src = lyricsUrl;
+                        console.log(`✅ Monitor: iframe1.src definido para: ${iframe1.src}`);
+                        showSingleIframe();
+                        console.log('✅ Monitor: showSingleIframe() chamado');
+                    } else {
+                        console.warn('⚠️ Monitor: Nenhuma música salva no estado');
+                    }
+                })
+                .catch(err => console.error('❌ Monitor: Erro ao carregar estado das letras:', err));
+        }
+
+        // Carrega estado ao iniciar
+        loadDisplayState();
+
+        // Escuta o evento 'display_image' do servidor e exibe a imagem se for válida
+        socket.on('display_image', function(data) {
+            const imageUrl = data.image_url;
+            showImage(imageUrl); // Tenta mostrar a imagem, ou oculta se não for uma imagem
+        });
+
+        // Escuta o evento 'display_two_urls' do servidor e atualiza os dois iframes
+        socket.on('display_two_urls', function(data) {
+            iframe1.src = data.url1 || "about:blank"; // Atualiza o iframe esquerdo
+            iframe2.src = data.url2 || "about:blank"; // Atualiza o iframe direito
+            showDoubleIframe(); // Mostra os dois iframes dividindo a tela
+        });
+        
+        // Escuta o evento para mostrar/esconder letras
+        socket.on('lyrics_visibility_changed', function(data) {
+            const visible = data.visible;
+            console.log(`👁️ Monitor: Letras ${visible ? 'mostradas' : 'escondidas'}`);
+            
+            // Verifica qual iframe tem letras (contém /lyrics/display)
+            const iframe1HasLyrics = iframe1.src.includes('/lyrics/display');
+            const iframe2HasLyrics = iframe2.src.includes('/lyrics/display');
+            
+            console.log(`  iframe1 tem letras: ${iframe1HasLyrics}`);
+            console.log(`  iframe2 tem letras: ${iframe2HasLyrics}`);
+            
+            // Esconde/mostra apenas o iframe que tem letras
+            // Usa visibility para manter o espaço e posição
+            if (iframe1HasLyrics) {
+                iframe1.style.visibility = visible ? 'visible' : 'hidden';
+            }
+            if (iframe2HasLyrics) {
+                iframe2.style.visibility = visible ? 'visible' : 'hidden';
+            }
+            
+            // Se nenhum iframe tem letras, esconde o container todo
+            if (!iframe1HasLyrics && !iframe2HasLyrics) {
+                const container = document.querySelector('.iframe-container');
+                container.style.display = visible ? 'flex' : 'none';
+            }
+        });
+
+        // Monitor sincronizado com a home via banco de dados + WebSocket
+    </script>
+</body>
+</html>

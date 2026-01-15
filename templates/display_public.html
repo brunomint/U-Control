@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Exibição de Letras</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background-color: black;
+}
+
+#section-title, #lyrics {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  flex-wrap: wrap;
+  padding: 10px;
+  max-width: 90%; /* Limita a largura para evitar que o texto ultrapasse */
+  box-sizing: border-box; /* Garante que o padding não afete o tamanho */
+  overflow: hidden; /* Evita que o conteúdo ultrapasse o limite da tela */
+  word-wrap: break-word; /* Quebra palavras longas */
+  word-break: break-word; /* Garante quebra das palavras longas */
+  white-space: normal; /* Permite que o texto quebre a linha automaticamente */
+}
+
+#section-title {
+
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+#section-text {
+  font-weight: bold;
+  max-height: 100%;
+  max-width: 90%; /* Limita largura para melhor quebra de linha */
+  margin: 0 auto; /* Centraliza */
+  overflow: hidden;
+  text-align: center;
+  line-height: 1.3; /* Espaçamento entre linhas otimizado */
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  color: white;
+  hyphens: auto; /* Hifenização automática */
+}
+
+
+
+#lyrics {
+  display: flex;
+  justify-content: center; /* Centraliza horizontalmente */
+  align-items: center;     /* Centraliza verticalmente */
+  text-align: center;
+  height: 100vh;            /* Garante que ocupe toda a altura da tela */
+  width: 100vw;             /* Opcional: ocupa toda a largura da tela */
+  overflow: hidden;
+}
+
+
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+  #section-title {
+
+  }
+
+  #lyrics {
+
+  }
+
+  #section-title, #lyrics {
+    padding: 5px; /* Reduz o padding em telas menores */
+    max-width: 80%; /* Ajusta o limite de largura */
+  }
+}
+
+/* Ajustes para telas muito pequenas, como smartphones */
+@media (max-width: 480px) {
+  #section-title {
+
+  }
+
+  #lyrics {
+
+  }
+
+  #section-title, #lyrics {
+    padding: 3px; /* Reduz ainda mais o padding */
+    max-width: 75%; /* Ajusta o limite de largura para telas pequenas */
+  }
+}
+
+
+
+
+
+
+
+    </style>
+</head>
+<body>
+    <div id="lyrics">
+        <div id="section-text"></div>
+    </div>
+
+    <script>
+        const socket = io();
+    
+        const updateLyricsDisplay = (title, text, songId) => {
+            $('#section-title').text(title);
+            $('#section-text').html(formatLyrics(text));
+            saveToLocalStorage(title, text, songId);
+            adjustFontSize();
+        };
+    
+        const formatLyrics = (text) => {
+    console.log('🎵 Public: Formatando letras (removendo cifras)...');
+    const lines = text.split('\n');
+    
+    return lines.map((line, idx) => {
+        const originalLine = line;
+        
+        // PRIMEIRO: Verifica se a linha é só cifras (antes de processar)
+        // Remove espaços e underscores temporariamente para verificar
+        const testLine = line.replace(/[\s_]+/g, ' ').trim();
+        // Se linha tem só cifras (letras A-G, números, símbolos musicais, barras, parênteses, modificadores)
+        // Modificadores: m, maj, min, dim, aug, sus, add
+        if (/^[A-G0-9#♯♭b°º\/\(\)maijndugse\s]+$/i.test(testLine) && testLine.length > 0) {
+            // Verifica se NÃO tem palavras reais (mais de 4 letras seguidas que não sejam modificadores)
+            if (!/[a-záàâãéèêíïóôõöúçñ]{5,}/i.test(testLine)) {
+                console.log(`  Linha ${idx}: "${originalLine}" → [LINHA DE CIFRAS - REMOVIDA]`);
+                return ''; // Remove linha inteira
+            }
+        }
+        
+        // SEGUNDO: Remove cifras do texto
+        let cleanedLine = line
+            // Remove cifras C, D, F, G, B com modificadores
+            .replace(/\b([CDFGB])(?:[b#♭♯])?(?:\d+)?(?:m|maj|min|dim|aug|sus|add)?(?:\d+)?(?:\([^)]*\))?(?:\/[CDEFGAB](?:[b#♭♯])?)?\b(?![a-záàâãéèêíïóôõöúçñ])/gi, '')
+            // (Removemos a limpeza agressiva de A/Em/etc. para não sumir com \"Em\" de frases)
+            // Remove parênteses com números isolados (restos de cifras como (6), (9), etc.)
+            .replace(/\(\d+\)/g, '')
+            // Remove números isolados entre espaços
+            .replace(/\s+\d+\s+/g, ' ')
+            // Remove símbolos musicais residuais (# ♯ ♭ ° º) mas NÃO remove 'b' pois pode ser letra
+            .replace(/[#♯♭°º]/g, '')
+            // Remove underscores
+            .replace(/_/g, '')
+            // Remove parênteses vazios
+            .replace(/\(\s*\)/g, '')
+            // Remove colchetes vazios
+            .replace(/\[\s*\]/g, '')
+            // Remove padrões de compasso com cifras que podem sobrar (ex: "| E | E |" ou "|A|")
+            .replace(/\|\s*[A-G](?:[b#♭♯])?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]*\))?(?:\/[A-G](?:[b#♭♯])?)?\s*\|/gi, '')
+            // Remove barras de compasso soltas
+            .replace(/\|/g, '')
+            // Remove acordes isolados que sobram (ex: " E "), sem afetar palavras (ex: "Ele")
+            .replace(/(^|\s)([A-G])(?=\s|$)/g, '$1')
+            // Remove resíduos de acordes com barra que podem sobrar (ex: "E/" de "E/G3")
+            .replace(/\b([A-G])\/(?:[A-G](?:\d+)?(?:[b#♭♯])?)?\b/gi, '')
+            // Remove '/' solta que sobrar
+            .replace(/\//g, '')
+            // Remove '+' que pode sobrar após remoção de cifras (ex: "E11+")
+            .replace(/\+/g, '')
+            // Remove múltiplos espaços
+            .replace(/\s+/g, ' ')
+            // Remove espaços no início e fim
+            .trim();
+        
+        if (originalLine !== cleanedLine && cleanedLine) {
+            console.log(`  Linha ${idx}: "${originalLine}" → "${cleanedLine}"`);
+        }
+        
+        return cleanedLine;
+    })
+    .filter(line => line !== '') // Remove linhas completamente vazias
+    .join('<br>'); // Junta com quebras de linha HTML
+};
+
+// Exemplo de uso
+const lyrics = `Meu Jesus, Salvador
+Outro igual não há
+Todos os dias quero louvar
+As maravilhas de teu amor`;
+
+const formattedLyrics = formatLyrics(lyrics);
+console.log(formattedLyrics);
+    
+        const saveToLocalStorage = (title, text, songId) => {
+            localStorage.setItem('currentTitle', title);
+            localStorage.setItem('currentText', text);
+            localStorage.setItem('currentSongId', songId);
+        };
+    
+        function adjustFontSize() {
+    const container = document.getElementById('lyrics');
+    const content = document.getElementById('section-text');
+    
+    // Começa com fonte MUITO grande para maximizar uso da tela
+    let fontSize = 15; // valor inicial em vw (aumentado para aproveitar mais)
+    content.style.fontSize = `${fontSize}vw`;
+
+    const containerHeight = container.clientHeight;
+
+    // Reduz fonte SOMENTE se ultrapassar ALTURA (permite quebra de linha na largura)
+    // Isso faz o texto quebrar em múltiplas linhas e usar fonte maior
+    while (content.scrollHeight > containerHeight * 0.90 && fontSize > 2) {
+        fontSize -= 0.1; // Decremento pequeno para ajuste fino
+        content.style.fontSize = `${fontSize}vw`;
+    }
+    
+    console.log(`📐 Fonte ajustada para: ${fontSize}vw (altura: ${content.scrollHeight}px / ${containerHeight}px)`);
+}
+
+
+
+
+    
+        const loadInitialLyrics = (songId) => {
+            $.ajax({
+                url: `/lyrics_data/${songId}`,
+                method: 'GET',
+                success: (data) => {
+                    if (data.error) {
+                        console.error(data.error);
+                    } else {
+                        updateLyricsDisplay(data.title, data.text, songId);
+                    }
+                },
+                error: (err) => console.error('Erro ao carregar os dados iniciais:', err),
+            });
+        };
+    
+        const initializeApp = () => {
+            const savedSongId = localStorage.getItem('currentSongId');
+            const savedTitle = localStorage.getItem('currentTitle');
+            const savedText = localStorage.getItem('currentText');
+    
+            if (savedSongId && savedTitle && savedText) {
+                updateLyricsDisplay(savedTitle, savedText, savedSongId);
+            } else if (savedSongId) {
+                loadInitialLyrics(savedSongId);
+            } else {
+                console.warn("Nenhum dado salvo encontrado.");
+            }
+    
+            adjustFontSize();
+        };
+    
+        const clearLyricsDisplay = () => {
+            console.log('Clearing lyrics display');
+            $('#section-text').empty();
+            $('#section-title').empty();
+            localStorage.removeItem('currentTitle');
+            localStorage.removeItem('currentText');
+            localStorage.removeItem('currentSongId');
+        };
+    
+        $('#clear-lyrics').click(() => {
+            console.log('Clear button clicked');
+            clearLyricsDisplay();
+            socket.emit('clear_lyrics');
+        });
+    
+        socket.on('update_lyrics', (data) => updateLyricsDisplay(data.title, data.text, data.id));
+        
+        // Escuta eventos de versículos da Bíblia
+        socket.on('update_bible', (data) => {
+            console.log('📖 Public: Recebeu update_bible:', data);
+            
+            // Formata o texto dos versículos
+            let verseText = '';
+            if (data.verses && Array.isArray(data.verses)) {
+                verseText = data.verses.map(v => `${v.num} ${v.text}`).join('\n');
+            } else if (data.text) {
+                verseText = data.text;
+            }
+            
+            // Exibe o texto bíblico (sem remover cifras, usa texto puro)
+            $('#section-text').html(verseText.replace(/\n/g, '<br>'));
+            adjustFontSize();
+        });
+        
+        // Escuta o evento para mostrar/esconder letras
+        socket.on('lyrics_visibility_changed', (data) => {
+            const visible = data.visible;
+            console.log(`👁️ Public: Letras ${visible ? 'mostradas' : 'escondidas'}`);
+            
+            const lyrics = document.getElementById('lyrics');
+            if (visible) {
+                lyrics.style.display = 'flex';
+            } else {
+                lyrics.style.display = 'none';
+            }
+        });
+    
+        window.addEventListener('load', adjustFontSize); // Corrigido: Removido espaço
+        window.addEventListener('resize ', adjustFontSize);
+    
+        $(document).ready(initializeApp);
+    </script>
+</body>
+</html>

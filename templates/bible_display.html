@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia - Display</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Merriweather', serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: white;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reference {
+            font-family: 'Roboto', sans-serif;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #ffd700;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+        }
+
+        .verse-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 50px 60px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .verse-text {
+            font-size: 2.8em;
+            line-height: 1.6;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .verse-number {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 0.8em;
+            vertical-align: super;
+            margin-right: 5px;
+        }
+
+        .waiting {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .waiting i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .waiting p {
+            font-size: 1.5em;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* Estilos para diferentes tamanhos de texto */
+        .verse-text.small {
+            font-size: 2em;
+        }
+
+        .verse-text.medium {
+            font-size: 2.8em;
+        }
+
+        .verse-text.large {
+            font-size: 3.5em;
+        }
+
+        /* Transição suave */
+        .fade-out {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        /* Responsivo */
+        @media (max-width: 1200px) {
+            .verse-text {
+                font-size: 2.2em;
+            }
+            .reference {
+                font-size: 2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            .verse-container {
+                padding: 30px;
+            }
+            .verse-text {
+                font-size: 1.8em;
+            }
+            .reference {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container" id="container">
+        <div class="waiting" id="waiting">
+            <i class="fas fa-book-bible"></i>
+            <p>Aguardando versículos...</p>
+        </div>
+        
+        <div id="content" style="display: none;">
+            <div class="reference" id="reference"></div>
+            <div class="verse-container">
+                <div class="verse-text" id="verseText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on('connect', function() {
+            console.log('📖 Conectado ao servidor de Bíblia');
+        });
+
+        socket.on('update_bible', function(data) {
+            console.log('📖 Recebido:', data);
+            displayVerse(data);
+        });
+
+        function displayVerse(data) {
+            const waiting = document.getElementById('waiting');
+            const content = document.getElementById('content');
+            const reference = document.getElementById('reference');
+            const verseText = document.getElementById('verseText');
+
+            // Fade out
+            content.classList.add('fade-out');
+            
+            setTimeout(() => {
+                // Atualiza conteúdo
+                reference.textContent = data.reference || '';
+                
+                // Formata versículos
+                let html = '';
+                if (data.verses && Array.isArray(data.verses)) {
+                    data.verses.forEach(verse => {
+                        html += `<span class="verse-number">${verse.num}</span>${verse.text} `;
+                    });
+                } else if (data.text) {
+                    html = data.text;
+                }
+                
+                verseText.innerHTML = html;
+                
+                // Ajusta tamanho do texto baseado no comprimento
+                const textLength = verseText.textContent.length;
+                verseText.classList.remove('small', 'medium', 'large');
+                if (textLength > 500) {
+                    verseText.classList.add('small');
+                } else if (textLength > 200) {
+                    verseText.classList.add('medium');
+                } else {
+                    verseText.classList.add('large');
+                }
+                
+                // Mostra conteúdo
+                waiting.style.display = 'none';
+                content.style.display = 'block';
+                content.classList.remove('fade-out');
+            }, 300);
+        }
+
+        // Escuta também eventos de visibilidade (para esconder/mostrar)
+        socket.on('bible_visibility_changed', function(data) {
+            const content = document.getElementById('content');
+            const waiting = document.getElementById('waiting');
+            
+            if (data.visible) {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+                waiting.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

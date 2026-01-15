@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Controle de Fotos</title>
+    <style>
+        /* Gerais */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            text-align: center;
+            padding-top: 40px;
+        }
+
+        /* Botão de alternância do menu */
+        .menu-toggle {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            font-size: 20px;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Estilo do menu */
+        .menu {
+            position: fixed;
+            top: 0;
+            left: -200px; /* Esconde o menu fora da tela */
+            width: 200px;
+            background-color: #333;
+            padding: 0px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+            height: 100%; /* Para cobrir a altura da tela */
+            overflow-y: auto; /* Adiciona rolagem se necessário */
+            transition: left 0.3s ease; /* Animação ao abrir/fechar */
+        }
+
+        .menu.open {
+            left: 0; /* Mostra o menu */
+        }
+
+        .menu ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .menu li {
+            margin: 15px 0;
+        }
+
+        .menu a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            display: block;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .menu a:hover {
+            background-color: #555;
+        }
+
+        /* Estilizar apenas os botões do formulário de upload */
+        div input[type="file"] {
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #333;
+            cursor: pointer;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+
+        img[src="/static/U-Control.png"] {
+            padding: 15px;
+            width: 150px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 5px;
+        }
+
+
+        div button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        div button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Contêiner de fotos */
+        .foto-lista {
+            display: flex;
+            flex-direction: column; /* Organiza os itens em coluna */
+            align-items: center; /* Centraliza horizontalmente as fotos */
+            gap: 20px; /* Espaçamento entre as fotos */
+            max-width: 80%; /* Limita a largura do contêiner */
+            margin: 20px auto; /* Centraliza o contêiner na tela */
+        }
+
+        /* Ajustar tamanho das imagens */
+        .foto-lista img {
+            max-width: 80%; /* Limita a largura máxima */
+            height: auto; /* Mantém a proporção */
+            border-radius: 10px; /* Bordas arredondadas (opcional) */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .foto-lista img:hover {
+            transform: scale(1.1); /* Amplia ligeiramente ao passar o mouse */
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+
+        /* Estilo para a imagem selecionada */
+        .foto-lista img.selected {
+            border: 2px solid #555;
+            box-shadow: 0 0 30px rgba(1, 103, 255, 0.945);
+            background-color: #ccc;
+            transform: scale(1.2);
+        }
+
+        h2 {
+            position: fixed;  /* Fixa o título no topo */
+            top: 0;           /* Posiciona no topo da página */
+            left: 50%;        /* Centraliza horizontalmente */
+            transform: translateX(-50%); /* Ajusta a posição para centralizar */
+            background-color: rgba(0, 0, 0, 0.7); /* Fundo semitransparente (opcional) */
+            color: white;     /* Cor do texto */
+            padding: 5px;     /* Espaçamento ao redor do texto */
+            z-index: 1000;    /* Garante que o título fique acima de outros elementos */
+            font-size: 12px;  /* Ajuste o tamanho da fonte */
+        }
+
+        p {
+            padding-top: 20px;
+            border-top: 1px solid #444;
+        }
+
+        /* Botão de zoom sobre a imagem */
+        .zoom-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .zoom-btn:hover {
+            transform: scale(1.05);
+            background: rgba(0,0,0,0.85);
+        }
+
+        /* Modal de zoom */
+        #zoom-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #zoom-modal.open { display: flex; }
+        .zoom-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+        }
+        .zoom-content {
+            position: relative;
+            background: #111;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 1;
+        }
+        .zoom-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .zoom-image-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-height: 60vh;
+            overflow: hidden;
+            background: #000;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        .zoom-image-wrapper img {
+            max-width: 100%;
+            max-height: 100%;
+            transition: transform 0.1s ease-out;
+            user-select: none;
+            touch-action: none; /* evita rolagem, permite pan */
+            cursor: grab;
+        }
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .zoom-controls input[type="range"] {
+            width: 200px;
+        }
+        .zoom-apply {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .zoom-apply:hover {
+            background: #0060c7;
+        }
+
+        @media (max-width: 768px) {
+            .foto-lista img {
+                max-width: 150px; /* Reduz tamanho para telas menores */
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    <nav class="menu">
+        <ul>
+            <li>
+                <img src="/static/U-Control.png" alt="U Control" class="logo">
+            </li>
+            <li><p>Deseja enviar mais arquivos?</p></li>
+            <li>
+                <div>
+                    <input type="file" id="fileInput" multiple>
+                    <button onclick="uploadImages()">Enviar Arquivos</button>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <h2>Toque ou clique na foto para visualização.</h2>
+    <div id="imageGallery" class="foto-lista"></div>
+
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        function toggleMenu() {
+            const menu = document.querySelector('.menu');
+            menu.classList.toggle('open');
+        }
+
+        // Fecha o menu ao clicar fora dele
+        document.addEventListener('click', function(event) {
+            const menu = document.querySelector('.menu');
+            const isClickInsideMenu = menu.contains(event.target);
+            const isClickOnToggleButton = event.target.matches('button');
+
+            // Se o menu estiver aberto e o clique não for dentro do menu ou no botão de toggle
+            if (menu.classList.contains('open') && !isClickInsideMenu && !isClickOnToggleButton) {
+                menu.classList.remove('open'); // Fecha o menu
+            }
+        });
+
+        
+        const socket = io();
+
+        socket.emit('identify', { role: 'presenter' });
+
+        socket.on('atualizar_foto', function(data) {
+            document.getElementById("foto-atual-iframe").src = data.foto_atual;
+        });
+
+        function loadImageGallery() {
+            fetch('/lista-fotos')
+                .then(response => response.json())
+                .then(data => {
+                    const gallery = document.getElementById('imageGallery');
+                    gallery.innerHTML = '';
+                    data.fotos.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+                        .forEach((image, index) => {
+                            const imgContainer = document.createElement('div');
+                            imgContainer.className = 'image-container';
+                            imgContainer.innerHTML = `
+                                <div style="position: relative; display: inline-block;">
+                                    <img src="${image}" alt="Imagem ${index + 1}" onclick="resetView('${image}')">
+                                    <button type="button"
+                                            class="zoom-btn"
+                                            aria-label="Abrir zoom"
+                                            onclick="openZoomModal('${image}')">🔍</button>
+                                </div>
+                            `;
+                            gallery.appendChild(imgContainer);
+                        });
+                })
+                .catch(error => console.error('Erro ao carregar as imagens:', error));
+        }
+
+        function uploadImages() {
+            const files = document.getElementById('fileInput').files;
+            const formData = new FormData();
+
+            for (let i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+            }
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Imagens enviadas com sucesso!');
+                    loadImageGallery();
+                } else {
+                    alert('Erro ao enviar imagens: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Erro ao enviar as imagens:', error));
+        }
+
+        function showImageInMonitor(imageUrl) {
+            const allImages = document.querySelectorAll('.foto-lista img');
+            allImages.forEach(img => img.classList.remove('selected'));
+            const clickedImage = Array.from(allImages).find(img => img.src === imageUrl);
+            if (clickedImage) {
+                clickedImage.classList.add('selected');
+            }
+            socket.emit('show_image', { image_url: imageUrl });
+        }
+
+        function resetView(imageUrl) {
+            // Seleciona a imagem e zera zoom/pan tanto local quanto no /img
+            showImageInMonitor(imageUrl);
+            panOffset = { x: 0, y: 0 };
+            zoomOrigin = { x: 50, y: 50 };
+            zoomSlider.value = 1;
+            zoomValueLabel.textContent = '1.0x';
+            applyLocalTransform(1, panOffset);
+            socket.emit('show_image_zoom', { image_url: imageUrl, zoom: 1, origin: { x: 50, y: 50 }, pan: { x: 0, y: 0 } });
+        }
+
+        // ===== Modal de Zoom =====
+        let zoomModal;
+        let zoomImage;
+        let zoomSlider;
+        let zoomValueLabel;
+        let zoomCurrentImageUrl = null;
+        let zoomEmitTimeout = null;
+        let zoomOrigin = { x: 50, y: 50 }; // porcentagem
+        let panOffset = { x: 0, y: 0 }; // em %
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let panBase = { x: 0, y: 0 };
+        const DRAG_MULTIPLIER = 1.0; // sensibilidade em porcentagem do tamanho da imagem
+
+        // Suporte a pinch (multi-touch)
+        const pointers = new Map();
+        let pinchStartDistance = null;
+        let pinchStartZoom = 1;
+        let pinchCenter = null;
+
+        function ensureZoomElements() {
+            if (zoomModal) return;
+            zoomModal = document.createElement('div');
+            zoomModal.id = 'zoom-modal';
+            zoomModal.innerHTML = `
+                <div class="zoom-backdrop" onclick="closeZoomModal()"></div>
+                <div class="zoom-content">
+                    <button class="zoom-close" onclick="closeZoomModal()" aria-label="Fechar">✕</button>
+                    <div class="zoom-image-wrapper">
+                        <img id="zoom-image" src="" alt="Zoom preview" title="Clique no ponto que deseja aproximar. Clique duplo ou toque duplo para reset.">
+                    </div>
+                    <div class="zoom-controls">
+                        <label for="zoom-range">Zoom: <span id="zoom-value">1.0x</span></label>
+                        <input type="range" id="zoom-range" min="1" max="3" step="0.1" value="1">
+                        <button type="button" class="zoom-apply" onclick="closeZoomModal()">Sair do zoom</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(zoomModal);
+            zoomImage = document.getElementById('zoom-image');
+            zoomSlider = document.getElementById('zoom-range');
+            zoomValueLabel = document.getElementById('zoom-value');
+            zoomSlider.addEventListener('input', () => {
+                const val = parseFloat(zoomSlider.value);
+                zoomValueLabel.textContent = `${val.toFixed(1)}x`;
+                applyLocalTransform(val, panOffset);
+                // Emite em tempo real com debounce curto
+                if (zoomEmitTimeout) clearTimeout(zoomEmitTimeout);
+                zoomEmitTimeout = setTimeout(() => {
+                    if (zoomCurrentImageUrl) {
+                        socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: val, origin: zoomOrigin, pan: panOffset });
+                    }
+                }, 80);
+            });
+
+            // Define origem do zoom ao clicar na imagem
+            // Clique único: define origem
+            zoomImage.addEventListener('click', (ev) => {
+                const rect = zoomImage.getBoundingClientRect();
+                const x = ((ev.clientX - rect.left) / rect.width) * 100;
+                const y = ((ev.clientY - rect.top) / rect.height) * 100;
+                zoomOrigin = { x, y };
+                applyLocalTransform(parseFloat(zoomSlider.value), panOffset);
+                if (zoomCurrentImageUrl) {
+                    socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: parseFloat(zoomSlider.value), origin: zoomOrigin, pan: panOffset });
+                }
+            });
+
+            // Duplo clique/toque para resetar zoom/pan e refletir no /img
+            zoomImage.addEventListener('dblclick', () => {
+                resetZoomPan();
+            });
+            zoomImage.addEventListener('touchend', (ev) => {
+                if (ev.detail === 2) {
+                    resetZoomPan();
+                }
+            });
+
+            // Toque/mouse move segurado para origem dinâmica (experiência mobile)
+            zoomImage.addEventListener('pointerdown', (ev) => {
+                isDragging = true;
+                dragStart = { x: ev.clientX, y: ev.clientY };
+                panBase = { ...panOffset };
+                zoomImage.setPointerCapture(ev.pointerId || 0);
+                zoomImage.style.cursor = 'grabbing';
+
+                // Armazena pointer para pinch
+                pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+                if (pointers.size === 2) {
+                    const pts = Array.from(pointers.values());
+                    pinchStartDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                    pinchStartZoom = parseFloat(zoomSlider.value) || 1;
+                    pinchCenter = {
+                        x: (pts[0].x + pts[1].x) / 2,
+                        y: (pts[0].y + pts[1].y) / 2
+                    };
+                }
+            });
+            zoomImage.addEventListener('pointerup', (ev) => {
+                isDragging = false;
+                zoomImage.releasePointerCapture(ev.pointerId || 0);
+                zoomImage.style.cursor = 'grab';
+                pointers.delete(ev.pointerId);
+                if (pointers.size < 2) {
+                    pinchStartDistance = null;
+                }
+            });
+            zoomImage.addEventListener('pointerleave', () => {
+                isDragging = false;
+                zoomImage.style.cursor = 'grab';
+            });
+            zoomImage.addEventListener('pointermove', (ev) => {
+                // Atualiza pointer
+                pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+
+                // Pinch (dois dedos)
+                if (pointers.size >= 2 && pinchStartDistance) {
+                    ev.preventDefault();
+                    const pts = Array.from(pointers.values());
+                    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                    if (dist > 0) {
+                        const scale = dist / pinchStartDistance;
+                        const newZoom = Math.min(3, Math.max(1, pinchStartZoom * scale));
+                        zoomSlider.value = newZoom;
+                        zoomValueLabel.textContent = `${newZoom.toFixed(1)}x`;
+                        // Centro do pinch vira origem
+                        const rect = zoomImage.getBoundingClientRect();
+                        const centerX = ((pts[0].x + pts[1].x) / 2 - rect.left) / rect.width * 100;
+                        const centerY = ((pts[0].y + pts[1].y) / 2 - rect.top) / rect.height * 100;
+                        zoomOrigin = { x: centerX, y: centerY };
+                        applyLocalTransform(newZoom, panOffset);
+                        if (zoomCurrentImageUrl) {
+                            socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: newZoom, origin: zoomOrigin, pan: panOffset });
+                        }
+                    }
+                    return;
+                }
+
+                // Pan (1 dedo)
+                if (!isDragging) return;
+                ev.preventDefault();
+                const rect = zoomImage.getBoundingClientRect();
+                const dx = ((ev.clientX - dragStart.x) / rect.width) * 100 * DRAG_MULTIPLIER;
+                const dy = ((ev.clientY - dragStart.y) / rect.height) * 100 * DRAG_MULTIPLIER;
+                panOffset = { x: panBase.x + dx, y: panBase.y + dy };
+                // Limita para evitar perder a imagem (%)
+                panOffset.x = Math.max(-150, Math.min(150, panOffset.x));
+                panOffset.y = Math.max(-150, Math.min(150, panOffset.y));
+                applyLocalTransform(parseFloat(zoomSlider.value), panOffset);
+                if (zoomCurrentImageUrl) {
+                    socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: parseFloat(zoomSlider.value), origin: zoomOrigin, pan: panOffset });
+                }
+                console.log('drag pan', panOffset);
+            });
+        }
+
+        function openZoomModal(imageUrl) {
+            ensureZoomElements();
+            zoomCurrentImageUrl = imageUrl;
+            zoomImage.src = imageUrl;
+            zoomSlider.value = 1;
+            zoomValueLabel.textContent = '1.0x';
+            zoomOrigin = { x: 50, y: 50 };
+            panOffset = { x: 0, y: 0 };
+            applyLocalTransform(1, panOffset);
+            zoomModal.classList.add('open');
+        }
+
+        function closeZoomModal() {
+            if (!zoomModal) return;
+            zoomModal.classList.remove('open');
+            zoomCurrentImageUrl = null;
+        }
+
+        function applyZoom() {
+            if (!zoomCurrentImageUrl) return;
+            const zoom = parseFloat(zoomSlider.value) || 1;
+            // Emite evento dedicado de zoom com origem
+            socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom, origin: zoomOrigin, pan: panOffset });
+            closeZoomModal();
+        }
+
+        function resetZoomPan() {
+            panOffset = { x: 0, y: 0 };
+            zoomSlider.value = 1;
+            zoomValueLabel.textContent = '1.0x';
+            applyLocalTransform(1, panOffset);
+            if (zoomCurrentImageUrl) {
+                socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: 1, origin: { x: 50, y: 50 }, pan: { x: 0, y: 0 } });
+            }
+        }
+
+        function applyLocalTransform(val, pan) {
+            zoomImage.style.transformOrigin = `${zoomOrigin.x}% ${zoomOrigin.y}%`;
+            zoomImage.style.transform = `translate(${pan.x}%, ${pan.y}%) scale(${val})`;
+        }
+
+        window.onload = loadImageGallery;
+    </script>
+</body>
+</html>

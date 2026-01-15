@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Página de Controle</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'open sans', sans-serif;
+            background-color: #222222;
+            margin: 0;
+            padding: 0;
+        }
+
+        .welcome-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.welcome-container p {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.logout-btn {
+    padding: 5px 10px; /* Menor padding */
+    background-color: #ff5f57;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem; /* Menor tamanho de fonte */
+}
+
+.logout-btn:hover {
+    background-color: #e04e45;
+}
+
+
+        
+/* Botão para exibir urls */
+
+        .wrap {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .button {
+            min-width: 90px;
+            min-height: 15px;
+            display: inline-flex;
+            font-family: 'Nunito', sans-serif;
+            font-size: 10px;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 1.3px;
+            font-weight: 700;
+            color: #313133;
+            background: #4FD1C5;
+            background: linear-gradient(90deg, rgba(129,230,217,1) 0%, rgba(79,209,197,1) 100%);
+            border: none;
+            border-radius: 1000px;
+            box-shadow: 12px 12px 24px rgba(79,209,197,.64);
+            transition: all 0.3s ease-in-out 0s;
+            cursor: pointer;
+            outline: none;
+            position: relative;
+            padding: 10px;
+        }
+
+        .button::before {
+            content: '';
+            border-radius: 1000px;
+            min-width: calc(120px + 12px);
+            min-height: calc(30px + 12px);
+            border: 6px solid #00FFCB;
+            box-shadow: 0 0 60px rgba(0,255,203,.64);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: all .3s ease-in-out 0s;
+        }
+
+        .button:hover, 
+        .button:focus {
+            color: #313133;
+            transform: translateY(-6px);
+        }  
+
+        .button:hover::before, 
+        .button:focus::before {
+            opacity: 1;
+        }
+
+        .button::after {
+            content: '';
+            width: 30px; height: 30px;
+            border-radius: 100%;
+            border: 6px solid #00FFCB;
+            position: absolute;
+            z-index: -1;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: ring 1.5s infinite;
+        }
+
+        .button:hover::after, 
+        .button:focus::after {
+            animation: none;
+            display: none;
+        }
+
+
+/* Botão para salvar url e enviar fotos para o servidor */
+
+
+
+        .button_slide {
+            color: #ffffff;
+            border: 2px solid rgb(0,255,203,.64);
+            border-radius: 10px;
+            padding: 10px 30px;
+            display: inline-block;
+            font-family: "Lucida Console", Monaco, monospace;
+            font-size: 14px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 0 #00FFCB;
+            -webkit-transition: ease-out 0.4s;
+            -moz-transition: ease-out 0.4s;
+            transition: ease-out 0.4s;
+        }
+
+        .slide_right:hover {
+            box-shadow: inset 400px 0 0 0 #00FFCB;
+        }
+
+        #outer {
+            width: 364px;
+            margin: 50px auto 0 auto;
+            text-align: center;
+        }
+
+/* Estilização Input */
+
+        input{
+	        width: 100%;
+	        margin: 0 auto;
+	        padding: 10px;
+	        border: none;
+	        margin-bottom: 10px;
+	        border-radius: 10px;
+}
+
+/* Menu    */        
+
+        .menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            z-index: 1000; /* Fica sobre o conteúdo */
+        }
+
+        .menu ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu li {
+            position: relative;
+            padding: 15px;
+            border-bottom: 1px solid #444;
+            cursor: pointer;
+        }
+
+        .menu li i {
+            margin-right: 0px;
+        }
+
+ /*       .menu li:hover {
+            background-color: #444;
+        } */
+
+        .menu li .submenu {
+            display: none;
+           /* background-color: #444444; */
+            margin-top: 5px;
+            padding-left: 20px;
+        } 
+
+
+        
+        .submenu img:hover {
+             border: 2px solid #555;
+             box-shadow: 0 0 30px rgba(1, 103, 255, 0.945);
+        }
+
+        .submenu img.selecionada {
+            border: 2px solid #555;
+            box-shadow: 0 0 30px rgba(1, 103, 255, 0.945);
+            background-color: #ccc; /* opcional */
+            transform: scale(1.2); /* Aumenta a imagem em 20% */
+        }
+
+
+
+        .menu li.open .submenu {
+            display: block;
+        }
+
+        .menu li.open i.arrow {
+            transform: rotate(90deg);
+        }
+
+        .submenu li {
+            padding: 10px 0;
+        }
+
+ /*       .submenu li:hover {
+            background-color: #555;
+        } 
+
+        .submenu li a {
+            text-decoration: none;
+            color: white;
+        } */
+
+        .submenu img {
+            width: 100%;
+            height: 120px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 20vh;
+        }
+
+        iframe {
+            border: none;
+            width: 100%; /* Ocupa 50% do contêiner */
+            height: 100%; /* Alinha a altura do contêiner */
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center; /* Centraliza o conteúdo do iframe */
+            align-items: center; /* Centraliza o conteúdo do iframe */
+            scroll-behavior: smooth; /* Adiciona rolagem suave */
+            background-color: beige;
+        }
+
+        .iframe-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            height: 70vh; /* Aumentado para 70% da altura da tela */
+            width: 95%; /* Aumentado para 95% da largura */
+            max-width: 1400px; /* Aumentado o limite máximo */
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            margin: 20px auto;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .iframe-container:hover {
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+        
+        .iframe-container iframe {
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+
+        button {
+            margin: 10px;
+            padding: 10px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+
+
+
+
+
+
+/* Contêiner dos botões */
+.button-container {
+    margin-top: 30px;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Estilo de cada grupo de botões - CARDS MODERNOS */
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border: none;
+    border-radius: 16px;
+    width: 220px;
+    text-align: center;
+    background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.button-group:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Ícones ao lado dos títulos */
+.button-group h3 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Definindo ícones para cada grupo */
+.button-group i {
+    font-size: 28px;
+    transition: transform 0.3s ease;
+}
+
+.button-group:hover i {
+    transform: scale(1.1);
+}
+
+/* Estilo dos subgrupos de botões */
+.subgroup {
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    gap: 8px;
+}
+
+/* Cores de ícones diferentes para cada grupo */
+.button-group:nth-of-type(1) i {
+    color: #4a90e2; /* Azul */
+}
+
+.button-group:nth-of-type(2) i {
+    color: #f39c12; /* Laranja */
+}
+
+.button-group:nth-of-type(3) i {
+    color: #e74c3c; /* Vermelho */
+}
+
+.button-group:nth-of-type(4) i {
+    color: #27ae60; /* Verde */
+}
+
+.subgroup {
+    display: flex;
+    justify-content: center; /* Centraliza os botões no subgrupo */
+    padding: 10px;
+    border-radius: 8px;
+    gap: 10px; /* Espaçamento entre botões */
+}
+
+.button {
+    padding: 8px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+
+
+
+
+        
+
+        button:hover {
+            background-color: #555;
+        }
+
+        .image-container button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        /* ========================================
+           RESPONSIVIDADE - TELAS VERTICAIS
+           ======================================== */
+        
+        /* Botão hambúrguer (escondido em desktop) */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .menu-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(74, 144, 226, 0.6);
+        }
+        
+        /* Tablet Portrait (768px ou menos) */
+        @media (max-width: 768px) {
+            /* Mostra botão hambúrguer */
+            .menu-toggle {
+                display: block;
+            }
+            
+            /* Esconde menu por padrão */
+            .menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            /* Menu aberto */
+            .menu.active {
+                transform: translateX(0);
+            }
+            
+            /* Overlay escuro quando menu aberto */
+            .menu-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+            
+            .menu-overlay.active {
+                display: block;
+            }
+            
+            /* Conteúdo ocupa tela toda sem margem do menu */
+            .content {
+                margin-left: 0;
+                padding: 10px;
+                width: 100%;
+            }
+            
+            .iframe-container {
+                height: 60vh;
+                width: calc(100% - 20px); /* Subtrai padding para não ultrapassar */
+                margin: 10px auto;
+                max-width: none;
+                box-sizing: border-box; /* Inclui padding e border no cálculo */
+            }
+            
+            .button-container {
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .button-group {
+                width: 100%;
+                max-width: 400px;
+            }
+            
+            .button-group h3 {
+                font-size: 14px;
+            }
+            
+            .button-group i {
+                font-size: 24px;
+            }
+            
+            .button {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+        
+        /* Mobile (480px ou menos) */
+        @media (max-width: 480px) {
+            .content {
+                margin-left: 0;
+                padding: 5px;
+                width: 100%;
+            }
+            
+            .iframe-container {
+                height: 50vh;
+                width: calc(100% - 10px);
+                border-radius: 8px;
+                margin: 5px auto;
+                max-width: none;
+                box-sizing: border-box;
+            }
+            
+            .button-container {
+                gap: 10px;
+                padding: 10px;
+            }
+            
+            .button-group {
+                width: 100%;
+                padding: 15px;
+                gap: 8px;
+            }
+            
+            .button-group h3 {
+                font-size: 12px;
+                gap: 8px;
+            }
+            
+            .button-group i {
+                font-size: 20px;
+            }
+            
+            .subgroup {
+                flex-wrap: wrap; /* Botões quebram linha se necessário */
+                gap: 6px;
+                padding: 5px;
+            }
+            
+            .button {
+                font-size: 10px;
+                padding: 5px 10px;
+                min-width: 70px;
+            }
+            
+            .welcome-container p {
+                font-size: 1rem;
+            }
+            
+            .logout-btn {
+                font-size: 0.7rem;
+                padding: 4px 8px;
+            }
+        }
+        
+        /* Mobile Pequeno (320px ou menos) */
+        @media (max-width: 320px) {
+            .content {
+                padding: 3px;
+            }
+            
+            .iframe-container {
+                height: 45vh;
+                width: calc(100% - 6px);
+                margin: 3px auto;
+                box-sizing: border-box;
+            }
+            
+            .button-group {
+                padding: 10px;
+            }
+            
+            .button {
+                font-size: 9px;
+                padding: 4px 8px;
+                min-width: 60px;
+            }
+        }
+
+        .help-link {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            color: rgb(40, 123, 231);
+            border: none;
+            border-radius: 5px;
+            text-decoration: none; /* Remove o sublinhado do link */
+        }
+        .help-link i {
+            margin-right: 5px; /* Espaço entre o ícone e o texto */
+        }
+
+        img {
+            max-width: 100%; /* Faz a imagem responsiva */
+            height: auto; /* Mantém a proporção da imagem */
+            margin-top: 20px; /* Espaço acima da imagem */
+        }
+
+        
+    </style>
+
+
+</head>
+
+<body>
+    <!-- Botão hambúrguer (só aparece em mobile) -->
+    <button class="menu-toggle" onclick="toggleMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Overlay escuro (só aparece quando menu aberto em mobile) -->
+    <div class="menu-overlay" onclick="toggleMenu()"></div>
+    
+    <div class="menu">
+        <ul>
+        <!-- Centralizando o "Bem-vindo" e o botão de logout -->
+            <div class="welcome-container">
+                <p>Bem-vindo, {{ current_user.username }}!</p>
+
+            </div>
+            <li>
+                <img src="/static/U-Control.png" alt="U Control" />
+            </li>
+            <li>
+                <i class="fas fa-sliders-h"></i> URL
+                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
+                <ul class="submenu">
+                    <li>
+                        <h1>Página de Controle</h1>
+
+                        <!-- Formulário para adicionar URLs -->
+                        <div class="input-container">
+                            <label for="url1">URL 1:</label>
+                            <input type="text" id="url1" placeholder="Digite a URL 1">
+                            <button class="button" onclick="sendUrl(1)">Mostrar URL 1</button>
+                        </div>
+                        <div class="input-container">
+                            <label for="url2">URL 2:</label>
+                            <input type="text" id="url2" placeholder="Digite a URL 2">
+                            <button class="button" onclick="sendUrl(2)">Mostrar URL 2</button>
+                        </div>
+                        <div class="input-container">
+                            <label for="url3">URL 3:</label>
+                            <input type="text" id="url3" placeholder="Digite a URL 3">
+                            <button class="button" onclick="sendUrl(3)">Mostrar URL 3</button>
+                        </div>
+                        <button class="button_slide slide_right" onclick="saveUrls()">Salvar URLs</button>                    
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <i class="fas fa-image"></i> Imagens/PDF
+                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
+                <ul class="submenu">
+                    <li>
+
+                        <h1>Imagens Salvas</h1>
+                    <ul>
+                            <!-- Formulário para upload de imagens -->
+                            <div>
+                            <input type="file" id="fileInput" multiple>
+                            <button class="button_slide slide_right" onclick="uploadImages()">Enviar Arquivos</button>
+                        </div>
+
+                            <!-- Exibição das imagens -->
+                        <div id="imageGallery">
+                        <!-- A galeria de imagens será preenchida dinamicamente -->
+                        </div>
+                    </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <i class="fas fa-music"></i> Canções/Cifra
+                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
+                <ul class="submenu">
+                    <li>
+
+                        <h1>Canções</h1>
+                    <ul>
+                            <!-- Formulário para upload de imagens -->
+                <div>
+                    <button class="button" onclick="sendUrl(4)">Mostrar Iframe</button>
+                </div>
+                    </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <i class="fas fa-video"></i> Vídeo
+                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
+                <ul class="submenu">
+                    <li>
+
+                        <h1>Vídeo!!</h1>
+                    <ul>
+                            <!-- Formulário para upload de imagens -->
+                <div>
+                    <button class="button" onclick="">Vídeo</button>
+                </div>
+                    </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <i class="fas fa-book"></i> Bíblia
+                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
+                <ul class="submenu">
+                    <li>
+                        <h1>Bíblia</h1>
+                        <ul>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <button class="button" onclick="showBibleInIframe()">
+                                    <i class="fas fa-book-bible"></i> Abrir Bíblia
+                                </button>
+                                <button class="button" onclick="showBibleDisplay()">
+                                    <i class="fas fa-tv"></i> Exibir no Telão
+                                </button>
+                                <a href='/bible' target="_blank" class="help-link" style="text-align: center;">
+                                    <i class="fas fa-external-link-alt"></i> Abrir em Nova Aba
+                                </a>
+                            </div>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <i class="fas fa-link"></i>Links
+                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
+                <ul class="submenu">
+                    <li>
+
+                        <h1>Links</h1>
+                    <ul>
+                        <li>
+                            <!-- Links da aplicação -->
+                            <a href='/songs' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Biblioteca de Músicas
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/order' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Ordem do Culto
+                            </a>
+                        </li>
+                            
+                        <li>
+                            <a href='/lyrics/display' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Visualização das Canções
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/monitor' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Retorno de Palco
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/img' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Visualização de Imagens
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/presenter' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Controle de Imagens
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/lyrics/display/public' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Texto para o Público
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/dashboard' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Dashboard
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href='/usuarios' target="_blank" class="help-link">
+                                <i class="fas fa-link"></i> Novo Usuário
+                            </a>
+                        </li>
+                        
+                    </ul>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a href='/help' class="help-link"><i class="fas fa-question-circle"></i> Ajuda </a>
+            </li>
+            <li>
+                                <a href="{{ url_for('logout') }}">
+                    <button class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </a>
+            </li>
+        </ul>
+    </div>        
+
+
+
+    <script>
+ document.addEventListener('DOMContentLoaded', function () {
+    setupMenuToggle();
+    setupPreventMenuClose();
+    loadUrls();
+    loadImageGallery();
+    loadDisplayState(); // Carrega estado salvo ao iniciar
+});
+
+const socket = io.connect(`${window.location.protocol}//${window.location.host}`);
+
+// Escuta eventos WebSocket para sincronizar iframes entre PCs
+socket.on('display_image', function(data) {
+    console.log('📡 Recebido display_image de outro PC:', data);
+    
+    // Se a URL é uma rota (começa com /), atualiza os iframes
+    // Se é um caminho de imagem estática, NÃO atualiza (deixa /img receber via WebSocket)
+    if (data.image_url.startsWith('/') && !data.image_url.startsWith('/static/')) {
+        updateIframes(data.image_url, '');
+    }
+    // Se for imagem estática, o /img já vai receber via WebSocket e exibir
+});
+
+socket.on('display_two_urls', function(data) {
+    console.log('📡 Recebido display_two_urls de outro PC:', data);
+    updateIframes(data.url1, data.url2);
+});
+
+// Escuta o evento para mostrar/esconder letras
+socket.on('lyrics_visibility_changed', function(data) {
+    const visible = data.visible;
+    console.log(`👁️ Home: Letras ${visible ? 'mostradas' : 'escondidas'}`);
+    
+    const iframe1 = document.getElementById('iframe1');
+    const iframe2 = document.getElementById('iframe2');
+    
+    if (!iframe1 || !iframe2) {
+        console.warn('⚠️ Home: Iframes não encontrados');
+        return;
+    }
+    
+    // Verifica qual iframe tem letras (contém /lyrics/display)
+    const iframe1HasLyrics = iframe1.src.includes('/lyrics/display');
+    const iframe2HasLyrics = iframe2.src.includes('/lyrics/display');
+    
+    console.log(`  iframe1 tem letras: ${iframe1HasLyrics}`);
+    console.log(`  iframe2 tem letras: ${iframe2HasLyrics}`);
+    
+    // Esconde/mostra apenas o iframe que tem letras
+    // Usa visibility para manter o espaço e posição
+    if (iframe1HasLyrics) {
+        iframe1.style.visibility = visible ? 'visible' : 'hidden';
+    }
+    if (iframe2HasLyrics) {
+        iframe2.style.visibility = visible ? 'visible' : 'hidden';
+    }
+});
+
+// Função para abrir/fechar menu em mobile
+function toggleMenu() {
+    const menu = document.querySelector('.menu');
+    const overlay = document.querySelector('.menu-overlay');
+    
+    menu.classList.toggle('active');
+    overlay.classList.toggle('active');
+}
+
+function setupMenuToggle() {
+    const menuItems = document.querySelectorAll('.menu > ul > li');
+    menuItems.forEach(menuItem => {
+        menuItem.addEventListener('click', function () {
+            const isOpen = menuItem.classList.contains('open');
+            menuItems.forEach(item => item.classList.remove('open'));
+            if (!isOpen) menuItem.classList.add('open');
+        });
+    });
+}
+
+function setupPreventMenuClose() {
+    document.querySelectorAll('input, button, form, img, #imageGallery')
+        .forEach(input => input.addEventListener('click', event => event.stopPropagation()));
+}
+
+function sendUrl(urlNumber) {
+    const fixedRoutes = {
+        4: "/lyrics/display",
+        5: "/clock",
+        6: "/img",
+        7: "/bible/display"
+    };
+
+    const urlInput = fixedRoutes[urlNumber] || document.getElementById(`url${urlNumber}`)?.value;
+    if (!urlInput) return console.error("URL não definida ou vazia.");
+
+    console.warn('⚠️ sendUrl: Mostrando apenas 1 URL. Se quiser manter 2 URLs (ex: Cifra + Relógio), use o botão "URL 1/2"');
+    socket.emit('show_image', { image_url: urlInput });
+    updateIframes(urlInput, '');
+}
+
+function showTwoUrls(urlNum1, urlNum2) {
+    const fixedRoutes = {
+        4: "/lyrics/display",
+        5: "/clock",
+        6: "/img",
+        7: "/bible/display"
+    };
+
+    const url1 = fixedRoutes[urlNum1] || document.getElementById(`url${urlNum1}`)?.value;
+    const url2 = fixedRoutes[urlNum2] || document.getElementById(`url${urlNum2}`)?.value;
+    if (!url1 || !url2) return console.error("Uma ou ambas as URLs não foram definidas.");
+
+    socket.emit('show_two_urls', { url1, url2 });
+    updateIframes(url1, url2);
+}
+
+function updateIframes(url1, url2) {
+    const iframe1 = document.getElementById('iframe1');
+    const iframe2 = document.getElementById('iframe2');
+    iframe1.src = url1;
+    iframe2.src = url2;
+    iframe1.style.width = url2 ? '50%' : '100%';
+    iframe2.style.width = url2 ? '50%' : '0';
+}
+
+function saveUrls() {
+    const urls = {
+        url1: document.getElementById('url1').value,
+        url2: document.getElementById('url2').value,
+        url3: document.getElementById('url3').value
+    };
+    fetch('/save_urls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(urls)
+    }).then(res => res.json())
+      .then(data => data.status === 'success' && alert('URLs salvas com sucesso!'));
+}
+
+function loadUrls() {
+    fetch('/load_urls')
+        .then(res => res.json())
+        .then(urls => {
+            document.getElementById('url1').value = urls.url1;
+            document.getElementById('url2').value = urls.url2;
+            document.getElementById('url3').value = urls.url3;
+        });
+}
+
+// Carrega o estado salvo do display ao iniciar
+function loadDisplayState() {
+    fetch('/get_display_state')
+        .then(res => res.json())
+        .then(state => {
+            console.log('💾 Estado carregado do banco:', state);
+            if (state.url1 || state.url2) {
+                // Converte imagens estáticas para a rota /img
+                let url1 = state.url1;
+                let url2 = state.url2;
+                
+                if (url1 && url1.startsWith('/static/')) {
+                    console.log('🔄 Convertendo imagem estática para /img:', url1);
+                    url1 = '/img';
+                }
+                if (url2 && url2.startsWith('/static/')) {
+                    console.log('🔄 Convertendo imagem estática para /img:', url2);
+                    url2 = '/img';
+                }
+                
+                updateIframes(url1, url2);
+            }
+        })
+        .catch(err => console.error('❌ Erro ao carregar estado:', err));
+}
+
+function uploadImages() {
+    const fileInput = document.getElementById('fileInput');
+    const formData = new FormData();
+    [...fileInput.files].forEach(file => formData.append('images', file));
+    fetch('/upload', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Imagens enviadas com sucesso!');
+                loadImageGallery();
+            }
+        });
+}
+
+function loadImageGallery() {
+    fetch('/imagens')
+        .then(res => res.json())
+        .then(images => {
+            images.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            const gallery = document.getElementById('imageGallery');
+            gallery.innerHTML = '';
+            images.forEach((image, index) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'image-container';
+                imgContainer.innerHTML = `
+                    <img src="${image}" alt="Imagem ${index + 1}" onclick="showImageInMonitor('${image}')">
+                    <button onclick="deleteImage('${image}')">Excluir</button>
+                `;
+                gallery.appendChild(imgContainer);
+            });
+        });
+}
+
+function deleteImage(imageUrl) {
+    if (!confirm('Você tem certeza que deseja excluir esta imagem?')) return;
+    fetch('/delete_image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_name: imageUrl.split('/').pop() })
+    }).then(res => res.json())
+      .then(data => {
+          if (data.status === 'success') {
+              alert('Imagem excluída com sucesso!');
+              loadImageGallery();
+          } else {
+              alert('Erro ao excluir imagem: ' + data.message);
+          }
+      }).catch(err => console.error('Erro ao excluir a imagem:', err));
+}
+
+function showImageInMonitor(imageUrl) {
+    document.querySelectorAll('.submenu img').forEach(img => img.classList.remove('selecionada'));
+    document.querySelector(`img[src="${imageUrl}"]`).classList.add('selecionada');
+    
+    // Envia a imagem via WebSocket (para /img receber)
+    socket.emit('show_image', { image_url: imageUrl });
+
+    // Salva o caminho da imagem em JSON
+    saveImagePath(imageUrl);
+}
+
+function saveImagePath(imageUrl) {
+    fetch('/save_image_path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_path: imageUrl })
+    }).then(res => res.json())
+      .then(data => {
+          if (data.status === 'success') {
+              console.log('Caminho da imagem salvo com sucesso!');
+          }
+      });
+}
+
+// Funções para Bíblia
+function showBibleInIframe() {
+    const iframe1 = document.getElementById('iframe1');
+    const iframe2 = document.getElementById('iframe2');
+    iframe1.src = '/bible';
+    iframe2.src = 'about:blank';
+    console.log('📖 Bíblia carregada no iframe');
+}
+
+function showBibleDisplay() {
+    const iframe1 = document.getElementById('iframe1');
+    const iframe2 = document.getElementById('iframe2');
+    iframe1.src = '/bible';
+    iframe2.src = '/bible/display';
+    console.log('📖 Bíblia + Display carregados');
+    
+    // Emite evento para sincronizar com outros dispositivos
+    socket.emit('display_two_urls', {
+        url1: '/bible',
+        url2: '/bible/display'
+    });
+}
+    </script>
+
+<div class="content">
+    <div class="iframe-container">
+        <iframe id="iframe1" src="about:blank" title="Iframe Esquerdo"></iframe>
+        <iframe id="iframe2" src="about:blank" title="Iframe Direito"></iframe>
+    </div> <!-- Fechamento da div .iframe-container -->
+
+    <div class="side-by-side"></div> <!-- Fechamento da div .side-by-side -->
+
+    <div class="button-container"> <!-- Início da div .button-container -->
+        <!-- Grupo 1: Botões para exibir uma única informação -->
+        <div class="button-group">
+            <h3><i class="fas fa-expand"></i> Exibir em Tela Cheia</h3>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(1)">URL 1</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(2)">URL 2</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(3)">URL 3</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(4)">Cifra</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(5)">Relógio</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(6)">Imagem</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(7)">Bíblia</button>
+            </div>
+        </div> <!-- Fechamento da div .button-group -->
+
+        <!-- Grupo 2: Botões para exibir duas informações -->
+        <div class="button-group">
+            <h3><i class="fas fa-columns"></i> URL + Tela Dividida</h3>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(1, 2)">URL 1/2</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(2, 3)">URL 2/3</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(1, 3)">URL 1/3</button>
+            </div>
+        </div> <!-- Fechamento da div .button-group -->
+
+        <!-- Grupo 3: Botões para exibir Cifra + Tela Dividida -->
+        <div class="button-group">
+            <h3><i class="fas fa-music"></i> Cifra + Tela Dividida</h3>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(4, 1)">Cifra/URL 1</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(4, 2)">Cifra/URL 2</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(4, 3)">Cifra/URL 3</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(4, 5)">Cifra/Relógio</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(4, 6)">Cifra/Imagem</button>
+            </div>
+        </div> <!-- Fechamento da div .button-group -->
+
+        <!-- Grupo 4: Botões para exibir Relógio + Tela Dividida -->
+        <div class="button-group">
+            <h3><i class="fas fa-clock"></i> Relógio + Tela Dividida</h3>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(5, 1)">Relógio/URL 1</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(5, 2)">Relógio/URL 2</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(5, 3)">Relógio/URL 3</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(5, 4)">Relógio/Cifra</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(5, 6)">Relógio/Imagem</button>
+            </div>
+        </div> <!-- Fechamento da div .button-group -->
+    </div> <!-- Fechamento da div .button-container -->
+</div> <!-- Fechamento da div .content -->
+
+
+</body>
+</html>

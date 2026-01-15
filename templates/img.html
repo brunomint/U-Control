@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Monitor de Imagens</title>
+
+    <style>
+        /* Estilo básico para ocupar toda a tela e centralizar a imagem */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+        }
+
+        /* Estilo para a imagem exibida */
+        #imageUr {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ajusta a imagem dentro do container sem distorção */
+            transition: transform 0.15s ease-out;
+            transform-origin: 50% 50%;
+        }
+    </style>
+
+    <!-- Inclusão do Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+
+    <!-- Tag img para exibir a imagem atual -->
+    <img id="imageUr" alt="Foto Atual">
+
+    <script>
+        const socket = io.connect(window.location.protocol + '//' + window.location.host);
+        let currentImageUrl = ''; // Armazena URL atual para evitar recargas desnecessárias
+    
+        // Função para carregar a última imagem ao carregar a página
+        function loadLastImage() {
+            fetch('/last_image')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.image_url) {
+                        loadImage(data.image_url);
+                    }
+                })
+                .catch(error => console.error('Erro ao carregar a última imagem:', error));
+        }
+        
+        // Função otimizada para carregar imagem (usa cache quando possível)
+        function loadImage(imageUrl) {
+            const img = document.getElementById('imageUr');
+            
+            // Se for a mesma URL, não recarrega (usa cache do navegador)
+            if (currentImageUrl === imageUrl) {
+                console.log('🚀 Imagem já carregada, usando cache');
+                return;
+            }
+            
+            // Só adiciona timestamp se for URL estática (força reload apenas para imagens novas)
+            const finalUrl = imageUrl.startsWith('/static/') 
+                ? imageUrl + '?t=' + Date.now() 
+                : imageUrl;
+            
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                img.src = finalUrl;
+                currentImageUrl = imageUrl; // Salva URL atual
+                console.log('✅ Imagem carregada:', imageUrl);
+            };
+            tempImg.onerror = function() {
+                console.error('❌ Erro ao carregar a imagem:', imageUrl);
+            };
+            tempImg.src = finalUrl;
+        }
+    
+        // Executa a função assim que a página for carregada
+        document.addEventListener("DOMContentLoaded", loadLastImage);
+    
+        // WebSocket para receber imagens em tempo real
+        socket.on('display_image', function(data) {
+            // Só reseta se for imagem diferente
+            if (currentImageUrl !== data.image_url) {
+                loadImage(data.image_url);
+                const img = document.getElementById('imageUr');
+                img.style.transform = 'scale(1)';
+                img.style.transformOrigin = '50% 50%';
+            }
+        });
+
+        socket.on('display_image_zoom', function(data) {
+            const { image_url, zoom, origin, pan } = data;
+            // Só recarrega se for imagem diferente; evita reset do transform
+            if (currentImageUrl !== image_url) {
+                loadImage(image_url);
+            }
+            const img = document.getElementById('imageUr');
+            const factor = parseFloat(zoom) || 1;
+            if (origin && typeof origin.x === 'number' && typeof origin.y === 'number') {
+                img.style.transformOrigin = `${origin.x}% ${origin.y}%`;
+            } else {
+                img.style.transformOrigin = '50% 50%';
+            }
+            let translateX = 0;
+            let translateY = 0;
+            if (pan && typeof pan.x === 'number' && typeof pan.y === 'number') {
+                // Recebe em %, converte para px relativos ao tamanho da imagem atual
+                const imgRect = img.getBoundingClientRect();
+                translateX = (pan.x / 100) * imgRect.width;
+                translateY = (pan.y / 100) * imgRect.height;
+            }
+            console.log('🎯 zoom/pan recebido', { image_url, zoom: factor, origin, pan, translateX, translateY });
+            img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${factor})`;
+        });
+    </script>
+
+</body>
+</html>
