@@ -284,12 +284,23 @@
             <li>
                 <div>
                     <input type="file" id="fileInput" multiple>
-                    <button onclick="uploadImages()">Enviar Arquivos</button>
+                    <button id="uploadBtn" onclick="uploadImages()">Enviar Arquivos</button>
+                    <div id="uploadProgressWrap" style="display:none; margin-top:8px;">
+                        <div style="background:#222; border-radius:6px; overflow:hidden; height:18px; position:relative;">
+                            <div id="uploadProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#4caf50,#81c784); border-radius:6px; transition:width .15s;"></div>
+                            <span id="uploadProgressText" style="position:absolute; top:0; left:0; right:0; text-align:center; font-size:0.72em; line-height:18px; color:#fff; font-weight:bold;">0%</span>
+                        </div>
+                        <div id="uploadStatusText" style="color:#aaa; font-size:0.72em; margin-top:4px; text-align:center;"></div>
+                    </div>
                 </div>
             </li>
         </ul>
     </nav>
 
+    <div style="position:fixed; top:0; right:0; z-index:999; padding:8px 12px; display:flex; gap:8px; align-items:center;">
+        <select id="folderSelect" onchange="onFolderChange()" style="padding:8px 12px; border-radius:8px; border:1px solid #555; background:#333; color:#fff; font-size:0.9em;"></select>
+        <button id="blackoutBtn" onclick="toggleBlackout()" style="padding:10px 18px; border:none; border-radius:8px; background:#212121; color:white; font-size:0.95em; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.4);">🌑 Escurecer Tela</button>
+    </div>
     <h2>Toque ou clique na foto para visualização.</h2>
     <div id="imageGallery" class="foto-lista"></div>
 
@@ -318,12 +329,49 @@
 
         socket.emit('identify', { role: 'presenter' });
 
+        let blackoutActive = false;
+        function toggleBlackout() {
+            blackoutActive = !blackoutActive;
+            socket.emit('blackout', { active: blackoutActive });
+            const btn = document.getElementById('blackoutBtn');
+            btn.textContent = blackoutActive ? '☀️ Restaurar Tela' : '🌑 Escurecer Tela';
+            btn.style.background = blackoutActive ? '#4caf50' : '#212121';
+        }
+
         socket.on('atualizar_foto', function(data) {
             document.getElementById("foto-atual-iframe").src = data.foto_atual;
         });
 
+        function getCurrentFolder() {
+            return document.getElementById('folderSelect').value;
+        }
+
+        function loadFolders() {
+            fetch('/api/image_folders')
+                .then(res => res.json())
+                .then(folders => {
+                    const select = document.getElementById('folderSelect');
+                    const saved = localStorage.getItem('presenterFolder') || 'Geral';
+                    select.innerHTML = '';
+                    folders.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        if (f === saved) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    loadImageGallery();
+                });
+        }
+
+        function onFolderChange() {
+            localStorage.setItem('presenterFolder', getCurrentFolder());
+            loadImageGallery();
+        }
+
         function loadImageGallery() {
-            fetch('/lista-fotos')
+            const folder = getCurrentFolder();
+            fetch(`/lista-fotos?folder=${encodeURIComponent(folder)}`)
                 .then(response => response.json())
                 .then(data => {
                     const gallery = document.getElementById('imageGallery');
@@ -348,27 +396,69 @@
         }
 
         function uploadImages() {
-            const files = document.getElementById('fileInput').files;
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) return alert('Selecione arquivos primeiro.');
             const formData = new FormData();
-
-            for (let i = 0; i < files.length; i++) {
-                formData.append('images', files[i]);
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('images', fileInput.files[i]);
             }
+            formData.append('folder', getCurrentFolder());
 
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert('Imagens enviadas com sucesso!');
-                    loadImageGallery();
-                } else {
-                    alert('Erro ao enviar imagens: ' + data.message);
+            const wrap = document.getElementById('uploadProgressWrap');
+            const bar = document.getElementById('uploadProgressBar');
+            const pctText = document.getElementById('uploadProgressText');
+            const statusText = document.getElementById('uploadStatusText');
+            const btn = document.getElementById('uploadBtn');
+
+            wrap.style.display = 'block';
+            bar.style.width = '0%';
+            pctText.textContent = '0%';
+            statusText.textContent = 'Enviando...';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload');
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    bar.style.width = pct + '%';
+                    pctText.textContent = pct + '%';
+                    const mb = (e.loaded / 1048576).toFixed(1);
+                    const totalMb = (e.total / 1048576).toFixed(1);
+                    statusText.textContent = `${mb} MB / ${totalMb} MB`;
                 }
-            })
-            .catch(error => console.error('Erro ao enviar as imagens:', error));
+            };
+
+            xhr.onload = function() {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                if (xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.status === 'success') {
+                        bar.style.width = '100%';
+                        bar.style.background = 'linear-gradient(90deg,#4caf50,#81c784)';
+                        pctText.textContent = '100%';
+                        statusText.textContent = '✅ Enviado! Processando imagens...';
+                        loadImageGallery();
+                        fileInput.value = '';
+                        setTimeout(() => { wrap.style.display = 'none'; }, 3000);
+                    }
+                } else {
+                    bar.style.background = '#e53935';
+                    statusText.textContent = '❌ Erro no envio.';
+                }
+            };
+
+            xhr.onerror = function() {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                bar.style.background = '#e53935';
+                statusText.textContent = '❌ Erro de conexão.';
+            };
+
+            xhr.send(formData);
         }
 
         function showImageInMonitor(imageUrl) {
@@ -589,7 +679,7 @@
             zoomImage.style.transform = `translate(${pan.x}%, ${pan.y}%) scale(${val})`;
         }
 
-        window.onload = loadImageGallery;
+        window.onload = loadFolders;
     </script>
 </body>
 </html>

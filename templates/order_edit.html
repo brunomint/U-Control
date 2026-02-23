@@ -513,7 +513,7 @@
                 </div>
                 <div class="form-group">
                     <label for="orderTime">Horário</label>
-                    <input type="time" id="orderTime" value="{{ order.horario if order else '19:00' }}">
+                    <input type="time" id="orderTime" value="{{ order.horario if order else '18:40' }}">
                 </div>
                 <div class="form-group">
                     <label for="orderType">Tipo de Culto</label>
@@ -522,7 +522,7 @@
                         <option value="Culto de Oração" {{ 'selected' if order and order.tipo == 'Culto de Oração' else '' }}>Culto de Oração</option>
                         <option value="Culto de Jovens" {{ 'selected' if order and order.tipo == 'Culto de Jovens' else '' }}>Culto de Jovens</option>
                         <option value="Culto de Ensino" {{ 'selected' if order and order.tipo == 'Culto de Ensino' else '' }}>Culto de Ensino</option>
-                        <option value="Santa Ceia" {{ 'selected' if order and order.tipo == 'Santa Ceia' else '' }}>Santa Ceia</option>
+                        <option value="Culto Santa Ceia" {{ 'selected' if order and order.tipo == 'Culto Santa Ceia' else '' }}>Culto Santa Ceia</option>
                         <option value="Culto Especial" {{ 'selected' if order and order.tipo == 'Culto Especial' else '' }}>Culto Especial</option>
                         <option value="Outro" {{ 'selected' if order and order.tipo == 'Outro' else '' }}>Outro</option>
                     </select>
@@ -810,7 +810,15 @@
                 return url && url !== '/' && url !== '#' ? { url, title } : { anyText: title };
             });
 
+            // Carrega dados existentes para preservar campos de outras seções (louvor, mídia, eventos)
+            let existing = {};
+            try {
+                const res = await fetch(`/api/orders/${date}`);
+                if (res.ok) existing = await res.json();
+            } catch(e) {}
+
             const orderData = {
+                ...existing,
                 tipo: document.getElementById("orderType").value,
                 horario: document.getElementById("orderTime").value,
                 dirigente: document.getElementById("orderDirigente").value,

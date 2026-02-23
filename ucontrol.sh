@@ -1,13 +1,10 @@
 #!/bin/bash
+set -e
 
-cd '/home/pc-ibr-linux/meus_apps/14.3_U-Control'
+PROJECT_DIR="/home/piano-25/14.3_calendario_U-Control"
 
+cd "$PROJECT_DIR" || exit 1
 
-# Ativa o ambiente virtual
-source '/home/pc-ibr-linux/meus_apps/14.3_U-Control'
+exec /usr/bin/python3 main.py
 
-ip addr show | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
-
-# Executa o script Python usando Python
-python3 main.py
 

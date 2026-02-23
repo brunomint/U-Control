@@ -7,8 +7,8 @@
     <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f5f7fa; color: #0f172a; }
-        .page { max-width: 800px; margin: 32px auto; padding: 0 16px 80px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f7f9fc; color: #0f172a; }
+        .page { max-width: 900px; margin: 40px auto; padding: 24px; background: #ffffff; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
         .header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
         .title { font-size: 22px; font-weight: 700; }
         .badge { padding: 6px 12px; background: #ecfeff; color: #0891b2; border: 1px solid #bae6fd; border-radius: 10px; font-weight: 600; }
@@ -109,8 +109,8 @@
 <div class="page">
     <div class="header">
         <div>
-            <a class="back" href="{% if current_user.is_authenticated %}/agenda/{{ date }}/admin{% else %}/agenda/{{ date }}{% endif %}">← Voltar</a>
-            <div class="title">{{ section == 'louvor' and 'Louvor e Dirigência' or section == 'midia' and 'Escala Mídia' or 'Eventos' }} — {{ date }}</div>
+            <a class="back" href="#" onclick="history.back(); return false;">◀ Voltar</a>
+            <div class="title">{{ section == 'louvor' and  'Louvor e Dirigência' or section == 'midia' and 'Escala Mídia' or 'Eventos' }} : {{ date }}</div>
         </div>
     </div>
 
@@ -119,11 +119,24 @@
             <label for="tipo">Tipo de Culto</label>
             <select id="tipo">
                 {% set tipo_sel = order.get('tipo','') %}
-                {% set tipos = ['Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Santa Ceia','Culto Especial','Outro'] %}
+                {% set tipos = ['Nenhum','Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'] %}
                 {% for t in tipos %}
                     <option value="{{ t }}" {{ 'selected' if tipo_sel == t else '' }}>{{ t }}</option>
                 {% endfor %}
             </select>
+
+            <label>Horário</label>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                        <button type="button" class="btn" onclick="setHora(this,'18:40')">18:40</button>
+                        <button type="button" class="btn" onclick="setHora(this,'19:00')">19:00</button>
+                        <button type="button" class="btn" onclick="setHora(this,'19:30')">19:30</button>
+                        <button type="button" class="btn" onclick="setHora(this,'20:00')">20:00</button>
+                    </div>
+
+                        <input 
+                            id="horario_culto"
+                            placeholder="Ex.: 19:00"
+                            value="{{ order.get('horario_culto','') }}">
 
             <label for="dirigente">Dirigente</label>
             <input id="dirigente" value="{{ order.get('dirigente','') }}">
@@ -142,7 +155,7 @@
             <div class="hint">Ex.: Ana</div>
 
             <div class="items-card">
-                <label>Adicionar Itens</label>
+                <label>🔍 Adicionar Itens</label>
                 <div class="search-section">
                     <div class="search-box">
                         <input type="text" id="searchInput" placeholder="Buscar música por título, autor ou letra...">
@@ -170,10 +183,10 @@
             <label for="midia_lider">Líder</label>
             <input id="midia_lider" value="{{ midia.get('lider','') }}">
 
-            <label for="midia_palco">Palco</label>
+            <label for="midia_palco">Operacional Palco</label>
             <input id="midia_palco" value="{{ midia.get('palco','') }}">
 
-            <label for="midia_visual">Visual</label>
+            <label for="midia_visual">Mídia Social</label>
             <input id="midia_visual" value="{{ midia.get('visual','') }}">
 
             <label for="midia_team">Equipe (um por linha: Função - Pessoa)</label>
@@ -181,33 +194,52 @@
 {% endfor %}</textarea>
             <div class="hint">Ex.: Projeção - Ana</div>
 
-            <label for="midia_extras">Cargos extras (um por linha: Função - Pessoa)</label>
-            <textarea id="midia_extras">{% for m in midia.get('extras', []) %}{{ m.get('nome','') }} - {{ m.get('pessoa','') }}
-{% endfor %}</textarea>
-            <div class="hint">Ex.: Fotógrafo - João</div>
-
             <label for="midia_obs">Observações</label>
             <textarea id="midia_obs">{{ midia.get('obs','') }}</textarea>
         {% else %}
-            {% set evento = (order.get('eventos') or [])|first or {} %}
+            {% set eventos = order.get('eventos', []) %}
 
-            <label for="ev_titulo">Título do evento</label>
-            <input id="ev_titulo" value="{{ evento.get('titulo','') }}">
+            <div id="eventos-container">
+                {% for evento in eventos %}
+                    <div class="evento-bloco">
 
-            <label for="ev_hora">Horário</label>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('18:00')">18:00</button>
-                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('19:00')">19:00</button>
-                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('20:00')">20:00</button>
-                <button type="button" class="btn" style="padding:6px 10px;" onclick="setHora('20:30')">20:30</button>
+                        <label>Título do evento</label>
+                        <input name="eventos[{{ loop.index0 }}][titulo]"
+                               value="{{ evento.get('titulo','') }}">
+
+                        <label>Horário</label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                            <button type="button" class="btn" onclick="setHora(this,'18:40')">18:40</button>
+                            <button type="button" class="btn" onclick="setHora(this,'19:00')">19:00</button>
+                            <button type="button" class="btn" onclick="setHora(this,'19:30')">19:30</button>
+                            <button type="button" class="btn" onclick="setHora(this,'20:00')">20:00</button>
+                        </div>
+
+                        <input name="eventos[{{ loop.index0 }}][hora]"
+                               value="{{ evento.get('hora','') }}"
+                               placeholder="Ex.: 19:30">
+
+                        <label>Responsáveis</label>
+                        <textarea name="eventos[{{ loop.index0 }}][responsavel]">
+        {{ evento.get('responsavel','') }}</textarea>
+
+                        <label>Observações</label>
+                        <textarea name="eventos[{{ loop.index0 }}][obs]">
+        {{ evento.get('obs','') }}</textarea>
+
+                        <button type="button"
+                                onclick="this.closest('.evento-bloco').remove()">
+                            Remover evento
+                        </button>
+
+                        <hr>
+                    </div>
+                {% endfor %}
             </div>
-            <input id="ev_hora" value="{{ evento.get('hora','') }}" placeholder="Ex.: 19:30">
 
-            <label for="ev_responsavel">Responsáveis</label>
-            <textarea id="ev_responsavel" placeholder="Ex.: João; Maria">{{ evento.get('responsavel','') }}</textarea>
-
-            <label for="ev_obs">Observações</label>
-            <textarea id="ev_obs" placeholder="Detalhes adicionais">{{ evento.get('obs','') }}</textarea>
+            <button type="button" class="btn" onclick="addEvento()">
+                + Adicionar evento
+            </button>
         {% endif %}
     </div>
 
@@ -258,14 +290,23 @@
             return { nome: nome.trim(), pessoa: pessoa.trim() };
         });
     }
-    function parseEventoForm() {
-        const titulo = document.getElementById('ev_titulo').value.trim();
-        const hora = document.getElementById('ev_hora').value.trim();
-        const responsavel = document.getElementById('ev_responsavel').value.trim();
-        const obs = document.getElementById('ev_obs').value.trim();
-        return titulo ? [{ titulo, hora, responsavel, obs }] : [];
-    }
+    function parseEventosForm() {
+        const eventos = [];
+        const blocos = document.querySelectorAll('.evento-bloco');
 
+        blocos.forEach(bloco => {
+            const titulo = bloco.querySelector('[name$="[titulo]"]')?.value.trim() || '';
+            const hora = bloco.querySelector('[name$="[hora]"]')?.value.trim() || '';
+            const responsavel = bloco.querySelector('[name$="[responsavel]"]')?.value.trim() || '';
+            const obs = bloco.querySelector('[name$="[obs]"]')?.value.trim() || '';
+
+            if (titulo) {
+                eventos.push({ titulo, hora, responsavel, obs });
+            }
+        });
+
+        return eventos;
+    }
     async function save() {
         const btn = document.getElementById('saveBtn');
         const status = document.getElementById('status');
@@ -274,6 +315,7 @@
 
         if (section === 'louvor') {
             payload.tipo = document.getElementById('tipo').value;
+            payload.horario_culto = document.getElementById('horario_culto').value.trim();
             payload.dirigente = document.getElementById('dirigente').value.trim();
             payload.pregador = document.getElementById('pregador').value.trim();
             payload.louvor = payload.louvor || {};
@@ -286,11 +328,10 @@
                 palco: document.getElementById('midia_palco').value.trim(),
                 visual: document.getElementById('midia_visual').value.trim(),
                 equipe: parseFuncoes(document.getElementById('midia_team').value),
-                extras: parseFuncoes(document.getElementById('midia_extras').value),
                 obs: document.getElementById('midia_obs').value.trim()
             };
         } else {
-            payload.eventos = parseEventoForm();
+            payload.eventos = parseEventosForm();
         }
 
         try {
@@ -531,6 +572,51 @@
         if (bibleInput) bibleInput.addEventListener("keydown", (e) => { if (e.key === 'Enter') { e.preventDefault(); addBibleToList(); } });
         loadExistingItens();
     });
+    function addEvento() {
+        const container = document.getElementById('eventos-container');
+        const index = container.children.length;
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="evento-bloco">
+                <label>Título do evento</label>
+                <input name="eventos[${index}][titulo]">
+
+                <label>Horário</label>
+                <input name="eventos[${index}][hora]" placeholder="Ex.: 19:30">
+
+                <label>Responsáveis</label>
+                <textarea name="eventos[${index}][responsavel]"></textarea>
+
+                <label>Observações</label>
+                <textarea name="eventos[${index}][obs]"></textarea>
+
+                <button type="button" onclick="this.closest('.evento-bloco').remove()">
+                    Remover evento
+                </button>
+
+                <hr>
+            </div>
+        `);
+    }
+    function setHora(btn, hora) {
+
+    // 1️⃣ Tenta aplicar no contexto de EVENTOS
+    const blocoEvento = btn.closest('.evento-bloco');
+    if (blocoEvento) {
+        const inputEvento = blocoEvento.querySelector('[name$="[hora]"]');
+        if (inputEvento) {
+            inputEvento.value = hora;
+            return;
+        }
+    }
+
+    // 2️⃣ Fallback: horário do LOUVOR
+    const inputCulto = document.getElementById('horario_culto');
+    if (inputCulto) {
+        inputCulto.value = hora;
+    }
+}
+
 </script>
 </body>
 </html>
