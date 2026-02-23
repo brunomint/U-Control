@@ -258,6 +258,7 @@
             justify-content: center;
             align-items: center;
             min-height: 20vh;
+            position: relative;
         }
 
         iframe {
@@ -277,7 +278,9 @@
             flex-direction: row;
             justify-content: center;
             align-items: center;
-            position: relative;
+            position: sticky;
+            top: 12px;
+            z-index: 5;
             height: 70vh; /* Aumentado para 70% da altura da tela */
             width: 95%; /* Aumentado para 95% da largura */
             max-width: 1400px; /* Aumentado o limite máximo */
@@ -322,32 +325,34 @@
 
 /* Contêiner dos botões */
 .button-container {
-    margin-top: 30px;
-    padding: 20px;
+    margin-top: 14px;
+    padding: 6px;
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 6px;
     justify-content: center;
-    max-width: 1200px;
+    max-width: 920px;
     margin-left: auto;
     margin-right: auto;
+    position: relative;
+    z-index: 1;
 }
 
 /* Estilo de cada grupo de botões - CARDS MODERNOS */
 .button-group {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 20px;
+    gap: 5px;
+    padding: 8px;
     border: none;
-    border-radius: 16px;
-    width: 220px;
+    border-radius: 9px;
+    width: 160px;
     text-align: center;
     background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
     box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+        0 4px 14px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .button-group:hover {
@@ -362,9 +367,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    margin: 0 0 10px 0;
-    font-size: 16px;
+    gap: 10px;
+    margin: 0 0 3px 0;
+    font-size: 13.5px;
     font-weight: 600;
     color: #ffffff;
     text-transform: uppercase;
@@ -386,7 +391,7 @@
     display: flex;
     justify-content: center;
     padding: 0;
-    gap: 8px;
+    gap: 3px;
 }
 
 /* Cores de ícones diferentes para cada grupo */
@@ -409,14 +414,15 @@
 .subgroup {
     display: flex;
     justify-content: center; /* Centraliza os botões no subgrupo */
-    padding: 10px;
+    padding: 2px;
     border-radius: 8px;
-    gap: 10px; /* Espaçamento entre botões */
+    gap: 4px; /* Espaçamento entre botões */
 }
 
 .button {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 5px 9px;
+    font-size: 12px;
+    margin: 0;
     border: none;
     border-radius: 5px;
     background-color: #007bff;
@@ -445,6 +451,12 @@
             border: none;
             padding: 5px 10px;
             cursor: pointer;
+        }
+
+        .image-container.selected-for-delete {
+            outline: 3px solid #e53935;
+            border-radius: 6px;
+            background: rgba(229, 57, 53, 0.1);
         }
 
         /* ========================================
@@ -707,18 +719,50 @@
                 <ul class="submenu">
                     <li>
 
-                        <h1>Imagens Salvas</h1>
-                    <ul>
-                            <!-- Formulário para upload de imagens -->
-                            <div>
-                            <input type="file" id="fileInput" multiple>
-                            <button class="button_slide slide_right" onclick="uploadImages()">Enviar Arquivos</button>
-                        </div>
+                        <h1 style="margin:0 0 12px 0; font-size:1.1em; color:#eee;">Imagens Salvas</h1>
+                    <ul style="padding:0; list-style:none;">
 
-                            <!-- Exibição das imagens -->
-                        <div id="imageGallery">
-                        <!-- A galeria de imagens será preenchida dinamicamente -->
-                        </div>
+                            <!-- Seção: Pasta -->
+                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">📁 Pasta</div>
+                            <select id="folderSelect" onchange="onFolderChange()" style="width:100%; padding:7px 10px; border-radius:6px; border:1px solid #555; background:#2a2a2a; color:#fff; font-size:0.88em; margin-bottom:8px;"><option value="Geral">Geral</option></select>
+                            <div style="display:flex; gap:6px;">
+                                <button onclick="promptNewFolder()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#2196f3; color:#fff; font-size:0.78em; cursor:pointer; transition:opacity .2s;">+ Nova pasta</button>
+                                <button id="deleteFolderBtn" onclick="deleteCurrentFolder()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#e53935; color:#fff; font-size:0.78em; cursor:pointer; display:none; transition:opacity .2s;">🗑 Excluir pasta</button>
+                            </div>
+
+                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
+
+                            <!-- Seção: Upload -->
+                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">Upload</div>
+                            <input type="file" id="fileInput" multiple style="width:100%; font-size:0.8em; color:#ccc; margin-bottom:8px;">
+                            <button id="uploadBtn" onclick="uploadImages()" style="width:100%; padding:7px 0; border:none; border-radius:6px; background:#4caf50; color:#fff; font-size:0.8em; cursor:pointer; transition:opacity .2s;">📤 Enviar arquivos</button>
+                            <div id="uploadProgressWrap" style="display:none; margin-top:8px;">
+                                <div style="background:#222; border-radius:6px; overflow:hidden; height:18px; position:relative;">
+                                    <div id="uploadProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#4caf50,#81c784); border-radius:6px; transition:width .15s;"></div>
+                                    <span id="uploadProgressText" style="position:absolute; top:0; left:0; right:0; text-align:center; font-size:0.72em; line-height:18px; color:#fff; font-weight:bold;">0%</span>
+                                </div>
+                                <div id="uploadStatusText" style="color:#aaa; font-size:0.72em; margin-top:4px; text-align:center;"></div>
+                            </div>
+
+                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
+
+                            <!-- Seção: Modo tela -->
+                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">Modo tela</div>
+                            <button id="blackoutBtn" onclick="toggleBlackout()" style="width:100%; padding:7px 0; border:none; border-radius:6px; background:#333; color:#fff; font-size:0.8em; cursor:pointer; border:1px solid #555; transition:all .2s;">🌙 Escurecer tela</button>
+
+                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
+
+                            <!-- Seção: Seleção -->
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button id="toggleSelectBtn" onclick="toggleSelectMode()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#ff9800; color:#fff; font-size:0.78em; cursor:pointer; transition:all .2s;">☑ Selecionar</button>
+                                <button id="selectAllBtn" onclick="selectAllImages()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#607d8b; color:#fff; font-size:0.78em; cursor:pointer; display:none;">Todas</button>
+                                <button id="deleteSelectedBtn" onclick="deleteSelectedImages()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#e53935; color:#fff; font-size:0.78em; cursor:pointer; display:none;">🗑 <span id="selectedCount">0</span> selecionadas</button>
+                            </div>
+
+                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
+
+                            <!-- Galeria -->
+                            <div id="imageGallery"></div>
                     </ul>
                     </li>
                 </ul>
@@ -864,7 +908,7 @@
     setupMenuToggle();
     setupPreventMenuClose();
     loadUrls();
-    loadImageGallery();
+    loadFolders();
     loadDisplayState(); // Carrega estado salvo ao iniciar
 });
 
@@ -938,7 +982,7 @@ function setupMenuToggle() {
 }
 
 function setupPreventMenuClose() {
-    document.querySelectorAll('input, button, form, img, #imageGallery')
+    document.querySelectorAll('input, button, form, img, select, span, hr, #imageGallery')
         .forEach(input => input.addEventListener('click', event => event.stopPropagation()));
 }
 
@@ -947,7 +991,8 @@ function sendUrl(urlNumber) {
         4: "/lyrics/display",
         5: "/clock",
         6: "/img",
-        7: "/bible/display"
+        7: "/bible/display",
+        8: "/lyrics/display/public"
     };
 
     const urlInput = fixedRoutes[urlNumber] || document.getElementById(`url${urlNumber}`)?.value;
@@ -963,7 +1008,8 @@ function showTwoUrls(urlNum1, urlNum2) {
         4: "/lyrics/display",
         5: "/clock",
         6: "/img",
-        7: "/bible/display"
+        7: "/bible/display",
+        8: "/lyrics/display/public"
     };
 
     const url1 = fixedRoutes[urlNum1] || document.getElementById(`url${urlNum1}`)?.value;
@@ -1014,41 +1060,152 @@ function loadDisplayState() {
         .then(state => {
             console.log('💾 Estado carregado do banco:', state);
             if (state.url1 || state.url2) {
-                // Converte imagens estáticas para a rota /img
                 let url1 = state.url1;
                 let url2 = state.url2;
-                
-                if (url1 && url1.startsWith('/static/')) {
-                    console.log('🔄 Convertendo imagem estática para /img:', url1);
-                    url1 = '/img';
-                }
-                if (url2 && url2.startsWith('/static/')) {
-                    console.log('🔄 Convertendo imagem estática para /img:', url2);
-                    url2 = '/img';
-                }
-                
+                // Imagens estáticas são exibidas via /img (que carrega a última imagem salva)
+                if (url1 && url1.startsWith('/static/')) url1 = '/img';
+                if (url2 && url2.startsWith('/static/')) url2 = '/img';
                 updateIframes(url1, url2);
             }
         })
         .catch(err => console.error('❌ Erro ao carregar estado:', err));
 }
 
-function uploadImages() {
-    const fileInput = document.getElementById('fileInput');
-    const formData = new FormData();
-    [...fileInput.files].forEach(file => formData.append('images', file));
-    fetch('/upload', { method: 'POST', body: formData })
+function getCurrentFolder() {
+    return document.getElementById('folderSelect').value;
+}
+
+function loadFolders() {
+    fetch('/api/image_folders')
+        .then(res => res.json())
+        .then(folders => {
+            const select = document.getElementById('folderSelect');
+            const saved = localStorage.getItem('controlFolder') || 'Geral';
+            select.innerHTML = '';
+            folders.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                if (f === saved) opt.selected = true;
+                select.appendChild(opt);
+            });
+            onFolderChange();
+        });
+}
+
+function onFolderChange() {
+    const folder = getCurrentFolder();
+    localStorage.setItem('controlFolder', folder);
+    document.getElementById('deleteFolderBtn').style.display = folder === 'Geral' ? 'none' : 'inline-block';
+    if (selectMode) toggleSelectMode();
+    loadImageGallery();
+}
+
+function promptNewFolder() {
+    const name = prompt('Nome da nova pasta:');
+    if (!name || !name.trim()) return;
+    fetch('/api/image_folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() })
+    }).then(res => res.json())
+      .then(data => {
+          if (data.status === 'success') {
+              loadFolders();
+              setTimeout(() => {
+                  document.getElementById('folderSelect').value = data.name;
+                  onFolderChange();
+              }, 300);
+          } else {
+              alert('Erro: ' + data.message);
+          }
+      });
+}
+
+function deleteCurrentFolder() {
+    const folder = getCurrentFolder();
+    if (folder === 'Geral') return;
+    if (!confirm(`Excluir a pasta "${folder}" e todas as imagens dentro dela?`)) return;
+    fetch(`/api/image_folders/${encodeURIComponent(folder)}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('Imagens enviadas com sucesso!');
-                loadImageGallery();
+                alert('Pasta excluída!');
+                document.getElementById('folderSelect').value = 'Geral';
+                loadFolders();
+            } else {
+                alert('Erro: ' + data.message);
             }
         });
 }
 
+function uploadImages() {
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files.length) return alert('Selecione arquivos primeiro.');
+    const formData = new FormData();
+    [...fileInput.files].forEach(file => formData.append('images', file));
+    formData.append('folder', getCurrentFolder());
+
+    const wrap = document.getElementById('uploadProgressWrap');
+    const bar = document.getElementById('uploadProgressBar');
+    const pctText = document.getElementById('uploadProgressText');
+    const statusText = document.getElementById('uploadStatusText');
+    const btn = document.getElementById('uploadBtn');
+
+    wrap.style.display = 'block';
+    bar.style.width = '0%';
+    pctText.textContent = '0%';
+    statusText.textContent = 'Enviando...';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/upload');
+
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            bar.style.width = pct + '%';
+            pctText.textContent = pct + '%';
+            const mb = (e.loaded / 1048576).toFixed(1);
+            const totalMb = (e.total / 1048576).toFixed(1);
+            statusText.textContent = `${mb} MB / ${totalMb} MB`;
+        }
+    };
+
+    xhr.onload = function() {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            if (data.status === 'success') {
+                bar.style.width = '100%';
+                bar.style.background = 'linear-gradient(90deg,#4caf50,#81c784)';
+                pctText.textContent = '100%';
+                statusText.textContent = '✅ Enviado! Processando imagens...';
+                loadImageGallery();
+                fileInput.value = '';
+                setTimeout(() => { wrap.style.display = 'none'; }, 3000);
+            }
+        } else {
+            bar.style.background = '#e53935';
+            statusText.textContent = '❌ Erro no envio.';
+        }
+    };
+
+    xhr.onerror = function() {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        bar.style.background = '#e53935';
+        statusText.textContent = '❌ Erro de conexão.';
+    };
+
+    xhr.send(formData);
+}
+
 function loadImageGallery() {
-    fetch('/imagens')
+    const folder = getCurrentFolder();
+    fetch(`/imagens?folder=${encodeURIComponent(folder)}`)
         .then(res => res.json())
         .then(images => {
             images.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -1057,10 +1214,20 @@ function loadImageGallery() {
             images.forEach((image, index) => {
                 const imgContainer = document.createElement('div');
                 imgContainer.className = 'image-container';
-                imgContainer.innerHTML = `
-                    <img src="${image}" alt="Imagem ${index + 1}" onclick="showImageInMonitor('${image}')">
-                    <button onclick="deleteImage('${image}')">Excluir</button>
-                `;
+                const name = decodeURIComponent(image.split('/').pop());
+                if (selectMode) {
+                    const isSelected = selectedImages.has(name);
+                    if (isSelected) imgContainer.classList.add('selected-for-delete');
+                    imgContainer.innerHTML = `
+                        <img src="${image}" alt="Imagem ${index + 1}" onclick="toggleImageSelection('${image}', this.parentElement)">
+                        <div style="text-align:center; font-size:0.8em; color:${isSelected ? '#e53935' : '#999'};">${isSelected ? '✔ Selecionada' : 'Toque para selecionar'}</div>
+                    `;
+                } else {
+                    imgContainer.innerHTML = `
+                        <img src="${image}" alt="Imagem ${index + 1}" onclick="showImageInMonitor('${image}')">
+                        <button onclick="deleteImage('${image}')">Excluir</button>
+                    `;
+                }
                 gallery.appendChild(imgContainer);
             });
         });
@@ -1071,7 +1238,7 @@ function deleteImage(imageUrl) {
     fetch('/delete_image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_name: imageUrl.split('/').pop() })
+        body: JSON.stringify({ image_name: decodeURIComponent(imageUrl.split('?')[0].split('/').pop()), folder: getCurrentFolder() })
     }).then(res => res.json())
       .then(data => {
           if (data.status === 'success') {
@@ -1081,6 +1248,86 @@ function deleteImage(imageUrl) {
               alert('Erro ao excluir imagem: ' + data.message);
           }
       }).catch(err => console.error('Erro ao excluir a imagem:', err));
+}
+
+let blackoutActive = false;
+
+function toggleBlackout() {
+    blackoutActive = !blackoutActive;
+    socket.emit('blackout', { active: blackoutActive });
+    const btn = document.getElementById('blackoutBtn');
+    btn.textContent = blackoutActive ? '☀️ Restaurar tela' : '🌙 Escurecer tela';
+    btn.style.background = blackoutActive ? '#4caf50' : '#333';
+}
+
+let selectMode = false;
+let selectedImages = new Set();
+
+function toggleSelectMode() {
+    selectMode = !selectMode;
+    selectedImages.clear();
+    const btn = document.getElementById('toggleSelectBtn');
+    btn.textContent = selectMode ? '✖ Cancelar' : '☑ Selecionar';
+    btn.style.background = selectMode ? '#757575' : '#ff9800';
+    document.getElementById('deleteSelectedBtn').style.display = selectMode ? 'inline-block' : 'none';
+    document.getElementById('selectAllBtn').style.display = selectMode ? 'inline-block' : 'none';
+    updateSelectedCount();
+    loadImageGallery();
+}
+
+function toggleImageSelection(imageUrl, container) {
+    const name = decodeURIComponent(imageUrl.split('?')[0].split('/').pop());
+    if (selectedImages.has(name)) {
+        selectedImages.delete(name);
+        container.classList.remove('selected-for-delete');
+    } else {
+        selectedImages.add(name);
+        container.classList.add('selected-for-delete');
+    }
+    updateSelectedCount();
+}
+
+function selectAllImages() {
+    const containers = document.querySelectorAll('#imageGallery .image-container');
+    const allSelected = selectedImages.size === containers.length;
+    selectedImages.clear();
+    containers.forEach(c => {
+        const img = c.querySelector('img');
+        const name = decodeURIComponent(img.src.split('?')[0].split('/').pop());
+        if (!allSelected) {
+            selectedImages.add(name);
+            c.classList.add('selected-for-delete');
+        } else {
+            c.classList.remove('selected-for-delete');
+        }
+    });
+    document.getElementById('selectAllBtn').textContent = allSelected ? 'Selecionar Todas' : 'Desmarcar Todas';
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = selectedImages.size;
+    document.getElementById('deleteSelectedBtn').style.display = selectMode ? 'inline-block' : 'none';
+}
+
+function deleteSelectedImages() {
+    if (selectedImages.size === 0) return alert('Nenhuma imagem selecionada.');
+    if (!confirm(`Excluir ${selectedImages.size} imagem(ns)?`)) return;
+    fetch('/delete_images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_names: Array.from(selectedImages), folder: getCurrentFolder() })
+    }).then(res => res.json())
+      .then(data => {
+          if (data.status === 'success') {
+              alert(`${data.deleted.length} imagem(ns) excluída(s)!`);
+              selectedImages.clear();
+              updateSelectedCount();
+              loadImageGallery();
+          } else {
+              alert('Erro: ' + data.message);
+          }
+      }).catch(err => console.error('Erro ao excluir imagens:', err));
 }
 
 function showImageInMonitor(imageUrl) {
@@ -1164,6 +1411,9 @@ function showBibleDisplay() {
             <div class="subgroup">
                 <button class="button" type="button" onclick="sendUrl(7)">Bíblia</button>
             </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="sendUrl(8)">Letra</button>
+            </div>
         </div> <!-- Fechamento da div .button-group -->
 
         <!-- Grupo 2: Botões para exibir duas informações -->
@@ -1177,6 +1427,52 @@ function showBibleDisplay() {
             </div>
             <div class="subgroup">
                 <button class="button" type="button" onclick="showTwoUrls(1, 3)">URL 1/3</button>
+            </div>
+        </div> <!-- Fechamento da div .button-group -->
+
+        <!-- Grupo 2B: Botões para exibir Imagem + Tela Dividida -->
+        <div class="button-group">
+            <h3><i class="fas fa-image"></i> Imagem + Tela Dividida</h3>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(6, 1)">Imagem/URL 1</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(6, 2)">Imagem/URL 2</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(6, 3)">Imagem/URL 3</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(6, 4)">Imagem/Cifra</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(6, 5)">Imagem/Relógio</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(6, 8)">Imagem/Letra</button>
+            </div>
+        </div> <!-- Fechamento da div .button-group -->
+
+        <!-- Grupo 2C: Botões para exibir Letra + Tela Dividida -->
+        <div class="button-group">
+            <h3><i class="fas fa-align-left"></i> Letra + Tela Dividida</h3>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(8, 1)">Letra/URL 1</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(8, 2)">Letra/URL 2</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(8, 3)">Letra/URL 3</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(8, 6)">Letra/Imagem</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(8, 5)">Letra/Relógio</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(8, 4)">Letra/Cifra</button>
             </div>
         </div> <!-- Fechamento da div .button-group -->
 
@@ -1198,6 +1494,9 @@ function showBibleDisplay() {
             <div class="subgroup">
                 <button class="button" type="button" onclick="showTwoUrls(4, 6)">Cifra/Imagem</button>
             </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(4, 8)">Cifra/Letra</button>
+            </div>
         </div> <!-- Fechamento da div .button-group -->
 
         <!-- Grupo 4: Botões para exibir Relógio + Tela Dividida -->
@@ -1217,6 +1516,9 @@ function showBibleDisplay() {
             </div>
             <div class="subgroup">
                 <button class="button" type="button" onclick="showTwoUrls(5, 6)">Relógio/Imagem</button>
+            </div>
+            <div class="subgroup">
+                <button class="button" type="button" onclick="showTwoUrls(5, 8)">Relógio/Letra</button>
             </div>
         </div> <!-- Fechamento da div .button-group -->
     </div> <!-- Fechamento da div .button-container -->
