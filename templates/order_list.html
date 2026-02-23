@@ -474,7 +474,7 @@
                     <option value="Culto de Oração">Culto de Oração</option>
                     <option value="Culto de Jovens">Culto de Jovens</option>
                     <option value="Culto de Ensino">Culto de Ensino</option>
-                    <option value="Santa Ceia">Santa Ceia</option>
+                    <option value="Culto Santa Ceia">Culto Santa Ceia</option>
                     <option value="Culto Especial">Culto Especial</option>
                     <option value="Outro">Outro</option>
                 </select>
@@ -527,7 +527,7 @@
             const select = document.getElementById('filterType');
             const baseOptions = [
                 '',
-                'Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Santa Ceia','Culto Especial','Outro'
+                'Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'
             ];
             const dynamic = new Set();
             Object.values(allOrders || {}).forEach(o => {
@@ -545,8 +545,14 @@
             const status = document.getElementById('filterStatus').value;
             const text = document.getElementById('filterText').value.trim().toLowerCase();
 
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
             filteredDates = dates.filter(d => {
                 const order = allOrders[d] || {};
+                // Por padrão, só mostra hoje e futuros (a menos que filtro de status diga o contrário)
+                if (!status && !from && d < todayStr) return false;
+
                 if (from && d < from) return false;
                 if (to && d > to) return false;
                 if (tipo && (order.tipo || '') !== tipo) return false;
@@ -565,7 +571,7 @@
                     if (!dir.includes(text) && !pre.includes(text)) return false;
                 }
                 return true;
-            }).sort((a, b) => new Date(b) - new Date(a));
+            }).sort((a, b) => a.localeCompare(b));
 
             currentPage = 1;
             renderGrid();
@@ -683,7 +689,7 @@
                 <div class="order-card" data-date="${dateStr}">
                     <div class="card-header ${headerClass}">
                         <div class="card-date">${date.day} ${date.month}</div>
-                        <div class="card-weekday">${date.weekday} • ${order.horario || '19:00'}</div>
+                        <div class="card-weekday">${date.weekday} • ${order.horario || '18:40'}</div>
                         <div class="card-badge">${badge}</div>
                     </div>
                     <div class="card-body">

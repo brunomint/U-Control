@@ -1881,12 +1881,113 @@ def api_get_order(date):
 def api_save_order(date):
     """Salva ou atualiza uma ordem específica"""
     try:
-        data = request.json
+        data = request.get_json(force=True) or {}
         orders = load_orders()
-        orders[date] = data
+
+        order = orders.get(date, {})
+
+        # ---------- EVENTOS -----------
+        eventos = data.get('eventos', [])
+        lista_eventos = []
+
+        if isinstance(eventos, list):
+            lista_eventos = [
+                {
+                    'titulo': e.get('titulo', '').strip(),
+                    'hora': e.get('hora', '').strip(),
+                    'responsavel': e.get('responsavel', '').strip(),
+                    'obs': e.get('obs', '').strip()
+                }
+                for e in eventos
+                if (e.get('titulo') or '').strip()
+            ]
+        # só salva se tiver conteúdo
+        if lista_eventos:
+            order['eventos'] = lista_eventos
+        else:
+            order.pop('eventos', None)
+
+        # ---------- LOUVOR ----------
+        tipo = (data.get('tipo') or '').strip()
+        horario = (data.get('horario_culto') or '').strip()
+        dirigente = (data.get('dirigente') or '').strip()
+        pregador = (data.get('pregador') or '').strip()
+
+        louvor = data.get('louvor') or {}
+        cantores = louvor.get('cantores') or []
+        musicos = louvor.get('musicos') or []
+
+        itens = data.get('itens') or []
+
+        tem_louvor = (
+            (tipo and tipo.lower() != 'nenhum') or
+            horario or
+            dirigente or
+            pregador or
+            len(cantores) > 0 or
+            len(musicos) > 0 or
+            len(itens) > 0
+        )
+
+        if tem_louvor:
+            order['tipo'] = tipo
+            order['horario_culto'] = horario
+            order['dirigente'] = dirigente
+            order['pregador'] = pregador
+            order['louvor'] = {
+                'cantores': cantores,
+                'musicos': musicos
+            }
+            order['itens'] = itens
+        else:
+            order.pop('tipo', None)
+            order.pop('horario_culto', None)
+            order.pop('dirigente', None)
+            order.pop('pregador', None)
+            order.pop('louvor', None)
+            order.pop('itens', None)
+
+        # ---------- MÍDIA ----------
+        midia = data.get('midia') or {}
+
+        lider = (midia.get('lider') or '').strip()
+        palco = (midia.get('palco') or '').strip()
+        visual = (midia.get('visual') or '').strip()
+        equipe = midia.get('equipe') or []
+        obs = (midia.get('obs') or '').strip()
+
+        tem_midia = (
+            lider or palco or visual or obs or len(equipe) > 0
+        )
+
+        if tem_midia:
+            order['midia'] = {
+                'lider': lider,
+                'palco': palco,
+                'visual': visual,
+                'equipe': equipe,
+                'obs': obs
+            }
+        else:
+            order.pop('midia', None)
+
+        # ---------- LIMPEZA AUTOMÁTICA ----------
+        def is_empty_order(o):
+            return len(o) == 0
+
+        if is_empty_order(order):
+            # remove do banco se estiver vazio
+            if date in orders:
+                del orders[date]
+        else:
+            # salva normalmente
+            orders[date] = order
+
         if save_orders(orders):
             return jsonify({"message": "Ordem salva com sucesso!"}), 200
+
         return jsonify({"error": "Erro ao salvar ordem"}), 500
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -2205,11 +2306,58 @@ def save_lyrics_state():
     print(f'💾 Estado das letras salvo: Música {state.song_id}, Seção {state.section_index}')
     return jsonify({'status': 'success'})
 
-# Rota para listar as imagens na pasta /static/imagens
+# Rota para listar pastas de imagens
+@app.route('/api/image_folders')
+def list_image_folders():
+    base = app.config['IMAGE_FOLDER']
+    folders = ['Geral']  # pasta raiz sempre existe
+    if os.path.exists(base):
+        for name in sorted(os.listdir(base)):
+            if os.path.isdir(os.path.join(base, name)):
+                folders.append(name)
+    return jsonify(folders)
+
+# Rota para criar pasta
+@app.route('/api/image_folders', methods=['POST'])
+@login_required
+def create_image_folder():
+    name = (request.json.get('name') or '').strip()
+    if not name or name == 'Geral' or '/' in name or '\\' in name or '..' in name:
+        return jsonify({'status': 'error', 'message': 'Nome inválido.'}), 400
+    folder_path = os.path.join(app.config['IMAGE_FOLDER'], name)
+    if os.path.exists(folder_path):
+        return jsonify({'status': 'error', 'message': 'Pasta já existe.'}), 400
+    os.mkdir(folder_path)
+    return jsonify({'status': 'success', 'name': name})
+
+# Rota para deletar pasta
+@app.route('/api/image_folders/<name>', methods=['DELETE'])
+@login_required
+def delete_image_folder(name):
+    if name == 'Geral':
+        return jsonify({'status': 'error', 'message': 'Não é possível excluir a pasta Geral.'}), 400
+    folder_path = os.path.join(app.config['IMAGE_FOLDER'], name)
+    if not os.path.exists(folder_path):
+        return jsonify({'status': 'error', 'message': 'Pasta não encontrada.'}), 404
+    import shutil
+    shutil.rmtree(folder_path)
+    return jsonify({'status': 'success'})
+
+# Rota para listar as imagens (suporta ?folder=nome)
 @app.route('/imagens')
 def list_images():
-    images = os.listdir(app.config['IMAGE_FOLDER'])
-    image_urls = [f'/static/imagens/{image}' for image in images if image.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+    folder = request.args.get('folder', 'Geral')
+    base = app.config['IMAGE_FOLDER']
+    if folder == 'Geral':
+        target = base
+        prefix = '/static/imagens'
+    else:
+        target = os.path.join(base, folder)
+        prefix = f'/static/imagens/{folder}'
+    if not os.path.exists(target):
+        return jsonify([])
+    images = [f for f in os.listdir(target) if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and os.path.isfile(os.path.join(target, f))]
+    image_urls = [f'{prefix}/{image}' for image in images]
     return jsonify(image_urls)
 
 # Rota para exibir uma imagem específica
@@ -2260,8 +2408,18 @@ def handle_anterior_foto():
 
 @app.route('/lista-fotos')
 def lista_fotos():
-    fotos = os.listdir(IMAGE_FOLDER)
-    fotos_urls = [f'/static/imagens/{foto}' for foto in fotos]
+    folder = request.args.get('folder', 'Geral')
+    base = IMAGE_FOLDER
+    if folder == 'Geral':
+        target = base
+        prefix = '/static/imagens'
+    else:
+        target = os.path.join(base, folder)
+        prefix = f'/static/imagens/{folder}'
+    if not os.path.exists(target):
+        return jsonify({'fotos': []})
+    fotos = [f for f in os.listdir(target) if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and os.path.isfile(os.path.join(target, f))]
+    fotos_urls = [f'{prefix}/{foto}' for foto in fotos]
     return jsonify({'fotos': fotos_urls})
 
 
@@ -2270,6 +2428,14 @@ def lista_fotos():
 def upload_files():
     if 'images' not in request.files:
         return jsonify({'status': 'error', 'message': 'Nenhum arquivo enviado'}), 400
+    
+    folder = request.form.get('folder', 'Geral')
+    base = app.config['IMAGE_FOLDER']
+    if folder == 'Geral':
+        target_dir = base
+    else:
+        target_dir = os.path.join(base, folder)
+        os.makedirs(target_dir, exist_ok=True)
     
     files = request.files.getlist('images')
     saved_files = []
@@ -2281,22 +2447,26 @@ def upload_files():
         
         file_ext = os.path.splitext(file.filename)[1].lower()
         if file_ext == '.pdf':
-            # Converter PDF para imagens com alta resolução
+            # Converter PDF para imagens otimizadas para projeção
             pdf_document = fitz.open(stream=file.read(), filetype="pdf")
             for page_num in range(len(pdf_document)):
                 page = pdf_document[page_num]
                 
-                # Definir a matriz para alta resolução
-                matrix = fitz.Matrix(2, 2)  # Aumenta a escala em 2x
-                pix = page.get_pixmap(matrix=matrix)  # Renderiza a página com a matriz
+                # Renderiza em 2x para boa qualidade inicial
+                matrix = fitz.Matrix(2, 2)
+                pix = page.get_pixmap(matrix=matrix)
                 
-                # Salvar imagem renderizada
-                img_path = os.path.join(app.config['IMAGE_FOLDER'], f"{os.path.splitext(file.filename)[0]}_page_{page_num + 1}.png")
-                pix.save(img_path)
+                # Converte para PIL para redimensionar e comprimir
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                img.thumbnail(max_size, Image.LANCZOS)
+                
+                # Salva como JPEG otimizado (muito mais leve que PNG)
+                img_path = os.path.join(target_dir, f"{os.path.splitext(file.filename)[0]}_page-{str(page_num + 1).zfill(4)}.jpg")
+                img.save(img_path, 'JPEG', quality=85, optimize=True)
                 saved_files.append(os.path.basename(img_path))
         else:
             # Salvar e redimensionar imagens com compressão otimizada
-            file_path = os.path.join(app.config['IMAGE_FOLDER'], file.filename)
+            file_path = os.path.join(target_dir, file.filename)
             with Image.open(file) as img:
                 # Converte para RGB se for RGBA (PNG com transparência)
                 if img.mode == 'RGBA':
@@ -2319,19 +2489,45 @@ def upload_files():
     
     return jsonify({'status': 'success', 'saved_files': saved_files}), 200
 
-# Rota para deletar imagens
+# Rota para deletar imagens (suporta ?folder=nome)
 @app.route('/delete_image', methods=['POST'])
 def delete_image():
     image_name = request.json.get('image_name')
+    folder = request.json.get('folder', 'Geral')
     if not image_name:
         return jsonify({'status': 'error', 'message': 'Nome de imagem não fornecido.'}), 400
 
-    image_path = os.path.join(app.config['IMAGE_FOLDER'], image_name)
+    base = app.config['IMAGE_FOLDER']
+    target_dir = base if folder == 'Geral' else os.path.join(base, folder)
+    image_path = os.path.join(target_dir, image_name)
     if os.path.exists(image_path):
         os.remove(image_path)
         return jsonify({'status': 'success', 'message': 'Imagem deletada com sucesso.'})
     else:
         return jsonify({'status': 'error', 'message': 'Imagem não encontrada.'})
+
+# Rota para deletar múltiplas imagens (suporta folder)
+@app.route('/delete_images', methods=['POST'])
+@login_required
+def delete_images():
+    image_names = request.json.get('image_names', [])
+    folder = request.json.get('folder', 'Geral')
+    if not image_names:
+        return jsonify({'status': 'error', 'message': 'Nenhuma imagem selecionada.'}), 400
+
+    base = app.config['IMAGE_FOLDER']
+    target_dir = base if folder == 'Geral' else os.path.join(base, folder)
+    deleted = []
+    errors = []
+    for name in image_names:
+        image_path = os.path.join(target_dir, name)
+        if os.path.exists(image_path):
+            os.remove(image_path)
+            deleted.append(name)
+        else:
+            errors.append(name)
+
+    return jsonify({'status': 'success', 'deleted': deleted, 'errors': errors})
 
 # Rota para salvar URLs no servidor
 @app.route('/save_urls', methods=['POST'])
@@ -2372,6 +2568,11 @@ def handle_show_image(data):
             db.session.commit()
     
     threading.Thread(target=save_async, daemon=True).start()
+
+@socketio.on('blackout')
+def handle_blackout(data):
+    """Escurece ou restaura a tela de exibição"""
+    emit('blackout', {'active': data.get('active', True)}, broadcast=True)
 
 @socketio.on('show_image_zoom')
 def handle_show_image_zoom(data):
@@ -2469,7 +2670,7 @@ def home():
 
 # === Iniciar Flask ===
 def run_flask():
-    socketio.run(app, host="0.0.0.0", port=PORTA, debug=True, use_reloader=False)
+    socketio.run(app, host="0.0.0.0", port=PORTA, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)
         
 
 # === Abrir navegador ===
@@ -2480,17 +2681,23 @@ def open_browser():
 
 # === Execução principal ===
 if __name__ == '__main__':
-    # registrar_mdns()  # Comentado temporariamente
-
     print(f"✅ Acesse localmente: http://127.0.0.1:{PORTA}/")
     print(f"🌐 Ou via mDNS: http://{MDNS_DOMINIO}:{PORTA}/")
     
-    # Abre o navegador após um pequeno delay
-    threading.Timer(2, open_browser).start()
+    if not os.getenv("UCONTROL_NO_BROWSER"):
+        threading.Timer(2, open_browser).start()
     
-    # Inicia o Flask diretamente (não em thread)
+    debug_enabled = os.getenv("UCONTROL_DEBUG", "0") == "1"
+ 
     try:
-        socketio.run(app, host="0.0.0.0", port=PORTA, debug=True, use_reloader=False)
+        socketio.run(
+            app,
+            host="0.0.0.0",
+            port=PORTA,
+            debug=debug_enabled,
+            use_reloader=False,
+            allow_unsafe_werkzeug=True,
+        )
     except KeyboardInterrupt:
         print("\n🛑 Servidor interrompido pelo usuário")
     except Exception as e:
