@@ -31,8 +31,34 @@ import socket
 import qrcode
 from bs4 import BeautifulSoup
 from zeroconf import ServiceInfo, Zeroconf
+import logging
+from logging.handlers import RotatingFileHandler
+
+logger = logging.getLogger('ucontrol')
+
+
+def _setup_logging(app):
+    """Configura logging estruturado: console sempre, arquivo rotativo em instance/."""
+    level = logging.DEBUG if os.getenv('UCONTROL_DEBUG') == '1' else logging.INFO
+    logger.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+
+    os.makedirs(app.instance_path, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        os.path.join(app.instance_path, 'ucontrol.log'),
+        maxBytes=1_000_000,
+        backupCount=4,
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
 
 app = Flask(__name__)
+_setup_logging(app)
 
 
 class DateSlugConverter(BaseConverter):
@@ -491,7 +517,7 @@ def gerar_qrcodes(rotas):
         # Gerar o QR Code e salvar
         qr_code = qrcode.make(url_completa)
         qr_code.save(caminho_arquivo)
-        print(f"QR Code para '{url_completa}' salvo em: {caminho_arquivo}")
+        logger.info(f"QR Code para '{url_completa}' salvo em: {caminho_arquivo}")
 
 # Lista de rotas para as quais você quer gerar QR Codes
 rotas = ["control", "songs", "lyrics/display", "monitor", "img", "presenter", "help", "order", "view", "bible", "bible/display"]
@@ -681,7 +707,7 @@ def download_audio():
             old_path = os.path.join(audio_dir, old_filename)
             if os.path.exists(old_path) and old_path != output_path:
                 os.remove(old_path)
-                print(f"🗑️ Áudio antigo deletado: {old_path}", flush=True)
+                logger.info(f"🗑️ Áudio antigo deletado: {old_path}")
         
         # Verifica se já existe
         if os.path.exists(output_path):
@@ -706,16 +732,16 @@ def download_audio():
             video_url
         ]
         
-        print(f"🎵 Baixando áudio: {video_url}", flush=True)
+        logger.info(f"🎵 Baixando áudio: {video_url}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         
         if result.returncode != 0:
-            print(f"❌ Erro yt-dlp: {result.stderr}", flush=True)
+            logger.error(f"❌ Erro yt-dlp: {result.stderr}")
             return jsonify({"error": f"Erro ao baixar: {result.stderr}"}), 500
         
         # Verifica se o arquivo foi criado
         if os.path.exists(output_path):
-            print(f"✅ Áudio salvo: {output_path}", flush=True)
+            logger.info(f"✅ Áudio salvo: {output_path}")
             return jsonify({
                 "success": True,
                 "audio_url": f"/static/audio/{filename}.mp3"
@@ -726,7 +752,7 @@ def download_audio():
     except subprocess.TimeoutExpired:
         return jsonify({"error": "Timeout ao baixar áudio"}), 500
     except Exception as e:
-        print(f"❌ Erro: {str(e)}", flush=True)
+        logger.exception(f"❌ Erro: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -1301,7 +1327,7 @@ def api_bible_verse():
 # Evento WebSocket para transmitir versículos da Bíblia
 @socketio.on('update_bible')
 def handle_update_bible(data):
-    print(f'📖 Recebido update_bible: {data.get("reference", "Sem referência")}')
+    logger.debug(f'📖 Recebido update_bible: {data.get("reference", "Sem referência")}')
     ref = data.get('reference') or str(data.get('text', ''))[:60]
     if ref:
         _append_display_log({'type': 'bible', 'title': ref})
@@ -1538,33 +1564,33 @@ def add_song():
     import sys
     sys.stdout.flush()  # Força flush do stdout
     
-    print("🎼 [DEBUG] Iniciando add_song...", flush=True)
+    logger.debug("🎼 [DEBUG] Iniciando add_song...")
     
     title = request.form['title']
     author = request.form['author']
     sections = request.form.getlist('sections[]')
     texts = request.form.getlist('texts[]')
     
-    print(f"📝 [DEBUG] Título: {title}", flush=True)
-    print(f"👤 [DEBUG] Autor: {author}", flush=True)
-    print(f"📄 [DEBUG] Textos: {texts}", flush=True)
+    logger.debug(f"📝 [DEBUG] Título: {title}")
+    logger.debug(f"👤 [DEBUG] Autor: {author}")
+    logger.debug(f"📄 [DEBUG] Textos: {texts}")
     
     # Captura dados da partitura se enviados
     sheet_data_json = request.form.get('sheet_data')
-    print(f"🎵 [DEBUG] Sheet data recebido: {bool(sheet_data_json)}", flush=True)
+    logger.debug(f"🎵 [DEBUG] Sheet data recebido: {bool(sheet_data_json)}")
     if sheet_data_json:
-        print(f"📊 [DEBUG] Tamanho dos dados: {len(sheet_data_json)} caracteres", flush=True)
-        print(f"📋 [DEBUG] Primeiros 200 chars: {sheet_data_json[:200]}...", flush=True)
+        logger.debug(f"📊 [DEBUG] Tamanho dos dados: {len(sheet_data_json)} caracteres")
+        logger.debug(f"📋 [DEBUG] Primeiros 200 chars: {sheet_data_json[:200]}...")
     
     # Captura URL do vídeo de referência
     video_url = request.form.get('video_url', '').strip()
     if video_url:
-        print(f"🎬 [DEBUG] Video URL recebido: {video_url}", flush=True)
+        logger.debug(f"🎬 [DEBUG] Video URL recebido: {video_url}")
     
     # Captura URL do áudio local
     audio_url = request.form.get('audio_url', '').strip()
     if audio_url:
-        print(f"🎵 [DEBUG] Audio URL recebido: {audio_url}", flush=True)
+        logger.debug(f"🎵 [DEBUG] Audio URL recebido: {audio_url}")
 
     songs = load_songs()
     new_song = {
@@ -1584,7 +1610,7 @@ def add_song():
     if audio_url:
         new_song["audio_url"] = audio_url
     
-    print(f"🆔 [DEBUG] Nova música ID: {new_song['id']}", flush=True)
+    logger.debug(f"🆔 [DEBUG] Nova música ID: {new_song['id']}")
     
     # Se há dados de partitura, adiciona ao objeto da música
     if sheet_data_json:
@@ -1596,45 +1622,45 @@ def add_song():
             # Verifica se é array (múltiplas partituras) ou objeto (partitura única)
             if isinstance(sheet_data, list):
                 total_notes = sum(len(s.get('notes', [])) for s in sheet_data)
-                print(f"✅ [DEBUG] {len(sheet_data)} partitura(s) adicionada(s) com {total_notes} notas no total", flush=True)
+                logger.debug(f"✅ [DEBUG] {len(sheet_data)} partitura(s) adicionada(s) com {total_notes} notas no total")
             else:
-                print(f"✅ [DEBUG] Sheet data adicionado com {len(sheet_data.get('notes', []))} notas", flush=True)
+                logger.debug(f"✅ [DEBUG] Sheet data adicionado com {len(sheet_data.get('notes', []))} notas")
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"❌ [DEBUG] Erro ao fazer parse do JSON: {e}", flush=True)
+            logger.debug(f"❌ [DEBUG] Erro ao fazer parse do JSON: {e}")
     
     # Verifica se alguma seção tem marcador de partitura integrada
     for section in new_song["sections"]:
         for i, text in enumerate(section["text"]):
             if "[🎼 PARTITURA_INTEGRADA]" in text:
-                print(f"🔍 [DEBUG] Marcador encontrado no texto: {text}", flush=True)
+                logger.debug(f"🔍 [DEBUG] Marcador encontrado no texto: {text}")
                 # Se há dados de partitura, substitui o marcador
                 if sheet_data_json:
                     try:
                         sheet_data = json.loads(sheet_data_json)
                         new_song["sheet_data"] = sheet_data
-                        print(f"✅ [DEBUG] Dados da partitura processados e salvos", flush=True)
+                        logger.debug(f"✅ [DEBUG] Dados da partitura processados e salvos")
                         # Remove o marcador do texto
                         section["text"][i] = text.replace("[🎼 PARTITURA_INTEGRADA]", "").strip()
                         # Remove linhas vazias resultantes
                         section["text"] = [t for t in section["text"] if t.strip()]
-                        print(f"🧹 [DEBUG] Marcador removido do texto", flush=True)
+                        logger.debug(f"🧹 [DEBUG] Marcador removido do texto")
                     except Exception as e:
-                        print(f"❌ [DEBUG] Erro ao processar marcador: {e}", flush=True)
+                        logger.debug(f"❌ [DEBUG] Erro ao processar marcador: {e}")
                 break
     
-    print(f"💾 [DEBUG] Salvando música com sheet_data: {bool(new_song.get('sheet_data'))}", flush=True)
+    logger.debug(f"💾 [DEBUG] Salvando música com sheet_data: {bool(new_song.get('sheet_data'))}")
     if new_song.get('sheet_data'):
         sheet_data = new_song['sheet_data']
         if isinstance(sheet_data, list):
             total_notes = sum(len(s.get('notes', [])) for s in sheet_data)
-            print(f"📊 [DEBUG] {len(sheet_data)} partitura(s) na música final com {total_notes} notas no total", flush=True)
+            logger.debug(f"📊 [DEBUG] {len(sheet_data)} partitura(s) na música final com {total_notes} notas no total")
         else:
-            print(f"📊 [DEBUG] Notas na música final: {len(sheet_data.get('notes', []))}", flush=True)
+            logger.debug(f"📊 [DEBUG] Notas na música final: {len(sheet_data.get('notes', []))}")
     
     songs.append(new_song)
     save_songs(songs)
     
-    print(f"✅ [DEBUG] Música salva com sucesso!", flush=True)
+    logger.debug(f"✅ [DEBUG] Música salva com sucesso!")
     return jsonify({"message": "Música adicionada com sucesso!"})
 
 @app.route('/edit_song/<int:song_id>', methods=['GET', 'POST'])
@@ -1652,21 +1678,21 @@ def edit_song(song_id):
         video_url = request.form.get('video_url', '').strip()
         audio_url = request.form.get('audio_url', '').strip()
         
-        print(f"🔄 [DEBUG] Editando música ID: {song_id}", flush=True)
+        logger.debug(f"🔄 [DEBUG] Editando música ID: {song_id}")
         if video_url:
-            print(f"🎬 [DEBUG] Video URL: {video_url}", flush=True)
+            logger.debug(f"🎬 [DEBUG] Video URL: {video_url}")
         if audio_url:
-            print(f"🎵 [DEBUG] Audio URL: {audio_url}", flush=True)
-        print(f"📝 [DEBUG] Título: {title}", flush=True)
-        print(f"👤 [DEBUG] Autor: {author}", flush=True)
-        print(f"📋 [DEBUG] Seções recebidas: {len(sections)}", flush=True)
-        print(f"📄 [DEBUG] Textos recebidos: {len(texts)}", flush=True)
+            logger.debug(f"🎵 [DEBUG] Audio URL: {audio_url}")
+        logger.debug(f"📝 [DEBUG] Título: {title}")
+        logger.debug(f"👤 [DEBUG] Autor: {author}")
+        logger.debug(f"📋 [DEBUG] Seções recebidas: {len(sections)}")
+        logger.debug(f"📄 [DEBUG] Textos recebidos: {len(texts)}")
         # DEBUG: Mostra espaços no primeiro texto
         if texts:
-            print(f"🔍 [DEBUG] Primeiro texto (repr): {repr(texts[0])}", flush=True)
-            print(f"🔍 [DEBUG] Espaços no primeiro texto: {texts[0].count(' ')}", flush=True)
-            print(f"🔍 [DEBUG] Primeiros 100 chars: {repr(texts[0][:100])}", flush=True)
-            print(f"🔍 [DEBUG] Começa com espaço? {texts[0].startswith(' ')}", flush=True)
+            logger.debug(f"🔍 [DEBUG] Primeiro texto (repr): {repr(texts[0])}")
+            logger.debug(f"🔍 [DEBUG] Espaços no primeiro texto: {texts[0].count(' ')}")
+            logger.debug(f"🔍 [DEBUG] Primeiros 100 chars: {repr(texts[0][:100])}")
+            logger.debug(f"🔍 [DEBUG] Começa com espaço? {texts[0].startswith(' ')}")
         
         # Encontra a música existente
         song_to_update = None
@@ -1697,11 +1723,11 @@ def edit_song(song_id):
                 # Verifica se é array (múltiplas partituras) ou objeto (partitura única)
                 if isinstance(sheet_data, list):
                     total_notes = sum(len(s.get('notes', [])) for s in sheet_data)
-                    print(f"✅ [DEBUG] {len(sheet_data)} partitura(s) atualizada(s) com {total_notes} notas no total", flush=True)
+                    logger.debug(f"✅ [DEBUG] {len(sheet_data)} partitura(s) atualizada(s) com {total_notes} notas no total")
                 else:
-                    print(f"✅ [DEBUG] Partitura atualizada com {len(sheet_data.get('notes', []))} notas", flush=True)
+                    logger.debug(f"✅ [DEBUG] Partitura atualizada com {len(sheet_data.get('notes', []))} notas")
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"❌ [DEBUG] Erro ao fazer parse do JSON: {e}", flush=True)
+                logger.debug(f"❌ [DEBUG] Erro ao fazer parse do JSON: {e}")
         
         # Atualiza URL do vídeo
         if video_url:
@@ -1718,7 +1744,7 @@ def edit_song(song_id):
             del song_to_update["audio_url"]
         
         save_songs(songs)
-        print(f"✅ [DEBUG] Música {song_id} editada com sucesso!", flush=True)
+        logger.debug(f"✅ [DEBUG] Música {song_id} editada com sucesso!")
         return jsonify({"message": "Música editada com sucesso!"})
 
     song_to_edit = next((song for song in songs if song['id'] == song_id), None)
@@ -1964,7 +1990,7 @@ def handle_connect():
     sid = request.sid
     socketio_clients_by_sid[sid] = socketio_clients_by_sid.get(sid) or {'role': 'unknown'}
     socketio_clients_connected = len(socketio_clients_by_sid)
-    print('Cliente conectado')
+    logger.info('Cliente conectado')
 
 
 @socketio.on('disconnect')
@@ -1974,7 +2000,7 @@ def handle_disconnect():
     if sid in socketio_clients_by_sid:
         del socketio_clients_by_sid[sid]
     socketio_clients_connected = len(socketio_clients_by_sid)
-    print('Cliente desconectado')
+    logger.info('Cliente desconectado')
 
 
 @socketio.on('identify')
@@ -2030,7 +2056,7 @@ def load_orders():
                 return json.load(f)
         return {}
     except Exception as e:
-        print(f"Erro ao carregar orders.json: {e}")
+        logger.exception(f"Erro ao carregar orders.json: {e}")
         return {}
 
 def save_orders(orders):
@@ -2040,7 +2066,7 @@ def save_orders(orders):
             json.dump(orders, f, indent=4, ensure_ascii=False)
         return True
     except Exception as e:
-        print(f"Erro ao salvar orders.json: {e}")
+        logger.exception(f"Erro ao salvar orders.json: {e}")
         return False
 
 # API para listar todas as ordens
@@ -2621,7 +2647,7 @@ def save_lyrics_state():
         state.section_index = data.get('section_index', 0)
     
     db.session.commit()
-    print(f'💾 Estado das letras salvo: Música {state.song_id}, Seção {state.section_index}')
+    logger.debug(f'💾 Estado das letras salvo: Música {state.song_id}, Seção {state.section_index}')
     return jsonify({'status': 'success'})
 
 # Rota para listar pastas de imagens
@@ -3163,7 +3189,7 @@ def handle_show_image(data):
     # Atualiza modo imediatamente (antes de qualquer retorno antecipado)
     _last_image_url = image_url
     _current_display_mode = 'image'
-    print(f'🖼️ show_image recebido: {image_url} → modo=image', flush=True)
+    logger.debug(f'🖼️ show_image recebido: {image_url} → modo=image')
 
     # Envia para clientes primeiro (não espera banco)
     emit('display_image', {'image_url': image_url}, broadcast=True, skip_sid=_skip_sids(data))
@@ -3201,7 +3227,7 @@ def handle_show_image(data):
 def handle_show_video(data):
     global _display_state_cache, _video_state, _last_static_media_url, _current_display_mode
     video_url = data.get('video_url')
-    print(f'🎬 [show_video] recebido: {video_url}', flush=True)
+    logger.debug(f'🎬 [show_video] recebido: {video_url}')
     if not video_url:
         return
 
@@ -3248,7 +3274,7 @@ def handle_toggle_video_pause(data):
     """Pausa ou retoma o vídeo no monitor (/img) e atualiza o estado central."""
     global _video_state
     paused = bool(data.get('paused'))
-    print(f'⏯️ [toggle_video_pause] paused={paused}', flush=True)
+    logger.debug(f'⏯️ [toggle_video_pause] paused={paused}')
 
     if _video_state['url']:
         if paused and not _video_state['paused']:
@@ -3267,7 +3293,7 @@ def handle_toggle_video_pause(data):
 def handle_restart_video(data):
     """Reinicia o vídeo atual no monitor (/img) do início."""
     global _video_state
-    print('⏮️ [restart_video] recebido', flush=True)
+    logger.debug('⏮️ [restart_video] recebido')
     if _video_state['url']:
         _video_state['started_at'] = time.time()
         _video_state['position_offset'] = 0.0
@@ -3283,7 +3309,7 @@ def handle_seek_video(data):
         target = max(0.0, float(data.get('time', 0)))
     except (TypeError, ValueError):
         return
-    print(f'⏩ [seek_video] time={target:.2f}s', flush=True)
+    logger.debug(f'⏩ [seek_video] time={target:.2f}s')
     if _video_state['url']:
         # Mantém estado de pause: se está pausado, só atualiza o offset; se está
         # tocando, redefine started_at para "agora" com o novo offset.
@@ -3395,7 +3421,7 @@ def handle_show_image_zoom(data):
     origin = data.get('origin', None)
     pan = data.get('pan', None)
     try:
-        print(f"[show_image_zoom] url={image_url} zoom={zoom} origin={origin} pan={pan}")
+        logger.debug(f"[show_image_zoom] url={image_url} zoom={zoom} origin={origin} pan={pan}")
     except Exception:
         pass
     if not image_url:
@@ -3471,7 +3497,7 @@ def handle_send_url(url):
 @socketio.on('update_lyrics')
 def handle_update_lyrics(data):
     global _last_lyrics_payload, _current_display_mode
-    print(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
+    logger.debug(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
     _last_lyrics_payload = data
     _current_display_mode = 'lyrics'
     emit('update_lyrics', data, broadcast=True)
@@ -3518,7 +3544,7 @@ def get_display_bg():
 @socketio.on('section_changed')
 def handle_section_changed(data):
     song_id = data.get('songId')
-    print(f'📨 Recebido section_changed: Song {song_id}, Section {data.get("sectionIndex")}')
+    logger.debug(f'📨 Recebido section_changed: Song {song_id}, Section {data.get("sectionIndex")}')
     song = next((s for s in load_songs() if s.get('id') == song_id), None)
     song_title = song['title'] if song else str(song_id)
     _append_display_log({'type': 'song', 'title': song_title, 'url': f'/lyrics/{song_id}'})
@@ -3528,7 +3554,7 @@ def handle_section_changed(data):
 @socketio.on('toggle_lyrics_visibility')
 def handle_toggle_lyrics_visibility(data):
     visible = data.get('visible', True)
-    print(f'👁️ Toggle letras: {"Mostrar" if visible else "Esconder"}')
+    logger.debug(f'👁️ Toggle letras: {"Mostrar" if visible else "Esconder"}')
     emit('lyrics_visibility_changed', {'visible': visible}, broadcast=True)
 
 
@@ -3597,7 +3623,7 @@ def registrar_mdns():
     )
 
     Zeroconf().register_service(info)
-    print(f"🔗 Serviço mDNS registrado: http://ucontrol.local:{PORTA}")
+    logger.info(f"🔗 Serviço mDNS registrado: http://ucontrol.local:{PORTA}")
 
 
 
@@ -3607,11 +3633,6 @@ def home():
     return "Servidor Flask com mDNS ativo!"
 
 
-# === Iniciar Flask ===
-def run_flask():
-    socketio.run(app, host="0.0.0.0", port=PORTA, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)
-        
-
 # === Abrir navegador ===
 def open_browser():
     time.sleep(3)  # Dá tempo do servidor iniciar
@@ -3620,8 +3641,8 @@ def open_browser():
 
 # === Execução principal ===
 if __name__ == '__main__':
-    print(f"✅ Acesse localmente: http://127.0.0.1:{PORTA}/")
-    print(f"🌐 Ou via mDNS: http://{MDNS_DOMINIO}:{PORTA}/")
+    logger.info(f"✅ Acesse localmente: http://127.0.0.1:{PORTA}/")
+    logger.info(f"🌐 Ou via mDNS: http://{MDNS_DOMINIO}:{PORTA}/")
     
     if not os.getenv("UCONTROL_NO_BROWSER"):
         threading.Timer(2, open_browser).start()
@@ -3638,6 +3659,6 @@ if __name__ == '__main__':
             allow_unsafe_werkzeug=True,
         )
     except KeyboardInterrupt:
-        print("\n🛑 Servidor interrompido pelo usuário")
+        logger.info("\n🛑 Servidor interrompido pelo usuário")
     except Exception as e:
-        print(f"❌ Erro no servidor: {e}")
+        logger.exception(f"❌ Erro no servidor: {e}")
