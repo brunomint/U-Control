@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda {{ section|capitalize }} - {{ date }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f7f9fc; color: #0f172a; }
+        .page { max-width: 900px; margin: 40px auto; padding: 24px; background: #ffffff; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+        .title { font-size: 22px; font-weight: 700; }
+        .badge { padding: 6px 12px; background: #ecfeff; color: #0891b2; border: 1px solid #bae6fd; border-radius: 10px; font-weight: 600; }
+        .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 8px 24px rgba(15,23,42,0.08); margin-bottom: 16px; }
+        .line { display: flex; gap: 8px; font-size: 14px; color: #334155; margin-bottom: 8px; }
+        .line strong { color: #0f172a; }
+        ul { margin: 0; padding-left: 18px; color: #334155; }
+        .empty { color: #94a3b8; font-size: 14px; }
+        .btn { background: #0ea5e9; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 18px rgba(14,165,233,0.25); }
+        .btn:hover { box-shadow: 0 10px 22px rgba(14,165,233,0.3); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        .back { text-decoration: none; color: #0ea5e9; font-weight: 700; }
+        label { display: block; font-weight: 600; margin: 10px 0 6px; color: #0f172a; }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            font-family: inherit;
+            background: #f8fafc;
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .status { margin-top: 10px; font-size: 13px; }
+        .status.ok { color: #059669; }
+        .status.err { color: #b91c1c; }
+        /* Itens (músicas/texto/bíblia) */
+        .items-card { margin-top: 10px; }
+        .search-section { margin: 12px 0 8px; }
+        .search-box { position: relative; margin-bottom: 15px; }
+        #searchInput {
+            width: 100%;
+            padding: 15px 20px 15px 50px;
+            border: 2px solid #00bcd4;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2300bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>');
+            background-repeat: no-repeat;
+            background-position: 15px center;
+        }
+        #searchInput:focus { border-color: #0097a7; box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3); }
+        #searchInput::placeholder { color: #94a3b8; }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 2px solid #00bcd4;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+        .autocomplete-list.show { display: block; }
+        .autocomplete-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+        }
+        .autocomplete-item:hover { background: linear-gradient(135deg, #e0f7fa, #f1f8e9); }
+        .song-title { font-weight: bold; color: #00695c; }
+        .song-author { color: #666; font-size: 0.85rem; }
+        .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .actions-row input { flex: 1; min-width: 180px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: #f8fafc; }
+        .actions-row button { padding: 12px 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; color: white; box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
+        .btn-text { background: linear-gradient(135deg, #4CAF50, #43a047); }
+        .btn-bible { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+        #songList { margin-top: 12px; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; background: #fff; min-height: 80px; }
+        #songList:empty::before { content: 'Nenhum item. Use a busca ou botões para adicionar.'; color: #94a3b8; font-size: 13px; }
+        .song-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; background: #f8fafc; }
+        .song-item.bible { background: linear-gradient(135deg, #f3e8ff, #ede9fe); border-left: 4px solid #7c3aed; }
+        .song-item.text-item { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-left: 4px solid #fb923c; }
+        .drag-handle {
+            cursor: grab;
+            font-size: 18px;
+            color: #94a3b8;
+            display: inline-flex;
+            align-items: center;
+            user-select: none;
+            padding: 0 4px;
+        }
+        .drag-handle:hover { color: #0ea5e9; }
+        .song-info a { text-decoration: none; color: #0f172a; font-weight: 600; }
+        .remove-btn { border: none; background: linear-gradient(135deg, #ef5350, #e53935); color: white; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+        .remove-btn:hover { opacity: 0.9; }
+
+        /* Botões extras */
+        .btn-copiar { background: linear-gradient(135deg, #059669, #047857); margin-left: 8px; }
+
+        /* Modais */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 3000;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        }
+        .modal-box {
+            background: #1e293b; border-radius: 16px; padding: 24px;
+            max-width: 460px; width: 92%; margin: 60px auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-box h3 { color: #e2e8f0; margin: 0 0 16px; font-size: 1.05rem; }
+        .modal-close-btn { margin-top: 14px; width: 100%; padding: 9px; border-radius: 8px; border: none; background: rgba(255,255,255,0.08); color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
+
+        /* Modal aplicar ao mês */
+        .mes-header { display: flex; gap: 8px; margin-bottom: 12px; }
+        .mes-header select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 7px 10px; font-size: 0.88rem; flex: 1; }
+        .mes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 240px; overflow-y: auto; margin-bottom: 10px; }
+        .mes-check { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+        .mes-check span { color: #cbd5e1; font-size: 0.85rem; }
+        .mes-check input[type=checkbox] { accent-color: #0ea5e9; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+        .mes-apply-btn { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #059669; color: #fff; font-weight: 700; cursor: pointer; font-size: 0.9rem; margin-bottom: 8px; }
+        .mes-result { font-size: 0.82rem; text-align: center; min-height: 18px; margin-bottom: 6px; }
+        .mes-subtitle { color: #64748b; font-size: 0.78rem; margin: -10px 0 14px; }
+        /* Agrupamento por dia da semana no Copiar Mês */
+        .copiar-group { margin-bottom: 14px; }
+        .copiar-group-title { color: #7dd3fc; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .copiar-group-dates { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header">
+        <div>
+            <a class="back" href="#" onclick="history.back(); return false;">◀ Voltar</a>
+            <div class="title">{{ section == 'louvor' and  'Louvor e Dirigência' or section == 'midia' and 'Escala Mídia' or 'Eventos' }} : {{ date }}</div>
+        </div>
+    </div>
+
+    <div class="card">
+        {% if section == 'louvor' %}
+            <label for="tipo">Tipo de Culto</label>
+            <select id="tipo">
+                {% set tipo_sel = order.get('tipo','') %}
+                {% set tipos = ['Nenhum','Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'] %}
+                {% for t in tipos %}
+                    <option value="{{ t }}" {{ 'selected' if tipo_sel == t else '' }}>{{ t }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Horário</label>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                        <button type="button" class="btn" onclick="setHora(this,'18:40')">18:40</button>
+                        <button type="button" class="btn" onclick="setHora(this,'19:00')">19:00</button>
+                        <button type="button" class="btn" onclick="setHora(this,'19:30')">19:30</button>
+                        <button type="button" class="btn" onclick="setHora(this,'20:00')">20:00</button>
+                    </div>
+
+                        <input 
+                            id="horario_culto"
+                            placeholder="Ex.: 19:00"
+                            value="{{ order.get('horario_culto','') }}">
+
+            <label for="dirigente">Dirigente</label>
+            <input id="dirigente" value="{{ order.get('dirigente','') }}">
+
+            <label for="pregador">Pregador</label>
+            <input id="pregador" value="{{ order.get('pregador','') }}">
+
+            <label for="musicos">Músicos (um por linha: Instrumento - Pessoa)</label>
+            <textarea id="musicos">{% for m in order.get('louvor', {}).get('musicos', []) %}{{ m.get('instrumento','') }} - {{ m.get('pessoa','') }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Guitarra - Leo</div>
+
+            <label for="cantores">Cantores (um por linha: Nome)</label>
+            <textarea id="cantores">{% for c in order.get('louvor', {}).get('cantores', []) %}{{ c }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Ana</div>
+
+            <div class="items-card">
+                <label>🔍 Adicionar Itens</label>
+                <div class="search-section">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar música por título, autor ou letra...">
+                        <div id="autocompleteList" class="autocomplete-list" style="display:none;"></div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                        <a href="/new_song" target="_blank" rel="noopener noreferrer" class="btn" style="background: linear-gradient(135deg, #8e44ad, #6c3483); box-shadow: 0 6px 16px rgba(142,68,173,0.35); text-decoration: none;">➕ Nova Música</a>
+                        <span class="hint">Use se a música não existir na biblioteca.</span>
+                    </div>
+                    <div class="actions-row">
+                        <input type="text" id="freeTextInput" placeholder="Texto livre (ex: Oração, Anúncios...)">
+                        <button type="button" class="btn-text" onclick="addToList()">➕ Adicionar</button>
+                        <input type="text" id="bibleRefInput" placeholder="Referência bíblica (ex: João 3:16)">
+                        <button type="button" class="btn-bible" onclick="addBibleToList()">📖 Adicionar</button>
+                    </div>
+                </div>
+                <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+        {% elif section == 'midia' %}
+            {% set midia = order.get('midia', {}) %}
+            {% if midia is not mapping %}
+                {% set midia = {} %}
+            {% endif %}
+
+            <label for="midia_lider">Líder</label>
+            <input id="midia_lider" value="{{ midia.get('lider','') }}">
+
+            <label for="midia_palco">Operacional Palco</label>
+            <input id="midia_palco" value="{{ midia.get('palco','') }}">
+
+            <label for="midia_visual">Mídia Social</label>
+            <input id="midia_visual" value="{{ midia.get('visual','') }}">
+
+            <label for="midia_team">Equipe (um por linha: Função - Pessoa)</label>
+            <textarea id="midia_team">{% for m in midia.get('equipe', []) %}{{ m.get('nome','') }} - {{ m.get('pessoa','') }}
+{% endfor %}</textarea>
+            <div class="hint">Ex.: Projeção - Ana</div>
+
+            <label for="midia_obs">Observações</label>
+            <textarea id="midia_obs">{{ midia.get('obs','') }}</textarea>
+        {% else %}
+            {% set eventos = order.get('eventos', []) %}
+
+            <div id="eventos-container">
+                {% for evento in eventos %}
+                    <div class="evento-bloco">
+
+                        <label>Título do evento</label>
+                        <input name="eventos[{{ loop.index0 }}][titulo]"
+                               value="{{ evento.get('titulo','') }}">
+
+                        <label>Horário</label>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                            <button type="button" class="btn" onclick="setHora(this,'18:40')">18:40</button>
+                            <button type="button" class="btn" onclick="setHora(this,'19:00')">19:00</button>
+                            <button type="button" class="btn" onclick="setHora(this,'19:30')">19:30</button>
+                            <button type="button" class="btn" onclick="setHora(this,'20:00')">20:00</button>
+                        </div>
+
+                        <input name="eventos[{{ loop.index0 }}][hora]"
+                               value="{{ evento.get('hora','') }}"
+                               placeholder="Ex.: 19:30">
+
+                        <label>Responsáveis</label>
+                        <textarea name="eventos[{{ loop.index0 }}][responsavel]">
+        {{ evento.get('responsavel','') }}</textarea>
+
+                        <label>Observações</label>
+                        <textarea name="eventos[{{ loop.index0 }}][obs]">
+        {{ evento.get('obs','') }}</textarea>
+
+                        <button type="button"
+                                onclick="this.closest('.evento-bloco').remove()">
+                            Remover evento
+                        </button>
+
+                        <hr>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn" onclick="addEvento()">
+                + Adicionar evento
+            </button>
+        {% endif %}
+    </div>
+
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:8px;">
+        <button class="btn" id="saveBtn">Salvar</button>
+        <button class="btn btn-copiar" onclick="abrirModalCopiar()">📅 Copiar Mês</button>
+    </div>
+    <div class="status" id="status"></div>
+</div>
+
+<!-- Modal Copiar Mês -->
+<div class="modal-overlay" id="modal-copiar" onclick="if(event.target===this)fecharModalCopiar()">
+    <div class="modal-box">
+        <h3>📅 Copiar Mês</h3>
+        <p class="mes-subtitle">Copia a escala de um mês para os domingos de outro mês.</p>
+        <div style="margin-bottom:10px">
+            <label style="color:#94a3b8;font-size:0.8rem;font-weight:600;display:block;margin-bottom:6px">Copiar de:</label>
+            <div class="mes-header">
+                <select id="copiar-orig-mes">
+                    <option value="0">Janeiro</option><option value="1">Fevereiro</option>
+                    <option value="2">Março</option><option value="3">Abril</option>
+                    <option value="4">Maio</option><option value="5">Junho</option>
+                    <option value="6">Julho</option><option value="7">Agosto</option>
+                    <option value="8">Setembro</option><option value="9">Outubro</option>
+                    <option value="10">Novembro</option><option value="11">Dezembro</option>
+                </select>
+                <select id="copiar-orig-ano"></select>
+            </div>
+        </div>
+        <div style="margin-bottom:10px">
+            <label style="color:#94a3b8;font-size:0.8rem;font-weight:600;display:block;margin-bottom:6px">Aplicar em (domingos):</label>
+            <div class="mes-header">
+                <select id="copiar-dest-mes">
+                    <option value="0">Janeiro</option><option value="1">Fevereiro</option>
+                    <option value="2">Março</option><option value="3">Abril</option>
+                    <option value="4">Maio</option><option value="5">Junho</option>
+                    <option value="6">Julho</option><option value="7">Agosto</option>
+                    <option value="8">Setembro</option><option value="9">Outubro</option>
+                    <option value="10">Novembro</option><option value="11">Dezembro</option>
+                </select>
+                <select id="copiar-dest-ano"></select>
+            </div>
+        </div>
+        <div id="copiar-grid" style="max-height:260px;overflow-y:auto;margin-bottom:10px"></div>
+        <div id="copiar-result" class="mes-result"></div>
+        <button class="mes-apply-btn" onclick="executarCopiar()">Copiar e aplicar</button>
+        <button class="modal-close-btn" onclick="fecharModalCopiar()">Cancelar</button>
+    </div>
+</div>
+
+<script id="order-data" type="application/json">{{ (order or {}) | tojson }}</script>
+<script>
+    const section = "{{ section }}";
+    const date = "{{ date }}";
+    const orderData = JSON.parse(document.getElementById('order-data').textContent || '{}');
+    let draggedElement = null;
+    let searchTimeout = null;
+    let currentSearchTerm = '';
+
+    function parseMusicos(text) {
+        return text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => {
+            const [instrumento='', pessoa=''] = l.split(' - ');
+            return { instrumento: instrumento.trim(), pessoa: pessoa.trim() };
+        });
+    }
+    function parseCantores(text) {
+        return text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    }
+    function buildItemListPayload() {
+        const songList = document.getElementById('songList');
+        const items = Array.from(songList.children);
+        return items.map(item => {
+            const link = item.querySelector('a');
+            const title = link ? link.textContent : null;
+            let url = link ? link.getAttribute('href') : null;
+
+            if (item.dataset.isBible === "true") {
+                return { isBible: true, reference: item.dataset.reference, title: title };
+            }
+
+            if (url) {
+                const urlObject = new URL(url, window.location.origin);
+                url = urlObject.pathname;
+            }
+
+            return url && url !== '/' && url !== '#' ? { url, title } : { anyText: title };
+        });
+    }
+    function parseFuncoes(text) {
+        return text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => {
+            const [nome='', pessoa=''] = l.split(' - ');
+            return { nome: nome.trim(), pessoa: pessoa.trim() };
+        });
+    }
+    function parseEventosForm() {
+        const eventos = [];
+        const blocos = document.querySelectorAll('.evento-bloco');
+
+        blocos.forEach(bloco => {
+            const titulo = bloco.querySelector('[name$="[titulo]"]')?.value.trim() || '';
+            const hora = bloco.querySelector('[name$="[hora]"]')?.value.trim() || '';
+            const responsavel = bloco.querySelector('[name$="[responsavel]"]')?.value.trim() || '';
+            const obs = bloco.querySelector('[name$="[obs]"]')?.value.trim() || '';
+
+            if (titulo) {
+                eventos.push({ titulo, hora, responsavel, obs });
+            }
+        });
+
+        return eventos;
+    }
+    async function save() {
+        const btn = document.getElementById('saveBtn');
+        const status = document.getElementById('status');
+        btn.disabled = true; status.textContent = 'Salvando...'; status.className = 'status';
+        const payload = { ...(orderData || {}) };
+
+        if (section === 'louvor') {
+            payload.tipo = document.getElementById('tipo').value;
+            payload.horario_culto = document.getElementById('horario_culto').value.trim();
+            payload.dirigente = document.getElementById('dirigente').value.trim();
+            payload.pregador = document.getElementById('pregador').value.trim();
+            payload.louvor = payload.louvor || {};
+            payload.louvor.musicos = parseMusicos(document.getElementById('musicos').value);
+            payload.louvor.cantores = parseCantores(document.getElementById('cantores').value);
+            payload.itens = buildItemListPayload();
+        } else if (section === 'midia') {
+            payload.midia = {
+                lider: document.getElementById('midia_lider').value.trim(),
+                palco: document.getElementById('midia_palco').value.trim(),
+                visual: document.getElementById('midia_visual').value.trim(),
+                equipe: parseFuncoes(document.getElementById('midia_team').value),
+                obs: document.getElementById('midia_obs').value.trim()
+            };
+        } else {
+            payload.eventos = parseEventosForm();
+        }
+
+        try {
+            const resp = await fetch(`/api/orders/${date}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) throw new Error('Falha ao salvar');
+            status.textContent = 'Salvo com sucesso!';
+            status.className = 'status ok';
+        } catch (e) {
+            status.textContent = 'Erro ao salvar';
+            status.className = 'status err';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+    document.getElementById('saveBtn').addEventListener('click', save);
+
+    // ---- Itens (louvor) helpers ----
+    async function searchSongs(query) {
+        const list = document.getElementById("autocompleteList");
+        if (!query || query.trim().length === 0) {
+            list.style.display = 'none';
+            return;
+        }
+        currentSearchTerm = query;
+        try {
+            const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+            const songs = await response.json();
+            if (currentSearchTerm !== query) return;
+            list.innerHTML = "";
+            if (songs.length === 0) {
+                list.innerHTML = '<div class="autocomplete-item" style="padding:10px 14px; color:#94a3b8;">Nenhuma música encontrada</div>';
+                list.style.display = 'block';
+                return;
+            }
+            songs.forEach(song => {
+                const item = document.createElement("div");
+                item.className = "autocomplete-item";
+                item.style.padding = '10px 14px';
+                item.style.cursor = 'pointer';
+                item.style.borderBottom = '1px solid #e2e8f0';
+                item.innerHTML = `
+                    <div style="font-weight:700; color:#0f172a;">${song.title}</div>
+                    <div style="color:#64748b; font-size:12px;">${song.author || 'Autor desconhecido'}</div>
+                `;
+                item.onclick = () => {
+                    addSongToList(song);
+                    list.style.display = 'none';
+                    document.getElementById("searchInput").value = "";
+                };
+                list.appendChild(item);
+            });
+            list.style.display = 'block';
+        } catch (error) {
+            console.error("Erro ao buscar músicas:", error);
+        }
+    }
+    function debouncedSearch(query) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchSongs(query), 300);
+    }
+
+    function addSongToList(song) {
+        const songList = document.getElementById("songList");
+        const songItem = document.createElement("div");
+        songItem.className = "song-item";
+        songItem.setAttribute("draggable", "true");
+        songItem.id = `song-${Date.now()}`;
+
+        const displayText = song.author ? `${song.title} | ${song.author}` : song.title;
+        const baseUrl = song.url || (song.id ? `/lyrics/${song.id}` : "#");
+        const url = baseUrl.includes('/lyrics/') ? `${baseUrl}?order=${date}` : baseUrl;
+
+        songItem.innerHTML = `
+            <span class="drag-handle">⋮⋮</span>
+            <div class="song-info">
+                <a href="${url}" target="_blank">${displayText}</a>
+            </div>
+            <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+
+        songItem.ondragstart = (e) => {
+            draggedElement = songItem;
+            e.dataTransfer.effectAllowed = "move";
+        };
+
+        songList.appendChild(songItem);
+    }
+
+    function addToList() {
+        const input = document.getElementById("freeTextInput");
+        const text = input.value.trim();
+        if (!text) return;
+        const songList = document.getElementById("songList");
+        const item = document.createElement("div");
+        item.className = "song-item text-item";
+        item.setAttribute("draggable", "true");
+        item.id = `text-${Date.now()}`;
+
+        item.innerHTML = `
+            <span class="drag-handle">⋮⋮</span>
+            <div class="song-info">
+                <a href="#">📝 ${text}</a>
+            </div>
+            <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+
+        item.ondragstart = (e) => {
+            draggedElement = item;
+            e.dataTransfer.effectAllowed = "move";
+        };
+
+        songList.appendChild(item);
+        input.value = "";
+    }
+
+    function addBibleToList() {
+        const input = document.getElementById("bibleRefInput");
+        const ref = input.value.trim();
+        if (!ref) return;
+        const songList = document.getElementById("songList");
+        const item = document.createElement("div");
+        item.className = "song-item bible";
+        item.setAttribute("draggable", "true");
+        item.id = `bible-${Date.now()}`;
+        item.dataset.isBible = "true";
+        item.dataset.reference = ref;
+
+        const url = `/bible?search=${encodeURIComponent(ref)}`;
+        item.innerHTML = `
+            <div class="song-info">
+                <a href="${url}" target="_blank">📖 ${ref}</a>
+            </div>
+            <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+
+        item.ondragstart = (e) => {
+            draggedElement = item;
+            e.dataTransfer.effectAllowed = "move";
+        };
+
+        songList.appendChild(item);
+        input.value = "";
+    }
+
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drop(ev) {
+        ev.preventDefault();
+        if (ev.target.classList.contains("song-item") && draggedElement) {
+            const target = ev.target;
+            const songList = document.getElementById("songList");
+            const allItems = Array.from(songList.children);
+            const draggedIndex = allItems.indexOf(draggedElement);
+            const targetIndex = allItems.indexOf(target);
+            if (draggedIndex < targetIndex) {
+                songList.insertBefore(draggedElement, target.nextSibling);
+            } else {
+                songList.insertBefore(draggedElement, target);
+            }
+        }
+    }
+
+    function loadExistingItens() {
+        if (!orderData || !orderData.itens) return;
+        orderData.itens.forEach(item => {
+            if (item.isBible) {
+                const songList = document.getElementById("songList");
+                const elem = document.createElement("div");
+                elem.className = "song-item bible";
+                elem.setAttribute("draggable", "true");
+                elem.id = `bible-${Date.now()}-${Math.random()}`;
+                elem.dataset.isBible = "true";
+                elem.dataset.reference = item.reference;
+                elem.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="song-info">
+                        <a href="/bible?search=${encodeURIComponent(item.reference)}" target="_blank">${item.title || '📖 ' + item.reference}</a>
+                    </div>
+                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                `;
+                elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
+                songList.appendChild(elem);
+            } else if (item.url && item.title) {
+                const songList = document.getElementById("songList");
+                const elem = document.createElement("div");
+                elem.className = "song-item";
+                elem.setAttribute("draggable", "true");
+                elem.id = `song-${Date.now()}-${Math.random()}`;
+                const linkUrl = item.url.includes('/lyrics/') ? `${item.url}?order=${date}` : item.url;
+                elem.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="song-info">
+                        <a href="${linkUrl}" target="_blank">${item.title}</a>
+                    </div>
+                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                `;
+                elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
+                songList.appendChild(elem);
+            } else if (item.anyText || item.title) {
+                const songList = document.getElementById("songList");
+                const elem = document.createElement("div");
+                elem.className = "song-item text-item";
+                elem.setAttribute("draggable", "true");
+                elem.id = `text-${Date.now()}-${Math.random()}`;
+                const text = item.anyText || item.title;
+                elem.innerHTML = `
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="song-info">
+                        <a href="#">${text}</a>
+                    </div>
+                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                `;
+                elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
+                songList.appendChild(elem);
+            }
+        });
+    }
+
+    // Listeners para busca/enter
+    document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+            searchInput.addEventListener("input", (e) => debouncedSearch(e.target.value.trim()));
+            searchInput.addEventListener("keydown", (e) => { if (e.key === 'Escape') document.getElementById("autocompleteList").style.display = 'none'; });
+        }
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".search-box")) {
+                const list = document.getElementById("autocompleteList");
+                if (list) list.style.display = 'none';
+            }
+        });
+        const freeText = document.getElementById("freeTextInput");
+        const bibleInput = document.getElementById("bibleRefInput");
+        if (freeText) freeText.addEventListener("keydown", (e) => { if (e.key === 'Enter') { e.preventDefault(); addToList(); } });
+        if (bibleInput) bibleInput.addEventListener("keydown", (e) => { if (e.key === 'Enter') { e.preventDefault(); addBibleToList(); } });
+        loadExistingItens();
+    });
+    function addEvento() {
+        const container = document.getElementById('eventos-container');
+        const index = container.children.length;
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="evento-bloco">
+                <label>Título do evento</label>
+                <input name="eventos[${index}][titulo]">
+
+                <label>Horário</label>
+                <input name="eventos[${index}][hora]" placeholder="Ex.: 19:30">
+
+                <label>Responsáveis</label>
+                <textarea name="eventos[${index}][responsavel]"></textarea>
+
+                <label>Observações</label>
+                <textarea name="eventos[${index}][obs]"></textarea>
+
+                <button type="button" onclick="this.closest('.evento-bloco').remove()">
+                    Remover evento
+                </button>
+
+                <hr>
+            </div>
+        `);
+    }
+    // ── MODELOS DE ESCALA ────────────────────────────────────────────
+    function getFieldsSnapshot() {
+        if (section === 'midia') return {
+            lider:  document.getElementById('midia_lider').value,
+            palco:  document.getElementById('midia_palco').value,
+            visual: document.getElementById('midia_visual').value,
+            equipe: document.getElementById('midia_team').value,
+            obs:    document.getElementById('midia_obs').value
+        };
+        if (section === 'louvor') return {
+            dirigente: document.getElementById('dirigente').value,
+            pregador:  document.getElementById('pregador').value,
+            musicos:   document.getElementById('musicos').value,
+            cantores:  document.getElementById('cantores').value
+        };
+        return {};
+    }
+
+    function applyTemplate(fields) {
+        if (section === 'midia') {
+            document.getElementById('midia_lider').value  = fields.lider  || '';
+            document.getElementById('midia_palco').value  = fields.palco  || '';
+            document.getElementById('midia_visual').value = fields.visual || '';
+            document.getElementById('midia_team').value   = fields.equipe || '';
+            document.getElementById('midia_obs').value    = fields.obs    || '';
+        }
+        if (section === 'louvor') {
+            document.getElementById('dirigente').value = fields.dirigente || '';
+            document.getElementById('pregador').value  = fields.pregador  || '';
+            document.getElementById('musicos').value   = fields.musicos   || '';
+            document.getElementById('cantores').value  = fields.cantores  || '';
+        }
+    }
+
+    // ── COPIAR MÊS ────────────────────────────────────────────────────
+    let copiarFieldsByDow = {}; // { 0: fields, 3: fields, ... }
+
+    const NOMES_DIA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const NOMES_MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+    function isoDate(d) {
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function datasDoMesPorDow(ano, mes, dow) {
+        const datas = [];
+        const d = new Date(ano, mes, 1);
+        while (d.getMonth() === mes) {
+            if (d.getDay() === dow) datas.push(new Date(d));
+            d.setDate(d.getDate() + 1);
+        }
+        return datas;
+    }
+
+    function temDadosSecao(order) {
+        if (section === 'louvor') return !!(order.dirigente || order.louvor);
+        if (section === 'eventos') return Array.isArray(order.eventos) && order.eventos.length > 0;
+        return !!order[section];
+    }
+
+    function extrairFields(order) {
+        if (section === 'louvor') {
+            return { dirigente: order.dirigente || '', pregador: order.pregador || '',
+                     tipo: order.tipo || '', horario_culto: order.horario_culto || '',
+                     louvor: order.louvor || {} };
+        }
+        return order[section];
+    }
+
+    function abrirModalCopiar() {
+        const anoAtual = new Date().getFullYear();
+        ['copiar-orig-ano','copiar-dest-ano'].forEach(id => {
+            document.getElementById(id).innerHTML = [anoAtual-1, anoAtual, anoAtual+1]
+                .map(y => `<option value="${y}"${y===anoAtual?' selected':''}>${y}</option>`).join('');
+        });
+
+        const [pageYear, pageMonth] = date.split('-').map(Number);
+        let origMes = pageMonth - 2;
+        let origAno = pageYear;
+        if (origMes < 0) { origMes += 12; origAno--; }
+        document.getElementById('copiar-orig-mes').value = origMes;
+        document.getElementById('copiar-orig-ano').value = origAno;
+        document.getElementById('copiar-dest-mes').value = pageMonth - 1;
+        document.getElementById('copiar-dest-ano').value = pageYear;
+
+        document.getElementById('copiar-result').textContent = '';
+
+        const onChange = () => renderCopiarGrid();
+        ['copiar-orig-mes','copiar-orig-ano','copiar-dest-mes','copiar-dest-ano']
+            .forEach(id => { document.getElementById(id).onchange = onChange; });
+
+        renderCopiarGrid();
+        document.getElementById('modal-copiar').style.display = 'block';
+    }
+
+    function fecharModalCopiar() {
+        document.getElementById('modal-copiar').style.display = 'none';
+    }
+
+    async function renderCopiarGrid() {
+        const grid = document.getElementById('copiar-grid');
+        grid.innerHTML = '<div style="color:#64748b;font-size:0.82rem;padding:8px">Carregando…</div>';
+        copiarFieldsByDow = {};
+
+        const origMes = parseInt(document.getElementById('copiar-orig-mes').value);
+        const origAno = parseInt(document.getElementById('copiar-orig-ano').value);
+        const destMes = parseInt(document.getElementById('copiar-dest-mes').value);
+        const destAno = parseInt(document.getElementById('copiar-dest-ano').value);
+        const prefixo = `${origAno}-${String(origMes+1).padStart(2,'0')}`;
+
+        try {
+            const orders = await fetch('/api/orders').then(r => r.json());
+
+            // agrupa por dia da semana, pega o primeiro de cada tipo
+            Object.entries(orders)
+                .filter(([d, o]) => d.startsWith(prefixo) && temDadosSecao(o))
+                .sort(([a],[b]) => a.localeCompare(b))
+                .forEach(([d, o]) => {
+                    const dow = new Date(d + 'T12:00:00').getDay();
+                    if (!(dow in copiarFieldsByDow)) {
+                        copiarFieldsByDow[dow] = { tipo: o.tipo || NOMES_DIA[dow], fields: extrairFields(o) };
+                    }
+                });
+
+            if (!Object.keys(copiarFieldsByDow).length) {
+                grid.innerHTML = `<div style="color:#f87171;font-size:0.82rem;padding:8px">Nenhuma escala de ${section} encontrada em ${prefixo.replace('-','/')}.</div>`;
+                return;
+            }
+
+            // para cada dia da semana encontrado, gera checkboxes no mês destino
+            let html = '';
+            Object.entries(copiarFieldsByDow)
+                .sort(([a],[b]) => Number(a)-Number(b))
+                .forEach(([dow, info]) => {
+                    const datas = datasDoMesPorDow(destAno, destMes, Number(dow));
+                    if (!datas.length) return;
+                    html += `<div class="copiar-group">
+                        <div class="copiar-group-title">${NOMES_DIA[dow]}s — ${info.tipo}</div>
+                        <div class="copiar-group-dates">${datas.map(d => {
+                            const iso = isoDate(d);
+                            return `<label class="mes-check"><input type="checkbox" name="copiar-date" data-dow="${dow}" value="${iso}" checked><span>${d.getDate()} ${NOMES_MES[d.getMonth()]}</span></label>`;
+                        }).join('')}</div>
+                    </div>`;
+                });
+
+            grid.innerHTML = html || `<div style="color:#64748b;font-size:0.82rem;padding:8px">Sem datas correspondentes em ${NOMES_MES[destMes]}/${destAno}.</div>`;
+        } catch {
+            grid.innerHTML = '<div style="color:#f87171;font-size:0.82rem;padding:8px">Erro ao carregar dados.</div>';
+        }
+    }
+
+    async function executarCopiar() {
+        const result = document.getElementById('copiar-result');
+        const btn = document.querySelector('#modal-copiar .mes-apply-btn');
+        const checked = [...document.querySelectorAll('input[name=copiar-date]:checked')];
+        if (!checked.length) { result.textContent = 'Selecione ao menos uma data.'; result.style.color = '#f87171'; return; }
+
+        // agrupa datas selecionadas por dow
+        const porDow = {};
+        checked.forEach(el => {
+            const dow = el.dataset.dow;
+            (porDow[dow] = porDow[dow] || []).push(el.value);
+        });
+
+        btn.disabled = true; btn.textContent = 'Aplicando…';
+        let total = 0, erro = false;
+
+        try {
+            for (const [dow, datas] of Object.entries(porDow)) {
+                const info = copiarFieldsByDow[dow];
+                if (!info) continue;
+                const res = await fetch('/api/section-templates/apply-month', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ section, fields: info.fields, dates: datas })
+                });
+                if (res.ok) total += (await res.json()).applied;
+                else erro = true;
+            }
+            result.textContent = erro
+                ? '❌ Erro ao aplicar em algumas datas.'
+                : `✅ Escala copiada para ${total} data${total !== 1 ? 's' : ''}!`;
+            result.style.color = erro ? '#f87171' : '#34d399';
+        } catch {
+            result.textContent = '❌ Erro de conexão.';
+            result.style.color = '#f87171';
+        }
+        btn.disabled = false; btn.textContent = 'Copiar e aplicar';
+    }
+
+    function setHora(btn, hora) {
+
+    // 1️⃣ Tenta aplicar no contexto de EVENTOS
+    const blocoEvento = btn.closest('.evento-bloco');
+    if (blocoEvento) {
+        const inputEvento = blocoEvento.querySelector('[name$="[hora]"]');
+        if (inputEvento) {
+            inputEvento.value = hora;
+            return;
+        }
+    }
+
+    // 2️⃣ Fallback: horário do LOUVOR
+    const inputCulto = document.getElementById('horario_culto');
+    if (inputCulto) {
+        inputCulto.value = hora;
+    }
+}
+
+</script>
+</body>
+</html>

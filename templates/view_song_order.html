@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Visualizar Músicas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #0a0a0a;
+            color: #e2e8f0;
+        }
+        
+        /* Estilo do menu - Tema Moderno */
+        .menu {
+            width: 260px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            color: #e2e8f0;
+            height: 100vh;
+            padding-top: 20px;
+            padding-bottom: 80px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            transition: transform 0.3s ease;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+            border-right: 1px solid rgba(74, 222, 128, 0.2);
+            overflow-y: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            scrollbar-width: thin;
+            scrollbar-color: #4ade80 #1a1a2e;
+            z-index: 900;
+            box-sizing: border-box;
+        }
+        
+        .menu h1 {
+            font-weight: bold;
+            font-size: 22px;
+            color: #4ade80;
+            text-align: center;
+            margin: 0 0 20px 0;
+            padding: 0 15px;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+        
+        .menu.hidden {
+            transform: translateX(-100%);
+        }
+        
+        .menu-title {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+            margin-bottom: 5px;
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .menu a {
+            display: block;
+            color: #e2e8f0;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 3px solid transparent;
+        }
+        
+        .menu a:hover {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 3px solid #4ade80;
+            color: #4ade80;
+            padding-left: 24px;
+        }
+        
+        .menu-item {
+            font-size: 22px;
+            font-weight: bold;
+            padding: 20px 15px;
+            margin-bottom: 10px;
+            color: #4ade80;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+        
+        h1, h3, h4 {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        h1 {
+            color: #4ade80;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+        
+        h5 {
+            color: #4ade80;
+            margin-top: 20px;
+        }
+        
+        pre {
+            background: transparent !important;
+            color: #e2e8f0 !important;
+            padding: 0 !important;
+            margin: 0 0 15px 0 !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
+        }
+        
+        pre * {
+            font-size: inherit !important;
+            line-height: inherit !important;
+            font-family: inherit !important;
+        }
+        
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007BFF;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        @media print {
+            a, a:visited {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            #toggle-menu {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .menu {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .menu a, .menu a:visited {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .controls {
+                visibility: hidden;
+            }
+        }
+        
+        /* Branding */
+        .branding {
+            text-align: center;
+            padding: 0 10px 20px;
+            margin-bottom: 20px;
+        }
+        
+        .branding img {
+            width: 120px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        
+        .branding p {
+            font-size: 16px;
+            color: white;
+            margin: 0;
+        }
+        
+        /* Estilo do botão de esconder/exibir - escondido em telas grandes */
+        #toggle-menu {
+            display: none; /* Escondido por padrão em telas grandes */
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #4ade80;
+            border: 2px solid #4ade80;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        #toggle-menu:hover {
+            background: rgba(74, 222, 128, 0.15);
+            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
+            transform: scale(1.05);
+        }
+        
+        /* Ajuste para dispositivos móveis */
+        @media (max-width: 768px) {
+            /* Menu escondido por padrão em mobile */
+            .menu {
+                width: 240px;
+                font-size: 16px;
+                height: 100vh;
+                max-height: 100vh;
+                overflow-y: auto;
+                transform: translateX(-100%); /* Escondido por padrão */
+            }
+            
+            .menu.visible {
+                transform: translateX(0); /* Visível quando tem classe .visible */
+            }
+        
+            /* Botão visível em mobile */
+            #toggle-menu {
+                display: block !important;
+                top: 8px;
+                left: 8px;
+                padding: 10px 12px;
+                font-size: 20px;
+            }
+        
+            .content {
+                margin-left: 0;
+                padding: 20px;
+                margin-top: 60px;
+            }
+        }
+        
+        /* Telas grandes */
+        @media (min-width: 769px) {
+            .menu {
+                width: 280px;
+                font-size: 18px;
+                z-index: 1000;
+            }
+            
+            .menu a {
+                font-size: 16px;
+                padding: 14px 20px;
+            }
+            
+            .menu-title {
+                font-size: 14px;
+                padding: 14px 20px;
+            }
+            
+            .content {
+                margin-left: 300px;
+            }
+            
+            pre {
+                font-size: 18px !important;
+                line-height: 1.7 !important;
+            }
+            
+            pre * {
+                font-size: 18px !important;
+                line-height: 1.7 !important;
+            }
+        }
+        
+        .img-content {
+            border-radius: 0px;
+        }
+        
+        .description {
+            font-size: 18px;
+            color: #e2e8f0;
+            text-align: center;
+            padding: 30px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+        }
+        
+        .description p {
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+        
+        .description strong {
+            color: #4ade80;
+        }
+        
+        .footer {
+            position: fixed;
+            font-size: 12px;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #a0aec0;
+            padding: 12px;
+            z-index: 1000;
+            border-top: 1px solid rgba(74, 222, 128, 0.2);
+        }
+        </style>
+
+
+    </style>
+</head>
+<body>
+    <!-- Botão para esconder/exibir o menu -->
+    <button id="toggle-menu" onclick="toggleMenu()">☰</button>
+
+    <!-- Menu -->
+    <div class="menu" id="menu">
+        <div id="song-list" class="menu-item">Ordem do Culto</div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="content" id="content">
+        <div class="branding">
+            
+            <div class="description">
+                <img class="img-content" src="static/U-Control-ico.ico" alt="Logo U-Control">
+                <h1>Bem-vindo ao <strong>U_Control</strong></h1>
+                <p>O programa de mídia mais inovador da galáxia. E talvez do universo.<br></p>
+                <p>Para exibir cifra, basta clicar no <strong>"Menu"</strong> e clicar na música que deseja exibir. </p>
+            </div>
+        
+        </div>
+
+        
+
+    </div>
+
+    <footer class="footer">
+        Desenvolvido por Bruno Fragoso
+    </footer>
+    
+
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // Função para carregar conteúdo via AJAX
+        function loadContent(url) {
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    $('#content').html(response);  // Atualiza o conteúdo da página
+                },
+                error: function() {
+                    $('#content').html('<p>Erro ao carregar o conteúdo.</p>');
+                }
+            });
+        }
+
+        // Função para gerar URL de controle bíblico a partir de referência
+        function generateBibleUrl(reference) {
+            const bookMap = {
+                'gênesis': 'gn', 'genesis': 'gn', 'gn': 'gn',
+                'êxodo': 'ex', 'exodo': 'ex', 'ex': 'ex',
+                'salmos': 'sl', 'salmo': 'sl', 'sl': 'sl',
+                'provérbios': 'pv', 'proverbios': 'pv', 'pv': 'pv',
+                'isaías': 'is', 'isaias': 'is', 'is': 'is',
+                'mateus': 'mt', 'mt': 'mt',
+                'marcos': 'mc', 'mc': 'mc',
+                'lucas': 'lc', 'lc': 'lc',
+                'joão': 'jo', 'joao': 'jo', 'jo': 'jo',
+                'atos': 'at', 'at': 'at',
+                'romanos': 'rm', 'rm': 'rm',
+                '1 coríntios': '1co', '1 corintios': '1co', '1co': '1co',
+                '2 coríntios': '2co', '2 corintios': '2co', '2co': '2co',
+                'gálatas': 'gl', 'galatas': 'gl', 'gl': 'gl',
+                'efésios': 'ef', 'efesios': 'ef', 'ef': 'ef',
+                'filipenses': 'fp', 'fp': 'fp',
+                'colossenses': 'cl', 'cl': 'cl',
+                'hebreus': 'hb', 'hb': 'hb',
+                'tiago': 'tg', 'tg': 'tg',
+                '1 pedro': '1pe', '1pe': '1pe',
+                '2 pedro': '2pe', '2pe': '2pe',
+                '1 joão': '1jo', '1 joao': '1jo', '1jo': '1jo',
+                'apocalipse': 'ap', 'ap': 'ap'
+            };
+            
+            const regex = /^(.+?)\s*(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?$/i;
+            const match = reference.match(regex);
+            
+            if (!match) return `/bible?search=${encodeURIComponent(reference)}`;
+            
+            const bookName = match[1].trim().toLowerCase();
+            const chapter = match[2];
+            const verseStart = match[3];
+            const verseEnd = match[4];
+            
+            const bookAbbrev = bookMap[bookName];
+            if (!bookAbbrev) return `/bible?search=${encodeURIComponent(reference)}`;
+            
+            let url = `/bible/control/${bookAbbrev}/${chapter}`;
+            if (verseStart) {
+                if (verseEnd && verseEnd !== verseStart) {
+                    url += `/${verseStart}-${verseEnd}`;
+                } else {
+                    url += `/${verseStart}`;
+                }
+            }
+            return url;
+        }
+
+        // Função para carregar a lista de músicas
+        async function loadList() {
+            try {
+                // Usa a data passada pelo backend ou busca da URL
+                let orderDate = '{{ order_date or "" }}';
+                if (!orderDate) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    orderDate = urlParams.get('order');
+                }
+                
+                let data = [];
+                
+                if (orderDate) {
+                    // Carrega ordem específica por data
+                    const response = await fetch(`/load?date=${orderDate}`);
+                    data = await response.json();
+                } else {
+                    // Busca a ordem mais próxima (hoje ou futura)
+                    const ordersResponse = await fetch('/api/orders');
+                    const orders = await ordersResponse.json();
+                    const dates = Object.keys(orders).sort();
+                    
+                    if (dates.length > 0) {
+                        const today = new Date().toISOString().split('T')[0];
+                        orderDate = dates.find(d => d >= today) || dates[dates.length - 1];
+                        data = orders[orderDate]?.itens || [];
+                    } else {
+                        // Fallback para sistema antigo
+                        const response = await fetch('/load');
+                        data = await response.json();
+                    }
+                }
+
+                const menu = document.getElementById("menu");
+
+                // Adiciona a lista de músicas diretamente no menu
+                data.forEach(item => {
+                    if (item.isBible) {
+                        // Item de Bíblia - usa URL de controle gerada pelo backend
+                        const url = generateBibleUrl(item.reference);
+                        menu.innerHTML += `<a href="${url}" class="song-link" style="color: #b39ddb;">📖 ${item.reference}</a>`;
+                    } else if (item.url && item.title) {
+                        let modifiedUrl = item.url.replace("/lyrics/", "/view/");
+                        // Se for /order, mostra como texto
+                        if (modifiedUrl.includes("/order")) {
+                            menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.title}</a>`;
+                        } else {
+                            // Adiciona o parâmetro order para manter a lista correta no menu
+                            const urlWithOrder = orderDate ? `${modifiedUrl}?order=${orderDate}` : modifiedUrl;
+                            menu.innerHTML += `<a href="${urlWithOrder}" class="song-link">${item.title}</a>`;
+                        }
+                    } else if (item.anyText) {
+                        menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.anyText}</a>`;
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao carregar a lista:", error);
+                alert("Erro ao carregar a lista de músicas.");
+            }
+        }
+
+        loadList();
+
+        // Função para alternar a visibilidade do menu (mobile)
+        function toggleMenu() {
+            const menu = document.querySelector('.menu');
+            menu.classList.toggle('visible');
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.querySelector('.menu');
+            const toggleButton = document.querySelector('#toggle-menu');
+            const isClickInsideMenu = menu.contains(event.target);
+            const isClickOnToggleButton = event.target.matches('#toggle-menu');
+
+            // Em mobile, fecha o menu ao clicar fora
+            if (window.innerWidth <= 768 && menu.classList.contains('visible') && !isClickInsideMenu && !isClickOnToggleButton) {
+                menu.classList.remove('visible');
+            }
+        });
+    </script>
+</body>
+</html>

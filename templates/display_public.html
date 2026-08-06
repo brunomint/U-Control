@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Exibição de Letras</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background-color: black;
+}
+
+/* CAMADA DE IMAGEM/VÍDEO — fica atrás das letras */
+#media-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: black;
+}
+#media-layer img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+#media-layer video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+/* LETRAS ficam na frente */
+#lyrics {
+  position: relative;
+  z-index: 1;
+}
+
+#section-title, #lyrics {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  flex-wrap: wrap;
+  padding: 10px;
+  max-width: 90%; /* Limita a largura para evitar que o texto ultrapasse */
+  box-sizing: border-box; /* Garante que o padding não afete o tamanho */
+  overflow: hidden; /* Evita que o conteúdo ultrapasse o limite da tela */
+  word-wrap: break-word; /* Quebra palavras longas */
+  word-break: break-word; /* Garante quebra das palavras longas */
+  white-space: normal; /* Permite que o texto quebre a linha automaticamente */
+}
+
+#section-title {
+
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+#section-text {
+  font-weight: 900;
+  text-shadow:
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+     0    3px 6px rgba(0,0,0,0.6);
+  max-height: 100%;
+  max-width: 90%; /* Limita largura para melhor quebra de linha */
+  margin: 0 auto; /* Centraliza */
+  overflow: hidden;
+  text-align: center;
+  line-height: 1.3; /* Espaçamento entre linhas otimizado */
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  color: white;
+  hyphens: auto; /* Hifenização automática */
+}
+
+
+
+#lyrics {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+  #section-title {
+
+  }
+
+  #lyrics {
+
+  }
+
+  #section-title, #lyrics {
+    padding: 5px; /* Reduz o padding em telas menores */
+    max-width: 80%; /* Ajusta o limite de largura */
+  }
+}
+
+/* Ajustes para telas muito pequenas, como smartphones */
+@media (max-width: 480px) {
+  #section-title {
+
+  }
+
+  #lyrics {
+
+  }
+
+  #section-title, #lyrics {
+    padding: 3px; /* Reduz ainda mais o padding */
+    max-width: 75%; /* Ajusta o limite de largura para telas pequenas */
+  }
+}
+
+
+
+
+
+
+
+
+#ticker-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.85);
+    color: #FFD600;
+    font-size: 3vw;
+    font-weight: bold;
+    padding: 12px 0;
+    overflow: hidden;
+    z-index: 100;
+    display: none;
+    text-shadow: 0 0 12px rgba(255,214,0,0.5);
+}
+#ticker-text {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker-scroll linear infinite;
+}
+@keyframes ticker-scroll {
+    from { transform: translateX(100vw); }
+    to   { transform: translateX(-100%); }
+}
+    </style>
+</head>
+<body>
+    <div id="ticker-bar"><span id="ticker-text"></span></div>
+    <video id="screenShareVideo"
+        style="display:none; position:fixed; inset:0; width:100%; height:100%;
+               object-fit:contain; background:#000; z-index:50;"
+        autoplay playsinline></video>
+    <!-- Camada de mídia (imagem / vídeo) -->
+    <div id="media-layer">
+        <img id="media-img" src="" alt="">
+        <video id="media-video" autoplay playsinline></video>
+    </div>
+
+    <!-- Camada de rota (relógio, bíblia, imagem, etc.) -->
+    <iframe id="route-layer" src="about:blank" style="display:none; position:fixed; inset:0; width:100%; height:100%; border:none; z-index:2;"></iframe>
+
+    <div id="lyrics">
+        <div id="section-text"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        socket.on('connect', () => socket.emit('identify', { role: 'public' }));
+    
+        const updateLyricsDisplay = (title, text, songId) => {
+            $('#section-title').text(title);
+            $('#section-text').html(formatLyrics(text));
+            saveToLocalStorage(title, text, songId);
+            adjustFontSize();
+        };
+    
+        const formatLyrics = (text) => {
+    console.log('🎵 Public: Formatando letras (removendo cifras)...');
+    const lines = text.split('\n');
+    
+    return lines.map((line, idx) => {
+        // Remove notas privadas de palco
+        if (line.trim().startsWith('//')) return '';
+
+        const originalLine = line;
+
+        // PRIMEIRO: Verifica se a linha é só cifras (antes de processar)
+        // Remove espaços e underscores temporariamente para verificar
+        const testLine = line.replace(/[\s_]+/g, ' ').trim();
+        // Se linha tem só cifras (letras A-G, números, símbolos musicais, barras, parênteses, modificadores)
+        // Modificadores: m, maj, min, dim, aug, sus, add
+        if (/^[A-G0-9#♯♭b°º\/\(\)+maijndugse\s]+$/i.test(testLine) && testLine.length > 0) {
+            // Verifica se NÃO tem palavras reais (mais de 4 letras seguidas que não sejam modificadores)
+            if (!/[a-záàâãéèêíïóôõöúçñ]{5,}/i.test(testLine)) {
+                console.log(`  Linha ${idx}: "${originalLine}" → [LINHA DE CIFRAS - REMOVIDA]`);
+                return ''; // Remove linha inteira
+            }
+        }
+        
+        // SEGUNDO: Remove cifras do texto
+        let cleanedLine = line
+            // Remove cifras C, D, F, G, B com modificadores
+            .replace(/\b([CDFGB])(?:[b#♭♯])?(?:\d+)?(?:m|maj|min|dim|aug|sus|add)?(?:\d+)?(?:\([^)]*\))?(?:\/[CDEFGAB](?:[b#♭♯])?)?\b(?![a-záàâãéèêíïóôõöúçñ])/gi, '')
+            // (Removemos a limpeza agressiva de A/Em/etc. para não sumir com \"Em\" de frases)
+            // Remove parênteses com números isolados (restos de cifras como (6), (9), etc.)
+            .replace(/\(\d+\)/g, '')
+            // Remove números isolados entre espaços
+            .replace(/\s+\d+\s+/g, ' ')
+            // Remove símbolos musicais residuais (# ♯ ♭ ° º) mas NÃO remove 'b' pois pode ser letra
+            .replace(/[#♯♭°º]/g, '')
+            // Remove underscores
+            .replace(/_/g, '')
+            // Remove parênteses vazios
+            .replace(/\(\s*\)/g, '')
+            // Remove colchetes vazios
+            .replace(/\[\s*\]/g, '')
+            // Remove padrões de compasso com cifras que podem sobrar (ex: "| E | E |" ou "|A|")
+            .replace(/\|\s*[A-G](?:[b#♭♯])?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]*\))?(?:\/[A-G](?:[b#♭♯])?)?\s*\|/gi, '')
+            // Remove barras de compasso soltas
+            .replace(/\|/g, '')
+            // Remove acordes isolados que sobram (ex: " C ", " G "), exceto A e E que são palavras em português
+            .replace(/(^|\s)([CDFGB])(?=\s|$)/g, '$1')
+            // Remove resíduos de acordes com barra que podem sobrar (ex: "E/" de "E/G3")
+            .replace(/\b([A-G])\/(?:[A-G](?:\d+)?(?:[b#♭♯])?)?\b/gi, '')
+            // Remove '/' solta que sobrar
+            .replace(/\//g, '')
+            // Remove '+' que pode sobrar após remoção de cifras (ex: "E11+")
+            .replace(/\+/g, '')
+            // Remove múltiplos espaços
+            .replace(/\s+/g, ' ')
+            // Remove espaços no início e fim
+            .trim();
+        
+        if (originalLine !== cleanedLine && cleanedLine) {
+            console.log(`  Linha ${idx}: "${originalLine}" → "${cleanedLine}"`);
+        }
+        
+        return cleanedLine;
+    })
+    .filter(line => line !== '') // Remove linhas completamente vazias
+    .join('<br>'); // Junta com quebras de linha HTML
+};
+
+// Exemplo de uso
+const lyrics = `Meu Jesus, Salvador
+Outro igual não há
+Todos os dias quero louvar
+As maravilhas de teu amor`;
+
+const formattedLyrics = formatLyrics(lyrics);
+console.log(formattedLyrics);
+    
+        const saveToLocalStorage = (title, text, songId) => {
+            localStorage.setItem('currentTitle', title);
+            localStorage.setItem('currentText', text);
+            localStorage.setItem('currentSongId', songId);
+        };
+    
+        function adjustFontSize() {
+    // Usa requestAnimationFrame para garantir que o browser reflowou o layout
+    // antes de ler clientHeight/scrollHeight (evita leitura com display:none ou layout antigo)
+    requestAnimationFrame(() => {
+        const container = document.getElementById('lyrics');
+        const content = document.getElementById('section-text');
+        let fontSize = 15;
+        content.style.fontSize = `${fontSize}vw`;
+        const containerHeight = container.clientHeight;
+        while (content.scrollHeight > containerHeight * 0.90 && fontSize > 2) {
+            fontSize -= 0.1;
+            content.style.fontSize = `${fontSize}vw`;
+        }
+        console.log(`📐 Fonte ajustada para: ${fontSize}vw (altura: ${content.scrollHeight}px / ${containerHeight}px)`);
+    });
+}
+
+
+
+
+    
+        const loadInitialLyrics = (songId) => {
+            $.ajax({
+                url: `/lyrics_data/${songId}`,
+                method: 'GET',
+                success: (data) => {
+                    if (data.error) {
+                        console.error(data.error);
+                    } else {
+                        updateLyricsDisplay(data.title, data.text, songId);
+                    }
+                },
+                error: (err) => console.error('Erro ao carregar os dados iniciais:', err),
+            });
+        };
+    
+        const initializeApp = () => {
+            // Sempre consulta o servidor primeiro — localStorage só como fallback offline
+            fetch('/api/current-display')
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.mode === 'lyrics' && data.title) {
+                        updateLyricsDisplay(data.title, data.text || '', data.id || null);
+                    } else if (data && data.mode === 'image' && data.image_url) {
+                        if (data.is_static) { showImage(data.image_url); }
+                        else { showRoute(data.image_url); }
+                    } else if (data && data.mode === 'video' && data.video_url) {
+                        showVideo(data.video_url);
+                    } else {
+                        // Servidor sem estado: tenta localStorage
+                        const savedSongId = localStorage.getItem('currentSongId');
+                        const savedTitle  = localStorage.getItem('currentTitle');
+                        const savedText   = localStorage.getItem('currentText');
+                        if (savedSongId && savedTitle && savedText) {
+                            updateLyricsDisplay(savedTitle, savedText, savedSongId);
+                        } else if (savedSongId) {
+                            loadInitialLyrics(savedSongId);
+                        }
+                    }
+                    adjustFontSize();
+                })
+                .catch(() => {
+                    // Sem rede: fallback para localStorage
+                    const savedSongId = localStorage.getItem('currentSongId');
+                    const savedTitle  = localStorage.getItem('currentTitle');
+                    const savedText   = localStorage.getItem('currentText');
+                    if (savedSongId && savedTitle && savedText) {
+                        updateLyricsDisplay(savedTitle, savedText, savedSongId);
+                    } else if (savedSongId) {
+                        loadInitialLyrics(savedSongId);
+                    }
+                    adjustFontSize();
+                });
+        };
+    
+        const clearLyricsDisplay = () => {
+            console.log('Clearing lyrics display');
+            $('#section-text').empty();
+            $('#section-title').empty();
+            localStorage.removeItem('currentTitle');
+            localStorage.removeItem('currentText');
+            localStorage.removeItem('currentSongId');
+        };
+    
+        $('#clear-lyrics').click(() => {
+            console.log('Clear button clicked');
+            clearLyricsDisplay();
+            socket.emit('clear_lyrics');
+        });
+    
+        // ── IMAGEM / VÍDEO ──────────────────────────────────────────
+        const mediaImg   = document.getElementById('media-img');
+        const mediaVideo = document.getElementById('media-video');
+
+        const lyricsLayer = document.getElementById('lyrics');
+        const routeLayer  = document.getElementById('route-layer');
+
+        function showImage(url) {
+            mediaVideo.pause();
+            mediaVideo.removeAttribute('src');
+            mediaVideo.load();
+            mediaVideo.style.display = 'none';
+            routeLayer.src = 'about:blank';
+            routeLayer.style.display = 'none';
+            lyricsLayer.style.display = 'none';
+            mediaImg.src = url;
+            mediaImg.style.display = 'block';
+        }
+
+        function showLyricsView() {
+            mediaVideo.pause();
+            mediaVideo.removeAttribute('src');
+            mediaVideo.load();
+            mediaVideo.style.display = 'none';
+            mediaImg.style.display = 'none';
+            routeLayer.src = 'about:blank';
+            routeLayer.style.display = 'none';
+            lyricsLayer.style.display = 'flex';
+        }
+
+        function showVideo(url) {
+            routeLayer.src = 'about:blank';
+            routeLayer.style.display = 'none';
+            mediaImg.style.display = 'none';
+            mediaVideo.src = url;
+            mediaVideo.style.display = 'block';
+            lyricsLayer.style.display = 'none';
+            mediaVideo.load();
+            mediaVideo.play().catch(() => {
+                mediaVideo.muted = true;
+                mediaVideo.play().catch(() => {});
+            });
+        }
+
+        function showRoute(url) {
+            mediaVideo.pause();
+            mediaVideo.removeAttribute('src');
+            mediaVideo.load();
+            mediaVideo.style.display = 'none';
+            lyricsLayer.style.display = 'none';
+            routeLayer.src = url;
+            routeLayer.style.display = 'block';
+        }
+
+        // Vídeo terminou naturalmente → volta para letras e notifica slideshow
+        mediaVideo.addEventListener('ended', function() {
+            showLyricsView();
+            socket.emit('video_ended', {});
+        });
+
+        socket.on('display_image', (data) => {
+            const url = data.image_url || '';
+            const isStaticFile = url.startsWith('/static/') || /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(url);
+            if (isStaticFile) {
+                showImage(url);
+                return;
+            }
+            // Rotas de letras/cifra → mantém letras limpas
+            if (url.includes('/lyrics/display')) {
+                showLyricsView();
+                return;
+            }
+            // Outras rotas (relógio, bíblia, imagem, URLs custom) → mostra em iframe
+            showRoute(url);
+        });
+
+        socket.on('display_video', (data) => {
+            showVideo(data.video_url);
+        });
+
+        socket.on('video_pause', (data) => {
+            if (!mediaVideo.src) return;
+            if (data.paused) mediaVideo.pause();
+            else mediaVideo.play().catch(() => {});
+        });
+
+        socket.on('video_seek', (data) => {
+            if (!mediaVideo.src) return;
+            try { mediaVideo.currentTime = Number(data.time) || 0; } catch (_) {}
+        });
+
+        socket.on('video_restart', () => {
+            if (!mediaVideo.src) return;
+            mediaVideo.currentTime = 0;
+            mediaVideo.play().catch(() => {});
+        });
+
+        socket.on('blackout', (data) => {
+            const opacity = data.active ? '0' : '1';
+            mediaImg.style.opacity   = opacity;
+            mediaVideo.style.opacity = opacity;
+        });
+
+        // ────────────────────────────────────────────────────────────
+
+        socket.on('update_lyrics', (data) => {
+            showLyricsView();
+            updateLyricsDisplay(data.title, data.text, data.id);
+            // Aplica tema visual da música
+            const theme = data.theme;
+            const mediaImg   = document.getElementById('media-img');
+            const mediaVideo = document.getElementById('media-video');
+            if (theme && theme.type === 'image' && theme.url) {
+                mediaVideo.pause();
+                mediaVideo.style.display = 'none';
+                mediaImg.src = theme.url;
+                mediaImg.style.display = 'block';
+                document.getElementById('media-layer').style.background = '';
+            } else if (theme && theme.type === 'video' && theme.url) {
+                mediaImg.style.display = 'none';
+                mediaVideo.src = theme.url;
+                mediaVideo.style.display = 'block';
+                mediaVideo.loop = true;
+                mediaVideo.play().catch(() => {});
+                document.getElementById('media-layer').style.background = '';
+            } else if (theme && theme.type === 'color' && theme.color) {
+                mediaImg.style.display = 'none';
+                mediaVideo.pause();
+                mediaVideo.style.display = 'none';
+                document.getElementById('media-layer').style.background = theme.color;
+            } else if (theme && theme.type === 'gradient' && theme.css) {
+                mediaImg.style.display = 'none';
+                mediaVideo.pause();
+                mediaVideo.style.display = 'none';
+                document.getElementById('media-layer').style.background = theme.css;
+            } else if (theme === null || theme === undefined) {
+                mediaImg.style.display = 'none';
+                mediaVideo.pause();
+                mediaVideo.style.display = 'none';
+                document.getElementById('media-layer').style.background = '#000';
+            }
+        });
+        
+        // Escuta eventos de versículos da Bíblia
+        socket.on('update_bible', (data) => {
+            showLyricsView();
+            console.log('📖 Public: Recebeu update_bible:', data);
+            
+            // Formata o texto dos versículos
+            let verseText = '';
+            if (data.verses && Array.isArray(data.verses)) {
+                verseText = data.verses.map(v => `${v.num} ${v.text}`).join('\n');
+            } else if (data.text) {
+                verseText = data.text;
+            }
+            
+            // Exibe o texto bíblico (sem remover cifras, usa texto puro)
+            $('#section-text').html(verseText.replace(/\n/g, '<br>'));
+            adjustFontSize();
+        });
+        
+        // Escuta o evento para mostrar/esconder letras
+        socket.on('lyrics_visibility_changed', (data) => {
+            const visible = data.visible;
+            console.log(`👁️ Public: Letras ${visible ? 'mostradas' : 'escondidas'}`);
+            
+            const lyrics = document.getElementById('lyrics');
+            if (visible) {
+                lyrics.style.display = 'flex';
+            } else {
+                lyrics.style.display = 'none';
+            }
+        });
+    
+        window.addEventListener('load', adjustFontSize); // Corrigido: Removido espaço
+        window.addEventListener('resize ', adjustFontSize);
+
+        $(document).ready(initializeApp);
+
+        // ── Ticker de avisos ─────────────────────────────────────────
+        function updateTicker(text) {
+            const bar = document.getElementById('ticker-bar');
+            const span = document.getElementById('ticker-text');
+            if (!text) { bar.style.display = 'none'; return; }
+            span.textContent = text;
+            span.style.animationDuration = Math.max(10, text.length * 0.3) + 's';
+            bar.style.display = 'block';
+        }
+        socket.on('ticker_update', function(data) { updateTicker(data.text || ''); });
+        fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateTicker(d.text || ''); });
+
+        // ── Compartilhar Tela (WebRTC viewer) ───────────────────────────────
+        let _screenPc = null;
+        const _iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        socket.on('screen_share_start', function(data) {
+            socket.emit('screen_share_request', { broadcaster_sid: data.from_sid });
+        });
+
+        socket.on('screen_share_offer', async function(data) {
+            _screenPc = new RTCPeerConnection(_iceConfig);
+            _screenPc.onicecandidate = e => {
+                if (e.candidate) socket.emit('screen_share_ice', { target_sid: data.from_sid, candidate: e.candidate });
+            };
+            _screenPc.ontrack = e => {
+                const vid = document.getElementById('screenShareVideo');
+                vid.srcObject = e.streams[0];
+                vid.style.display = 'block';
+            };
+            await _screenPc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+            const answer = await _screenPc.createAnswer();
+            await _screenPc.setLocalDescription(answer);
+            socket.emit('screen_share_answer', { target_sid: data.from_sid, sdp: answer });
+        });
+
+        socket.on('screen_share_ice', function(data) {
+            if (_screenPc) _screenPc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
+        });
+
+        socket.on('screen_share_stop', function() {
+            const vid = document.getElementById('screenShareVideo');
+            vid.style.display = 'none';
+            vid.srcObject = null;
+            if (_screenPc) { _screenPc.close(); _screenPc = null; }
+        });
+    </script>
+</body>
+</html>

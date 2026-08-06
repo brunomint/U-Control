@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <title>Bíblia - U-Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-top: 80px;
+        }
+
+        .tabs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #5a4fcf, #7c3aed);
+            color: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .tab a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .tab a:hover {
+            text-decoration: underline;
+        }
+
+        .tab.active {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+        }
+
+        /* Barra de busca */
+        .search-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .translation-select {
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .search-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+        }
+
+        .search-hint {
+            width: 100%;
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Resultados da busca */
+        .search-results {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-results h3 {
+            color: #5a4fcf;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .result-item {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .result-item:hover {
+            background: #e8f4fd;
+            transform: translateX(5px);
+        }
+
+        .result-reference {
+            font-weight: 600;
+            color: #7c3aed;
+            margin-bottom: 5px;
+        }
+
+        .result-text {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        /* Testamentos */
+        .testaments {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .testament {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .testament h2 {
+            color: #5a4fcf;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #7c3aed;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .testament h2 i {
+            color: #7c3aed;
+        }
+
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .book-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 12px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+
+        .book-card:hover {
+            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .book-card .abbrev {
+            font-size: 12px;
+            opacity: 0.7;
+            display: block;
+            margin-top: 3px;
+        }
+
+        /* Ações rápidas */
+        .quick-actions {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .quick-actions h3 {
+            color: #5a4fcf;
+            margin-bottom: 15px;
+        }
+
+        .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .quick-link {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            text-decoration: none;
+            color: #555;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .quick-link:hover {
+            background: #7c3aed;
+            color: white;
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .testaments {
+                grid-template-columns: 1fr;
+            }
+
+            .books-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .search-input, .translation-select, .search-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <div class="tab"><a href="/dashboard"><i class="fas fa-home"></i> Início</a></div>
+        <div class="tab"><a href="/songs"><i class="fas fa-music"></i> Músicas</a></div>
+        <div class="tab active"><a href="/bible"><i class="fas fa-book-bible"></i> Bíblia</a></div>
+        <div class="tab"><a href="/order"><i class="fas fa-list-ol"></i> Ordem</a></div>
+        <div class="tab"><a href="/links"><i class="fas fa-qrcode"></i> Links</a></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-book-bible"></i> Bíblia Sagrada</h1>
+            <p>Navegue pelos livros ou busque por referência e texto</p>
+        </div>
+
+        <!-- Barra de Busca -->
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" 
+                       placeholder="Buscar: 'João 3:16', 'Salmos 23' ou 'amor de Deus'">
+                <select class="translation-select" id="translationSelect">
+                    {% for key, trans in translations.items() %}
+                    <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
+                        {{ trans.name }} ({{ trans.abbrev }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <button class="search-btn" onclick="searchBible()">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+            <p class="search-hint">
+                <i class="fas fa-lightbulb"></i> Dica: Digite uma referência como "João 3:16" ou "Sl 23:1-6", 
+                ou busque por palavras como "amor", "fé", "esperança"
+            </p>
+        </div>
+
+        <!-- Resultados da Busca -->
+        <div class="search-results" id="searchResults">
+            <h3><i class="fas fa-search"></i> Resultados da Busca</h3>
+            <div id="resultsContainer"></div>
+        </div>
+
+        <!-- Ações Rápidas -->
+        <div class="quick-actions">
+            <h3><i class="fas fa-bolt"></i> Acesso Rápido</h3>
+            <div class="quick-links">
+                <a href="/bible/gn?translation={{ current_translation }}" class="quick-link">📖 Gênesis</a>
+                <a href="/bible/sl?translation={{ current_translation }}" class="quick-link">🎵 Salmos</a>
+                <a href="/bible/pv?translation={{ current_translation }}" class="quick-link">💡 Provérbios</a>
+                <a href="/bible/mt?translation={{ current_translation }}" class="quick-link">✝️ Mateus</a>
+                <a href="/bible/jo?translation={{ current_translation }}" class="quick-link">❤️ João</a>
+                <a href="/bible/rm?translation={{ current_translation }}" class="quick-link">📜 Romanos</a>
+                <a href="/bible/ap?translation={{ current_translation }}" class="quick-link">🔮 Apocalipse</a>
+            </div>
+        </div>
+
+        <!-- Testamentos -->
+        <div class="testaments">
+            <!-- Antigo Testamento -->
+            <div class="testament">
+                <h2><i class="fas fa-scroll"></i> Antigo Testamento</h2>
+                <div class="books-grid">
+                    {% for book in old_testament %}
+                    <a href="/bible/{{ book.abbrev }}?translation={{ current_translation }}" class="book-card">
+                        {{ book.name }}
+                        <span class="abbrev">{{ book.abbrev }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Novo Testamento -->
+            <div class="testament">
+                <h2><i class="fas fa-cross"></i> Novo Testamento</h2>
+                <div class="books-grid">
+                    {% for book in new_testament %}
+                    <a href="/bible/{{ book.abbrev }}?translation={{ current_translation }}" class="book-card">
+                        {{ book.name }}
+                        <span class="abbrev">{{ book.abbrev }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        // Busca ao pressionar Enter
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchBible();
+            }
+        });
+
+        // Processa parâmetro search da URL ao carregar
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchQuery = urlParams.get('search');
+            if (searchQuery) {
+                document.getElementById('searchInput').value = searchQuery;
+                searchBible();
+            }
+        });
+
+        // Atualiza links ao mudar tradução
+        document.getElementById('translationSelect').addEventListener('change', function() {
+            const translation = this.value;
+            // Atualiza todos os links de livros
+            document.querySelectorAll('.book-card').forEach(link => {
+                const href = link.getAttribute('href');
+                const newHref = href.replace(/translation=\w+/, 'translation=' + translation);
+                link.setAttribute('href', newHref);
+            });
+            // Atualiza links rápidos
+            document.querySelectorAll('.quick-link').forEach(link => {
+                const href = link.getAttribute('href');
+                const newHref = href.replace(/translation=\w+/, 'translation=' + translation);
+                link.setAttribute('href', newHref);
+            });
+        });
+
+        function searchBible() {
+            const query = document.getElementById('searchInput').value.trim();
+            const translation = document.getElementById('translationSelect').value;
+            
+            if (query.length < 3) {
+                alert('Digite pelo menos 3 caracteres para buscar');
+                return;
+            }
+
+            fetch(`/api/bible/search?q=${encodeURIComponent(query)}&translation=${translation}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayResults(data);
+                })
+                .catch(error => {
+                    console.error('Erro na busca:', error);
+                    alert('Erro ao buscar. Tente novamente.');
+                });
+        }
+
+        function displayResults(data) {
+            const container = document.getElementById('resultsContainer');
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (data.results && data.results.length > 0) {
+                let html = '';
+                data.results.forEach(result => {
+                    html += `
+                        <div class="result-item" onclick="goToVerse('${result.book_abbrev}', ${result.chapter}, ${result.verse})">
+                            <div class="result-reference">${result.reference}</div>
+                            <div class="result-text">${result.text}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                resultsDiv.classList.add('active');
+            } else {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Nenhum resultado encontrado</p>';
+                resultsDiv.classList.add('active');
+            }
+        }
+
+        function goToVerse(bookAbbrev, chapter, verse) {
+            const translation = document.getElementById('translationSelect').value;
+            // Redireciona para a página de controle
+            window.location.href = `/bible/control/${bookAbbrev}/${chapter}?translation=${translation}`;
+        }
+
+        // Enviar versículo para o display
+        function sendToDisplay(reference, text) {
+            socket.emit('update_bible', {
+                reference: reference,
+                text: text
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <title>Ordens de Culto</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .filters label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #e0e7ff;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .filters input, .filters select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(15,23,42,0.8);
+            color: #e0e7ff;
+            font-size: 0.95rem;
+        }
+
+        .filters select option {
+            color: #0f172a;
+            background: white;
+        }
+
+        .filters input::placeholder { color: rgba(255,255,255,0.7); }
+
+        .filters-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .filters-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.6);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+        .results-info {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.85);
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.25);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding-bottom: 40px;
+            color: white;
+        }
+
+        .tabs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #00bcd4;
+            color: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 5px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .tab a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .tab.active {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 80px auto 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .actions-top {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn-new {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-new:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+        }
+
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .order-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+
+        .order-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+
+        .card-header.past {
+            background: linear-gradient(135deg, #78909c, #546e7a);
+        }
+
+        .card-header.today {
+            background: linear-gradient(135deg, #4CAF50, #388e3c);
+        }
+
+        .card-date {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .card-weekday {
+            font-size: 1rem;
+            opacity: 0.9;
+            text-transform: capitalize;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-info {
+            margin-bottom: 15px;
+        }
+
+        .card-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .card-info-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .card-tipo {
+            display: inline-block;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1565c0;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 15px;
+            padding: 15px 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00bcd4;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .card-btn.primary {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            color: white;
+        }
+
+        .card-btn.primary:hover {
+            background: linear-gradient(135deg, #0097a7, #00838f);
+        }
+
+        .card-btn.secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .card-btn.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .card-btn.danger {
+            background: linear-gradient(135deg, #ef5350, #e53935);
+            color: white;
+        }
+
+        .card-btn.danger:hover {
+            background: linear-gradient(135deg, #e53935, #c62828);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .copy-link-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            color: #00bcd4;
+            transition: all 0.2s;
+        }
+
+        .copy-link-btn:hover {
+            color: #0097a7;
+            transform: scale(1.1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin-top: 70px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .orders-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <div class="tab"><a href="/new_song">Nova Música</a></div>
+        <div class="tab"><a href="/songs">Biblioteca de Música</a></div>
+        <div class="tab"><a href="/">Home</a></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📋 Ordens de Culto</h1>
+            <p>Gerencie as programações dos seus cultos</p>
+        </div>
+
+        <div class="actions-top">
+            <a href="/order/new" class="btn-new">
+                <span>➕</span> Nova Ordem de Culto
+            </a>
+        </div>
+
+        <div class="filters-row">
+            <div class="results-info" id="resultsInfo">&nbsp;</div>
+            <div class="filters-actions">
+                <button class="btn-outline" id="clearFilters">Limpar filtros</button>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div>
+                <label for="filterDateFrom">Data inicial</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div>
+                <label for="filterDateTo">Data final</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <div>
+                <label for="filterType">Tipo de culto</label>
+                <select id="filterType">
+                    <option value="">Todos</option>
+                    <option value="Culto Dominical">Culto Dominical</option>
+                    <option value="Culto de Oração">Culto de Oração</option>
+                    <option value="Culto de Jovens">Culto de Jovens</option>
+                    <option value="Culto de Ensino">Culto de Ensino</option>
+                    <option value="Culto Santa Ceia">Culto Santa Ceia</option>
+                    <option value="Culto Especial">Culto Especial</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            <div>
+                <label for="filterStatus">Status</label>
+                <select id="filterStatus">
+                    <option value="">Todos</option>
+                    <option value="futuro">Futuros</option>
+                    <option value="hoje">Hoje</option>
+                    <option value="passado">Passados</option>
+                </select>
+            </div>
+            <div>
+                <label for="filterText">Dirigente/Pregador</label>
+                <input type="text" id="filterText" placeholder="Buscar por nome...">
+            </div>
+        </div>
+
+        <div class="orders-grid" id="ordersGrid">
+            <!-- Cards serão inseridos via JavaScript -->
+        </div>
+
+        <div class="pagination" id="pagination" style="display:none;">
+            <button class="page-btn" id="prevPage">◀ Anterior</button>
+            <span class="results-info" id="pageInfo"></span>
+            <button class="page-btn" id="nextPage">Próxima ▶</button>
+        </div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-state-icon">📭</div>
+            <h2>Nenhuma ordem de culto</h2>
+            <p>Comece criando sua primeira ordem de culto</p>
+            <a href="/order/new" class="btn-new">
+                <span>➕</span> Criar Primeira Ordem
+            </a>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Link copiado!</div>
+
+    <script>
+        // ---- Filtros e paginação ----
+        let allOrders = {};
+        let filteredDates = [];
+        const pageSize = 12;
+        let currentPage = 1;
+
+        function populateTypeOptions() {
+            const select = document.getElementById('filterType');
+            const baseOptions = [
+                '',
+                'Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'
+            ];
+            const dynamic = new Set();
+            Object.values(allOrders || {}).forEach(o => {
+                if (o && o.tipo) dynamic.add(o.tipo);
+            });
+            const merged = Array.from(new Set([...baseOptions, ...dynamic]));
+            select.innerHTML = merged.map(v => `<option value="${v}">${v || 'Todos'}</option>`).join('');
+        }
+
+        function applyFilters() {
+            const dates = Object.keys(allOrders);
+            const from = document.getElementById('filterDateFrom').value;
+            const to = document.getElementById('filterDateTo').value;
+            const tipo = document.getElementById('filterType').value;
+            const status = document.getElementById('filterStatus').value;
+            const text = document.getElementById('filterText').value.trim().toLowerCase();
+
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+            filteredDates = dates.filter(d => {
+                const order = allOrders[d] || {};
+                // Por padrão, só mostra hoje e futuros (a menos que filtro de status diga o contrário)
+                if (!status && !from && d < todayStr) return false;
+
+                if (from && d < from) return false;
+                if (to && d > to) return false;
+                if (tipo && (order.tipo || '') !== tipo) return false;
+
+                if (status) {
+                    const isPastFlag = isPast(d);
+                    const isTodayFlag = isToday(d);
+                    if (status === 'passado' && !(isPastFlag && !isTodayFlag)) return false;
+                    if (status === 'hoje' && !isTodayFlag) return false;
+                    if (status === 'futuro' && (isPastFlag || isTodayFlag)) return false;
+                }
+
+                if (text) {
+                    const dir = (order.dirigente || '').toLowerCase();
+                    const pre = (order.pregador || '').toLowerCase();
+                    if (!dir.includes(text) && !pre.includes(text)) return false;
+                }
+                return true;
+            }).sort((a, b) => a.localeCompare(b));
+
+            currentPage = 1;
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('ordersGrid');
+            const emptyState = document.getElementById('emptyState');
+            const pagination = document.getElementById('pagination');
+            const resultsInfo = document.getElementById('resultsInfo');
+            const pageInfo = document.getElementById('pageInfo');
+
+            if (filteredDates.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'block';
+                pagination.style.display = 'none';
+                resultsInfo.textContent = 'Nenhum resultado para os filtros.';
+                return;
+            }
+
+            const total = filteredDates.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageDates = filteredDates.slice(start, end);
+
+            grid.innerHTML = pageDates.map(date => createOrderCard(date, allOrders[date])).join('');
+            emptyState.style.display = 'none';
+
+            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+            resultsInfo.textContent = `Exibindo ${Math.min(end, total)} de ${total} ordens`;
+        }
+
+        function clearFilters() {
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterText').value = '';
+            applyFilters();
+        }
+
+        const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        function formatDate(dateStr) {
+            const [year, month, day] = dateStr.split('-');
+            const date = new Date(year, month - 1, day);
+            return {
+                day: day,
+                month: months[date.getMonth()],
+                year: year,
+                weekday: weekdays[date.getDay()],
+                full: `${day}/${month}/${year}`
+            };
+        }
+
+        function isToday(dateStr) {
+            const today = new Date();
+            const [year, month, day] = dateStr.split('-');
+            return today.getFullYear() === parseInt(year) &&
+                   today.getMonth() === parseInt(month) - 1 &&
+                   today.getDate() === parseInt(day);
+        }
+
+        function isPast(dateStr) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const [year, month, day] = dateStr.split('-');
+            const date = new Date(year, month - 1, day);
+            return date < today;
+        }
+
+        function countItems(itens) {
+            let musicas = 0;
+            let biblia = 0;
+            let outros = 0;
+
+            itens.forEach(item => {
+                if (item.isBible) {
+                    biblia++;
+                } else if (item.url && item.url.includes('/lyrics/')) {
+                    musicas++;
+                } else {
+                    outros++;
+                }
+            });
+
+            return { musicas, biblia, outros, total: itens.length };
+        }
+
+        function createOrderCard(dateStr, order) {
+            const date = formatDate(dateStr);
+            const stats = countItems(order.itens || []);
+            const today = isToday(dateStr);
+            const past = isPast(dateStr);
+
+            let headerClass = '';
+            let badge = '';
+            if (today) {
+                headerClass = 'today';
+                badge = '🔴 HOJE';
+            } else if (past) {
+                headerClass = 'past';
+                badge = 'Passado';
+            } else {
+                badge = 'Agendado';
+            }
+
+            return `
+                <div class="order-card" data-date="${dateStr}">
+                    <div class="card-header ${headerClass}">
+                        <div class="card-date">${date.day} ${date.month}</div>
+                        <div class="card-weekday">${date.weekday} • ${order.horario || '18:40'}</div>
+                        <div class="card-badge">${badge}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-tipo">${order.tipo || 'Culto'}</div>
+                        
+                        <div class="card-info">
+                            ${order.dirigente ? `<div class="card-info-item">👤 <strong>Dirigente:</strong> ${order.dirigente}</div>` : ''}
+                            ${order.pregador ? `<div class="card-info-item">🎤 <strong>Pregador:</strong> ${order.pregador}</div>` : ''}
+                            ${order.tema ? `<div class="card-info-item">📝 <strong>Tema:</strong> ${order.tema}</div>` : ''}
+                        </div>
+
+                        <div class="card-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.musicas}</div>
+                                <div class="stat-label">Músicas</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.biblia}</div>
+                                <div class="stat-label">Bíblia</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${stats.total}</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <a href="/order/${dateStr}" class="card-btn secondary">✏️ Editar</a>
+                            <a href="/view/order/${dateStr}" class="card-btn primary">👁️ Visualizar</a>
+                            <a href="/view?order=${dateStr}" class="card-btn primary" title="Abrir cifras">🎵 Cifras</a>
+                            <button class="card-btn secondary" onclick="copyLink('${dateStr}')" title="Copiar link">🔗</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function copyLink(dateStr) {
+            const url = `${window.location.origin}/view/order/${dateStr}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copiado para a área de transferência!');
+            }).catch(() => {
+                // Fallback para navegadores antigos
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('Link copiado!');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        async function loadOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                allOrders = await response.json();
+                populateTypeOptions();
+                applyFilters();
+            } catch (error) {
+                console.error('Erro ao carregar ordens:', error);
+                showToast('Erro ao carregar ordens de culto');
+            }
+        }
+
+        document.getElementById('filterDateFrom').addEventListener('change', applyFilters);
+        document.getElementById('filterDateTo').addEventListener('change', applyFilters);
+        document.getElementById('filterType').addEventListener('change', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+        document.getElementById('filterText').addEventListener('input', () => {
+            clearTimeout(window.__filterTextTimeout);
+            window.__filterTextTimeout = setTimeout(applyFilters, 200);
+        });
+        document.getElementById('clearFilters').addEventListener('click', clearFilters);
+        document.getElementById('prevPage').addEventListener('click', () => { currentPage = Math.max(1, currentPage - 1); renderGrid(); });
+        document.getElementById('nextPage').addEventListener('click', () => { currentPage = currentPage + 1; renderGrid(); });
+
+        document.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>

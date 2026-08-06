@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <title>Ordem do Culto - {{ date }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .order-header {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 188, 212, 0.3);
+        }
+
+        .order-date {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .order-weekday {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .order-type {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Metadata */
+        .order-meta {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+
+        .meta-item i {
+            font-size: 1.2rem;
+        }
+
+        /* Items list */
+        .items-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .items-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00bcd4;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .item:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateX(5px);
+        }
+
+        .item-number {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .item-content {
+            flex: 1;
+        }
+
+        .item-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+
+        .item-title:hover {
+            color: #00bcd4;
+        }
+
+        .item.bible {
+            border-left: 4px solid #7c3aed;
+        }
+
+        .item.bible .item-number {
+            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
+        }
+
+        .item.text-item {
+            border-left: 4px solid #ff9800;
+        }
+
+        .item.text-item .item-number {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .item-type {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 188, 212, 0.4);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .action-btn.secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Not found */
+        .not-found {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .not-found-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        .not-found h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .not-found p {
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00bcd4;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .order-date {
+                font-size: 2rem;
+            }
+
+            .order-meta {
+                gap: 15px;
+            }
+
+            .meta-item {
+                font-size: 0.9rem;
+            }
+
+            .item {
+                padding: 15px;
+            }
+
+            .item-title {
+                font-size: 1rem;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .order-header {
+                background: #f5f5f5;
+                color: black;
+                box-shadow: none;
+            }
+
+            .items-container {
+                background: white;
+            }
+
+            .item {
+                background: #f9f9f9;
+                border: 1px solid #ddd;
+            }
+
+            .item-title {
+                color: black;
+            }
+
+            .actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if not_found %}
+        <div class="not-found">
+            <div class="not-found-icon">📭</div>
+            <h2>Ordem não encontrada</h2>
+            <p>Não existe uma ordem de culto para a data {{ date }}</p>
+            <a href="/order" class="action-btn primary">📋 Ver Todas as Ordens</a>
+        </div>
+        {% else %}
+        <!-- Header -->
+        <div class="order-header">
+            <div class="order-date" id="orderDate"></div>
+            <div class="order-weekday" id="orderWeekday"></div>
+            <div class="order-type">{{ order.tipo or 'Culto' }}</div>
+            
+            <div class="order-meta">
+                {% if order.dirigente %}
+                <div class="meta-item">👤 {{ order.dirigente }}</div>
+                {% endif %}
+                {% if order.pregador %}
+                <div class="meta-item">🎤 {{ order.pregador }}</div>
+                {% endif %}
+                {% if order.horario %}
+                <div class="meta-item">⏰ {{ order.horario }}</div>
+                {% endif %}
+            </div>
+
+            {% if order.tema %}
+            <div style="margin-top: 15px; font-style: italic; opacity: 0.9;">
+                "{{ order.tema }}"
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Items -->
+        <div class="items-container">
+            <div class="items-title">🎵 Programação</div>
+            
+            <div id="itemsList">
+                {% for item in order.itens %}
+                <div class="item {% if item.isBible or (item.url and '/bible/control/' in item.url) %}bible{% elif not item.url or item.url == '/order' or item.url == '/order/new' %}text-item{% endif %}">
+                    <div class="item-number">{{ loop.index }}</div>
+                    <div class="item-content">
+                        {% if item.isBible or (item.url and '/bible/control/' in item.url) %}
+                        <a href="{{ item.bible_url or item.url or '/bible?search=' + (item.reference | urlencode) }}" class="item-title" target="_blank">
+                            {{ item.title or '📖 ' + item.reference }}
+                        </a>
+                        <div class="item-type">Bíblia</div>
+                        {% elif item.url and item.url != '/order' and item.url != '/order/new' and '/lyrics/' in item.url %}
+                        <a href="{{ item.url }}?order={{ date }}" class="item-title" target="_blank">
+                            {{ item.title }}
+                        </a>
+                        <div class="item-type">Música</div>
+                        {% else %}
+                        <span class="item-title">{{ item.title or item.anyText }}</span>
+                        <div class="item-type">Momento</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="statMusicas">0</div>
+                    <div class="stat-label">Músicas</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="statBiblia">0</div>
+                    <div class="stat-label">Bíblia</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="statTotal">{{ order.itens | length }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="action-btn secondary" onclick="copyLink()">🔗 Copiar Link</button>
+            <button class="action-btn secondary" onclick="copyWhatsapp()">💬 WhatsApp</button>
+            <button class="action-btn secondary" onclick="downloadPDF()">📄 Baixar PDF</button>
+            <button class="action-btn secondary" onclick="window.print()">🖨️ Imprimir</button>
+            <a href="/order/{{ date }}" class="action-btn secondary">✏️ Editar</a>
+            <a href="/order" class="action-btn primary">📋 Todas as Ordens</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="toast" id="toast">Link copiado!</div>
+
+    <script>
+        const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        // Format date
+        const dateStr = '{{ date }}';
+        const [year, month, day] = dateStr.split('-');
+        const dateObj = new Date(year, month - 1, day);
+        
+        document.getElementById('orderDate').textContent = `${day} de ${months[dateObj.getMonth()]}`;
+        document.getElementById('orderWeekday').textContent = `${weekdays[dateObj.getDay()]} • ${year}`;
+
+        // Count stats
+        const items = document.querySelectorAll('.item');
+        let musicas = 0, biblia = 0;
+        
+        items.forEach(item => {
+            if (item.classList.contains('bible')) {
+                biblia++;
+            } else if (!item.classList.contains('text-item')) {
+                musicas++;
+            }
+        });
+
+        document.getElementById('statMusicas').textContent = musicas;
+        document.getElementById('statBiblia').textContent = biblia;
+
+        // Copy link
+        function copyLink() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copiado para a área de transferência!');
+            }).catch(() => {
+                // Fallback
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('Link copiado!');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 20;
+
+            doc.setFontSize(18);
+            doc.text('Ordem do Culto', 105, y, { align: 'center' }); y += 8;
+            doc.setFontSize(12);
+            doc.text(
+                document.getElementById('orderDate').textContent + ' — ' +
+                document.getElementById('orderWeekday').textContent,
+                105, y, { align: 'center' }
+            ); y += 10;
+
+            {% if order.tipo %}doc.text('Tipo: {{ order.tipo }}', 20, y); y += 7;{% endif %}
+            {% if order.dirigente %}doc.text('Dirigente: {{ order.dirigente }}', 20, y); y += 7;{% endif %}
+            {% if order.pregador %}doc.text('Pregador: {{ order.pregador }}', 20, y); y += 7;{% endif %}
+            {% if order.horario %}doc.text('Horário: {{ order.horario or order.horario_culto }}', 20, y); y += 7;{% endif %}
+            {% if order.tema %}doc.text('Tema: {{ order.tema }}', 20, y); y += 7;{% endif %}
+            y += 5;
+
+            doc.setFontSize(11);
+            {% for item in order.itens %}
+            doc.text('{{ loop.index }}. {{ (item.title or item.anyText or item.reference or "") | replace("\\", "") | replace("'", "\\'") | truncate(80, killwords=True, end="...") }}', 20, y);
+            y += 7;
+            if (y > 270) { doc.addPage(); y = 20; }
+            {% endfor %}
+
+            doc.save('ordem-{{ date }}.pdf');
+        }
+
+        function copyWhatsapp() {
+            const date = document.getElementById('orderDate').textContent;
+            const weekday = document.getElementById('orderWeekday').textContent;
+            let text = `*Ordem do Culto — ${date}*\n_${weekday}_`;
+            {% if order.tipo %}text += '\n*Tipo:* {{ order.tipo }}';{% endif %}
+            {% if order.dirigente %}text += '\n*Dirigente:* {{ order.dirigente }}';{% endif %}
+            {% if order.pregador %}text += '\n*Pregador:* {{ order.pregador }}';{% endif %}
+            {% if order.horario %}text += '\n*Horário:* {{ order.horario or order.horario_culto }}';{% endif %}
+            {% if order.tema %}text += '\n*Tema:* _{{ order.tema }}_';{% endif %}
+            text += '\n\n*Programação:*\n';
+            {% for item in order.itens %}
+            text += '{{ loop.index }}. {{ (item.title or item.anyText or item.reference or "") | replace("'", "\\'") }}\n';
+            {% endfor %}
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('Texto copiado para o WhatsApp!'))
+                .catch(() => {
+                    const el = document.createElement('textarea');
+                    el.value = text; document.body.appendChild(el); el.select();
+                    document.execCommand('copy'); document.body.removeChild(el);
+                    showToast('Texto copiado!');
+                });
+        }
+    </script>
+</body>
+</html>

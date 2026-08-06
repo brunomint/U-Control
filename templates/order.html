@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Ordem do Culto</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0a0a0a;
+            margin: 0;
+            padding: 0;
+            color: #e2e8f0;
+        }
+
+        .tabs {
+            position: fixed; /* Fixa o elemento na tela */
+    top: 0; /* Posiciona no topo */
+    left: 0; /* Alinha à esquerda */
+    width: 100%; /* Ocupa toda a largura da tela */
+    background-color: #00bcd4; /* Cor de fundo */
+    color: white; /* Cor do texto */
+    display: flex; /* Exibe as abas em linha */
+    justify-content: space-around; /* Espaçamento igual entre os itens */
+    padding: 10px 0; /* Espaçamento interno vertical */
+    box-shadow: 0 5px 8px rgba(0, 0, 0, 0.1); /* Adiciona uma sombra para destaque */
+    z-index: 1000; /* Garante que fique acima de outros elementos */
+}
+
+        .tab {
+            padding: 10px 20px; /* Espaçamento interno */
+            text-align: center; /* Centraliza o texto */
+            cursor: pointer; /* Adiciona o cursor de mão */
+        }  
+
+
+
+        .tab:last-child {
+            border-right: none;
+        }
+
+        .tab a {
+            color: white; /* Cor do texto dos links */
+            text-decoration: none; /* Remove o sublinhado */
+        }
+
+        .tab.active {
+            font-weight: bold; /* Destaca a aba ativa */
+            text-decoration: underline; /* Sublinha a aba ativa */
+        }
+
+        .container {
+            margin: 110px auto;
+            background-color: white;
+            width: 80%;
+            max-width: 800px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #00695c;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 40px 0 30px 0;
+            position: relative;
+            background: linear-gradient(135deg, #00695c, #00bcd4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        h1:hover {
+            background: linear-gradient(135deg, #00bcd4, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transform: translateY(-2px);
+        }
+
+        h1::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0, 188, 212, 0.3);
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border-radius: 2px;
+            opacity: 0.7;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 15px 20px 15px 50px;
+            border: 2px solid #00bcd4;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2300bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>');
+            background-repeat: no-repeat;
+            background-position: 15px center;
+            box-sizing: border-box;
+        }
+
+        #searchInput:focus {
+            border-color: #0097a7;
+            box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3);
+        }
+
+        #searchInput::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 2px solid #00bcd4;
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+
+        .autocomplete-list.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .autocomplete-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            color: #333;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: linear-gradient(135deg, #e0f7fa, #f1f8e9);
+            color: #00695c;
+            transform: translateX(5px);
+        }
+
+        .autocomplete-item.no-result {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            cursor: default;
+        }
+
+        .autocomplete-item.no-result:hover {
+            background: none;
+            transform: none;
+        }
+
+        .song-title {
+            font-weight: bold;
+            color: #00695c;
+        }
+
+        .song-author {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .search-stats {
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .search-loading {
+            text-align: center;
+            padding: 20px;
+            color: #00bcd4;
+            font-style: italic;
+        }
+
+        .search-loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        .anyText {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .anyText input {
+            flex: 1;
+            padding: 15px 20px 15px 50px;
+            border: 2px solid #00bcd4;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2300bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>');
+            background-repeat: no-repeat;
+            background-position: 15px center;
+        }
+
+        .anyText input:focus {
+            border-color: #0097a7;
+            box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .anyText input::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        .anyText button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+            position: relative;
+            overflow: hidden;
+            min-width: 160px;
+        }
+
+        .anyText button:hover {
+            background: linear-gradient(135deg, #45a049, #388e3c);
+            box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .anyText button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+        }
+
+        .anyText button::before {
+            content: '📝';
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        .anyText button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .anyText button:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .actions-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .action-button {
+            padding: 12px 24px;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-width: 140px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-button.save {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .action-button.save:hover {
+            background: linear-gradient(135deg, #45a049, #388e3c);
+            box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .action-button.save::before {
+            content: '💾';
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        .action-button.pdf {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+        }
+
+        .action-button.pdf:hover {
+            background: linear-gradient(135deg, #f57c00, #ef6c00);
+            box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .action-button.pdf::before {
+            content: '📄';
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        .action-button.template {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            box-shadow: 0 4px 8px rgba(124, 58, 237, 0.3);
+        }
+        .action-button.template:hover {
+            background: linear-gradient(135deg, #6d28d9, #5b21b6);
+            box-shadow: 0 6px 12px rgba(124, 58, 237, 0.4);
+            transform: translateY(-2px);
+        }
+        .action-button.template::before { content: '📋'; margin-right: 8px; font-size: 14px; }
+
+        /* Modal de modelos */
+        #modal-templates {
+            display: none; position: fixed; inset: 0; z-index: 3000;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+        }
+        #modal-templates .modal-box {
+            background: #1e293b; border-radius: 16px; padding: 24px;
+            max-width: 480px; width: 92%; margin: 60px auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        #modal-templates h3 { color: #e2e8f0; margin-bottom: 16px; font-size: 1.1rem; }
+        .tpl-save-row { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tpl-save-row input {
+            flex: 1; padding: 9px 14px; border-radius: 8px;
+            border: 1px solid #334155; background: #0f172a; color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .tpl-save-row button {
+            padding: 9px 16px; border-radius: 8px; border: none;
+            background: #6d28d9; color: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+        }
+        .tpl-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+        .tpl-item {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px 14px;
+        }
+        .tpl-item span { flex: 1; color: #cbd5e1; font-size: 0.9rem; }
+        .tpl-item button {
+            padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600;
+        }
+        .tpl-load-btn { background: #0ea5e9; color: #fff; }
+        .tpl-del-btn  { background: rgba(239,68,68,0.2); color: #f87171; }
+        .tpl-empty { color: rgba(255,255,255,0.35); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+        .modal-close-btn {
+            margin-top: 16px; width: 100%; padding: 9px; border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.08); color: #94a3b8; cursor: pointer; font-size: 0.85rem;
+        }
+
+        .action-button.library {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+        }
+
+        .action-button.library:hover {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            box-shadow: 0 6px 12px rgba(33, 150, 243, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .action-button.library::before {
+            content: '🎵';
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+
+        h2 {
+            text-align: center;
+            color: #00695c;
+            font-size: 24px;
+            margin: 30px 0 20px 0;
+            font-weight: 600;
+            position: relative;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            border-radius: 2px;
+        }
+
+        #songList {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #e0f2f1;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #f8fffe, #e0f2f1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            min-height: 200px;
+            position: relative;
+        }
+
+        #songList:empty::before {
+            content: '🎵 Arraste músicas aqui ou use a pesquisa acima para montar sua ordem de culto';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            font-size: 16px;
+            width: 80%;
+        }
+
+        .song-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 20px 20px 50px;
+            border: 2px solid #e0f7fa;
+            background: linear-gradient(135deg, #ffffff, #f1f8e9);
+            cursor: move;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .song-item::before {
+            content: '⋮⋮';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #00bcd4;
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+
+        .song-item:hover {
+            background: linear-gradient(135deg, #e0f7fa, #f1f8e9);
+            border-color: #00bcd4;
+            box-shadow: 0 4px 16px rgba(0, 188, 212, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .song-item:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .song-info {
+            flex: 1;
+            font-size: 16px;
+            margin-left: 20px;
+            line-height: 1.4;
+        }
+
+        .song-info a {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            line-height: 1.4;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .song-info a:hover {
+            background: linear-gradient(135deg, #00695c, #00bcd4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transform: translateX(5px);
+            text-decoration: none;
+        }
+
+        .song-info a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #00bcd4, #4CAF50);
+            transition: width 0.3s ease;
+        }
+
+        .song-info a:hover::after {
+            width: 100%;
+        }
+
+        .remove-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .remove-btn:hover {
+            background: linear-gradient(135deg, #c0392b, #a93226);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .remove-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+        }
+
+        .remove-btn::before {
+            content: '🗑️';
+            margin-right: 6px;
+            font-size: 12px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        /* Responsividade para telas verticais (mobile) */
+        @media screen and (max-width: 768px) {
+            .container {
+                width: 95%;
+                margin: 80px auto 20px;
+                padding: 15px;
+            }
+
+            .tabs {
+                padding: 8px 0;
+                font-size: 14px;
+            }
+
+            .tab {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin: 20px 0 20px 0;
+            }
+
+            #searchInput {
+                padding: 12px 15px 12px 45px;
+                font-size: 14px;
+            }
+
+            .anyText {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+
+            .anyText input {
+                width: 100%;
+                padding: 12px 15px 12px 45px;
+                font-size: 14px;
+                box-sizing: border-box;
+            }
+
+            .anyText button {
+                width: 100%;
+                padding: 12px 20px;
+                font-size: 14px;
+                min-width: auto;
+            }
+
+            .song-item {
+                padding: 15px 15px 15px 40px;
+                margin-bottom: 10px;
+            }
+
+            .song-item::before {
+                left: 5px;
+                font-size: 14px;
+            }
+
+            .song-info {
+                margin-left: 15px;
+                font-size: 14px;
+            }
+
+            .song-info a {
+                font-size: 14px;
+            }
+
+            .remove-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-width: 60px;
+            }
+
+            .action-button {
+                padding: 12px 20px;
+                font-size: 14px;
+                margin: 8px;
+            }
+
+            .autocomplete-item {
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+        }
+
+        @media print {
+            .tabs {
+                display: none !important;
+                visibility: hidden;
+            }
+
+            h1 {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .search-box {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .anyText {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .action-button {
+                display: none !important;
+                visibility: hidden;
+            }
+        
+            .home {
+                display: none !important;
+                visibility: hidden;
+            }
+
+            
+            .remove-btn {
+                display: none !important;
+                visibility: hidden;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <div class="tab"><a href="/new_song">Nova Música</a></div>
+        <div class="tab"><a href="/songs">Biblioteca de Música</a></div>
+        <div class="tab"><a href="/">Home</a></div>
+    </div>
+    <div class="container">
+        <h1>🎵 Busca de Canção no Banco de Dados</h1>
+
+        <!-- Search Box -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Buscar por título, autor ou palavras-chave...">
+            <div class="search-stats" id="searchStats"></div>
+            <div id="autocompleteList" class="autocomplete-list"></div>
+        </div>
+
+
+        <!-- Text Input Section -->
+        <div class="anyText">
+            <input type="text" id="freeTextInput" placeholder="Digite texto personalizado (ex: Oração, Anúncios, Ofertório...)">
+            <button onclick="addToList()">Adicionar Texto</button>
+        </div>
+
+        <!-- Bible Section -->
+        <div class="anyText" style="background: linear-gradient(135deg, #f3e5f5, #e1bee7);">
+            <input type="text" id="bibleRefInput" placeholder="Digite a referência bíblica (ex: João 3:16, Salmos 23:1-6)">
+            <button onclick="addBibleToList()" style="background: linear-gradient(135deg, #7c3aed, #5a4fcf);">📖 Adicionar Bíblia</button>
+        </div>
+
+        <h2>Ordem do Culto</h2>
+        <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)">
+            <!-- As músicas serão exibidas aqui -->
+        </div>
+
+        <div class="actions-container">
+            <button class="action-button save" onclick="saveList()">Salvar Lista</button>
+            <button class="action-button template" onclick="abrirModalTemplates()">Modelos</button>
+            <button class="action-button pdf" id="create-pdf">Criar PDF</button>
+            <a href="/songs" class="action-button library">Biblioteca de Músicas</a>
+        </div>
+
+        <!-- Modal de modelos reutilizáveis -->
+        <div id="modal-templates" onclick="if(event.target===this)fecharModalTemplates()">
+            <div class="modal-box">
+                <h3>📋 Modelos de Culto</h3>
+                <div class="tpl-save-row">
+                    <input type="text" id="tpl-nome" placeholder="Nome do modelo (ex: Culto Dominical)">
+                    <button onclick="salvarComoModelo()">Salvar atual</button>
+                </div>
+                <div class="tpl-list" id="tpl-list"></div>
+                <button class="modal-close-btn" onclick="fecharModalTemplates()">Fechar</button>
+            </div>
+        </div>
+        
+
+
+    </div>
+
+    <script>
+        let draggedElement = null; // Variável para armazenar o elemento arrastado
+        let searchTimeout = null; // Para debounce da pesquisa
+        let currentSearchTerm = ''; // Termo de pesquisa atual
+
+        // Função de busca de músicas com melhorias
+        async function searchSongs(query) {
+            const list = document.getElementById("autocompleteList");
+            const stats = document.getElementById("searchStats");
+            
+            if (!query || query.trim().length === 0) {
+                list.classList.remove('show');
+                stats.textContent = '';
+                currentSearchTerm = '';
+                return;
+            }
+
+            currentSearchTerm = query;
+            
+            // Mostra loading
+            list.innerHTML = '<div class="search-loading">Buscando músicas</div>';
+            list.classList.add('show');
+            stats.textContent = 'Pesquisando...';
+
+            try {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const songs = await response.json();
+
+                // Verifica se ainda é a pesquisa atual
+                if (currentSearchTerm !== query) {
+                    return; // Ignora resultados de pesquisas antigas
+                }
+
+                list.innerHTML = ""; // Limpa resultados anteriores
+
+                if (songs.length === 0) {
+                    const noResult = document.createElement("div");
+                    noResult.className = "autocomplete-item no-result";
+                    noResult.innerHTML = `
+                        <div>
+                            🔍 Nenhuma música encontrada para "<strong>${escapeHtml(query)}</strong>"
+                            <br><small>Tente pesquisar com outros termos</small>
+                        </div>
+                    `;
+                    list.appendChild(noResult);
+                    stats.textContent = 'Nenhum resultado encontrado';
+                    return;
+                }
+
+                // Atualiza estatísticas
+                stats.textContent = `${songs.length} música${songs.length !== 1 ? 's' : ''} encontrada${songs.length !== 1 ? 's' : ''}`;
+
+                songs.forEach((song, index) => {
+                    const item = document.createElement("div");
+                    item.className = "autocomplete-item";
+                    
+                    // Destaca o termo pesquisado
+                    const highlightedTitle = highlightSearchTerm(song.title || 'Título não disponível', query);
+                    const highlightedAuthor = highlightSearchTerm(song.author || 'Autor não disponível', query);
+                    
+                    item.innerHTML = `
+                        <div>
+                            <div class="song-title">${highlightedTitle}</div>
+                            <div class="song-author">por ${highlightedAuthor}</div>
+                        </div>
+                        <div style="color: #00bcd4; font-size: 12px;">Clique para adicionar</div>
+                    `;
+                    
+                    item.onclick = () => {
+                        console.log("Adicionando música:", JSON.stringify(song));
+                        selectSong(song);
+                        updateSongList(song);
+                        
+                        // Feedback visual
+                        item.style.background = '#4CAF50';
+                        item.style.color = 'white';
+                        item.innerHTML = '<div style="text-align: center;">✓ Música adicionada!</div>';
+                        
+                        setTimeout(() => {
+                            list.classList.remove('show');
+                        }, 1000);
+                    };
+                    
+                    // Animação de entrada
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(-10px)';
+                    list.appendChild(item);
+                    
+                    setTimeout(() => {
+                        item.style.transition = 'all 0.3s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, index * 50);
+                });
+                
+            } catch (error) {
+                console.error("Erro ao buscar músicas:", error);
+                list.innerHTML = `
+                    <div class="autocomplete-item no-result">
+                        ⚠️ Erro ao buscar músicas. Tente novamente.
+                        <br><small>Erro: ${error.message}</small>
+                    </div>
+                `;
+                stats.textContent = 'Erro na pesquisa';
+            }
+        }
+        
+        // Função para destacar termo pesquisado
+        function highlightSearchTerm(text, searchTerm) {
+            if (!text || !searchTerm) return text;
+            
+            const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+            return text.replace(regex, '<mark style="background: #ffeb3b; padding: 2px; border-radius: 3px;">$1</mark>');
+        }
+        
+        // Função para escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Função para escapar regex
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // Função de pesquisa com debounce
+        function debouncedSearch(query) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchSongs(query);
+            }, 300); // 300ms de delay
+        }
+
+        // Função para selecionar uma música
+        function selectSong(song) {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("autocompleteList").classList.remove('show');
+            document.getElementById("searchStats").textContent = '';
+            currentSearchTerm = '';
+        }
+
+        // Função para adicionar música na lista
+        function updateSongList(song) {
+            console.log("Dentro do updateSongList:", song);
+            const songList = document.getElementById("songList");
+
+            const songItem = document.createElement("div");
+            songItem.className = "song-item";
+            songItem.setAttribute("draggable", "true");
+            songItem.id = `song-${Date.now()}`; // Atribui um ID único ao item
+
+            const displayText = song.author ? `${song.title} | ${song.author}` : song.title;
+
+            // Verifica se a música tem URL ou usa fallback
+            const songLink = document.createElement("a");
+            songLink.href = song.url || (song.id ? `/lyrics/${song.id}` : "#"); // Fallback para "#" se não houver URL ou ID
+            songLink.textContent = song.author ? `${song.title} | ${song.author}` : song.title || "Título Desconhecido";
+
+            songLink.target = "_blank"; // Abre o link em uma nova aba
+            songLink.style.textDecoration = "none";
+            songLink.style.color = "blue";
+
+            // Adiciona o link ao item da música
+            songItem.appendChild(songLink);
+
+            // Botão para remover a música
+            const removeButton = document.createElement("button");
+            removeButton.className = "remove-btn";
+            removeButton.textContent = "Remover";
+            removeButton.onclick = () => songList.removeChild(songItem);
+
+            // Adiciona o botão ao item da música
+            songItem.appendChild(removeButton);
+
+            // Função de arrastar
+            songItem.ondragstart = (event) => {
+                draggedElement = songItem; // Atualiza a variável com o elemento arrastado
+                event.dataTransfer.effectAllowed = "move";
+            };
+
+            // Adiciona o item à lista de músicas
+            songList.appendChild(songItem);
+        }
+
+        // Função para permitir o drop
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        // Função para lidar com o drop
+        function drop(ev) {
+            ev.preventDefault();
+            if (ev.target.className === "song-item" && draggedElement) {
+                const target = ev.target;
+                const songList = document.getElementById("songList");
+                const allItems = Array.from(songList.children);
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const targetIndex = allItems.indexOf(target);
+
+                if (draggedIndex < targetIndex) {
+                    songList.insertBefore(draggedElement, target.nextSibling);
+                } else {
+                    songList.insertBefore(draggedElement, target);
+                }
+            }
+        }
+
+        // Função para adicionar texto à lista
+        function addToList() {
+            const freeTextInput = document.getElementById("freeTextInput");
+            const textValue = freeTextInput.value.trim(); // Obtém o texto digitado, sem espaços extras
+
+            if (textValue === "") {
+                alert("Por favor, digite algum texto.");
+                return;
+            }
+
+            // Criar um objeto "música" com o texto inserido (sem autor e preço)
+            const song = {
+                title: textValue, // Apenas o título será adicionado
+            };
+
+            // Atualizar a lista de músicas com o novo item
+            updateSongList(song);
+
+            // Limpar o campo de texto
+            freeTextInput.value = "";
+        }
+
+        // Função para adicionar referência bíblica à lista
+        function addBibleToList() {
+            const bibleRefInput = document.getElementById("bibleRefInput");
+            const refValue = bibleRefInput.value.trim();
+
+            if (refValue === "") {
+                alert("Por favor, digite uma referência bíblica.");
+                return;
+            }
+
+            // Parseia a referência para extrair livro, capítulo e versículo
+            const parsed = parseBibleReference(refValue);
+            let url;
+            
+            if (parsed) {
+                // Abre direto na página de controle com versículo
+                url = `/bible/control/${parsed.bookAbbrev}/${parsed.chapter}`;
+                if (parsed.verseStart) {
+                    if (parsed.verseEnd && parsed.verseEnd !== parsed.verseStart) {
+                        url += `/${parsed.verseStart}-${parsed.verseEnd}`;
+                    } else {
+                        url += `/${parsed.verseStart}`;
+                    }
+                }
+            } else {
+                // Fallback para busca
+                url = `/bible?search=${encodeURIComponent(refValue)}`;
+            }
+
+            // Criar item com ícone de Bíblia
+            const bibleItem = {
+                title: `📖 ${refValue}`,
+                url: url,
+                isBible: true,
+                reference: refValue
+            };
+
+            // Adiciona à lista
+            updateBibleItem(bibleItem);
+
+            // Limpar o campo
+            bibleRefInput.value = "";
+        }
+
+        // Função para parsear referência bíblica (ex: "João 3:16", "Sl 23", "1 Co 13")
+        function parseBibleReference(ref) {
+            // Mapeamento de nomes para abreviações
+            const bookMap = {
+                // Antigo Testamento
+                'gênesis': 'gn', 'genesis': 'gn', 'gn': 'gn',
+                'êxodo': 'ex', 'exodo': 'ex', 'ex': 'ex',
+                'levítico': 'lv', 'levitico': 'lv', 'lv': 'lv',
+                'números': 'nm', 'numeros': 'nm', 'nm': 'nm',
+                'deuteronômio': 'dt', 'deuteronomio': 'dt', 'dt': 'dt',
+                'josué': 'js', 'josue': 'js', 'js': 'js',
+                'juízes': 'jz', 'juizes': 'jz', 'jz': 'jz',
+                'rute': 'rt', 'rt': 'rt',
+                '1 samuel': '1sm', '1samuel': '1sm', '1sm': '1sm', '1 sm': '1sm',
+                '2 samuel': '2sm', '2samuel': '2sm', '2sm': '2sm', '2 sm': '2sm',
+                '1 reis': '1rs', '1reis': '1rs', '1rs': '1rs', '1 rs': '1rs',
+                '2 reis': '2rs', '2reis': '2rs', '2rs': '2rs', '2 rs': '2rs',
+                '1 crônicas': '1cr', '1 cronicas': '1cr', '1cr': '1cr', '1 cr': '1cr',
+                '2 crônicas': '2cr', '2 cronicas': '2cr', '2cr': '2cr', '2 cr': '2cr',
+                'esdras': 'ed', 'ed': 'ed',
+                'neemias': 'ne', 'ne': 'ne',
+                'ester': 'et', 'et': 'et',
+                'jó': 'job', 'jo': 'job', 'job': 'job',
+                'salmos': 'sl', 'salmo': 'sl', 'sl': 'sl',
+                'provérbios': 'pv', 'proverbios': 'pv', 'pv': 'pv',
+                'eclesiastes': 'ec', 'ec': 'ec',
+                'cantares': 'ct', 'cânticos': 'ct', 'canticos': 'ct', 'ct': 'ct',
+                'isaías': 'is', 'isaias': 'is', 'is': 'is',
+                'jeremias': 'jr', 'jr': 'jr',
+                'lamentações': 'lm', 'lamentacoes': 'lm', 'lm': 'lm',
+                'ezequiel': 'ez', 'ez': 'ez',
+                'daniel': 'dn', 'dn': 'dn',
+                'oséias': 'os', 'oseias': 'os', 'os': 'os',
+                'joel': 'jl', 'jl': 'jl',
+                'amós': 'am', 'amos': 'am', 'am': 'am',
+                'obadias': 'ob', 'ob': 'ob',
+                'jonas': 'jn', 'jn': 'jn',
+                'miquéias': 'mq', 'miqueias': 'mq', 'mq': 'mq',
+                'naum': 'na', 'na': 'na',
+                'habacuque': 'hc', 'hc': 'hc',
+                'sofonias': 'sf', 'sf': 'sf',
+                'ageu': 'ag', 'ag': 'ag',
+                'zacarias': 'zc', 'zc': 'zc',
+                'malaquias': 'ml', 'ml': 'ml',
+                // Novo Testamento
+                'mateus': 'mt', 'mt': 'mt',
+                'marcos': 'mc', 'mc': 'mc',
+                'lucas': 'lc', 'lc': 'lc',
+                'joão': 'jo', 'joao': 'jo',
+                'atos': 'at', 'at': 'at',
+                'romanos': 'rm', 'rm': 'rm',
+                '1 coríntios': '1co', '1 corintios': '1co', '1co': '1co', '1 co': '1co',
+                '2 coríntios': '2co', '2 corintios': '2co', '2co': '2co', '2 co': '2co',
+                'gálatas': 'gl', 'galatas': 'gl', 'gl': 'gl',
+                'efésios': 'ef', 'efesios': 'ef', 'ef': 'ef',
+                'filipenses': 'fp', 'fp': 'fp',
+                'colossenses': 'cl', 'cl': 'cl',
+                '1 tessalonicenses': '1ts', '1ts': '1ts', '1 ts': '1ts',
+                '2 tessalonicenses': '2ts', '2ts': '2ts', '2 ts': '2ts',
+                '1 timóteo': '1tm', '1 timoteo': '1tm', '1tm': '1tm', '1 tm': '1tm',
+                '2 timóteo': '2tm', '2 timoteo': '2tm', '2tm': '2tm', '2 tm': '2tm',
+                'tito': 'tt', 'tt': 'tt',
+                'filemom': 'fm', 'fm': 'fm',
+                'hebreus': 'hb', 'hb': 'hb',
+                'tiago': 'tg', 'tg': 'tg',
+                '1 pedro': '1pe', '1pe': '1pe', '1 pe': '1pe',
+                '2 pedro': '2pe', '2pe': '2pe', '2 pe': '2pe',
+                '1 joão': '1jo', '1 joao': '1jo', '1jo': '1jo', '1 jo': '1jo',
+                '2 joão': '2jo', '2 joao': '2jo', '2jo': '2jo', '2 jo': '2jo',
+                '3 joão': '3jo', '3 joao': '3jo', '3jo': '3jo', '3 jo': '3jo',
+                'judas': 'jd', 'jd': 'jd',
+                'apocalipse': 'ap', 'ap': 'ap'
+            };
+
+            // Regex para capturar: livro capítulo:versículo(s)
+            // Ex: "João 3:16", "1 Co 13:4-7", "Sl 23", "Salmos 23: 1 - 6"
+            // Aceita espaços opcionais ao redor de : e -
+            const regex = /^(.+?)\s*(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?$/i;
+            const match = ref.match(regex);
+            
+            if (!match) return null;
+            
+            const bookName = match[1].trim().toLowerCase();
+            const chapter = parseInt(match[2]);
+            const verseStart = match[3] ? parseInt(match[3]) : null;
+            const verseEnd = match[4] ? parseInt(match[4]) : null;
+            
+            const bookAbbrev = bookMap[bookName];
+            if (!bookAbbrev) return null;
+            
+            return {
+                bookAbbrev,
+                chapter,
+                verseStart,
+                verseEnd
+            };
+        }
+
+        // Função específica para adicionar item de Bíblia na lista
+        function updateBibleItem(item) {
+            const songList = document.getElementById("songList");
+
+            const songItem = document.createElement("div");
+            songItem.className = "song-item";
+            songItem.setAttribute("draggable", "true");
+            songItem.id = `bible-${Date.now()}`;
+            songItem.dataset.isBible = "true";
+            songItem.dataset.reference = item.reference;
+
+            // Estilo diferenciado para Bíblia
+            songItem.style.background = "linear-gradient(135deg, #f3e5f5, #e1bee7)";
+            songItem.style.borderLeft = "4px solid #7c3aed";
+
+            const bibleLink = document.createElement("a");
+            bibleLink.href = item.url;
+            bibleLink.textContent = item.title;
+            bibleLink.target = "_blank";
+            bibleLink.style.textDecoration = "none";
+            bibleLink.style.color = "#5a4fcf";
+            bibleLink.style.fontWeight = "bold";
+
+            songItem.appendChild(bibleLink);
+
+            // Botão para remover
+            const removeButton = document.createElement("button");
+            removeButton.className = "remove-btn";
+            removeButton.textContent = "Remover";
+            removeButton.onclick = () => songList.removeChild(songItem);
+            songItem.appendChild(removeButton);
+
+            // Função de arrastar
+            songItem.ondragstart = (event) => {
+                draggedElement = songItem;
+                event.dataTransfer.effectAllowed = "move";
+            };
+
+            songList.appendChild(songItem);
+        }
+
+        // Função para salvar a lista
+        async function saveList() {
+            const songList = document.getElementById("songList");
+            const items = Array.from(songList.children);
+
+            const data = items.map(item => {
+                const link = item.querySelector("a");
+                const title = link ? link.textContent : null;
+                let url = link ? link.href : null;
+
+                // Verifica se é item de Bíblia
+                if (item.dataset.isBible === "true") {
+                    return { 
+                        isBible: true, 
+                        reference: item.dataset.reference,
+                        title: title 
+                    };
+                }
+
+                // Extrai apenas o caminho final da URL
+                if (url) {
+                    const urlObject = new URL(url, window.location.origin);
+                    url = urlObject.pathname; // Obtém somente o caminho (exemplo: /lyrics/18)
+                }
+
+                return url ? { url, title } : { anyText: title };
+            });
+
+            try {
+                await fetch('/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                alert("Lista salva com sucesso!");
+            } catch (error) {
+                console.error("Erro ao salvar a lista:", error);
+                alert("Erro ao salvar a lista.");
+            }
+        }
+
+        // Função para carregar a lista
+        async function loadList() {
+            try {
+                const response = await fetch('/load');
+                const data = await response.json();
+
+                data.forEach(item => {
+                    if (item.isBible) {
+                        // Parseia a referência para gerar URL de controle com versículo
+                        const parsed = parseBibleReference(item.reference);
+                        let url;
+                        if (parsed) {
+                            url = `/bible/control/${parsed.bookAbbrev}/${parsed.chapter}`;
+                            if (parsed.verseStart) {
+                                if (parsed.verseEnd && parsed.verseEnd !== parsed.verseStart) {
+                                    url += `/${parsed.verseStart}-${parsed.verseEnd}`;
+                                } else {
+                                    url += `/${parsed.verseStart}`;
+                                }
+                            }
+                        } else {
+                            url = `/bible?search=${encodeURIComponent(item.reference)}`;
+                        }
+                        
+                        // Carrega item de Bíblia
+                        updateBibleItem({
+                            title: item.title || `📖 ${item.reference}`,
+                            url: url,
+                            reference: item.reference
+                        });
+                    } else if (item.url && item.title) {
+                        updateSongList({ title: item.title, url: item.url });
+                    } else if (item.anyText) {
+                        updateSongList({ title: item.anyText });
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao carregar a lista:", error);
+            }
+        }
+
+        document.getElementById('create-pdf').addEventListener('click', () => {
+    // Importa o jsPDF da biblioteca
+    const { jsPDF } = window.jspdf;
+
+    // Verifica se o jsPDF está disponível
+    if (!jsPDF) {
+        console.error("jsPDF não foi carregado corretamente.");
+        return;
+    }
+
+    // Cria uma instância do jsPDF
+    const doc = new jsPDF();
+
+    // Captura o elemento "songList" e verifica sua existência
+    const sectionText = document.getElementById('songList');
+    if (!sectionText) {
+        console.error("Elemento 'songList' não encontrado.");
+        return;
+    }
+
+    // Obtém apenas o texto das músicas
+    const content = Array.from(sectionText.children) // Obtém os elementos filhos
+        .filter(child => child.tagName === 'P' || child.classList.contains('song-item')) // Filtra por tag ou classe
+        .map(child => child.innerText.trim()) // Extrai o texto e remove espaços desnecessários
+        .join('\n'); // Junta os textos com quebras de linha
+
+    if (!content) {
+        console.warn("Nenhum conteúdo relevante encontrado em 'songList'.");
+        return;
+    }
+
+    // Configurações de margens
+    const marginLeft = 10;
+    const marginTop = 20;
+    const titleMarginBottom = 10; // Espaço adicional abaixo do título
+    const lineHeight = 10;
+    const pageWidth = doc.internal.pageSize.getWidth() - 2 * marginLeft;
+
+    // Adiciona o título
+    doc.setFontSize(16); // Define o tamanho da fonte maior para o título
+    doc.setFont('helvetica', 'bold'); // Define a fonte como negrito
+    doc.text('Ordem do Culto', marginLeft, marginTop); // Adiciona o título no topo da página
+
+    // Divide o texto em linhas para evitar que ultrapasse a largura da página
+    const lines = doc.splitTextToSize(content, pageWidth);
+
+    // Adiciona o texto principal começando abaixo do título
+    const contentStartY = marginTop + titleMarginBottom + 6; // 6 é a altura do texto do título
+    doc.setFontSize(12); // Define o tamanho padrão para o texto principal
+    doc.setFont('helvetica', 'normal'); // Define o estilo normal para o texto principal
+    doc.text(lines, marginLeft, contentStartY, { lineHeightFactor: lineHeight / 10 });
+
+    // Baixa o PDF com o nome especificado
+    doc.save('ordem_do_culto.pdf');
+});
+
+
+
+
+        // Chamar loadList no carregamento da página
+        document.addEventListener("DOMContentLoaded", loadList);
+
+        // Adicionar eventos melhorados para busca de músicas
+        const searchInput = document.getElementById("searchInput");
+        
+        searchInput.addEventListener("input", (event) => {
+            debouncedSearch(event.target.value.trim());
+        });
+        
+        // Navegação por teclado
+        searchInput.addEventListener("keydown", (event) => {
+            const list = document.getElementById("autocompleteList");
+            const items = list.querySelectorAll('.autocomplete-item:not(.no-result)');
+            
+            if (event.key === 'Escape') {
+                list.classList.remove('show');
+                searchInput.blur();
+            } else if (event.key === 'Enter' && items.length > 0) {
+                event.preventDefault();
+                items[0].click(); // Seleciona o primeiro resultado
+            }
+        });
+        
+        // Foco no campo de pesquisa
+        searchInput.addEventListener("focus", () => {
+            if (searchInput.value.trim() && document.getElementById("autocompleteList").children.length > 0) {
+                document.getElementById("autocompleteList").classList.add('show');
+            }
+        });
+
+        // Fechar a lista de autocomplete ao clicar fora
+        document.addEventListener("click", (event) => {
+            if (!event.target.closest(".search-box")) {
+                document.getElementById("autocompleteList").classList.remove('show');
+            }
+        });
+        
+        // Atalhos de teclado
+        document.addEventListener("keydown", (event) => {
+            // Ctrl/Cmd + K para focar na pesquisa
+            if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+                event.preventDefault();
+                document.getElementById("searchInput").focus();
+            }
+        });
+        
+        // Adiciona dica de atalho
+        document.getElementById("searchInput").setAttribute('title', 'Pressione Ctrl+K para focar rapidamente');
+
+        // ── MODELOS REUTILIZÁVEIS ─────────────────────────────────────
+        function getOrderItems() {
+            const songList = document.getElementById("songList");
+            return Array.from(songList.children).map(item => {
+                const link = item.querySelector("a");
+                const title = link ? link.textContent : null;
+                if (item.dataset.isBible === "true") {
+                    return { isBible: true, reference: item.dataset.reference, title };
+                }
+                let url = link ? link.href : null;
+                if (url) {
+                    url = new URL(url, window.location.origin).pathname;
+                }
+                return url ? { url, title } : { anyText: title };
+            });
+        }
+
+        function abrirModalTemplates() {
+            document.getElementById('modal-templates').style.display = 'block';
+            document.getElementById('tpl-nome').value = '';
+            renderTemplateList();
+        }
+
+        function fecharModalTemplates() {
+            document.getElementById('modal-templates').style.display = 'none';
+        }
+
+        async function renderTemplateList() {
+            const res = await fetch('/api/templates');
+            const tpls = await res.json();
+            const names = Object.keys(tpls);
+            const el = document.getElementById('tpl-list');
+            if (!names.length) {
+                el.innerHTML = '<div class="tpl-empty">Nenhum modelo salvo ainda.</div>';
+                return;
+            }
+            el.innerHTML = names.map(n => `
+                <div class="tpl-item">
+                    <span>${escapeHtml(n)}</span>
+                    <button class="tpl-load-btn" onclick="carregarModelo(${JSON.stringify(n)})">Carregar</button>
+                    <button class="tpl-del-btn"  onclick="deletarModelo(${JSON.stringify(n)})">✕</button>
+                </div>`).join('');
+        }
+
+        async function salvarComoModelo() {
+            const name = document.getElementById('tpl-nome').value.trim();
+            if (!name) { alert('Digite um nome para o modelo.'); return; }
+            const items = getOrderItems();
+            if (!items.length) { alert('A lista está vazia.'); return; }
+            await fetch('/api/templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, items })
+            });
+            document.getElementById('tpl-nome').value = '';
+            renderTemplateList();
+        }
+
+        async function carregarModelo(name) {
+            if (!confirm(`Substituir a lista atual pelo modelo "${name}"?`)) return;
+            const res = await fetch('/api/templates');
+            const tpls = await res.json();
+            const items = tpls[name];
+            if (!items) return;
+            document.getElementById('songList').innerHTML = '';
+            items.forEach(item => {
+                if (item.isBible) {
+                    const parsed = parseBibleReference(item.reference);
+                    let url = parsed ? `/bible/control/${parsed.bookAbbrev}/${parsed.chapter}` : '#';
+                    if (parsed && parsed.verseStart) url += `/${parsed.verseStart}`;
+                    addItemToList({ isBible: true, reference: item.reference, title: item.title, url });
+                } else if (item.url) {
+                    addItemToList({ url: item.url, title: item.title });
+                }
+            });
+            fecharModalTemplates();
+        }
+
+        async function deletarModelo(name) {
+            if (!confirm(`Excluir o modelo "${name}"?`)) return;
+            await fetch(`/api/templates/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            renderTemplateList();
+        }
+
+        function addItemToList(item) {
+            const songList = document.getElementById("songList");
+            const div = document.createElement('div');
+            div.className = 'song-item';
+            div.draggable = true;
+            div.addEventListener('dragstart', dragStart);
+            div.addEventListener('dragover', dragOver);
+            div.addEventListener('drop', dropOnItem);
+            div.addEventListener('dragend', dragEnd);
+            if (item.isBible) {
+                div.dataset.isBible = "true";
+                div.dataset.reference = item.reference;
+            }
+            div.innerHTML = `
+                <div class="song-info">
+                    <span class="drag-handle">☰</span>
+                    <a href="${item.url || '#'}" target="_blank" class="song-title">${escapeHtml(item.title || '')}</a>
+                </div>
+                <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
+            songList.appendChild(div);
+        }
+    </script>
+</body>
+</html>

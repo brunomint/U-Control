@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Dashboard - U-Control</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --card-bg: #2a2a2a;
+            --primary: #4a90e2;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(145deg, var(--card-bg), #1a1a1a);
+            padding: 20px 30px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* Grid Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(145deg, var(--card-bg), #1a1a1a);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card.grid-full {
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .card-title i {
+            font-size: 1.5rem;
+        }
+
+        /* Status Card */
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            background: var(--success);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Quick Actions */
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+
+        /* Culto Progress */
+        .culto-steps {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .step.done {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid var(--success);
+        }
+
+        .step.active {
+            background: rgba(74, 144, 226, 0.2);
+            border: 1px solid var(--primary);
+        }
+
+        .step.pending {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* QR Codes */
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .qr-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .qr-item:hover {
+            background: rgba(74, 144, 226, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .qr-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+            padding: 5px;
+        }
+
+        .qr-item p {
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Lists */
+        .list-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .time-badge {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .culto-steps {
+                flex-direction: column;
+            }
+
+            .qr-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <i class="fas fa-tachometer-alt"></i>
+            Bem-vindo, {{ current_user.username }}!
+        </h1>
+        <a href="{{ url_for('logout') }}" style="text-decoration: none;">
+            <button class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </a>
+    </div>
+
+    <!-- Status e Ações Rápidas -->
+    <div class="grid-2">
+        <!-- Status -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-tv" style="color: var(--primary);"></i>
+                STATUS DO SISTEMA
+            </div>
+            <div id="system-status-container">
+                <div class="status-item">
+                    <span>Servidor</span>
+                    <span style="color: var(--text-secondary);">Carregando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ações Rápidas -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-bolt" style="color: var(--warning);"></i>
+                AÇÕES RÁPIDAS
+            </div>
+            <button class="action-btn" onclick="window.open('/agenda/dashboard', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #00bcd4, #0097a7); box-shadow: 0 4px 12px rgba(0,188,212,0.35);">
+                <i class="fas fa-calendar-alt"></i>
+                Agenda de Equipes
+            </button>
+            <button class="action-btn" onclick="window.open('/songs', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #8e44ad, #6c3483); box-shadow: 0 4px 12px rgba(142,68,173,0.35);">
+                <i class="fas fa-book-open"></i>
+                Biblioteca
+            </button>
+            <button class="action-btn" onclick="window.open('/view', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #f39c12, #d68910); box-shadow: 0 4px 12px rgba(243,156,18,0.35);">
+                <i class="fas fa-guitar"></i>
+                Cifra
+            </button>
+            <button class="action-btn" onclick="window.open('/order', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #4caf50, #2e7d32); box-shadow: 0 4px 12px rgba(76,175,80,0.35);">
+                <i class="fas fa-list-ul"></i>
+                Ordem
+            </button>
+            <button class="action-btn" onclick="window.open('/bible', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #3498db, #2c82c9); box-shadow: 0 4px 12px rgba(52,152,219,0.35);">
+                <i class="fas fa-book-bible"></i>
+                Bíblia
+            </button>
+            <button class="action-btn" onclick="window.open('/presenter', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #e67e22, #ca6f1e); box-shadow: 0 4px 12px rgba(230,126,34,0.35);">
+                <i class="fas fa-person-chalkboard"></i>
+                Presenter
+            </button>
+        </div>
+
+        <!-- App Android -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fab fa-android" style="color: #3ddc84;"></i>
+                APP ANDROID
+            </div>
+            <p style="color:#888; font-size:0.85em; margin:0 0 12px; line-height:1.5;">
+                Instale o app U-Control Screen na TV ou celular para acessar o Monitor e a Exibição Pública em tela cheia, com suporte a vídeo com som.
+            </p>
+            <a href="/static/U-Control-Screen.apk" download="U-Control-Screen.apk"
+               class="action-btn"
+               style="display:flex; align-items:center; justify-content:center; gap:8px;
+                      background: linear-gradient(135deg, #3ddc84, #2a9d5c);
+                      box-shadow: 0 4px 12px rgba(61,220,132,0.35); text-decoration:none;">
+                <i class="fab fa-android"></i>
+                Baixar U-Control Screen.apk
+            </a>
+            <p style="font-size:11px; color:#666; margin:10px 0 0; line-height:1.5; text-align:center;">
+                ⚠️ Para instalar, desative o Play Protect na Play Store
+            </p>
+        </div>
+    </div>
+
+    <!-- Inicializador do Monitor (Telao) -->
+    <div class="card grid-full">
+        <div class="card-title">
+            <i class="fas fa-tv" style="color: var(--primary);"></i>
+            INICIALIZADOR DO MONITOR (TELÃO)
+        </div>
+        <p style="color:#666; font-size:0.9em; margin:8px 0 14px;">
+            Baixe o script no PC conectado ao datashow e execute-o para abrir o monitor em tela cheia
+            com vídeos tocando <strong>com som automaticamente</strong>. O endereço do servidor já vem preenchido.
+            <br>
+            <small>Requer <strong>Google Chrome</strong>, <strong>Microsoft Edge</strong>, <strong>Brave</strong> ou <strong>Chromium</strong>.</small>
+        </p>
+        <div class="quick-actions">
+            <button class="action-btn" onclick="window.location='/download-monitor-launcher/windows'"
+                    style="background: linear-gradient(135deg, #2c7be5, #1a5fc4); box-shadow: 0 4px 12px rgba(44,123,229,0.35);">
+                <i class="fab fa-windows"></i>
+                Windows (.bat)
+            </button>
+            <button class="action-btn" onclick="window.location='/download-monitor-launcher/linux'"
+                    style="background: linear-gradient(135deg, #e8590c, #c0470a); box-shadow: 0 4px 12px rgba(232,89,12,0.35);">
+                <i class="fab fa-linux"></i>
+                Linux (.sh)
+            </button>
+            <button class="action-btn" onclick="window.location='/download-monitor-launcher/mac'"
+                    style="background: linear-gradient(135deg, #495057, #343a40); box-shadow: 0 4px 12px rgba(73,80,87,0.35);">
+                <i class="fab fa-apple"></i>
+                Mac (.command)
+            </button>
+        </div>
+    </div>
+
+    <!-- Culto de Hoje -->
+    <div class="card grid-full">
+        <div class="card-title">
+            <i class="fas fa-calendar-alt" style="color: var(--success);"></i>
+            ORDEM DO CULTO - <span id="current-date"></span>
+        </div>
+        <div id="culto-status-container" class="culto-steps"></div>
+    </div>
+
+    <!-- QR Codes -->
+    <div class="card grid-full">
+        <div class="card-title">
+            <i class="fas fa-qrcode" style="color: var(--primary);"></i>
+            ACESSO RÁPIDO (QR CODES)
+        </div>
+        <div class="qr-grid">
+            <div class="qr-item" onclick="window.open('/control', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/control_qr_code.png" alt="Controle">
+                <p>Controle</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/monitor', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/monitor_qr_code.png" alt="Monitor">
+                <p>Monitor</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/view', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/view_qr_code.png" alt="Cifra">
+                <p>Cifra</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/songs', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/songs_qr_code.png" alt="Biblioteca">
+                <p>Biblioteca</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/presenter', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/presenter_qr_code.png" alt="Presenter">
+                <p>Presenter</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/order', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/order_qr_code.png" alt="Ordem">
+                <p>Ordem</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/agenda/dashboard', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/order_qr_code.png" alt="Agenda">
+                <p>Agenda Equipes</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/img', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/img_qr_code.png" alt="Imagens">
+                <p>Imagens</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/bible', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/bible_qr_code.png" alt="Bíblia">
+                <p>Bíblia</p>
+            </div>
+            <div class="qr-item" onclick="window.open('/help', '_blank', 'noopener,noreferrer')">
+                <img src="/static/qrcodes/help_qr_code.png" alt="Ajuda">
+                <p>Ajuda</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Músicas Recentes e Atividade -->
+    <div class="grid-2">
+        <!-- Músicas Recentes -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-music" style="color: var(--success);"></i>
+                MÚSICAS RECENTES
+            </div>
+            {% if recent_songs %}
+                {% for song in recent_songs %}
+                <div class="list-item">
+                    <span><i class="fas fa-music"></i> {{ song.title }}</span>
+                    <a href="{{ song.url or '#' }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-size: 12px;">Exibir</a>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                    <i class="fas fa-info-circle"></i> Nenhuma música tocada recentemente
+                </div>
+            {% endif %}
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="/songs" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-size: 14px;">
+                    Ver todas <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Atividade Recente -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-history" style="color: var(--warning);"></i>
+                ATIVIDADE RECENTE
+            </div>
+            {% if recent_activity %}
+                {% for entry in recent_activity %}
+                <div class="list-item">
+                    <span>
+                        {% if entry.type == 'song' %}<i class="fas fa-music"></i>
+                        {% elif entry.type == 'bible' %}<i class="fas fa-book"></i>
+                        {% elif entry.type == 'video' %}<i class="fas fa-video"></i>
+                        {% elif entry.type == 'ticker' %}<i class="fas fa-bullhorn"></i>
+                        {% else %}<i class="fas fa-image"></i>{% endif %}
+                        {{ entry.title | truncate(40, true, '…') }}
+                    </span>
+                    <span class="time-badge">{{ entry.ts[11:16] }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                    <i class="fas fa-info-circle"></i> Nenhuma atividade registrada
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Atualiza hora atual
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const el = document.getElementById('current-time');
+            if (el) el.textContent = timeStr;
+        }
+
+        // Atualiza data atual
+        function updateDate() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            const el = document.getElementById('current-date');
+            if (el) el.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        async function loadSystemStatus() {
+            const container = document.getElementById('system-status-container');
+            if (!container) return;
+
+            try {
+                const response = await fetch('/api/system/status');
+                const contentType = response.headers.get('content-type') || '';
+
+                if (response.redirected || response.url.includes('/login')) {
+                    container.innerHTML = `
+                        <div class="status-item">
+                            <span>Servidor</span>
+                            <span class="status-badge" style="background: var(--warning);">SESSÃO</span>
+                        </div>`;
+                    return;
+                }
+
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Resposta não é JSON');
+                }
+
+                const data = await response.json();
+                const online = !!data.online;
+                const badgeText = online ? 'ONLINE' : 'OFFLINE';
+                const badgeColor = online ? 'var(--success)' : 'var(--danger)';
+
+                const publicUrl = data.public_url || '--';
+                const localUrl = data.local_url || '--';
+                const socketioClients = (data.socketio_clients === 0 || data.socketio_clients) ? data.socketio_clients : '--';
+                const socketioByRole = (data.socketio_by_role && typeof data.socketio_by_role === 'object') ? data.socketio_by_role : {};
+                const cpuPercent = (data.cpu_percent === 0 || data.cpu_percent) ? data.cpu_percent : null;
+                const ramPercent = (data.ram_percent === 0 || data.ram_percent) ? data.ram_percent : null;
+
+                const cpuText = (cpuPercent === null) ? '--' : `${Number(cpuPercent).toFixed(0)}%`;
+                const ramText = (ramPercent === null) ? '--' : `${Number(ramPercent).toFixed(0)}%`;
+
+                const diskTotalGb = (data.disk_total_gb === 0 || data.disk_total_gb) ? data.disk_total_gb : null;
+                const diskFreeGb = (data.disk_free_gb === 0 || data.disk_free_gb) ? data.disk_free_gb : null;
+                const diskUsedPercent = (data.disk_used_percent === 0 || data.disk_used_percent) ? data.disk_used_percent : null;
+
+                const diskText = (diskTotalGb === null || diskFreeGb === null || diskUsedPercent === null)
+                    ? '--'
+                    : `${Number(diskFreeGb).toFixed(1)}GB livre / ${Number(diskTotalGb).toFixed(1)}GB (${Number(diskUsedPercent).toFixed(0)}% usado)`;
+
+                const roleLabel = {
+                    'monitor': 'Monitor',
+                    'lyrics_display': 'Display Letras',
+                    'presenter': 'Presenter',
+                    'unknown': 'Outros'
+                };
+
+                const roleCountsHtml = Object.keys(socketioByRole)
+                    .sort()
+                    .map((role) => {
+                        const label = roleLabel[role] || role;
+                        const count = socketioByRole[role];
+                        return `
+                            <div class="status-item">
+                                <span>SocketIO - ${escapeHtml(String(label))}</span>
+                                <span style="color: var(--text-secondary);">${escapeHtml(String(count))}</span>
+                            </div>`;
+                    }).join('');
+
+                container.innerHTML = `
+                    <div class="status-item">
+                        <span>Servidor</span>
+                        <span class="status-badge" style="background: ${badgeColor};">${badgeText}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>CPU / RAM</span>
+                        <span style="color: var(--text-secondary);">${escapeHtml(cpuText)} / ${escapeHtml(ramText)}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Disco</span>
+                        <span style="color: var(--text-secondary);">${escapeHtml(diskText)}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Conexões SocketIO</span>
+                        <span style="color: var(--text-secondary);">${escapeHtml(String(socketioClients))}</span>
+                    </div>
+                    ${roleCountsHtml}
+                    <div class="status-item">
+                        <span>Acesso público</span>
+                        <span style="color: var(--text-secondary);">${escapeHtml(String(publicUrl))}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Acesso local</span>
+                        <span style="color: var(--text-secondary);">${escapeHtml(String(localUrl))}</span>
+                    </div>`;
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `
+                    <div class="status-item">
+                        <span>Servidor</span>
+                        <span class="status-badge" style="background: var(--danger);">OFFLINE</span>
+                    </div>
+                    <div class="status-item">
+                        <span>CPU / RAM</span>
+                        <span style="color: var(--text-secondary);">-- / --</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Disco</span>
+                        <span style="color: var(--text-secondary);">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Conexões SocketIO</span>
+                        <span style="color: var(--text-secondary);">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Acesso público</span>
+                        <span style="color: var(--text-secondary);">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Acesso local</span>
+                        <span style="color: var(--text-secondary);">--</span>
+                    </div>`;
+            }
+        }
+
+        async function loadCultoStatus() {
+            const container = document.getElementById('culto-status-container');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Carregando ordem do culto...</p>
+                </div>`;
+
+            try {
+                const response = await fetch('/api/culto/status');
+                const contentType = response.headers.get('content-type') || '';
+
+                if (response.redirected || response.url.includes('/login')) {
+                    container.innerHTML = `
+                        <div class="alert alert-warning">
+                            Sua sessão expirou. Faça login novamente e recarregue a página.
+                        </div>`;
+                    return;
+                }
+
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Resposta não é JSON');
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data?.error || 'Erro ao carregar status');
+                }
+
+                if (data.status === 'no_service') {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> ${escapeHtml(data.message || 'Nenhum culto agendado para hoje')}
+                        </div>`;
+                    return;
+                }
+
+                if (!data.steps || data.steps.length === 0) {
+                    const info = [];
+                    if (data.tipo) info.push(`<strong>${escapeHtml(data.tipo)}</strong>`);
+                    if (data.horario) info.push(`🕐 ${escapeHtml(data.horario)}`);
+                    if (data.dirigente) info.push(`Dirigente: ${escapeHtml(data.dirigente)}`);
+                    if (data.pregador) info.push(`Pregador: ${escapeHtml(data.pregador)}`);
+                    container.innerHTML = `
+                        <div style="line-height:1.8; color: var(--text-secondary); font-size:0.9em;">
+                            ${info.length ? info.join('<br>') : '<i class="fas fa-exclamation-triangle"></i> Culto agendado sem itens na ordem.'}
+                        </div>`;
+                    return;
+                }
+
+                const typeIcon = {
+                    'abertura': 'fa-door-open',
+                    'louvor': 'fa-music',
+                    'mensagem': 'fa-book',
+                    'oferta': 'fa-hand-holding-usd',
+                    'encerramento': 'fa-sign-out-alt',
+                    'item': 'fa-circle'
+                };
+
+                container.innerHTML = data.steps.map((step) => {
+                    const icon = typeIcon[step.type] || typeIcon.item;
+                    return `
+                        <div class="step pending">
+                            <i class="fas ${icon}"></i> ${escapeHtml(step.title || 'Item')}
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        Não foi possível carregar a ordem do culto. Tente recarregar a página.
+                    </div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try { updateTime(); } catch (e) { console.error(e); }
+            try { updateDate(); } catch (e) { console.error(e); }
+            setInterval(() => {
+                try { updateTime(); } catch (e) { console.error(e); }
+            }, 1000);
+
+            try { loadCultoStatus(); } catch (e) { console.error(e); }
+            try { loadSystemStatus(); } catch (e) { console.error(e); }
+            setInterval(() => {
+                try { loadSystemStatus(); } catch (e) { console.error(e); }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

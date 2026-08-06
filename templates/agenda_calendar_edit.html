@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda (edição)</title>
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .page {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 16px 80px;
+        }
+        .header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .title { font-size: 26px; font-weight: 800; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.25); }
+        .subtitle { color: rgba(255,255,255,0.8); font-size: 14px; }
+        .badge { 
+            background: linear-gradient(135deg, #00bcd4, #0097a7); 
+            color: white; 
+            border-radius: 999px; 
+            padding: 6px 14px; 
+            font-weight: 700; 
+            box-shadow: 0 2px 15px rgba(0,188,212,0.3); }
+        .card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(8px);
+        }
+        .calendar-shell {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 10px;
+        }
+        .calendar-head {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+        .day {
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.06);
+            transition: all 0.18s ease;
+            min-height: 122px;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;        /* permite encolher dentro do grid */
+            overflow: hidden;    /* impede vazar visualmente */
+            gap: 8px;
+            color: white;
+        }
+        .day.clickable { 
+            cursor: pointer; 
+        }
+        .day.clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            border-color: rgba(0,188,212,0.6);
+            background: rgba(255,255,255,0.1);
+        }
+        .day-top { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            flex-wrap: wrap; 
+        }
+        .day-date {
+            font-weight: 800;
+            color: white;
+            font-size: 14px;
+            letter-spacing: 0.01em;
+        }
+        .day-weekday {
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+        }
+        .day-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+
+            gap: 4px;           /* espaço entre título e horário */
+            margin-bottom: 8px; /* espaço entre um item e outro */
+        }
+        .day-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-start;
+        }
+        .pill { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 999px; 
+            font-size: 11px; 
+            font-weight: 700; 
+            border: 1px solid rgba(255,255,255,0.25); 
+            line-height: 1.2;
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            color: white;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-weight: 700; 
+        }
+        .time-pill-tipo { 
+            background: rgba(0, 187, 212, 0.151); 
+            color: #e1f5f7; 
+            border-color: rgba(0, 187, 212, 0.486);
+            box-shadow: 0 6px 18px rgba(0, 187, 212, 0.178); 
+        }
+        .time-pill-eventos { 
+            background: rgba(156, 89, 182, 0.151); 
+            color: #ecdcf3; 
+            border-color: rgba(156, 89, 182, 0.486);
+            box-shadow: 0 6px 18px rgba(156, 89, 182, 0.178); 
+        }
+        .tipo-pill,
+        .eventos-pill {
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: left;
+            width: 100%; 
+            white-space: normal;
+            word-break: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tipo-pill { 
+            background: rgba(0, 187, 212, 0.281); 
+            color: white;
+            border-color: rgb(0, 187, 212);
+            box-shadow: 0 6px 14px rgba(0, 187, 212, 0.205);
+        }
+        .eventos-pill { 
+            background: rgba(156, 89, 182, 0.281); 
+            color: white;
+            border-color: rgb(156, 89, 182);
+            box-shadow: 0 6px 14px rgba(156, 89, 182, 0.205); 
+            
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            /*background: rgba(0, 187, 212, 0.075);*/
+            color: rgba(255, 255, 255, 0.89);
+            border: 1px solid rgba(245, 245, 245, 0.137);
+        }
+        .info-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.4;
+        }
+        .info-line strong { 
+            color: white; 
+        }
+        .empty {
+            text-align: center;
+            padding: 32px 16px;
+            color: rgba(255,255,255,0.65);
+            border: 1px dashed rgba(255,255,255,0.25);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+        }
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin: 10px 0 20px;
+        }
+        .btn { 
+            background: linear-gradient(135deg, #00bcd4, #0097a7); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            padding: 8px 12px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            /*box-shadow: 0 10px 24px rgba(0, 187, 212, 0.116);*/ 
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .btn:hover { 
+            transform: translateY(-1px); 
+            box-shadow: 0 3px 30px rgba(0,188,212,0.4); 
+        }
+        .month-label { 
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: capitalize; 
+        }
+        .note { 
+            margin-top: 12px; 
+            font-size: 12px; 
+            color: rgba(255,255,255,0.75); 
+        }
+        .back-dash {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            text-decoration: none;
+            color: white;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+            padding: 10px 14px;
+            border-radius: 12px;
+            /*box-shadow: 0 12px 30px rgba(0,188,212,0.35);*/
+        }
+        .back-dash:hover { 
+            box-shadow: 0 4px 30px rgba(0,188,212,0.45); 
+            transform: translateY(-1px); 
+        }
+        .meta-line {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 6px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.9);
+        }
+        .meta-label {
+            font-weight: 400;
+            white-space: nowrap;
+        }
+        .meta-value {
+            font-weight: 700;
+            word-break: break-word;
+        }
+        @media (max-width: 700px) {
+            .calendar-head { display: none; }
+            .calendar-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header">
+        <div>
+            <div class="title">CALENDÁRIO JOÃOXXIII (EDIÇÃO)</div>
+            <div class="subtitle">Calendário privado de edição de escalas e eventos</div>
+        </div>
+        <div class="nav">
+            <button class="btn" id="prevBtn">◀ </button>
+            <div class="month-label" id="monthLabel"></div>
+            <button class="btn" id="nextBtn"> ▶</button>
+            <span class="badge">Privado</span>
+            <button class="btn" id="saveImgBtn" title="Salvar calendário como imagem">💾 Salvar como Imagem</button>
+        </div>
+    </div>
+
+    <div class="card calendar-shell">
+        <div class="month-label" id="monthLabelInner" style="text-align:center;font-weight:800;color:white;letter-spacing:0.03em;"></div>
+        <div class="calendar-head" id="calendarHead"></div>
+        <div id="calendar" class="calendar-grid"></div>
+        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada em orders.json</div>
+    </div>
+
+    <div class="note">
+        Clique em qualquer data para realizar a edição, se não houver dados cadastrados, o formulário abre vazio.
+        <br>
+        <a class="back-dash" href="/agenda/dashboard">◀ Voltar ao Dashboard da Agenda de Equipes</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+    const weekdayShort = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+    const monthLong = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    let ordersData = {};
+    let currentMonth = new Date();
+
+    function hasOrderData(o) {
+        if (!o || typeof o !== 'object') return false;
+        const hasMain = (val) => typeof val === 'string' && val.trim() !== '';
+        const hasArray = (arr) => Array.isArray(arr) && arr.length > 0;
+
+        const hasTipo = hasMain(o.tipo);
+        const hasOther = hasMain(o.horario) || hasMain(o.dirigente) || hasMain(o.pregador) || hasMain(o.tema);
+
+        if (hasOther) return true;
+        if (hasArray(o.eventos)) return true;
+        if (hasArray(o.itens)) return true;
+        if (o.louvor && (hasArray(o.louvor.musicos) || hasArray(o.louvor.cantores))) return true;
+        if (o.midia && (hasMain(o.midia.lider) || hasMain(o.midia.palco) || hasMain(o.midia.visual) || hasArray(o.midia.equipe) || hasArray(o.midia.extras) || hasMain(o.midia.obs))) return true;
+
+        // Se só o tipo estiver preenchido e nada mais, considera como vazio
+        if (hasTipo && !hasOther && !hasArray(o.eventos) && !hasArray(o.itens)) return false;
+
+        return hasTipo;
+    }
+
+    function buildHead() {
+        const head = document.getElementById('calendarHead');
+        head.innerHTML = weekdayShort.map(w => `<div>${w}</div>`).join('');
+    }
+
+    function formatDateISO(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function renderCalendar() {
+        const calendar = document.getElementById('calendar');
+        const empty = document.getElementById('emptyState');
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month+1, 0);
+        const startWeekday = firstDay.getDay();
+        const totalDays = lastDay.getDate();
+        const monthText = `${monthLong[month]} de ${year}`;
+        
+        document.getElementById('monthLabel').textContent = monthText;
+        const inner = document.getElementById('monthLabelInner');
+        if (inner) inner.textContent = monthText;
+
+        const cells = [];
+        // espaços em branco antes do 1
+        for (let i=0; i<startWeekday; i++) cells.push({ blank:true });
+        for (let d=1; d<=totalDays; d++) {
+            const dateStr = formatDateISO(new Date(year, month, d));
+            const order = ordersData[dateStr] || {};
+            const hasData = hasOrderData(order);
+            cells.push({ dateStr, hasData, order });
+        }
+
+        calendar.innerHTML = cells.map(cell => {
+            if (cell.blank) return `<div class="day" style="background:transparent; border:none;"></div>`;
+
+            const o = cell.order || {};
+            const dayNumber = String(new Date(cell.dateStr + 'T00:00:00').getDate()).padStart(2,'0');
+
+            const items = [];
+
+            // LOUVOR
+            if (o.tipo?.trim() &&
+                (o.horario_culto || o.dirigente || o.pregador)
+            ) {
+                items.push({
+                    tipoItem: 'louvor',
+                    titulo: o.tipo,
+                    hora: o.horario_culto || '',
+                    dirigente: o.dirigente || '',
+                    pregador: o.pregador || '',
+                    prioridade: 0
+                });
+            }
+
+            // EVENTOS
+            if (Array.isArray(o.eventos)) {
+                o.eventos.forEach(ev => {
+                    if (ev?.titulo) {
+                        items.push({
+                            tipoItem: 'evento',
+                            titulo: ev.titulo,
+                            hora: ev.hora || '',
+                            responsavel: ev.responsavel || '',
+                            obs: ev.obs || '',
+                            prioridade: 1
+                        });
+                    }
+                });
+            }
+
+            // ordenar: louvor primeiro, depois horário crescente
+            items.sort((a,b)=>{
+                if (a.prioridade !== b.prioridade) return a.prioridade - b.prioridade;
+                return (a.hora || '').localeCompare(b.hora || '');
+            });
+
+            if (items.length === 0) {
+                return `
+                    <div class="day clickable" data-date="${cell.dateStr}">
+                        <div class="day-top">
+                            <div class="day-date">${dayNumber}</div>
+                        </div>
+                        <div class="day-body">
+                            <div class="info-line" style="color:#94a3b8;">Sem Eventos</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const total = items.length;
+
+            let mode;
+            let visible = [];
+            let hidden = 0;
+
+            /*
+            MODOS:
+            detailed  → 1 item (mostra detalhes + hora)
+            compact   → até 2 (mostra hora)
+            overflow  → 3+ (esconde hora)
+            */
+           
+            if (total === 1) {
+                mode = 'detailed';
+                visible = items;
+            }
+            else if (total <= 2) {
+                mode = 'compact';
+                visible = items;
+            }
+            else {
+                mode = 'overflow';
+                visible = items.slice(0, 3);
+                hidden = total - 3;
+            }
+
+            const isSingle = mode === 'detailed';
+            const showTime = mode !== 'overflow';
+
+            const lines = visible.map(it => {
+
+                const tituloClass = it.tipoItem === 'louvor'
+                    ? 'tipo-pill'
+                    : 'eventos-pill';
+
+                const timeClass = it.tipoItem === 'louvor'
+                    ? 'time-pill-tipo'
+                    : 'time-pill-eventos';
+
+                let extraInfo = '';
+                // 🔹 detalhes apenas quando item único
+                if (isSingle) {
+
+                    if (it.tipoItem === 'louvor') {
+                        extraInfo = `
+                            ${it.dirigente ? `
+                                <div class="meta-line">
+                                    <span class="meta-label">Dirigente:</span>
+                                    <span class="meta-value">${it.dirigente}</span>
+                                </div>` : ''}
+                            ${it.pregador ? `
+                                <div class="meta-line">
+                                    <span class="meta-label">Pregador:</span>
+                                    <span class="meta-value">${it.pregador}</span>
+                                </div>` : ''}
+                        `;
+                    }
+                    if (it.tipoItem === 'evento') {
+                        extraInfo = `
+                            ${it.responsavel ? `
+                                <div class="meta-line">
+                                    <span class="meta-label">Resp:</span>
+                                    <span class="meta-value">${it.responsavel}</span>
+                                </div>` : ''}
+                            ${it.obs ? `
+                                <div class="meta-line">
+                                    <span class="meta-label">Obs:</span>
+                                    <span class="meta-value">${it.obs}</span>
+                                </div>` : ''}
+                        `;
+                    }
+                }
+                return `
+                    <div class="day-item">
+                        <span class="pill ${tituloClass}">${it.titulo}</span>
+                        ${(it.hora && showTime) ? `<span class="pill ${timeClass}">${it.hora}</span>` : ''}
+                        ${extraInfo}
+                    </div>
+                `;
+            }).join('');
+
+            let button = '';
+
+            if (hidden > 0) {
+                button = `<div class="day-footer"><span class="tag">+${hidden} ver detalhes</span></div>`;
+            } else if (items.length >= 2) {
+                button = `<div class="day-footer"><span class="tag">Mais detalhes</span></div>`;
+            }
+
+            return `
+                <div class="day clickable" data-date="${cell.dateStr}">
+                    <div class="day-top">
+                        <div class="day-date">${dayNumber}</div>
+                    </div>
+                    <div class="day-body">
+                        ${lines}
+                    </div>
+                    ${button}
+                </div>
+            `;
+        }).join('');
+
+    }
+
+    async function loadOrders() {
+        try {
+            const resp = await fetch('/api/orders');
+            ordersData = await resp.json();
+            renderCalendar();
+        } catch (e) {
+            const calendar = document.getElementById('calendar');
+            const empty = document.getElementById('emptyState');
+            calendar.style.display = 'none';
+            empty.style.display = 'block';
+            empty.textContent = 'Erro ao carregar agenda';
+        }
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()-1, 1);
+        renderCalendar();
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth()+1, 1);
+        renderCalendar();
+    });
+
+    document.getElementById('saveImgBtn').addEventListener('click', async () => {
+        const calendarShell = document.querySelector('.card.calendar-shell');
+        if (!calendarShell) return;
+        const label = document.getElementById('monthLabel')?.textContent || 'agenda';
+        const safeLabel = label.toLowerCase().replace(/\s+/g, '-');
+        try {
+            const canvas = await html2canvas(calendarShell, {
+                backgroundColor: '#0f172a',
+                scale: 2,
+                useCORS: true,
+            });
+            const link = document.createElement('a');
+            link.download = `${safeLabel}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (err) {
+            console.error('Erro ao salvar imagem do calendário:', err);
+            alert('Não foi possível salvar o calendário como imagem.');
+        }
+    });
+    document.addEventListener('click', e => {
+        const day = e.target.closest('.clickable');
+        if (!day) return;
+
+        const date = day.dataset.date;
+        window.location = `/agenda/${date}/admin`;
+    });
+    buildHead();
+    loadOrders();
+</script>
+</body>
+</html>

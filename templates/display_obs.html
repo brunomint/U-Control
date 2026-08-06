@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>OBS Overlay — U-Control</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+    font-family: Arial, sans-serif;
+}
+
+#overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: var(--v-align, flex-end);
+    align-items: center;
+    padding: var(--v-pad, 8vh) 5vw;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#overlay.visible {
+    opacity: 1;
+}
+
+#section-text {
+    color: var(--txt-color, white);
+    font-size: var(--txt-size, 8vw);
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.25;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    max-width: 90vw;
+}
+
+#section-text.with-shadow {
+    text-shadow:
+        -2px -2px 0 #000,
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+         0    3px 8px rgba(0,0,0,0.7);
+}
+
+#ticker-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0, 0, 0, 0.80);
+    color: #FFD600;
+    font-size: 3vw;
+    font-weight: bold;
+    padding: 10px 0;
+    overflow: hidden;
+    display: none;
+    text-shadow: 0 0 12px rgba(255, 214, 0, 0.5);
+}
+#ticker-text {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker-scroll linear infinite;
+}
+@keyframes ticker-scroll {
+    from { transform: translateX(100vw); }
+    to   { transform: translateX(-100%); }
+}
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <div id="section-text"></div>
+    </div>
+    <div id="ticker-bar"><span id="ticker-text"></span></div>
+
+    <script>
+    // ── Configuração via URL params ───────────────────────────────────
+    const params = new URLSearchParams(location.search);
+    const pos    = params.get('pos')    || 'bottom';   // top | center | bottom
+    const size   = params.get('size')   || '8';        // número em vw
+    const color  = params.get('color')  || 'white';
+    const shadow = params.get('shadow') !== '0';       // default on
+
+    const overlay = document.getElementById('overlay');
+    const root    = document.documentElement;
+
+    root.style.setProperty('--txt-size',  size + 'vw');
+    root.style.setProperty('--txt-color', color);
+
+    if (pos === 'top') {
+        root.style.setProperty('--v-align', 'flex-start');
+        root.style.setProperty('--v-pad',   '8vh');
+    } else if (pos === 'center') {
+        root.style.setProperty('--v-align', 'center');
+        root.style.setProperty('--v-pad',   '0');
+    } else {
+        root.style.setProperty('--v-align', 'flex-end');
+        root.style.setProperty('--v-pad',   '8vh');
+    }
+
+    if (shadow) {
+        document.getElementById('section-text').classList.add('with-shadow');
+    }
+
+    // ── Estado de visibilidade ───────────────────────────────────────
+    let blackoutActive  = false;
+    let lyricsHidden    = false;
+    let hasContent      = false;
+
+    function refreshVisibility() {
+        const show = hasContent && !blackoutActive && !lyricsHidden;
+        overlay.classList.toggle('visible', show);
+    }
+
+    // ── Utilitários ──────────────────────────────────────────────────
+    function setContent(html) {
+        document.getElementById('section-text').innerHTML = html;
+        hasContent = !!html;
+        adjustFontSize();
+        refreshVisibility();
+    }
+
+    function adjustFontSize() {
+        requestAnimationFrame(() => {
+            const el  = document.getElementById('section-text');
+            let fs = parseFloat(size);
+            el.style.fontSize = fs + 'vw';
+            while (el.scrollHeight > window.innerHeight * 0.85 && fs > 2) {
+                fs -= 0.2;
+                el.style.fontSize = fs + 'vw';
+            }
+        });
+    }
+
+    window.addEventListener('resize', adjustFontSize);
+
+    // ── Remoção de acordes (igual ao display_public.html) ────────────
+    function formatLyrics(text) {
+        const lines = text.split('\n');
+        return lines.map(line => {
+            // Remove notas privadas de palco
+            if (line.trim().startsWith('//')) return '';
+
+            const testLine = line.replace(/[\s_]+/g, ' ').trim();
+            if (/^[A-G0-9#♯♭b°º\/\(\)+maijndugse\s]+$/i.test(testLine) && testLine.length > 0) {
+                if (!/[a-záàâãéèêíïóôõöúçñ]{5,}/i.test(testLine)) return '';
+            }
+            let cleaned = line
+                .replace(/\b([CDFGB])(?:[b#♭♯])?(?:\d+)?(?:m|maj|min|dim|aug|sus|add)?(?:\d+)?(?:\([^)]*\))?(?:\/[CDEFGAB](?:[b#♭♯])?)?\b(?![a-záàâãéèêíïóôõöúçñ])/gi, '')
+                .replace(/\(\d+\)/g, '')
+                .replace(/\s+\d+\s+/g, ' ')
+                .replace(/[#♯♭°º]/g, '')
+                .replace(/_/g, '')
+                .replace(/\(\s*\)/g, '')
+                .replace(/\[\s*\]/g, '')
+                .replace(/\|\s*[A-G](?:[b#♭♯])?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]*\))?(?:\/[A-G](?:[b#♭♯])?)?\s*\|/gi, '')
+                .replace(/\|/g, '')
+                .replace(/(^|\s)([A-G])(?=\s|$)/g, '$1')
+                .replace(/\b([A-G])\/(?:[A-G](?:\d+)?(?:[b#♭♯])?)?\b/gi, '')
+                .replace(/\//g, '')
+                .replace(/\+/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            return cleaned;
+        })
+        .filter(l => l !== '')
+        .join('<br>');
+    }
+
+    // ── SocketIO ─────────────────────────────────────────────────────
+    const socket = io();
+    socket.on('connect', () => socket.emit('identify', { role: 'obs_overlay' }));
+
+    socket.on('update_lyrics', (data) => {
+        setContent(formatLyrics(data.text || ''));
+    });
+
+    socket.on('update_bible', (data) => {
+        let text = '';
+        if (data.verses && Array.isArray(data.verses)) {
+            text = data.verses.map(v => `<sup style="font-size:0.55em;vertical-align:super">${v.num}</sup>${v.text}`).join('<br>');
+        } else if (data.text) {
+            text = data.text.replace(/\n/g, '<br>');
+        }
+        setContent(text);
+    });
+
+    socket.on('blackout', (data) => {
+        blackoutActive = !!data.active;
+        refreshVisibility();
+    });
+
+    socket.on('lyrics_visibility_changed', (data) => {
+        lyricsHidden = !data.visible;
+        refreshVisibility();
+    });
+
+    // ── Ticker ───────────────────────────────────────────────────────
+    function updateTicker(text) {
+        const bar  = document.getElementById('ticker-bar');
+        const span = document.getElementById('ticker-text');
+        if (!text) { bar.style.display = 'none'; return; }
+        span.textContent = text;
+        span.style.animationDuration = Math.max(10, text.length * 0.3) + 's';
+        bar.style.display = 'block';
+    }
+    socket.on('ticker_update', (data) => updateTicker(data.text || ''));
+    fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateTicker(d.text || ''); }).catch(() => {});
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Ambiente virtual
+venv/
+__pycache__/
+*.pyc
+
+# Dados de instância (banco com credenciais, gerado em runtime)
+instance/
+
+# Configurações locais de ferramentas (não são convenção do projeto)
+.claude/settings.local.json
+.vscode/
+
+# Estado/cache gerado em runtime pelo próprio app (não é conteúdo curado)
+display_log.json
+countdown_config.json
+ticker_config.json
+image_paths.json
+settings.json
+urls.json
+
+# Mídia enviada pelos usuários via galeria/downloads — muda o tempo todo,
+# não pertence ao histórico do git (backup deve ser feito à parte)
+static/imagens/
+static/audio/
+
+# Backups manuais antigos — substituídos pelo histórico do git a partir de agora
+backups/
+*.zip
+
+# Metadados soltos do Android Studio (não há app fonte de verdade aqui ainda)
+Android/

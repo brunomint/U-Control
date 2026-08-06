@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Usuários Registrados</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f4f4;
+            color: #333;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #00bcd4;
+            color: white;
+        }
+        .btn-remover {
+            color: #ff5f57;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-remover:hover {
+            color: #e04e45;
+        }
+        .form-cadastro {
+            margin-bottom: 20px;
+        }
+        .form-cadastro input {
+            padding: 10px;
+            margin-right: 10px;
+            width: 250px;
+        }
+        .form-cadastro button {
+            padding: 10px 20px;
+            background-color: #00bcd4;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .form-cadastro button:hover {
+            background-color: #008c99;
+        }
+        .eye-icon {
+    cursor: pointer;
+    margin-left: 10px; /* Espaço entre o campo de senha e o ícone */
+}
+        .input-container {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Usuários Registrados</h1>
+
+        <!-- Formulário para adicionar um novo usuário -->
+        <form class="form-cadastro" action="{{ url_for('adicionar_usuario') }}" method="post">
+            <input type="text" name="username" placeholder="Nome de usuário" required>
+            <div class="input-container">
+                <input type="password" name="password" placeholder="Senha" id="password" required>
+                <i class="fas fa-eye eye-icon" id="togglePassword"></i>
+            </div>
+            <button type="submit">Adicionar Usuário</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome de Usuário</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.id }}</td>
+                    <td>{{ usuario.username }}</td>
+                    <td>
+                        <form action="{{ url_for('remover_usuario', id=usuario.id) }}" method="post" style="display: inline;">
+                            <button type="submit" class="btn-remover">
+                                <i class="fas fa-trash-alt"></i> Remover
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3">Nenhum usuário registrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Alternar entre mostrar/ocultar senha
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordField = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function () {
+            // Verifica o tipo do campo de senha e alterna entre 'password' e 'text'
+            const type = passwordField.type === 'password' ? 'text' : 'password';
+            passwordField.type = type;
+
+            // Alterna o ícone
+            this.classList.toggle('fa-eye-slash');
+        });
+    </script>
+
+</body>
+</html>

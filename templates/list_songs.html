@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
+    <title>Lista de Músicas</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f9f9f981;
+    margin-top: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h1 {
+    padding-top: 80px;
+    text-align: center;
+    color: #00bcd4;
+    margin-bottom: 20px;
+}
+
+.tabs {
+    position: fixed; /* Fixa o elemento na tela */
+    top: 0; /* Posiciona no topo */
+    left: 0; /* Alinha à esquerda */
+    width: 100%; /* Ocupa toda a largura da tela */
+    background-color: #00bcd4; /* Cor de fundo */
+    color: white; /* Cor do texto */
+    display: flex; /* Exibe as abas em linha */
+    justify-content: space-around; /* Espaçamento igual entre os itens */
+    padding: 10px 0; /* Espaçamento interno vertical */
+    box-shadow: 0 5px 8px rgba(0, 0, 0, 0.1); /* Adiciona uma sombra para destaque */
+    z-index: 1000; /* Garante que fique acima de outros elementos */
+}
+
+.tab {
+    padding: 10px 20px; /* Espaçamento interno */
+    text-align: center; /* Centraliza o texto */
+    cursor: pointer; /* Adiciona o cursor de mão */
+}
+
+.tab a {
+    color: white; /* Cor do texto dos links */
+    text-decoration: none; /* Remove o sublinhado */
+}
+
+.tab a:hover {
+    text-decoration: underline; /* Adiciona sublinhado ao passar o mouse */
+}
+
+.tab.active {
+    font-weight: bold; /* Destaca a aba ativa */
+    text-decoration: underline; /* Sublinha a aba ativa */
+}
+
+.table-container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #fff;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 15px;
+    overflow: hidden;
+    border: 2px solid #e0f2f1;
+}
+
+th, td {
+    padding: 18px 20px;
+    text-align: left;
+    position: relative;
+}
+
+th {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid #e0f2f1;
+}
+
+tbody tr:nth-child(even) {
+    background: linear-gradient(135deg, #f8fffe, #f0f9ff);
+}
+
+tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+tbody tr:hover {
+    background: linear-gradient(135deg, #e0f7fa, #e8f5e8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 188, 212, 0.2);
+}
+
+td {
+    border-bottom: 1px solid #e0f2f1;
+    vertical-align: middle;
+}
+
+td:last-child {
+    text-align: center;
+}
+
+.song-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: #2c3e50;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.song-title:hover {
+    background: linear-gradient(135deg, #00695c, #00bcd4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transform: translateX(3px);
+}
+
+.song-title::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, #00bcd4, #4CAF50);
+    transition: width 0.3s ease;
+}
+
+.song-title:hover::after {
+    width: 100%;
+}
+
+.song-author {
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
+}
+
+.song-id {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 30px;
+    text-align: center;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.3s ease;
+    margin: 2px;
+    min-width: 70px;
+    justify-content: center;
+}
+
+.action-btn.edit {
+    background: linear-gradient(135deg, #2196f3, #1976d2);
+    color: white;
+    box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+}
+
+.action-btn.edit:hover {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+    transform: translateY(-1px);
+}
+
+.action-btn.edit::before {
+    content: '✏️';
+    font-size: 10px;
+}
+
+.action-btn.view {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.action-btn.view:hover {
+    background: linear-gradient(135deg, #45a049, #388e3c);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    transform: translateY(-1px);
+}
+
+.action-btn.view::before {
+    content: '👁️';
+    font-size: 10px;
+}
+
+.action-btn.display {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: white;
+    box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+}
+
+.action-btn.display:hover {
+    background: linear-gradient(135deg, #f57c00, #ef6c00);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+.action-btn.display::before {
+    content: '📺';
+    font-size: 10px;
+}
+
+.action-btn.delete {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+
+.action-btn.delete:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    transform: translateY(-1px);
+}
+
+.action-btn.delete::before {
+    content: '🗑️';
+    font-size: 10px;
+}
+
+.action-btn.add-order {
+    background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+    color: white;
+    box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+}
+
+.action-btn.add-order:hover {
+    background: linear-gradient(135deg, #7b1fa2, #6a1b9a);
+    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.4);
+    transform: translateY(-1px);
+}
+
+.action-btn.add-order::before {
+    content: '➕';
+    font-size: 10px;
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.add-music {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #007bff;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.add-music:hover {
+    text-decoration: underline;
+}
+
+/* Estilos para a barra de pesquisa */
+.search-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.search-box {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 16px;
+    border: 2px solid #00bcd4;
+    border-radius: 25px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-box:focus {
+    border-color: #0097a7;
+    box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3);
+}
+
+.search-info {
+    text-align: center;
+    margin: 10px 0;
+    color: #666;
+    font-style: italic;
+}
+
+.no-results {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 18px;
+    display: none;
+}
+
+.highlight {
+    background-color: #ffeb3b;
+    font-weight: bold;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <h1>Biblioteca de Músicas</h1>
+
+    <!-- Adicionando as abas -->
+    <div class="tabs">
+        <div class="tab" data-url="/new_song"><a href="/new_song">Adicionar Nova Música</a></div>
+        <div class="tab"><a href="/order">Ordem com Culto</a></div>
+        <div class="tab"><a href="/">Home</a></div>
+    </div>
+
+    <!-- Barra de Pesquisa -->
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Pesquisar por título ou autor...">
+        <div class="search-info" id="searchInfo">
+            <span id="totalSongs">{{ songs|length }}</span> música(s) encontrada(s)
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>🆔</th>
+                    <th>🎵 Título</th>
+                    <th>👤 Autor</th>
+                    <th>⚙️ Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for song in songs %}
+                <tr>
+                    <td><span class="song-id">{{ song.id }}</span></td>
+                    <td><div class="song-title">{{ song.title }}</div></td>
+                    <td><div class="song-author">{{ song.author }}</div></td>
+                    <td>
+                        <button class="action-btn add-order add-to-order" data-id="{{ song.id }}" data-title="{{ song.title }}" data-author="{{ song.author }}">Adicionar</button>
+                        <a href="/edit_song/{{ song.id }}" class="action-btn edit">Editar</a>
+                        <a href="/view/{{ song.id }}" class="action-btn view">Visualizar</a>
+                        <a href="/lyrics/{{ song.id }}" class="action-btn display">Display</a>
+                        <button class="action-btn delete delete-song" data-id="{{ song.id }}">Remover</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mensagem quando não há resultados -->
+    <div class="no-results" id="noResults">
+        <p>🔍 Nenhuma música encontrada</p>
+        <p>Tente pesquisar com outros termos</p>
+    </div>
+
+    <!-- Modal para selecionar data da ordem -->
+    <div id="orderModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📅 Adicionar à Ordem do Culto</h3>
+                <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalSongTitle" style="font-weight: 600; margin-bottom: 15px;"></p>
+                <label for="orderDateSelect" style="display: block; margin-bottom: 8px; font-weight: 500;">Selecione a data:</label>
+                <select id="orderDateSelect" style="width: 100%; padding: 10px; border: 2px solid #00bcd4; border-radius: 8px; font-size: 14px; margin-bottom: 15px;">
+                    <option value="">Carregando ordens...</option>
+                </select>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="date" id="newOrderDate" style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
+                    <button onclick="createNewOrder()" style="padding: 10px 15px; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">+ Nova</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeOrderModal()" class="modal-btn cancel">Cancelar</button>
+                <button onclick="confirmAddToOrder()" class="modal-btn confirm">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    .modal-content {
+        background: white;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease;
+    }
+    @keyframes modalSlideIn {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        background: linear-gradient(135deg, #00bcd4, #0097a7);
+        color: white;
+        border-radius: 15px 15px 0 0;
+    }
+    .modal-header h3 { margin: 0; font-size: 18px; }
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: white;
+        line-height: 1;
+    }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 15px 20px;
+        border-top: 1px solid #eee;
+    }
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .modal-btn.cancel {
+        background: #f0f0f0;
+        color: #666;
+    }
+    .modal-btn.cancel:hover { background: #e0e0e0; }
+    .modal-btn.confirm {
+        background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+        color: white;
+    }
+    .modal-btn.confirm:hover {
+        background: linear-gradient(135deg, #7b1fa2, #6a1b9a);
+        transform: translateY(-1px);
+    }
+    </style>
+
+    <script>
+        // Variáveis globais para o modal
+        let selectedSongData = null;
+        let availableOrders = {};
+
+        // Carrega ordens disponíveis do servidor
+        async function loadAvailableOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                availableOrders = await response.json();
+                
+                const select = $('#orderDateSelect');
+                select.empty();
+                
+                const dates = Object.keys(availableOrders).sort();
+                
+                if (dates.length === 0) {
+                    select.append('<option value="">Nenhuma ordem encontrada</option>');
+                } else {
+                    // Filtra para mostrar apenas datas de hoje em diante
+                    const today = new Date().toISOString().split('T')[0];
+                    const futureDates = dates.filter(d => d >= today);
+                    const pastDates = dates.filter(d => d < today).reverse().slice(0, 3);
+                    
+                    if (futureDates.length > 0) {
+                        select.append('<optgroup label="📅 Próximas">');
+                        futureDates.forEach(date => {
+                            const formatted = formatDate(date);
+                            const itemCount = availableOrders[date]?.itens?.length || 0;
+                            select.append(`<option value="${date}">${formatted} (${itemCount} itens)</option>`);
+                        });
+                        select.append('</optgroup>');
+                    }
+                    
+                    if (pastDates.length > 0) {
+                        select.append('<optgroup label="📜 Anteriores">');
+                        pastDates.forEach(date => {
+                            const formatted = formatDate(date);
+                            const itemCount = availableOrders[date]?.itens?.length || 0;
+                            select.append(`<option value="${date}">${formatted} (${itemCount} itens)</option>`);
+                        });
+                        select.append('</optgroup>');
+                    }
+                }
+                
+                // Define data padrão para nova ordem como próximo domingo
+                const nextSunday = getNextSunday();
+                $('#newOrderDate').val(nextSunday);
+                
+            } catch (error) {
+                console.error('Erro ao carregar ordens:', error);
+                $('#orderDateSelect').html('<option value="">Erro ao carregar</option>');
+            }
+        }
+
+        // Formata data para exibição
+        function formatDate(dateStr) {
+            const date = new Date(dateStr + 'T12:00:00');
+            const options = { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' };
+            return date.toLocaleDateString('pt-BR', options);
+        }
+
+        // Retorna próximo domingo
+        function getNextSunday() {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
+            const nextSunday = new Date(today);
+            nextSunday.setDate(today.getDate() + daysUntilSunday);
+            return nextSunday.toISOString().split('T')[0];
+        }
+
+        // Cria nova ordem
+        async function createNewOrder() {
+            const newDate = $('#newOrderDate').val();
+            if (!newDate) {
+                showNotification('Selecione uma data para a nova ordem!', 'error');
+                return;
+            }
+            
+            if (availableOrders[newDate]) {
+                $('#orderDateSelect').val(newDate);
+                showNotification('Ordem já existe! Selecionada automaticamente.');
+                return;
+            }
+            
+            try {
+                await fetch(`/api/orders/${newDate}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ itens: [] })
+                });
+                
+                showNotification(`Nova ordem criada para ${formatDate(newDate)}!`);
+                await loadAvailableOrders();
+                $('#orderDateSelect').val(newDate);
+                
+            } catch (error) {
+                console.error('Erro ao criar ordem:', error);
+                showNotification('Erro ao criar nova ordem!', 'error');
+            }
+        }
+
+        // Fecha modal
+        function closeOrderModal() {
+            $('#orderModal').fadeOut(200);
+            selectedSongData = null;
+        }
+
+        // Confirma adição à ordem
+        async function confirmAddToOrder() {
+            const selectedDate = $('#orderDateSelect').val();
+            
+            if (!selectedDate) {
+                showNotification('Selecione uma data!', 'error');
+                return;
+            }
+            
+            if (!selectedSongData) {
+                showNotification('Erro: música não selecionada!', 'error');
+                return;
+            }
+            
+            const button = selectedSongData.button;
+            const originalText = button.text();
+            const originalClass = button.attr('class');
+            
+            try {
+                const response = await fetch(`/api/orders/${selectedDate}`);
+                let orderData = await response.json();
+                
+                if (!orderData.itens) {
+                    orderData.itens = [];
+                }
+                
+                const exists = orderData.itens.some(item => 
+                    item.url === selectedSongData.url || 
+                    (item.title && item.title.includes(selectedSongData.songTitle))
+                );
+                
+                if (exists) {
+                    showNotification(`"${selectedSongData.songTitle}" já está na ordem de ${formatDate(selectedDate)}!`);
+                    closeOrderModal();
+                    return;
+                }
+                
+                orderData.itens.push({
+                    url: selectedSongData.url,
+                    title: selectedSongData.title
+                });
+                
+                await fetch(`/api/orders/${selectedDate}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+                
+                button.text('✓ Adicionada!');
+                button.removeClass('add-order').addClass('view');
+                showNotification(`"${selectedSongData.songTitle}" adicionada à ordem de ${formatDate(selectedDate)}!`);
+                
+                setTimeout(() => {
+                    button.text(originalText);
+                    button.attr('class', originalClass);
+                }, 2000);
+                
+                closeOrderModal();
+                
+            } catch (error) {
+                console.error('Erro ao adicionar:', error);
+                showNotification('Erro ao adicionar à ordem!', 'error');
+            }
+        }
+
+        // Função para mostrar notificações (global)
+        function showNotification(message, type = 'success') {
+            $('.notification').remove();
+            
+            const isError = type === 'error';
+            const bgColor = isError ? 
+                'linear-gradient(135deg, #e74c3c, #c0392b)' : 
+                'linear-gradient(135deg, #4CAF50, #45a049)';
+            const shadowColor = isError ? 
+                'rgba(231, 76, 60, 0.3)' : 
+                'rgba(76, 175, 80, 0.3)';
+            const icon = isError ? '⚠️' : '🎵';
+            
+            const notification = $(`
+                <div class="notification" style="
+                    position: fixed;
+                    top: 80px;
+                    right: 20px;
+                    background: ${bgColor};
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 12px ${shadowColor};
+                    z-index: 10001;
+                    font-weight: 600;
+                    max-width: 300px;
+                    animation: slideIn 0.3s ease;
+                ">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span>${icon}</span>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `);
+            
+            $('body').append(notification);
+            
+            const timeout = isError ? 4000 : 3000;
+            setTimeout(() => {
+                notification.fadeOut(300, function() {
+                    $(this).remove();
+                });
+            }, timeout);
+        }
+
+        $(document).ready(function() {
+            // Funcionalidade de pesquisa
+            $('#searchInput').on('keyup', function() {
+                const searchTerm = $(this).val().toLowerCase().trim();
+                let visibleCount = 0;
+                
+                $('tbody tr').each(function() {
+                    const title = $(this).find('.song-title').text().toLowerCase();
+                    const author = $(this).find('.song-author').text().toLowerCase();
+                    
+                    // Remove highlights anteriores
+                    $(this).find('.highlight').each(function() {
+                        $(this).replaceWith($(this).text());
+                    });
+                    
+                    if (searchTerm === '' || title.includes(searchTerm) || author.includes(searchTerm)) {
+                        $(this).show();
+                        visibleCount++;
+                        
+                        // Adiciona highlight se há termo de busca
+                        if (searchTerm !== '') {
+                            highlightText($(this).find('.song-title'), searchTerm);
+                            highlightText($(this).find('.song-author'), searchTerm);
+                        }
+                    } else {
+                        $(this).hide();
+                    }
+                });
+                
+                // Atualiza contador e mostra/esconde mensagem de "sem resultados"
+                $('#totalSongs').text(visibleCount);
+                
+                if (visibleCount === 0 && searchTerm !== '') {
+                    $('#noResults').show();
+                    $('.table-container').hide();
+                } else {
+                    $('#noResults').hide();
+                    $('.table-container').show();
+                }
+            });
+            
+            // Função para destacar texto
+            function highlightText(element, searchTerm) {
+                const text = element.text();
+                const regex = new RegExp(`(${searchTerm})`, 'gi');
+                const highlightedText = text.replace(regex, '<span class="highlight">$1</span>');
+                element.html(highlightedText);
+            }
+
+            // Funcionalidade de adicionar à ordem do culto - abre modal
+            $('.add-to-order').click(function() {
+                const songId = $(this).data('id');
+                const songTitle = $(this).data('title');
+                const songAuthor = $(this).data('author');
+                
+                // Armazena dados da música selecionada
+                selectedSongData = {
+                    url: `/lyrics/${songId}`,
+                    title: songAuthor ? `${songTitle} | ${songAuthor}` : songTitle,
+                    songTitle: songTitle,
+                    button: $(this)
+                };
+                
+                // Atualiza título no modal
+                $('#modalSongTitle').text(`🎵 ${songTitle}${songAuthor ? ' - ' + songAuthor : ''}`);
+                
+                // Carrega ordens disponíveis
+                loadAvailableOrders();
+                
+                // Mostra modal
+                $('#orderModal').fadeIn(200);
+            });
+
+            // Fecha modal ao clicar fora
+            $('#orderModal').click(function(e) {
+                if (e.target === this) {
+                    closeOrderModal();
+                }
+            });
+
+            // Fecha modal com ESC
+            $(document).keydown(function(e) {
+                if (e.key === 'Escape' && $('#orderModal').is(':visible')) {
+                    closeOrderModal();
+                }
+            });
+
+            // Funcionalidade de remoção de música
+            $('.delete-song').click(function() {
+                const songId = $(this).data('id');
+                if (confirm('Tem certeza que deseja remover esta música?')) {
+                    $.ajax({
+                        type: 'POST',
+                        url: '/delete_song/' + songId,
+                        success: function(response) {
+                            alert(response.message);
+                            location.reload();
+                        },
+                        error: function() {
+                            alert('Erro ao remover a música.');
+                        }
+                    });
+                }
+            });
+
+            // Adicionando comportamento às abas
+            $('.tab').click(function() {
+                $('.tab').removeClass('active');
+                $(this).addClass('active');
+            });
+        });
+    </script>
+</body>
+</html>
