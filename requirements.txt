@@ -4,13 +4,13 @@
 # antiga) e desatualizada em relação ao que roda de verdade — por isso a
 # fonte da verdade aqui é o Pi, não o ambiente de desenvolvimento local.
 #
-# ATENÇÃO — patch manual necessário após instalar Flask-SocketIO==5.6.0:
+# ATENÇÃO — patch necessário após instalar Flask-SocketIO==5.6.0:
 # Flask 3.x quebrou a integração com flask_socketio (RequestContext.session
-# virou privado). No Pi isso foi corrigido editando à mão o arquivo
-# instalado (venv/lib/python3.11/site-packages/flask_socketio/__init__.py),
-# trocando `ctx.session` por `ctx._session`. Documentado também no
-# KANBAN.md. Isso precisa ser reaplicado em qualquer venv nova até o
-# projeto migrar pra uma versão do Flask-SocketIO que já resolva isso.
+# virou privado). Rode `python scripts/patch_flask_socketio.py` depois de
+# instalar (idempotente, roda em qualquer venv nova e também no CI) — o
+# script troca `ctx.session` por `ctx._session` no pacote instalado.
+# Documentado também no KANBAN.md. Necessário até o projeto migrar pra uma
+# versão do Flask-SocketIO que já resolva isso.
 beautifulsoup4==4.14.3
 bidict==0.23.1
 blinker==1.9.0
