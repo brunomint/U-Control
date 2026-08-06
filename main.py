@@ -57,8 +57,15 @@ def _setup_logging(app):
     logger.addHandler(file_handler)
 
 
-app = Flask(__name__)
-_setup_logging(app)
+db = SQLAlchemy()
+
+login_manager = LoginManager()
+login_manager.login_view = 'login'
+
+socketio = SocketIO()
+
+socketio_clients_connected = 0
+socketio_clients_by_sid = {}
 
 
 class DateSlugConverter(BaseConverter):
@@ -66,9 +73,6 @@ class DateSlugConverter(BaseConverter):
     regex = r"\d{4}-\d{2}-\d{2}"
 
 
-app.url_map.converters["dateslug"] = DateSlugConverter
-
-@app.template_filter('data_pt')
 def data_pt(date_str):
     """Formata YYYY-MM-DD como 'Quarta-feira, 8 de julho de 2026'."""
     try:
@@ -86,22 +90,9 @@ texto = "Acessar ucontrol"
 PORTA = 8585
 MDNS_NOME = "ucontrol"
 MDNS_DOMINIO = f"{MDNS_NOME}.local."
-socketio = SocketIO(app, 
-                    cors_allowed_origins="*",
-                    async_mode='threading',
-                    logger=False,
-                    engineio_logger=False,
-                    ping_timeout=60,
-                    ping_interval=25,
-                    max_http_buffer_size=1000000,
-                    allow_upgrades=True,
-                    transports=['polling', 'websocket'])
-
-socketio_clients_connected = 0
-socketio_clients_by_sid = {}
 
 
-def _load_or_create_secret_key():
+def _load_or_create_secret_key(app):
     """Carrega a SECRET_KEY de instance/secret_key, gerando uma vez se não
     existir. Antes era gerada a cada start (os.urandom direto), o que
     invalidava a sessão de todo mundo a cada restart/deploy."""
@@ -116,21 +107,6 @@ def _load_or_create_secret_key():
     os.chmod(key_path, 0o600)
     return key
 
-
-app.secret_key = _load_or_create_secret_key()
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Caminho para o banco de dados
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_COOKIE_NAME'] = 'session'
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = False
-
-# Configuração do banco de dados
-db = SQLAlchemy(app)
-
-# Configuração do Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
 
 # Modelo de Usuário no Banco de Dados
 class User(UserMixin, db.Model):
@@ -153,9 +129,52 @@ class LyricsState(db.Model):
     section_index = db.Column(db.Integer, default=0)  # Índice da seção atual
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
-# Criar o banco de dados e tabelas
-with app.app_context():
-    db.create_all()
+
+def create_app(config=None):
+    """Cria e configura a instância do Flask. Chamada uma vez, na importação
+    do módulo — as 114 rotas e 36 handlers de socket abaixo continuam
+    registrados nos objetos globais app/socketio/db, sem precisar mover
+    nenhuma. Se config vier, sobrescreve os defaults (usado pelos testes)."""
+    app = Flask(__name__)
+    _setup_logging(app)
+
+    app.url_map.converters["dateslug"] = DateSlugConverter
+    app.template_filter('data_pt')(data_pt)
+
+    app.secret_key = _load_or_create_secret_key(app)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Caminho para o banco de dados
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SESSION_COOKIE_NAME'] = 'session'
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_PERMANENT'] = False
+
+    if config is None and os.getenv('UCONTROL_TESTING') == '1':
+        config = {'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:', 'TESTING': True}
+    if config:
+        app.config.update(config)
+
+    db.init_app(app)
+    login_manager.init_app(app)
+    socketio.init_app(
+        app,
+        cors_allowed_origins="*",
+        async_mode='threading',
+        logger=False,
+        engineio_logger=False,
+        ping_timeout=60,
+        ping_interval=25,
+        max_http_buffer_size=1000000,
+        allow_upgrades=True,
+        transports=['polling', 'websocket'],
+    )
+
+    with app.app_context():
+        db.create_all()
+
+    return app
+
+
+app = create_app()
 
 # Cache simples em memória para reduzir queries no banco
 _display_state_cache = {'data': None, 'timestamp': 0}
