@@ -1,0 +1,53 @@
+# Gerado a partir do `pip freeze` da venv em produção no Raspberry Pi
+# (/home/piano-25/14.3_calendario_U-Control/venv), em 2026-08-05.
+# A venv local deste repositório estava quebrada (símbolos de outra pasta
+# antiga) e desatualizada em relação ao que roda de verdade — por isso a
+# fonte da verdade aqui é o Pi, não o ambiente de desenvolvimento local.
+#
+# ATENÇÃO — patch manual necessário após instalar Flask-SocketIO==5.6.0:
+# Flask 3.x quebrou a integração com flask_socketio (RequestContext.session
+# virou privado). No Pi isso foi corrigido editando à mão o arquivo
+# instalado (venv/lib/python3.11/site-packages/flask_socketio/__init__.py),
+# trocando `ctx.session` por `ctx._session`. Documentado também no
+# KANBAN.md. Isso precisa ser reaplicado em qualquer venv nova até o
+# projeto migrar pra uma versão do Flask-SocketIO que já resolva isso.
+beautifulsoup4==4.14.3
+bidict==0.23.1
+blinker==1.9.0
+certifi==2026.1.4
+charset-normalizer==3.4.4
+click==8.3.1
+dnspython==2.8.0
+eventlet==0.40.4
+Flask==3.1.3
+Flask-Login==0.6.3
+Flask-SocketIO==5.6.0
+Flask-SQLAlchemy==3.1.1
+greenlet==3.3.2
+gunicorn==25.1.0
+h11==0.16.0
+idna==3.11
+ifaddr==0.2.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+lxml==6.0.2
+MarkupSafe==3.0.3
+packaging==26.0
+pillow==12.1.1
+psutil==7.2.2
+pychord==1.3.2
+PyMuPDF==1.27.1
+python-engineio==4.13.1
+python-pptx==1.0.2
+python-socketio==5.16.1
+qrcode==8.2
+requests==2.32.5
+simple-websocket==1.1.0
+soupsieve==2.8.3
+SQLAlchemy==2.0.46
+typing_extensions==4.15.0
+urllib3==2.6.3
+Werkzeug==3.1.6
+wsproto==1.3.2
+xlsxwriter==3.2.9
+zeroconf==0.148.0

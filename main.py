@@ -73,7 +73,25 @@ socketio = SocketIO(app,
 
 socketio_clients_connected = 0
 socketio_clients_by_sid = {}
-app.secret_key = os.urandom(24)  # Gera uma chave secreta aleatória
+
+
+def _load_or_create_secret_key():
+    """Carrega a SECRET_KEY de instance/secret_key, gerando uma vez se não
+    existir. Antes era gerada a cada start (os.urandom direto), o que
+    invalidava a sessão de todo mundo a cada restart/deploy."""
+    os.makedirs(app.instance_path, exist_ok=True)
+    key_path = os.path.join(app.instance_path, 'secret_key')
+    if os.path.exists(key_path):
+        with open(key_path, 'rb') as f:
+            return f.read()
+    key = os.urandom(24)
+    with open(key_path, 'wb') as f:
+        f.write(key)
+    os.chmod(key_path, 0o600)
+    return key
+
+
+app.secret_key = _load_or_create_secret_key()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # Caminho para o banco de dados
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_NAME'] = 'session'
