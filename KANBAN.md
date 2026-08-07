@@ -61,7 +61,7 @@
 - Login e controle de usuários
 - Status do servidor em tempo real (CPU, RAM, disco)
 - Deploy via script Python (paramiko/SSH → Pi)
-- Servidor: gunicorn + threading, porta 8585
+- Servidor: gunicorn (1 worker, gthread) + threading, porta 8585
 - Acesso remoto via Cloudflare Tunnel (`ucontrolibrjoaoxxiii.com`)
 - Acesso local via Tailscale (`100.64.46.84`) e rede local (`192.168.0.35:8585`) — gunicorn em `0.0.0.0:8585`
 
@@ -105,3 +105,4 @@ Clientes
 - **Flask 3.x / Flask-SocketIO 5.6.0**: incompatibilidade com `RequestContext.session` resolvida com patch direto em `venv/lib/.../flask_socketio/__init__.py` no Pi (`ctx.session` → `ctx._session`).
 - **X-Frame-Options**: URLs externas com esse header não carregam em iframes de browsers; o APK Android (WebView) ignora esse header e funciona normalmente. URLs do Horlyrics permitem embedding.
 - **Banco de dados**: SQLite em `/home/pi/U-Control/ucontrol.db` — migrações manuais necessárias ao adicionar colunas.
+- **Gunicorn com 1 worker só**: `main.py` mantém ~20 variáveis globais em memória (ticker, countdown, vídeo, cache de display, clientes socketio) sem fila de mensagens compartilhada. Rodar mais de um worker faria cada processo ter sua própria cópia desse estado, quebrando a sincronização entre painel de controle e telas — não "otimizar" aumentando `workers` em `gunicorn.conf.py` sem antes resolver isso (ex: mover o estado pra um Redis compartilhado).
