@@ -8,6 +8,7 @@ os.environ.setdefault("UCONTROL_NO_BROWSER", "1")
 import pytest
 
 import main as ucontrol_main
+from models import User
 
 
 @pytest.fixture
@@ -29,9 +30,9 @@ def logged_in_client(app):
     from werkzeug.security import generate_password_hash
 
     with app.app_context():
-        user = ucontrol_main.User.query.filter_by(username="tester").first()
+        user = User.query.filter_by(username="tester").first()
         if not user:
-            user = ucontrol_main.User(
+            user = User(
                 username="tester",
                 password=generate_password_hash("senha123", method="pbkdf2:sha256"),
             )

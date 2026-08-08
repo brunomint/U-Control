@@ -4,27 +4,21 @@ from flask import (
     request,
     redirect,
     url_for,
-    flash,
 )
 from werkzeug.routing import BaseConverter
 from flask_login import login_required
 import os
 import json
 import threading
-import requests
 import time
 import webbrowser
-from pychord import Chord
-from pptx import Presentation
 import socket
 import qrcode
-from bs4 import BeautifulSoup
 from zeroconf import ServiceInfo, Zeroconf
 import logging
 from logging.handlers import RotatingFileHandler
 
 from extensions import db, migrate, login_manager, socketio
-from models import User
 from blueprints.countdown import countdown_bp
 from blueprints.ticker import ticker_bp
 from blueprints.auth import auth_bp
@@ -284,20 +278,6 @@ def view_song(song_id):
             })
 
     return render_template('view_song.html', song=song, bible_items=bible_items, order_date=order_date)
-
-
-# --- Rotas relacionadas às letras ---
-
-
-# --- FIM ------ #
-
-
-# Carregar o JSON das músicas
-try:
-    with open("songs.json", "r", encoding="utf-8") as f:
-        songs = json.load(f)
-except FileNotFoundError:
-    songs = []
 
 
 @app.route('/')

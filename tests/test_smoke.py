@@ -1,7 +1,7 @@
 from werkzeug.security import generate_password_hash
 
 import main as ucontrol_main
-from models import DisplayState
+from models import DisplayState, User
 
 
 def test_create_app_uses_in_memory_db_when_testing(app):
@@ -67,8 +67,8 @@ def test_set_ticker_broadcasts_and_updates_state(app):
 
 def test_login_redirects_to_dashboard_and_authenticates(app, client):
     with app.app_context():
-        if not ucontrol_main.User.query.filter_by(username="tester").first():
-            user = ucontrol_main.User(
+        if not User.query.filter_by(username="tester").first():
+            user = User(
                 username="tester",
                 password=generate_password_hash("senha123", method="pbkdf2:sha256"),
             )
