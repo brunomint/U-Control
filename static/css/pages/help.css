@@ -1,0 +1,67 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    background-color: #f9f9f9;
+    color: #333;
+}
+h1 {
+    color: #0056b3;
+}
+h2 {
+    color: #007bff;
+}
+ul {
+    margin-left: 20px;
+}
+.highlight {
+    background-color: #e7f3ff;
+    padding: 5px;
+    border-left: 4px solid #007bff;
+}
+code {
+    background-color: #f4f4f4;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: "Courier New", Courier, monospace;
+}
+.menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    background-color: #0056b3;
+    color: white;
+    padding: 10px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+.menu h3 {
+    margin-top: 0;
+    color: #f9f9f9;
+}
+.menu a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    margin: 10px 0;
+    font-weight: bold;
+    cursor: pointer;
+}
+.menu a:hover {
+    text-decoration: underline;
+}
+.content {
+    margin-left: 220px;
+    padding: 20px;
+}
+.image-container {
+    display: flex; /* Usar Flexbox para centralizar */
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center; /* Centraliza verticalmente, se necessário */
+    margin: 20px 0; /* Espaço acima e abaixo da imagem */
+}
+.centered-image {
+    max-width: 100%; /* Garante que a imagem não ultrapasse a largura do contêiner */
+    height: auto; /* Mantém a proporção da imagem */
+}

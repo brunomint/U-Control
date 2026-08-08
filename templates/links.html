@@ -1,271 +1,57 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Links - U-Control</title>
-    <link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            padding-top: 80px;
-        }
+{% block title %}Links - U-Control{% endblock %}
 
-        .tabs {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: linear-gradient(135deg, #5a4fcf, #7c3aed);
-            color: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-        }
+{% block head_extra %}
+<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
-        .tab {
-            padding: 10px 20px;
-            text-align: center;
-            cursor: pointer;
-        }
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/links.css') }}">
+{% endblock %}
 
-        .tab a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-        }
+{% block content %}
+<div class="tabs">
+    <div class="tab"><a href="/dashboard"><i class="fas fa-home"></i> Início</a></div>
+    <div class="tab"><a href="/songs"><i class="fas fa-music"></i> Músicas</a></div>
+    <div class="tab"><a href="/bible"><i class="fas fa-book-bible"></i> Bíblia</a></div>
+    <div class="tab"><a href="/order"><i class="fas fa-list-ol"></i> Ordem</a></div>
+    <div class="tab active"><a href="/links"><i class="fas fa-qrcode"></i> Links</a></div>
+</div>
 
-        .tab a:hover {
-            text-decoration: underline;
-        }
-
-        .tab.active {
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            color: white;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header p {
-            color: rgba(255,255,255,0.9);
-            font-size: 1.1em;
-        }
-
-        .links-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
-
-        .link-card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .link-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        }
-
-        .link-card h3 {
-            color: #5a4fcf;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .qr-code {
-            width: 180px;
-            height: 180px;
-            margin: 0 auto 15px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .qr-code img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 10px;
-        }
-
-        .link-url {
-            background: #f0f0f0;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            color: #666;
-            word-break: break-all;
-            margin-bottom: 15px;
-        }
-
-        .link-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #555;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .copy-feedback {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4caf50;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-weight: 600;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 1001;
-        }
-
-        .copy-feedback.show {
-            opacity: 1;
-        }
-
-        /* Responsivo */
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8em;
-            }
-
-            .links-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .link-actions {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="tabs">
-        <div class="tab"><a href="/dashboard"><i class="fas fa-home"></i> Início</a></div>
-        <div class="tab"><a href="/songs"><i class="fas fa-music"></i> Músicas</a></div>
-        <div class="tab"><a href="/bible"><i class="fas fa-book-bible"></i> Bíblia</a></div>
-        <div class="tab"><a href="/order"><i class="fas fa-list-ol"></i> Ordem</a></div>
-        <div class="tab active"><a href="/links"><i class="fas fa-qrcode"></i> Links</a></div>
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-qrcode"></i> Links & QR Codes</h1>
+        <p>Escaneie os QR Codes para acessar rapidamente cada funcionalidade</p>
     </div>
 
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-qrcode"></i> Links & QR Codes</h1>
-            <p>Escaneie os QR Codes para acessar rapidamente cada funcionalidade</p>
-        </div>
-
-        <div class="links-grid">
-            {% for item in dados %}
-            <div class="link-card">
-                <h3><i class="fas fa-link"></i> {{ item.nome }}</h3>
-                <div class="qr-code">
-                    <img src="{{ item.img }}" alt="QR Code - {{ item.nome }}">
-                </div>
-                <div class="link-url">{{ item.url }}</div>
-                <div class="link-actions">
-                    <a href="{{ item.url }}" target="_blank" class="btn btn-primary">
-                        <i class="fas fa-external-link-alt"></i> Abrir
-                    </a>
-                    <button class="btn btn-secondary" onclick="copyUrl('{{ item.url }}')">
-                        <i class="fas fa-copy"></i> Copiar
-                    </button>
-                </div>
+    <div class="links-grid">
+        {% for item in dados %}
+        <div class="link-card">
+            <h3><i class="fas fa-link"></i> {{ item.nome }}</h3>
+            <div class="qr-code">
+                <img src="{{ item.img }}" alt="QR Code - {{ item.nome }}">
             </div>
-            {% endfor %}
+            <div class="link-url">{{ item.url }}</div>
+            <div class="link-actions">
+                <a href="{{ item.url }}" target="_blank" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i> Abrir
+                </a>
+                <button class="btn btn-secondary" onclick="copyUrl('{{ item.url }}')">
+                    <i class="fas fa-copy"></i> Copiar
+                </button>
+            </div>
         </div>
+        {% endfor %}
     </div>
+</div>
 
-    <div class="copy-feedback" id="copyFeedback">
-        <i class="fas fa-check"></i> Link copiado!
-    </div>
+<div class="copy-feedback" id="copyFeedback">
+    <i class="fas fa-check"></i> Link copiado!
+</div>
+{% endblock %}
 
-    <script>
-        function copyUrl(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                const feedback = document.getElementById('copyFeedback');
-                feedback.classList.add('show');
-                setTimeout(() => {
-                    feedback.classList.remove('show');
-                }, 2000);
-            }).catch(err => {
-                console.error('Erro ao copiar:', err);
-                alert('Erro ao copiar o link');
-            });
-        }
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/links.js') }}"></script>
+{% endblock %}

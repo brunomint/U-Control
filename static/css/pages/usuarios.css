@@ -1,0 +1,63 @@
+body {
+    background-color: #f4f4f4;
+    color: #333;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    width: 80%;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+th {
+    background-color: #00bcd4;
+    color: white;
+}
+.btn-remover {
+    color: #ff5f57;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+}
+.btn-remover:hover {
+    color: #e04e45;
+}
+.form-cadastro {
+    margin-bottom: 20px;
+}
+.form-cadastro input {
+    padding: 10px;
+    margin-right: 10px;
+    width: 250px;
+}
+.form-cadastro button {
+    padding: 10px 20px;
+    background-color: #00bcd4;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.form-cadastro button:hover {
+    background-color: #008c99;
+}
+.eye-icon {
+    cursor: pointer;
+    margin-left: 10px; /* Espaço entre o campo de senha e o ícone */
+}
+.input-container {
+    position: relative;
+}
