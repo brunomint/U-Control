@@ -164,3 +164,32 @@ def test_delete_audio_requires_login(client):
 def test_delete_audio_returns_404_for_missing_file(logged_in_client):
     response = logged_in_client.delete("/delete_audio/nao-existe.mp3")
     assert response.status_code == 404
+
+
+def test_add_search_and_delete_song_use_isolated_songs_file(client, tmp_path, monkeypatch):
+    songs_file = tmp_path / "songs.json"
+    monkeypatch.chdir(tmp_path)
+
+    add_response = client.post(
+        "/add_song",
+        data={
+            "title": "Música de Teste",
+            "author": "Autor de Teste",
+            "sections[]": ["Verso 1"],
+            "texts[]": ["Letra de teste aqui"],
+        },
+    )
+    assert add_response.status_code == 200
+    assert songs_file.exists()
+
+    search_response = client.get("/search", query_string={"q": "Teste"})
+    results = search_response.get_json()
+    assert len(results) == 1
+    song_id = results[0]["id"]
+    assert results[0]["title"] == "Música de Teste"
+
+    delete_response = client.post(f"/delete_song/{song_id}")
+    assert delete_response.status_code == 200
+
+    empty_search = client.get("/search", query_string={"q": "Teste"})
+    assert empty_search.get_json() == []
