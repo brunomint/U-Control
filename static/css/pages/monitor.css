@@ -1,0 +1,66 @@
+        /* Estilo para o layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        .iframe-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .iframe-container iframe {
+            border: 0px solid #CCC;
+            transition: width 0.5s ease, height 0.5s ease;
+        }
+
+        .single-iframe iframe {
+            width: 100%;
+            height: 100%;
+        }
+
+        .double-iframe iframe {
+            width: 50%;
+            height: 100%;
+        }
+
+        #ticker-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.85);
+            color: #FFD600;
+            font-size: 3vw;
+            font-weight: bold;
+            padding: 12px 0;
+            overflow: hidden;
+            z-index: 100;
+            display: none;
+            text-shadow: 0 0 12px rgba(255,214,0,0.5);
+        }
+        #ticker-text {
+            display: inline-block;
+            white-space: nowrap;
+            animation: ticker-scroll linear infinite;
+        }
+        @keyframes ticker-scroll {
+            from { transform: translateX(100vw); }
+            to   { transform: translateX(-100%); }
+        }
+
+        /* Estilos para uma imagem responsiva */
+        .responsive-image {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: auto;
+            object-fit: contain; /* Ajusta a imagem para caber no espaço sem cortar */
+            display: none; /* Oculta a imagem por padrão */
+}
+
