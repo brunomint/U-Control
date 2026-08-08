@@ -1,0 +1,170 @@
+* { box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: white;
+}
+.page { max-width: 1200px; margin: 80px auto 0; padding: 20px 20px 40px; }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 40px; }
+.title { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+.meta { color: rgba(255,255,255,0.9); font-size: 1.1rem; display: flex; gap: 12px; align-items: center; }
+.badge { padding: 6px 12px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+.card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+.card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+.card-header {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    color: white;
+    padding: 20px;
+    position: relative;
+}
+.card-body { padding: 20px; }
+.card h3 { margin: 0 0 12px; font-size: 1.3rem; color: #fff; font-weight: 700;text-align: center; }
+.card-info {
+    margin-bottom: 15px;
+}
+
+.card-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.card-info-item i {
+    width: 20px;
+    text-align: center;
+    color: #00bcd4;
+}
+
+.card-tipo {
+    display: inline-block;
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    color: #1565c0;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.card-stats {
+    display: flex;
+    gap: 15px;
+    padding: 15px 0;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #00bcd4;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.card-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+}
+
+.card-btn.primary {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    color: white;
+}
+
+.card-btn.primary:hover {
+    background: linear-gradient(135deg, #0097a7, #00838f);
+}
+
+.card-btn.secondary {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.card-btn.secondary:hover {
+    background: #e0e0e0;
+}
+ul { margin: 0; padding-left: 18px; color: #555; }
+.empty { color: #94a3b8; font-size: 14px;text-align: center; }
+.pill { padding: 4px 10px; border-radius: 999px; background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1565c0; font-weight: 600; font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.event-item { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.event-item:last-child { margin-bottom: 0; }
+.event-entry { background: transparent; border-radius: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.back { text-decoration: none; color: #00bcd4; font-weight: 700; }
+.eventos-lista {
+    display: flex;
+flex-direction: column;
+gap: 12px;
+}
+
+.evento-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.evento-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.evento-titulo {
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.evento-hora {
+    font-size: 12px;
+    color: #fafafa;
+    background: #020617;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.evento-resp,
+.evento-obs {
+    font-size: 13px;
+    color: #cbd5f5;
+}
+@media (max-width: 640px) { .header { flex-direction: column; align-items: flex-start; } }

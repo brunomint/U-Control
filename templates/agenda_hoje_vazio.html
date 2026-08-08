@@ -1,51 +1,16 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda — Próximo Culto</title>
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        .box {
-            text-align: center;
-            padding: 48px 32px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-            max-width: 420px;
-            width: 90%;
-        }
-        .icon { font-size: 56px; margin-bottom: 20px; }
-        h1 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
-        p { color: rgba(255,255,255,0.65); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
-        a {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #00bcd4, #0097a7);
-            color: white;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 700;
-            box-shadow: 0 8px 20px rgba(0,188,212,0.3);
-        }
-    </style>
-</head>
-<body>
-    <div class="box">
-        <div class="icon">📅</div>
-        <h1>Nenhum culto cadastrado</h1>
-        <p>Não encontramos nenhuma programação nos próximos 30 dias. Assim que for cadastrada, ela aparecerá aqui automaticamente.</p>
-        <a href="/agenda">Ver calendário completo</a>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Agenda — Próximo Culto{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agenda_hoje_vazio.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="box">
+    <div class="icon">📅</div>
+    <h1>Nenhum culto cadastrado</h1>
+    <p>Não encontramos nenhuma programação nos próximos 30 dias. Assim que for cadastrada, ela aparecerá aqui automaticamente.</p>
+    <a href="/agenda">Ver calendário completo</a>
+</div>
+{% endblock %}
