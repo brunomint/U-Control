@@ -19,6 +19,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 from extensions import db, migrate, login_manager, socketio
+import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
+import models_orders  # noqa: F401 — idem
 from blueprints.countdown import countdown_bp
 from blueprints.ticker import ticker_bp
 from blueprints.auth import auth_bp
