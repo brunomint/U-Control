@@ -255,3 +255,13 @@ def test_identify_as_monitor_is_returned_by_get_monitor_sids(app):
     assert len(monitor_sids) >= 1
 
     socket_client.disconnect()
+
+
+def test_api_system_status_returns_expected_payload(logged_in_client):
+    response = logged_in_client.get("/api/system/status")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["online"] is True
+    assert data["port"] == 8585
+    assert "socketio_clients" in data
+    assert "socketio_by_role" in data

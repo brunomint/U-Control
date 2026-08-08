@@ -44,8 +44,7 @@ from songs_store import load_songs, save_songs
 from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
-import connections
-from connections import socketio_clients_by_sid, _get_monitor_sids, _skip_sids
+from connections import _get_monitor_sids, _skip_sids
 
 logger = logging.getLogger('ucontrol')
 
@@ -252,78 +251,6 @@ def api_culto_status():
     })
 
 
-@app.route('/api/system/status', methods=['GET'])
-@login_required
-def api_system_status():
-    ip_local = None
-    try:
-        ip_local = obter_endereco_ip()
-    except Exception:
-        ip_local = None
-
-    public_url = None
-    try:
-        public_url = request.host_url.rstrip('/')
-    except Exception:
-        public_url = None
-
-    local_url = None
-    if ip_local:
-        local_url = f"http://{ip_local}:{PORTA}"
-
-    socketio_by_role = {}
-    for info in socketio_clients_by_sid.values():
-        role = None
-        if isinstance(info, dict):
-            role = info.get('role')
-        if not role:
-            role = 'unknown'
-        socketio_by_role[role] = socketio_by_role.get(role, 0) + 1
-
-    cpu_percent = None
-    ram_percent = None
-    system_stats_error = None
-    try:
-        import psutil
-        cpu_percent = float(psutil.cpu_percent(interval=None))
-        ram_percent = float(psutil.virtual_memory().percent)
-    except Exception as e:
-        system_stats_error = str(e)
-
-    disk_total_gb = None
-    disk_free_gb = None
-    disk_used_percent = None
-    disk_error = None
-    try:
-        import psutil
-        usage = psutil.disk_usage('/')
-        disk_total_gb = round(usage.total / (1024 ** 3), 1)
-        disk_free_gb = round(usage.free / (1024 ** 3), 1)
-        disk_used_percent = float(usage.percent)
-    except Exception as e:
-        disk_error = str(e)
-
-    payload = {
-        'online': True,
-        'ip': ip_local,
-        'port': PORTA,
-        'public_url': public_url,
-        'local_url': local_url,
-        'socketio_clients': connections.socketio_clients_connected,
-        'socketio_by_role': socketio_by_role,
-        'cpu_percent': cpu_percent,
-        'ram_percent': ram_percent,
-        'disk_total_gb': disk_total_gb,
-        'disk_free_gb': disk_free_gb,
-        'disk_used_percent': disk_used_percent
-
-    }
-    if app.debug and system_stats_error:
-        payload['system_stats_error'] = system_stats_error
-    if app.debug and disk_error:
-        payload['disk_error'] = disk_error
-
-    return jsonify(payload)
 
 
 
