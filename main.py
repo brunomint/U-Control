@@ -43,6 +43,18 @@ from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
 from blueprints.gallery import gallery_bp, get_current_image_path
+from orders_store import (
+    DATA_FILE,
+    ORDERS_FILE,
+    TEMPLATES_FILE,
+    SECTION_TEMPLATES_FILE,
+    load_orders,
+    save_orders,
+    load_templates,
+    save_templates_file,
+    load_section_templates,
+    save_section_templates,
+)
 from connections import _get_monitor_sids, _skip_sids
 
 logger = logging.getLogger('ucontrol')
@@ -553,50 +565,6 @@ def limpar():
 
 
 
-# Load the order of service from the JSON file
-DATA_FILE = 'order_of_service.json'
-ORDERS_FILE = 'orders.json'
-TEMPLATES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'order_templates.json')
-
-def load_templates():
-    try:
-        if os.path.exists(TEMPLATES_FILE):
-            with open(TEMPLATES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return {}
-    except Exception:
-        return {}
-
-def save_templates_file(templates):
-    try:
-        with open(TEMPLATES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(templates, f, indent=4, ensure_ascii=False)
-        return True
-    except Exception:
-        return False
-
-# Funções auxiliares para o novo sistema de ordens
-def load_orders():
-    """Carrega todas as ordens do arquivo orders.json"""
-    try:
-        if os.path.exists(ORDERS_FILE):
-            with open(ORDERS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return {}
-    except Exception as e:
-        logger.exception(f"Erro ao carregar orders.json: {e}")
-        return {}
-
-def save_orders(orders):
-    """Salva todas as ordens no arquivo orders.json"""
-    try:
-        with open(ORDERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(orders, f, indent=4, ensure_ascii=False)
-        return True
-    except Exception as e:
-        logger.exception(f"Erro ao salvar orders.json: {e}")
-        return False
-
 # API para listar todas as ordens
 @app.route('/api/orders', methods=['GET'])
 def api_get_orders():
@@ -769,23 +737,6 @@ def api_delete_template(name):
     save_templates_file(templates)
     return jsonify({'ok': True})
 
-SECTION_TEMPLATES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'section_templates.json')
-
-def load_section_templates():
-    try:
-        if os.path.exists(SECTION_TEMPLATES_FILE):
-            with open(SECTION_TEMPLATES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return {}
-    except Exception:
-        return {}
-
-def save_section_templates(data):
-    try:
-        with open(SECTION_TEMPLATES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-    except Exception:
-        pass
 
 @app.route('/api/section-templates/<section>', methods=['GET'])
 def api_get_section_templates(section):

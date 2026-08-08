@@ -316,3 +316,14 @@ def test_upload_list_and_delete_image_round_trip(client, tmp_path, monkeypatch):
     delete_response = client.post("/delete_image", json={"image_name": "teste.png"})
     assert delete_response.get_json()["status"] == "success"
     assert client.get("/imagens").get_json() == []
+
+
+def test_orders_store_save_and_load_round_trip(tmp_path, monkeypatch):
+    import orders_store
+
+    monkeypatch.chdir(tmp_path)
+    assert orders_store.load_orders() == {}
+
+    sample = {"2026-08-09": {"tipo": "culto", "itens": []}}
+    assert orders_store.save_orders(sample) is True
+    assert orders_store.load_orders() == sample
