@@ -441,15 +441,25 @@ def test_delete_image_and_folder_reject_path_traversal(logged_in_client, tmp_pat
     assert (tmp_path / "static" / "imagens").exists()
 
 
-def test_orders_store_save_and_load_round_trip(tmp_path, monkeypatch):
+def test_orders_store_save_and_load_round_trip(app):
     import orders_store
 
-    monkeypatch.chdir(tmp_path)
-    assert orders_store.load_orders() == {}
-
-    sample = {"2026-08-09": {"tipo": "culto", "itens": []}}
-    assert orders_store.save_orders(sample) is True
-    assert orders_store.load_orders() == sample
+    with app.app_context():
+        existing = orders_store.load_orders()
+        # itens vazio é semanticamente "sem itens" (igual .pop('itens', None)
+        # do sistema antigo) — por isso não entra na chave de volta, mesmo
+        # padrão de chave-ausente-quando-vazio das Fases 5.2/5.4. Usa um
+        # item de verdade aqui pra testar fidelidade do conteúdo, não essa
+        # ambiguidade de lista vazia.
+        sample = dict(existing, **{
+            "2026-08-09-teste-store": {"tipo": "culto", "itens": [{"title": "Abertura", "url": "/order"}]},
+        })
+        assert orders_store.save_orders(sample) is True
+        assert orders_store.load_orders().get("2026-08-09-teste-store") == sample["2026-08-09-teste-store"]
+        # limpeza — banco de teste é compartilhado entre todos os testes da
+        # sessão, remove só a entrada criada aqui, preserva o resto
+        orders_store.save_orders(existing)
+        assert "2026-08-09-teste-store" not in orders_store.load_orders()
 
 
 def test_api_order_save_get_delete_round_trip(logged_in_client, tmp_path, monkeypatch):
@@ -473,12 +483,7 @@ def test_api_order_save_get_delete_round_trip(logged_in_client, tmp_path, monkey
     assert logged_in_client.get("/api/orders/2026-08-09").status_code == 404
 
 
-def test_api_template_save_and_delete_round_trip(logged_in_client, tmp_path, monkeypatch):
-    # TEMPLATES_FILE é relativo ao __file__ de orders_store.py, não ao cwd
-    # — monkeypatch.chdir sozinho não isola; precisa trocar o caminho
-    # direto, senão o teste escreve em order_templates.json de verdade.
-    monkeypatch.setattr("orders_store.TEMPLATES_FILE", str(tmp_path / "order_templates.json"))
-
+def test_api_template_save_and_delete_round_trip(logged_in_client):
     save_response = logged_in_client.post(
         "/api/templates", json={"name": "Padrão", "items": ["Abertura", "Louvor"]}
     )
@@ -489,10 +494,7 @@ def test_api_template_save_and_delete_round_trip(logged_in_client, tmp_path, mon
     assert "Padrão" not in logged_in_client.get("/api/templates").get_json()
 
 
-def test_api_section_template_save_and_delete_round_trip(logged_in_client, tmp_path, monkeypatch):
-    # Mesmo cuidado do teste acima, pra SECTION_TEMPLATES_FILE.
-    monkeypatch.setattr("orders_store.SECTION_TEMPLATES_FILE", str(tmp_path / "section_templates.json"))
-
+def test_api_section_template_save_and_delete_round_trip(logged_in_client):
     save_response = logged_in_client.post(
         "/api/section-templates/louvor",
         json={"name": "Padrão", "fields": {"dirigente": "João"}},
@@ -530,15 +532,19 @@ def test_agenda_calendar_dashboard_and_edit_selector_load(logged_in_client, tmp_
     assert logged_in_client.get("/agenda/edit").status_code == 200
 
 
-def test_agenda_detail_shows_real_order_data(logged_in_client, tmp_path, monkeypatch):
+def test_agenda_detail_shows_real_order_data(logged_in_client, app):
     import orders_store
 
-    monkeypatch.chdir(tmp_path)
-    orders_store.save_orders({"2026-08-09": {"dirigente": "João", "itens": []}})
+    with app.app_context():
+        existing = orders_store.load_orders()
+        orders_store.save_orders(dict(existing, **{"2026-08-09": {"dirigente": "João", "itens": []}}))
 
     response = logged_in_client.get("/agenda/2026-08-09")
     assert response.status_code == 200
     assert "João".encode() in response.data
+
+    with app.app_context():
+        orders_store.save_orders(existing)
 
 
 def test_agenda_edit_renders_same_template_as_order_edit(logged_in_client, tmp_path, monkeypatch):
