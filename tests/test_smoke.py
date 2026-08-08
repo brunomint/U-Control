@@ -193,3 +193,42 @@ def test_add_search_and_delete_song_use_isolated_songs_file(client, tmp_path, mo
 
     empty_search = client.get("/search", query_string={"q": "Teste"})
     assert empty_search.get_json() == []
+
+
+def test_clock_and_help_pages_load(client):
+    assert client.get("/clock").status_code == 200
+    assert client.get("/help").status_code == 200
+
+
+def test_historico_requires_login(client):
+    response = client.get("/historico")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_api_historico_clear_empties_the_log(logged_in_client, tmp_path, monkeypatch):
+    # load_display_log() (GET) resolve o path no namespace de display_log;
+    # api_historico_clear (DELETE) usa o nome já importado em
+    # blueprints.utils — os dois precisam ser trocados separadamente.
+    log_file = tmp_path / "display_log.json"
+    log_file.write_text('[{"type": "song", "title": "x", "ts": "2026-01-01T00:00:00"}]', encoding="utf-8")
+    monkeypatch.setattr("display_log.DISPLAY_LOG_PATH", str(log_file))
+    monkeypatch.setattr("blueprints.utils.DISPLAY_LOG_PATH", str(log_file))
+
+    before = logged_in_client.get("/api/historico").get_json()
+    assert len(before) == 1
+
+    clear_response = logged_in_client.delete("/api/historico")
+    assert clear_response.get_json() == {"ok": True}
+    assert log_file.read_text(encoding="utf-8") == "[]"
+
+
+def test_download_monitor_launcher_invalid_os_returns_400(client):
+    response = client.get("/download-monitor-launcher/xyz")
+    assert response.status_code == 400
+
+
+def test_download_monitor_launcher_windows_returns_bat_attachment(client):
+    response = client.get("/download-monitor-launcher/windows")
+    assert response.status_code == 200
+    assert ".bat" in response.headers["Content-Disposition"]
