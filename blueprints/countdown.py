@@ -1,34 +1,39 @@
 """Cronômetro de contagem regressiva — estado 100% isolado (em memória +
-countdown_config.json), sem nenhuma variável compartilhada com outra área
-do app (confirmado na exploração antes do split)."""
-import json
-import os
+tabela CountdownConfig), sem nenhuma variável compartilhada com outra área
+do app (confirmado na exploração antes do split).
+
+O rótulo salvo é lido do banco uma vez na inicialização (init_countdown_state,
+chamado por create_app() dentro de app_context) — não pode ser lido no
+import do módulo como antes (era um campo default de _countdown_state),
+porque isso rodava antes de db.init_app()/app_context existirem."""
 import time
 
 from flask import Blueprint, jsonify, render_template
 from flask_socketio import emit
 
-from extensions import socketio
+from extensions import db, socketio
+from models import CountdownConfig
 
 countdown_bp = Blueprint('countdown', __name__)
 
-_COUNTDOWN_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'countdown_config.json')
-
 
 def _load_countdown_config():
-    try:
-        with open(_COUNTDOWN_CONFIG_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {'label': ''}
+    row = CountdownConfig.query.first()
+    return {'label': row.label or ''} if row else {'label': ''}
 
 
 def _save_countdown_config(data):
+    row = CountdownConfig.query.first()
+    if not row:
+        row = CountdownConfig()
+        db.session.add(row)
+    row.label = data.get('label', '')
     try:
-        with open(_COUNTDOWN_CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False)
+        db.session.commit()
     except Exception:
-        pass
+        db.session.rollback()
+    finally:
+        db.session.close()
 
 
 _countdown_state = {
@@ -37,8 +42,14 @@ _countdown_state = {
     'paused_remaining': None,
     'active': False,
     'paused': False,
-    'label': _load_countdown_config().get('label', ''),
+    'label': '',
 }
+
+
+def init_countdown_state():
+    """Chamado uma vez por create_app(), dentro de app_context — carrega o
+    rótulo salvo do banco pro estado em memória."""
+    _countdown_state['label'] = _load_countdown_config().get('label', '')
 
 
 @countdown_bp.route('/countdown')

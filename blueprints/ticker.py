@@ -1,39 +1,50 @@
 """Avisos em ticker (texto rolando na base da tela) — estado isolado (em
-memória + ticker_config.json), sem nenhuma variável compartilhada com
+memória + tabela TickerConfig), sem nenhuma variável compartilhada com
 outra área do app (confirmado na exploração antes do split). Depende só
-do utilitário compartilhado display_log."""
-import json
-import os
+do utilitário compartilhado display_log.
 
+O texto salvo é lido do banco uma vez na inicialização (init_ticker_state,
+chamado por create_app() dentro de app_context) — não pode ser lido no
+import do módulo como antes, porque isso rodava antes de
+db.init_app()/app_context existirem."""
 from flask import Blueprint, jsonify
 from flask_socketio import emit
 
 from display_log import append_display_log
-from extensions import socketio
+from extensions import db, socketio
+from models import TickerConfig
 
 ticker_bp = Blueprint('ticker', __name__)
 
-_TICKER_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ticker_config.json')
-
 
 def _load_ticker_config():
-    try:
-        with open(_TICKER_CONFIG_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {'text': ''}
+    row = TickerConfig.query.first()
+    return {'text': row.text or ''} if row else {'text': ''}
 
 
 def _save_ticker_config(text):
+    row = TickerConfig.query.first()
+    if not row:
+        row = TickerConfig()
+        db.session.add(row)
+    row.text = text
     try:
-        with open(_TICKER_CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump({'text': text}, f, ensure_ascii=False)
+        db.session.commit()
     except Exception:
-        pass
+        db.session.rollback()
+    finally:
+        db.session.close()
 
 
-_ticker_text = _load_ticker_config().get('text', '')
+_ticker_text = ''
 _ticker_active = False  # nunca ativo no boot; exige comando explícito
+
+
+def init_ticker_state():
+    """Chamado uma vez por create_app(), dentro de app_context — carrega o
+    texto salvo do banco pro estado em memória."""
+    global _ticker_text
+    _ticker_text = _load_ticker_config().get('text', '')
 
 
 @ticker_bp.route('/api/ticker')

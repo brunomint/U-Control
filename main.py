@@ -21,8 +21,8 @@ from logging.handlers import RotatingFileHandler
 from extensions import db, migrate, login_manager, socketio
 import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
 import models_orders  # noqa: F401 — idem
-from blueprints.countdown import countdown_bp
-from blueprints.ticker import ticker_bp
+from blueprints.countdown import countdown_bp, init_countdown_state
+from blueprints.ticker import ticker_bp, init_ticker_state
 from blueprints.auth import auth_bp
 from blueprints.bible import bible_bp, generate_bible_url
 from blueprints.cifras import cifras_bp
@@ -137,12 +137,18 @@ def create_app(config=None):
         transports=['polling', 'websocket'],
     )
 
-    if app.config.get('TESTING'):
-        # Banco em memória dos testes: recriado do zero a cada processo, não
-        # faz sentido versionar com migration. Fora de teste (dev ou
-        # produção), o schema vem só de `flask db upgrade` (migrations/).
-        with app.app_context():
+    with app.app_context():
+        if app.config.get('TESTING'):
+            # Banco em memória dos testes: recriado do zero a cada processo,
+            # não faz sentido versionar com migration. Fora de teste (dev ou
+            # produção), o schema vem só de `flask db upgrade` (migrations/).
             db.create_all()
+
+        # Hidrata o rótulo/texto salvos (countdown/ticker) do banco pro
+        # estado em memória — precisa rodar aqui (depois de db.init_app(),
+        # dentro de app_context), não no import do módulo como antes.
+        init_countdown_state()
+        init_ticker_state()
 
     app.register_blueprint(countdown_bp)
     app.register_blueprint(ticker_bp)

@@ -65,6 +65,25 @@ def test_set_ticker_broadcasts_and_updates_state(app):
     socket_client.disconnect()
 
 
+def test_init_countdown_and_ticker_state_hydrate_from_db(app):
+    # Simula o que create_app() faz no startup real: lê o rótulo/texto
+    # salvos no banco pro estado em memória. Não pode rodar no import do
+    # módulo (blueprints/countdown.py, ticker.py) — precisa de app_context.
+    from blueprints.countdown import _countdown_state, _save_countdown_config, init_countdown_state
+    from blueprints.ticker import _save_ticker_config, init_ticker_state
+    import blueprints.ticker as ticker_module
+
+    with app.app_context():
+        _save_countdown_config({"label": "Rótulo salvo"})
+        _save_ticker_config("Texto salvo")
+
+        init_countdown_state()
+        init_ticker_state()
+
+    assert _countdown_state["label"] == "Rótulo salvo"
+    assert ticker_module._ticker_text == "Texto salvo"
+
+
 def test_login_redirects_to_dashboard_and_authenticates(app, client):
     with app.app_context():
         if not User.query.filter_by(username="tester").first():
