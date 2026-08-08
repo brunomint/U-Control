@@ -1,9 +1,6 @@
 * { box-sizing: border-box; }
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: white;
 }
 .page { max-width: 1100px; margin: 36px auto; padding: 0 16px 80px; }
 .header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
