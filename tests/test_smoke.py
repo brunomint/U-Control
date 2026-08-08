@@ -23,3 +23,9 @@ def test_data_pt_formats_date_in_portuguese():
 
 def test_data_pt_returns_input_unchanged_on_invalid_date():
     assert ucontrol_main.data_pt("not-a-date") == "not-a-date"
+
+
+def test_display_state_table_has_media_type_column(app):
+    with app.app_context():
+        columns = [c.name for c in ucontrol_main.DisplayState.__table__.columns]
+    assert "media_type" in columns

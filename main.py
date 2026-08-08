@@ -3276,12 +3276,6 @@ def handle_show_video(data):
 
     def save_async():
         with app.app_context():
-            try:
-                with db.engine.connect() as conn:
-                    conn.execute(db.text('ALTER TABLE display_state ADD COLUMN media_type VARCHAR(10) DEFAULT "image"'))
-                    conn.commit()
-            except Exception:
-                pass
             state = DisplayState.query.first()
             if not state:
                 state = DisplayState(url1=video_url, url2='', media_type='video')
