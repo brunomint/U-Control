@@ -1,383 +1,45 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Histórico do Culto</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+{% extends "base.html" %}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            color: white;
-        }
+{% block title %}Histórico do Culto{% endblock %}
 
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/historico.css') }}">
+{% endblock %}
 
-        .page-header {
-            background: linear-gradient(135deg, #00bcd4, #0097a7);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,188,212,0.3);
-        }
-        .page-header h1 { font-size: 2rem; font-weight: 700; }
-        .page-header p { opacity: 0.85; margin-top: 6px; }
-
-        .actions-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 10px 18px;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: opacity 0.2s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn:hover { opacity: 0.85; }
-        .btn-secondary { background: rgba(255,255,255,0.12); color: white; }
-        .btn-danger { background: #c0392b; color: white; }
-
-        .day-group { margin-bottom: 32px; }
-
-        .day-header {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #00bcd4;
-            padding: 10px 0 6px;
-            border-bottom: 1px solid rgba(0,188,212,0.3);
-            margin-bottom: 12px;
-        }
-
-        .entry {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 10px;
-            margin-bottom: 8px;
-        }
-
-        .entry-icon { font-size: 1.3rem; flex-shrink: 0; width: 28px; text-align: center; }
-
-        .entry-body { flex: 1; overflow: hidden; }
-        .entry-title {
-            font-size: 0.95rem;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .entry-title a { color: #00bcd4; text-decoration: none; }
-        .entry-title a:hover { text-decoration: underline; }
-
-        .entry-time {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.45);
-            margin-top: 2px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: rgba(255,255,255,0.4);
-            font-size: 1.1rem;
-        }
-
-        .loading { text-align: center; padding: 40px; color: rgba(255,255,255,0.5); }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-        .tab-btn {
-            padding: 8px 20px;
-            border-radius: 20px;
-            border: 2px solid rgba(0,188,212,0.4);
-            background: transparent;
-            color: rgba(255,255,255,0.6);
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .tab-btn.active {
-            background: #00bcd4;
-            border-color: #00bcd4;
-            color: #000;
-        }
-
-        .period-bar {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        .period-btn {
-            padding: 6px 16px;
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.07);
-            color: rgba(255,255,255,0.7);
-            cursor: pointer;
-            font-size: 0.82rem;
-            font-weight: 600;
-            transition: all 0.15s;
-        }
-        .period-btn.active {
-            background: rgba(0,188,212,0.25);
-            border-color: #00bcd4;
-            color: #00bcd4;
-        }
-
-        .rank-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 10px;
-            margin-bottom: 8px;
-        }
-        .rank-pos {
-            font-size: 1rem;
-            font-weight: 700;
-            color: rgba(255,255,255,0.3);
-            width: 28px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .rank-pos.gold   { color: #fbbf24; }
-        .rank-pos.silver { color: #94a3b8; }
-        .rank-pos.bronze { color: #b45309; }
-        .rank-title { flex: 1; font-size: 0.95rem; font-weight: 500; }
-        .rank-title a { color: #00bcd4; text-decoration: none; }
-        .rank-title a:hover { text-decoration: underline; }
-        .rank-count {
-            font-size: 0.85rem;
-            font-weight: 700;
-            background: rgba(0,188,212,0.2);
-            color: #00bcd4;
-            padding: 3px 10px;
-            border-radius: 12px;
-            flex-shrink: 0;
-        }
-
-        .toast {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 10px 22px; border-radius: 20px;
-            font-size: 0.9rem; opacity: 0; transition: opacity 0.3s; pointer-events: none;
-        }
-        .toast.show { opacity: 1; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="page-header">
-            <h1>📜 Histórico do Culto</h1>
-            <p>Registros de exibição: músicas, imagens, versículos e avisos</p>
-        </div>
-
-        <div class="actions-bar">
-            <a href="/control" class="btn btn-secondary">← Painel</a>
-            <button class="btn btn-danger" onclick="clearHistory()">🗑 Limpar histórico</button>
-        </div>
-
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('historico')">📜 Histórico</button>
-            <button class="tab-btn" onclick="switchTab('relatorio')">📊 Relatório</button>
-        </div>
-
-        <div id="tab-historico">
-            <div id="content"><div class="loading">Carregando...</div></div>
-        </div>
-
-        <div id="tab-relatorio" style="display:none">
-            <div class="period-bar">
-                <button class="period-btn active" onclick="setPeriod(7, this)">Últimos 7 dias</button>
-                <button class="period-btn" onclick="setPeriod(30, this)">Últimos 30 dias</button>
-                <button class="period-btn" onclick="setPeriod(0, this)">Todo o período</button>
-            </div>
-            <div id="ranking"><div class="loading">Carregando...</div></div>
-        </div>
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>📜 Histórico do Culto</h1>
+        <p>Registros de exibição: músicas, imagens, versículos e avisos</p>
     </div>
 
-    <div class="toast" id="toast"></div>
+    <div class="actions-bar">
+        <a href="/control" class="btn btn-secondary">← Painel</a>
+        <button class="btn btn-danger" onclick="clearHistory()">🗑 Limpar histórico</button>
+    </div>
 
-    <script>
-        const ICONS = { song: '🎵', image: '🖼️', bible: '📖', ticker: '📢' };
-        const LABELS = { song: 'Música', image: 'Imagem/Vídeo', bible: 'Bíblia', ticker: 'Aviso' };
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('historico')">📜 Histórico</button>
+        <button class="tab-btn" onclick="switchTab('relatorio')">📊 Relatório</button>
+    </div>
 
-        const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-                        'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-        const weekdays = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    <div id="tab-historico">
+        <div id="content"><div class="loading">Carregando...</div></div>
+    </div>
 
-        function formatDate(dateStr) {
-            const [y, m, d] = dateStr.split('-');
-            const dt = new Date(y, m - 1, d);
-            return `${weekdays[dt.getDay()]}, ${parseInt(d)} de ${months[dt.getMonth()]} de ${y}`;
-        }
+    <div id="tab-relatorio" style="display:none">
+        <div class="period-bar">
+            <button class="period-btn active" onclick="setPeriod(7, this)">Últimos 7 dias</button>
+            <button class="period-btn" onclick="setPeriod(30, this)">Últimos 30 dias</button>
+            <button class="period-btn" onclick="setPeriod(0, this)">Todo o período</button>
+        </div>
+        <div id="ranking"><div class="loading">Carregando...</div></div>
+    </div>
+</div>
 
-        function formatTime(ts) {
-            return ts.substring(11, 16);
-        }
+<div class="toast" id="toast"></div>
+{% endblock %}
 
-        function renderTitle(entry) {
-            if (entry.type === 'song' && entry.url) {
-                return `<a href="${entry.url}" target="_blank">${escHtml(entry.title)}</a>`;
-            }
-            if (entry.type === 'image' && entry.title && entry.title.startsWith('/static/')) {
-                const name = entry.title.split('/').pop();
-                return `<a href="${entry.title}" target="_blank">${escHtml(name)}</a>`;
-            }
-            return escHtml(entry.title || '—');
-        }
-
-        function escHtml(str) {
-            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        }
-
-        function load() {
-            fetch('/api/historico')
-                .then(r => r.json())
-                .then(log => {
-                    if (!log.length) {
-                        document.getElementById('content').innerHTML =
-                            '<div class="empty-state">Nenhum evento registrado ainda.</div>';
-                        return;
-                    }
-
-                    // Agrupar por data
-                    const groups = {};
-                    log.forEach(entry => {
-                        const date = entry.ts.substring(0, 10);
-                        if (!groups[date]) groups[date] = [];
-                        groups[date].push(entry);
-                    });
-
-                    let html = '';
-                    Object.keys(groups).forEach(date => {
-                        html += `<div class="day-group">
-                            <div class="day-header">📅 ${formatDate(date)}</div>`;
-                        groups[date].forEach(entry => {
-                            html += `<div class="entry">
-                                <div class="entry-icon">${ICONS[entry.type] || '▶️'}</div>
-                                <div class="entry-body">
-                                    <div class="entry-title">${renderTitle(entry)}</div>
-                                    <div class="entry-time">${LABELS[entry.type] || entry.type} · ${formatTime(entry.ts)}</div>
-                                </div>
-                            </div>`;
-                        });
-                        html += '</div>';
-                    });
-
-                    document.getElementById('content').innerHTML = html;
-                })
-                .catch(() => {
-                    document.getElementById('content').innerHTML =
-                        '<div class="empty-state">Erro ao carregar histórico.</div>';
-                });
-        }
-
-        function clearHistory() {
-            if (!confirm('Limpar todo o histórico?')) return;
-            fetch('/api/historico', { method: 'DELETE' })
-                .then(() => { showToast('Histórico limpo.'); load(); renderRanking(); });
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        }
-
-        // ── TABS ──────────────────────────────────────────────────────
-        let _activeTab = 'historico';
-        function switchTab(tab) {
-            _activeTab = tab;
-            document.getElementById('tab-historico').style.display = tab === 'historico' ? '' : 'none';
-            document.getElementById('tab-relatorio').style.display = tab === 'relatorio' ? '' : 'none';
-            document.querySelectorAll('.tab-btn').forEach((b, i) => {
-                b.classList.toggle('active', (i === 0 && tab === 'historico') || (i === 1 && tab === 'relatorio'));
-            });
-            if (tab === 'relatorio') renderRanking();
-        }
-
-        // ── RANKING ───────────────────────────────────────────────────
-        let _rankDays = 7;
-        let _rankLog  = [];
-
-        function setPeriod(days, btn) {
-            _rankDays = days;
-            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderRanking();
-        }
-
-        function renderRanking() {
-            fetch('/api/historico')
-                .then(r => r.json())
-                .then(log => {
-                    _rankLog = log;
-                    const cutoff = _rankDays
-                        ? new Date(Date.now() - _rankDays * 864e5).toISOString().substring(0, 10)
-                        : '0000-00-00';
-
-                    const songs = log.filter(e => e.type === 'song' && e.ts >= cutoff);
-
-                    if (!songs.length) {
-                        document.getElementById('ranking').innerHTML =
-                            '<div class="empty-state">Nenhuma música no período.</div>';
-                        return;
-                    }
-
-                    // Conta por título
-                    const counts = {};
-                    const urls   = {};
-                    songs.forEach(e => {
-                        counts[e.title] = (counts[e.title] || 0) + 1;
-                        if (e.url) urls[e.title] = e.url;
-                    });
-
-                    const ranked = Object.entries(counts)
-                        .sort((a, b) => b[1] - a[1]);
-
-                    const posClass = ['gold', 'silver', 'bronze'];
-                    let html = '';
-                    ranked.forEach(([title, count], i) => {
-                        const pos = i + 1;
-                        const cls = posClass[i] || '';
-                        const label = urls[title]
-                            ? `<a href="${urls[title]}" target="_blank">${escHtml(title)}</a>`
-                            : escHtml(title);
-                        html += `<div class="rank-item">
-                            <div class="rank-pos ${cls}">${pos}º</div>
-                            <div class="rank-title">${label}</div>
-                            <div class="rank-count">${count}×</div>
-                        </div>`;
-                    });
-                    document.getElementById('ranking').innerHTML = html;
-                });
-        }
-
-        load();
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/historico.js') }}"></script>
+{% endblock %}
