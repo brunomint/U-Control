@@ -14,13 +14,16 @@ instance/
 .claude/settings.local.json
 .vscode/
 
-# Estado/cache gerado em runtime pelo próprio app (não é conteúdo curado)
-display_log.json
-countdown_config.json
-ticker_config.json
-image_paths.json
-settings.json
-urls.json
+# Estado/cache gerado em runtime pelo próprio app (não é conteúdo curado).
+# Fase 5.X (JSON->SQL): esses arquivos pararam de ser lidos/escritos pelo
+# app — só ficam em data_backup_pre_sql/ como rede de segurança até o
+# rollout real no Pi ser validado por um tempo (ver Fase 5.7).
+data_backup_pre_sql/display_log.json
+data_backup_pre_sql/countdown_config.json
+data_backup_pre_sql/ticker_config.json
+data_backup_pre_sql/image_paths.json
+data_backup_pre_sql/settings.json
+data_backup_pre_sql/urls.json
 
 # Mídia enviada pelos usuários via galeria/downloads — muda o tempo todo,
 # não pertence ao histórico do git (backup deve ser feito à parte)

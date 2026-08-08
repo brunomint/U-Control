@@ -12,20 +12,15 @@ com `.pop()`). save_orders(orders) faz sync completo por data, com DIFF
 real nas listas-filhas (itens/eventos) — mesmo princípio de songs_store.py:
 evita reescrever linhas que não mudaram.
 
-O sistema legado (pré-orders.json, DATA_FILE/order_of_service.json) fica
-de fora desta migração de propósito — é usado só por /save e /load em
-blueprints/orders.py e por um fallback em view_song (main.py), migração
-prevista pra Fase 5.6 (unificação, não é troca de storage simples)."""
+O sistema legado (pré-orders.json, order_of_service.json) foi unificado
+na Fase 5.6 — /save e /load (blueprints/orders.py) e o fallback de
+view_song (main.py) miram a ordem de hoje (tabela Order) desde então."""
 import logging
 
 from extensions import db
 from models_orders import EventoItem, Order, OrderItem, OrderTemplate, SectionTemplate
 
 logger = logging.getLogger('ucontrol')
-
-# Sistema legado (pré-orders.json) — só usado por /save e /load em
-# blueprints/orders.py e por um fallback em view_song (main.py). Fase 5.6.
-DATA_FILE = 'order_of_service.json'
 
 
 # ---------------------------------------------------------------- itens ---

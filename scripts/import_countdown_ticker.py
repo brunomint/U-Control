@@ -18,7 +18,7 @@ from main import app  # noqa: E402
 from extensions import db  # noqa: E402
 from models import CountdownConfig, TickerConfig  # noqa: E402
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data_backup_pre_sql')
 
 
 def _read_json(filename):

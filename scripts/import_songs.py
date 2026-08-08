@@ -21,7 +21,10 @@ from main import app  # noqa: E402
 from models_songs import Song  # noqa: E402
 from songs_store import save_songs  # noqa: E402
 
-JSON_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'songs.json')
+JSON_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'data_backup_pre_sql', 'songs.json',
+)
 
 
 def main():
