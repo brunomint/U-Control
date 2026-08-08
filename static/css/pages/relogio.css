@@ -1,0 +1,25 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #1e90ff, #4b0082);
+    color: white;
+    font-family: 'SF Pro Display', Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    overflow: hidden;
+}
+.clock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.date {
+    font-size: 24px;
+    font-weight: 400;
+}
+.time {
+    font-size: 96px;
+    font-weight: 600;
+}
