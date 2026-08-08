@@ -1,0 +1,6 @@
+.text-block {
+    word-wrap: normal;
+    overflow-x: auto;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+}

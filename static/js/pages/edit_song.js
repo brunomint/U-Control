@@ -1,0 +1,3052 @@
+// new_song.js e edit_song.js compartilham a maior parte da lógica do editor de
+// blocos/partitura (candidatos a um _song_editor.html futuro). Diferenças reais
+// observadas na Fase 4.7: build do VexFlow (4.2.2-cjs aqui vs 4.2.3-cjs em
+// new_song.js) e a regra .text-block do CSS (word-wrap/overflow, ver
+// static/css/pages/edit_song.css vs new_song.css). Unificação num include
+// compartilhado ficou fora de escopo — é refactor comportamental, não estrutural.
+
+const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent);
+
+
+        // Document ready function
+        $(document).ready(function() {
+            function adjustTextareaHeight(textarea) {
+                textarea.css('height', 'auto');
+                textarea.css('height', textarea[0].scrollHeight + 'px');
+            }
+
+            $('#sections').on('input', 'textarea[name="texts[]"]', function() {
+                adjustTextareaHeight($(this));
+            });
+
+            $('#sections textarea[name="texts[]"]').each(function() {
+                adjustTextareaHeight($(this));
+                
+            });
+
+            function addNewSection(textBelowCursor = '') {
+                const newSection = $(`
+                    <div class="section">
+                        <div class="section-header">
+                            <input type="text" name="sections[]" placeholder="Título da Seção (ex. verso, coro, estrofe...)">
+                                        <button type="button" class="addSection" title="Adicionar Seção"><i class="fas fa-plus"></i></button>
+                                        <button type="button" class="removeSection" title="Remover Seção"><i class="fas fa-trash-alt"></i></button>
+                     </div>
+                        <textarea name="texts[]" wrap="off" placeholder="Letra da música..." required>${textBelowCursor}</textarea>
+                    </div>
+            `);
+            $('#sections').append(newSection);
+            adjustTextareaHeight(newSection.find('textarea'));
+            return newSection.find('textarea'); // Retorna a nova textarea
+            }
+
+
+            $('#sections').on('keydown', 'textarea[name="texts[]"]', function(event) {
+                if (event.ctrlKey && event.which === 13) {
+                    event.preventDefault();
+                    const $currentSection = $(this).closest('.section');
+                    const $textarea = $(this);
+                    const currentText = $textarea.val();
+                    const cursorPosition = $textarea[0].selectionStart;
+
+                    const textAboveCursor = currentText.substring(0, cursorPosition);
+                    const textBelowCursor = currentText.substring(cursorPosition);
+
+                    // Adiciona uma nova seção e retorna o novo textarea
+                    const newTextarea = addNewSection(textBelowCursor);
+
+                    // Insere a nova seção no DOM
+                    $currentSection.after(newTextarea.closest('.section'));
+
+                    // Atualiza o texto na textarea atual
+                    $textarea.val(textAboveCursor);
+                    adjustTextareaHeight($textarea);
+
+                    // Garante que o foco será aplicado no novo textarea
+                    setTimeout(() => $(newTextarea).focus(), 0);
+                }
+
+                if (event.ctrlKey && event.which === 8) {
+                    event.preventDefault();
+                    const $currentSection = $(this).closest('.section');
+                    if ($currentSection.length) {
+                        $currentSection.remove();
+                    }
+                }
+            });
+
+            // Botão para adicionar nova seção (equivalente a Ctrl+Enter)
+            $('#sections').on('click', '.addSection', function () {
+                const $currentSection = $(this).closest('.section');
+                const $textarea = $currentSection.find('textarea');
+                const currentText = $textarea.val();
+                const cursorPosition = $textarea[0].selectionStart;
+
+                const textAboveCursor = currentText.substring(0, cursorPosition);
+                const textBelowCursor = currentText.substring(cursorPosition);
+
+                // Atualiza texto atual
+                $textarea.val(textAboveCursor);
+                adjustTextareaHeight($textarea);
+
+                // Cria nova seção e insere
+                const newTextarea = addNewSection(textBelowCursor);
+                $currentSection.after(newTextarea.closest('.section'));
+                setTimeout(() => $(newTextarea).focus(), 0);
+            });
+
+            // Botão para remover seção (equivalente a Ctrl+Backspace)
+            $('#sections').on('click', '.removeSection', function () {
+                const $section = $(this).closest('.section');
+                if ($section.length) $section.remove();
+            });
+
+            $('#sections').on('click', '.copyText', function () {
+                const textarea = $(this).closest('.section').find('textarea[name="texts[]"]')[0];
+                textarea.select();
+                document.execCommand('copy');
+
+                // Feedback visual
+                const originalHTML = $(this).html();
+                $(this).html('<i class="fas fa-check"></i>');
+                setTimeout(() => {
+                    $(this).html(originalHTML);
+                }, 1000);
+            });
+
+            $('#sections').on('click', '.copyTitle', function () {
+                const input = $(this).closest('.section').find('input[name="sections[]"]')[0];
+                input.select();
+                document.execCommand('copy');
+
+                // Feedback visual
+                const originalHTML = $(this).html();
+                $(this).html('<i class="fas fa-check"></i>');
+                setTimeout(() => {
+                    $(this).html(originalHTML);
+                }, 1000);
+            });
+
+
+
+            $('#sections').on('click', '.pasteText', async function () {
+                const textarea = $(this).closest('.section').find('textarea[name="texts[]"]')[0];
+                try {
+                    const text = await navigator.clipboard.readText();
+                    const cursorPos = textarea.selectionStart;
+                    const currentText = textarea.value;
+
+                    // Insere no local do cursor
+                    textarea.value = currentText.slice(0, cursorPos) + text + currentText.slice(cursorPos);
+                    textarea.focus();
+
+                    // Feedback visual
+                    const button = $(this);
+                    const originalHTML = button.html();
+                    button.html('<i class="fas fa-check"></i>');
+                    setTimeout(() => {
+                        button.html(originalHTML);
+                }, 1000);
+                } catch (err) {
+                    alert('Erro ao acessar a área de transferência. Permissão negada?');
+                    console.error('Erro ao colar texto:', err);
+                }
+            });
+
+
+            // Cola no <input>
+            $('#sections').on('click', '.pasteTitle', async function () {
+                const input = $(this).closest('.section').find('input[name="sections[]"]')[0];
+                if (!input) return;
+
+                try {
+                    const text = await navigator.clipboard.readText();
+                    const cursorPos = input.selectionStart;
+                    const currentText = input.value;
+
+                    input.value = currentText.slice(0, cursorPos) + text + currentText.slice(cursorPos);
+                    input.focus();
+
+                    // Feedback visual
+                    const button = $(this);
+                    const originalHTML = button.html();
+                    button.html('<i class="fas fa-check"></i>');
+                    setTimeout(() => {
+                        button.html(originalHTML);
+                    }, 1000);
+                } catch (err) {
+                    alert('Erro ao acessar a área de transferência. Permissão negada?');
+                    console.error('Erro ao colar texto no título:', err);
+                }
+            });
+
+
+            $('#sections').on('click', '.removeSection', function() {
+                $(this).closest('.section').remove();
+            });
+
+            $('#songForm').submit(function(event) {
+                event.preventDefault();
+                
+                console.log('📤 Enviando formulário...');
+                console.log('🎼 Dados da partitura disponíveis:', window.currentSheetData);
+                
+                // Captura a estrutura de blocos do editor usando o array global que mantém a ordem
+                console.log('🔍 Iniciando captura de dados do formulário...');
+                
+                const sectionsToSend = [];
+                
+                // Usa o array blocks global que já mantém a ordem correta dos blocos
+                // Acessa o array blocks que está no escopo do editor (linha 2013)
+                const editorBlocks = window.editorBlocks || [];
+                
+                console.log('🧱 Array blocks global:', editorBlocks);
+                
+                console.log('🧱 Blocos do editor:', editorBlocks);
+                
+                // Array para armazenar múltiplas partituras
+                const sheetDataArray = [];
+                
+                // Converte os blocos do editor para o formato esperado pelo backend
+                // Lógica: seção + próximo texto = uma seção com título e conteúdo
+                let currentSection = null;
+                
+                editorBlocks.forEach((block, index) => {
+                    console.log(`🔍 Processando bloco ${index}:`, block.type, block);
+                    
+                    if (block.type === 'section') {
+                        // Se já existe uma seção pendente sem texto, adiciona ela vazia
+                        if (currentSection) {
+                            sectionsToSend.push(currentSection);
+                            console.log(`📋 Seção anterior adicionada (vazia): "${currentSection.title}"`);
+                        }
+                        
+                        // Cria nova seção pendente
+                        currentSection = {
+                            title: block.title || '',
+                            text: []
+                        };
+                        console.log(`📋 Nova seção criada: "${block.title}"`);
+                        
+                    } else if (block.type === 'text') {
+                        // Bloco de texto (NÃO usar trim para preservar espaços)
+                        const content = block.content || '';
+                        
+                        if (currentSection) {
+                            // Se existe seção pendente, adiciona o texto nela
+                            if (content.trim()) { // Verifica se tem conteúdo, mas não remove espaços
+                                currentSection.text.push(content);
+                            }
+                            sectionsToSend.push(currentSection);
+                            console.log(`📝 Texto adicionado à seção "${currentSection.title}": ${content.substring(0, 50)}...`);
+                            currentSection = null; // Limpa seção pendente
+                        } else {
+                            // Se não existe seção pendente, cria seção sem título
+                            if (content.trim()) { // Verifica se tem conteúdo, mas não remove espaços
+                                sectionsToSend.push({
+                                    title: '',
+                                    text: [content]
+                                });
+                                console.log(`📝 Texto adicionado sem seção: ${content.substring(0, 50)}...`);
+                            }
+                        }
+                        
+                    } else if (block.type === 'sheet') {
+                        // Bloco de partitura
+                        const sheetId = block.id || Date.now();
+                        const sheetMarker = `🎼 PARTITURA_INTEGRADA_${sheetId}`;
+                        
+                        // Se existe seção pendente, adiciona a marcação da partitura no text dela
+                        // MAS NÃO FECHA A SEÇÃO (mantém currentSection para próximos blocos de texto)
+                        if (currentSection) {
+                            currentSection.text.push(sheetMarker);
+                            console.log(`🎼 Marcação de partitura adicionada à seção pendente "${currentSection.title}" (seção continua aberta)`);
+                        } else if (sectionsToSend.length > 0) {
+                            // Se não há seção pendente mas já existem seções enviadas, adiciona à última
+                            const lastSection = sectionsToSend[sectionsToSend.length - 1];
+                            lastSection.text.push(sheetMarker);
+                            console.log(`🎼 Marcação de partitura adicionada à última seção "${lastSection.title}"`);
+                        } else {
+                            // Se não existe nenhuma seção, cria seção sem título com a marcação
+                            sectionsToSend.push({
+                                title: '',
+                                text: [sheetMarker]
+                            });
+                            console.log(`🎼 Marcação de partitura adicionada em nova seção sem título`);
+                        }
+                        
+                        // Tenta pegar dados de originalData primeiro, depois sheetData
+                        let sheetDataToSave = null;
+                        
+                        // Prioriza originalData (já está no formato correto)
+                        if (block.originalData) {
+                            if (typeof block.originalData === 'string') {
+                                try {
+                                    sheetDataToSave = JSON.parse(block.originalData);
+                                } catch (e) {
+                                    console.error('❌ Erro ao parsear originalData:', e);
+                                }
+                            } else {
+                                sheetDataToSave = block.originalData;
+                            }
+                        } else if (block.sheetData) {
+                            // Fallback para sheetData
+                            try {
+                                sheetDataToSave = JSON.parse(block.sheetData);
+                            } catch (e) {
+                                console.error('❌ Erro ao parsear sheetData:', e);
+                            }
+                        }
+                        
+                        if (sheetDataToSave) {
+                            console.log(`🔍 Dados da partitura ${sheetId}:`, sheetDataToSave);
+                            
+                            // Verifica se já está no formato correto {notes: [...]}
+                            if (sheetDataToSave.notes && Array.isArray(sheetDataToSave.notes)) {
+                                // Formato correto, usa diretamente
+                                const sheetEntry = {
+                                    id: sheetId,
+                                    notes: sheetDataToSave.notes,
+                                    time_signature: sheetDataToSave.time_signature || sheetDataToSave.timeSignature || "4/4",
+                                    clef: sheetDataToSave.clef || "treble",
+                                    keySig: sheetDataToSave.keySig || sheetDataToSave.key_signature || sheetDataToSave.key || null
+                                };
+                                
+                                // Inclui cifras se existirem
+                                if (sheetDataToSave.chords && sheetDataToSave.chords.length > 0) {
+                                    sheetEntry.chords = sheetDataToSave.chords;
+                                    console.log(` Incluindo ${sheetDataToSave.chords.length} cifras na partitura`);
+                                }
+                                
+                                sheetDataArray.push(sheetEntry);
+                                console.log(` Partitura ${sheetId} adicionada com ${sheetDataToSave.notes.length} notas (formato original)`);
+                            } else if (sheetDataToSave.measures && Array.isArray(sheetDataToSave.measures)) {
+                                // Formato do editor {measures: [[...]]}, precisa converter
+                                const convertedNotes = [];
+                                sheetDataToSave.measures.forEach(measure => {
+                                    if (Array.isArray(measure)) {
+                                        measure.forEach(note => {
+                                            if (note.pitch && note.duration) {
+                                                convertedNotes.push({
+                                                    keys: [note.pitch],
+                                                    duration: note.duration,
+                                                    accidental: note.accidental || null
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                                
+                                const sheetEntry = {
+                                    id: sheetId,
+                                    notes: convertedNotes,
+                                    time_signature: sheetDataToSave.timeSig || "4/4",
+                                    clef: sheetDataToSave.clef || "treble",
+                                    keySig: sheetDataToSave.keySig || sheetDataToSave.key_signature || sheetDataToSave.key || null
+                                };
+                                
+                                // Inclui cifras se existirem
+                                if (sheetDataToSave.chords && sheetDataToSave.chords.length > 0) {
+                                    sheetEntry.chords = sheetDataToSave.chords;
+                                    console.log(` Incluindo ${sheetDataToSave.chords.length} cifras na partitura`);
+                                }
+                                
+                                sheetDataArray.push(sheetEntry);
+                                console.log(`🎼 Partitura ${sheetId} adicionada com ${convertedNotes.length} notas (convertido de measures)`);
+                            } else {
+                                console.warn(`⚠️ Partitura ${sheetId} sem dados válidos`);
+                            }
+                        } else {
+                            console.warn(`⚠️ Partitura ${sheetId} sem dados`);
+                        }
+                    }
+                });
+                
+                // Se ainda existe uma seção pendente no final, adiciona ela
+                if (currentSection) {
+                    sectionsToSend.push(currentSection);
+                    console.log(`📋 Seção final adicionada: "${currentSection.title}"`);
+                }
+                
+                // Se não houver blocos, cria um padrão
+                if (sectionsToSend.length === 0) {
+                    console.log('⚠️ Nenhum bloco encontrado, criando bloco padrão');
+                    sectionsToSend.push({ title: '', text: [''] });
+                }
+                
+                console.log('🧱 Estrutura de blocos capturada:', sectionsToSend);
+                
+                // Cria FormData personalizado
+                const formData = new FormData();
+                formData.append('title', document.getElementById('title').value);
+                formData.append('author', document.getElementById('author').value);
+                
+                // Adiciona URLs de vídeo e áudio
+                const videoUrl = document.getElementById('video_url')?.value || '';
+                const audioUrl = document.getElementById('audio_url')?.value || '';
+                if (videoUrl) {
+                    formData.append('video_url', videoUrl);
+                    console.log('🎬 Video URL incluída:', videoUrl);
+                }
+                if (audioUrl) {
+                    formData.append('audio_url', audioUrl);
+                    console.log('🎵 Audio URL incluída:', audioUrl);
+                }
+                
+                // Adiciona seções estruturadas no formato esperado pelo backend
+                sectionsToSend.forEach((section, index) => {
+                    const sectionTitle = section.title || '';
+                    const sectionText = section.text.length > 0 ? section.text.join('\n\n') : '';
+                    
+                    formData.append('sections[]', sectionTitle);
+                    formData.append('texts[]', sectionText);
+                    
+                    console.log(`📋 Enviando seção ${index}:`, {
+                        title: sectionTitle,
+                        textLength: sectionText.length,
+                        preview: sectionText.substring(0, 100) + (sectionText.length > 100 ? '...' : '')
+                    });
+                });
+                
+                console.log('📋 Total de seções enviadas:', sectionsToSend.length);
+                
+                console.log('📋 Dados estruturados preparados para envio');
+                
+                // Envia múltiplas partituras como array
+                if (sheetDataArray.length > 0) {
+                    const sheetDataString = JSON.stringify(sheetDataArray);
+                    formData.append('sheet_data', sheetDataString);
+                    console.log(`✅ ${sheetDataArray.length} partitura(s) adicionada(s) ao formulário`);
+                    console.log('📊 Sheet data completo:', sheetDataString);
+                    sheetDataArray.forEach((sheet, idx) => {
+                        console.log(`  📊 Partitura ${idx + 1} (ID: ${sheet.id}): ${sheet.notes.length} notas`);
+                    });
+                } else {
+                    console.log('⚠️ Nenhum dado de partitura para enviar');
+                }
+                
+                console.log('📋 Enviando dados estruturados...');
+                
+                $.ajax({
+                        type: 'POST',
+                        url: '/edit_song/' + CONFIG.songId,
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            console.log('✅ Resposta do servidor:', response);
+                            alert(response.message);
+                            // Permanece na mesma página de edição (recarrega para atualizar dados)
+                            window.location.reload();
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('❌ Erro no envio:', error);
+                            console.error('📄 Resposta:', xhr.responseText);
+                        }
+                    });
+                });
+
+            const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        
+            function transposeChords() {
+                const chordsTextareas = document.querySelectorAll('textarea[name="texts[]"]');
+                const transposeValue = parseInt(document.getElementById("transpose").value);
+
+                chordsTextareas.forEach(textarea => {
+                    const inputText = textarea.value;
+
+                    const transposedText = inputText.replace(/([A-G]#?)(m|7|sus|dim|aug|\+|-|\d+)?/g, (match, root, suffix) => {
+                        const index = notes.indexOf(root);
+                        if (index === -1) return match;
+                        const newIndex = (index + transposeValue + notes.length) % notes.length;
+                        return notes[newIndex] + (suffix || "");
+                    });
+
+                    textarea.value = transposedText;
+                });
+            }
+
+            // Funcionalidade de colar texto no campo entrada
+            $('#entrada').on('paste', function (e) {
+                e.preventDefault();
+
+                const text = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
+                const partes = text.split(/\n\s*\n/); // separa por linhas em branco
+
+                // Limpa seções anteriores (opcional)
+                $('#sections').html('');
+
+                // Adiciona cada parte como nova seção
+                partes.forEach(parte => {
+                    const textoLimpo = parte.trim();
+                    if (textoLimpo) {
+                        const newSection = $(`
+                            <div class="section">
+                                <div class="section-header">
+                                    <input type="text" name ="sections[]" placeholder="Título da Seção (ex. verso, coro, estrofe...)">
+                                    <button type="button" class="addSection" title="Adicionar Seção"><i class="fas fa-plus"></i></button>
+                                    <button type="button" class="removeSection" title="Remover Seção"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                        
+                                <textarea name="texts[]" wrap="off" placeholder="Letra da música..." required>${textoLimpo}</textarea>
+                            </div>
+                    `);
+                    $('#sections').append(newSection);
+                    }
+                });
+            }); // Fecha $('#entrada').on('paste')
+            
+        }); // Fecha $(document).ready principal
+
+
+      // Inicialização do editor VexFlow
+      document.addEventListener('DOMContentLoaded', function() {
+        // Elementos da interface
+        const vexEditor = document.getElementById('vexEditor');
+        const vexCanvas = document.getElementById('vex-canvas');
+        const vexInsert = document.getElementById('vex-insert');
+        const vexCancel = document.getElementById('vex-cancel');
+        const durBtns = document.querySelectorAll('.vex-durations .vex-btn');
+        const accBtns = document.querySelectorAll('.vex-accidentals .vex-btn');
+        const restBtn = document.getElementById('vex-rest');
+        const undoBtn = document.getElementById('vex-undo');
+        const clearBtn = document.getElementById('vex-clear');
+        
+        // Estado do editor
+        let currentDuration = 'q';
+        let currentAccidental = 'n'; // n, #, b
+        let isRest = false;
+        let notes = [];
+        let renderer, context, stave;
+        
+        // Inicializar o editor VexFlow
+        function initVexFlow() {
+          try {
+            // Limpa o canvas
+            vexCanvas.innerHTML = '';
+            
+            // Cria o renderizador
+            const width = Math.max(600, vexCanvas.offsetWidth);
+            renderer = new Vex.Flow.Renderer(vexCanvas, Vex.Flow.Renderer.Backends.SVG);
+            renderer.resize(width, 200);
+            
+            // Obtém o contexto
+            context = renderer.getContext();
+            context.setFont('Arial', 10);
+            
+            // Cria a pauta
+            stave = new Vex.Flow.Stave(10, 10, width - 20);
+            stave.addClef('treble');
+            stave.addTimeSignature('4/4');
+            stave.setContext(context).draw();
+            
+            // Inicializa o array de notas
+            notes = [];
+            
+            return true;
+          } catch (error) {
+            console.error('Erro ao inicializar o editor de partitura:', error);
+            return false;
+          }
+        }
+        
+        // Renderizar notas
+        function renderNotes() {
+          try {
+            // Limpa o canvas
+            vexCanvas.innerHTML = '';
+            
+            // Se não conseguir inicializar, tenta novamente
+            if (!renderer || !context || !stave) {
+              if (!initVexFlow()) return;
+            }
+            
+            // Redesenha a pauta
+            stave.setContext(context).draw();
+            
+            // Se não houver notas, apenas desenha a pauta vazia
+            if (notes.length === 0) {
+              return;
+            }
+            
+            // Cria as notas
+            const score = new Vex.Flow.EasyScore({ context: context });
+            const voice = score.voice(notes, { time: '4/4' });
+            
+            // Formata e desenha as notas
+            new Vex.Flow.Formatter()
+              .joinVoices([voice])
+              .format([voice], 400);
+            
+            voice.draw(context, stave);
+            
+          } catch (error) {
+            console.error('Erro ao renderizar notas:', error);
+          }
+        }
+        
+        
+        // Fechar o editor
+        vexCancel.addEventListener('click', function() {
+          vexEditor.style.display = 'none';
+        });
+        
+        // Inserir partitura
+        vexInsert.addEventListener('click', function() {
+          console.log('🎼 Inserindo partitura...');
+          console.log('📊 Array de notas:', notes);
+          console.log('📏 Quantidade de notas:', notes.length);
+          
+          // Captura os dados da partitura atual
+          const currentNotes = [];
+          
+          // Coleta todas as notas do canvas atual
+          if (notes && notes.length > 0) {
+            notes.forEach(noteStr => {
+              console.log('🎵 Processando nota:', noteStr);
+              // Converte string do EasyScore para formato estruturado
+              const parts = noteStr.split('/');
+              const noteName = parts[0];
+              const octave = parts[1] || '4';
+              const duration = parts[2] || currentDuration;
+              
+              const noteObj = {
+                keys: [noteName + '/' + octave],
+                duration: duration,
+                accidental: null // Pode ser expandido para suportar acidentes
+              };
+              
+              currentNotes.push(noteObj);
+              console.log('✅ Nota convertida:', noteObj);
+            });
+          } else {
+            console.log('⚠️ Nenhuma nota encontrada no array!');
+          }
+          
+          // Salva os dados globalmente para envio posterior
+          window.currentSheetData = {
+            notes: currentNotes,
+            time_signature: "4/4",
+            clef: "treble"
+          };
+          
+          console.log('💾 Dados salvos globalmente:', window.currentSheetData);
+          
+          // Insere o marcador no texto
+          const textarea = document.querySelector('textarea[name="texts[]"]:last');
+          if (textarea) {
+            textarea.value += '\n[🎼 PARTITURA_INTEGRADA]\n';
+            console.log('📝 Marcador inserido no textarea');
+          } else {
+            console.log('❌ Textarea não encontrada!');
+          }
+          
+          vexEditor.style.display = 'none';
+          
+          // Feedback visual
+          if (currentNotes.length > 0) {
+            alert(`Partitura salva com ${currentNotes.length} notas! Será incluída quando você salvar a música.`);
+          } else {
+            alert('Nenhuma nota foi adicionada à partitura. Adicione algumas notas primeiro!');
+          }
+        });
+        
+        // Configurar botões de duração
+        durBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            durBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentDuration = this.dataset.dur;
+          });
+        });
+        
+        // Adicionar teclado virtual simples
+        const noteButtons = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+        const keyboardContainer = document.createElement('div');
+        keyboardContainer.style.cssText = 'margin: 20px 0; text-align: center;';
+        keyboardContainer.innerHTML = '<h4>Clique nas notas para adicionar:</h4>';
+        
+        const noteButtonsContainer = document.createElement('div');
+        noteButtonsContainer.style.cssText = 'display: flex; justify-content: center; gap: 5px; margin: 10px 0;';
+        
+        noteButtons.forEach(note => {
+          const btn = document.createElement('button');
+          btn.textContent = note;
+          btn.style.cssText = 'padding: 10px 15px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px;';
+          btn.addEventListener('click', function() {
+            addNoteToScore(note);
+          });
+          noteButtonsContainer.appendChild(btn);
+        });
+        
+        keyboardContainer.appendChild(noteButtonsContainer);
+        
+        // Adicionar controles extras
+        const controlsContainer = document.createElement('div');
+        controlsContainer.style.cssText = 'margin: 10px 0; text-align: center;';
+        controlsContainer.innerHTML = `
+          <button id="addRest" style="padding: 8px 12px; margin: 0 5px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; border-radius: 4px;">Pausa</button>
+          <button id="undoNote" style="padding: 8px 12px; margin: 0 5px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; border-radius: 4px;">Desfazer</button>
+          <button id="clearNotes" style="padding: 8px 12px; margin: 0 5px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; border-radius: 4px;">Limpar</button>
+        `;
+        
+        keyboardContainer.appendChild(controlsContainer);
+        
+        // Inserir o teclado após o canvas
+        if (vexCanvas && vexCanvas.parentNode) {
+          vexCanvas.parentNode.insertBefore(keyboardContainer, vexCanvas.nextSibling);
+        }
+        
+        // Função para adicionar nota
+        function addNoteToScore(noteName) {
+          const noteString = `${noteName}/4/${currentDuration}`;
+          notes.push(noteString);
+          renderNotes();
+          console.log('Nota adicionada:', noteString, 'Total de notas:', notes.length);
+        }
+        
+        // Event listeners para controles
+        document.getElementById('addRest')?.addEventListener('click', function() {
+          notes.push(`${currentDuration}r`);
+          renderNotes();
+        });
+        
+        document.getElementById('undoNote')?.addEventListener('click', function() {
+          if (notes.length > 0) {
+            notes.pop();
+            renderNotes();
+          }
+        });
+        
+        document.getElementById('clearNotes')?.addEventListener('click', function() {
+          notes = [];
+          renderNotes();
+        });
+        
+        // Configurar botões de acidentes
+        accBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            accBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentAccidental = this.dataset.acc;
+          });
+        });
+        
+        // Botão de pausa
+        if (restBtn) {
+            restBtn.addEventListener('click', function() {
+              isRest = !isRest;
+              this.classList.toggle('active');
+            });
+        }
+        
+        // Botão de desfazer
+        if (undoBtn) {
+            undoBtn.addEventListener('click', function() {
+              if (notes.length > 0) {
+                notes.pop();
+                renderNotes();
+              }
+            });
+        }
+        
+        // Botão de limpar
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+              notes = [];
+              renderNotes();
+            });
+        }
+
+        // ===== INSERIR PARTITURA VEXFLOW =====
+        // Conecta o botão principal para abrir o editor
+        document.getElementById('openPartituraEditor')?.addEventListener('click', function() {
+            console.log('🎼 Abrindo editor VexFlow...');
+            // Abre o modal do editor VexFlow
+            if (vexEditor) {
+                vexEditor.style.display = 'flex';
+                initVexFlow();
+                console.log('✅ Editor VexFlow aberto');
+            } else {
+                console.error('❌ Elemento vexEditor não encontrado!');
+            }
+        });
+        
+        // Mantém compatibilidade com botão antigo se existir
+        document.getElementById('insertSheetBtn')?.addEventListener('click', function() {
+            console.log('🎼 Abrindo editor VexFlow (botão antigo)...');
+            if (vexEditor) {
+                vexEditor.style.display = 'flex';
+                initVexFlow();
+                console.log('✅ Editor VexFlow aberto');
+            } else {
+                console.error('❌ Elemento vexEditor não encontrado!');
+            }
+        });
+
+        // Botão para inserir marcador diretamente
+        const insertMarkerBtn = document.getElementById('insertMarkerBtn');
+        if (insertMarkerBtn) {
+            insertMarkerBtn.addEventListener('click', function() {
+                insertPartituraMarker();
+            });
+        }
+
+        // Função para inserir marcador de partitura
+        function insertPartituraMarker() {
+            const entrada = document.getElementById('entrada');
+            const cursorPos = entrada.selectionStart;
+            const textBefore = entrada.value.substring(0, cursorPos);
+            const textAfter = entrada.value.substring(cursorPos);
+            
+            // Insere o marcador na posição do cursor
+            entrada.value = textBefore + '\n\n[🎼 PARTITURA]\n\n' + textAfter;
+            
+            // Reposiciona o cursor
+            entrada.focus();
+            entrada.setSelectionRange(cursorPos + 16, cursorPos + 16);
+        }
+      }); // Fecha DOMContentLoaded
+
+        // Sistema de Editor de Blocos com SVG Integrado
+        window.addEventListener('load', function() {
+            console.log('🎼 Inicializando Editor de Blocos Integrado...');
+            
+            // ===== FUNCIONALIDADE SEPARAÇÃO AUTOMÁTICA DE LETRAS =====
+            
+            // Detecta se o texto tem linhas em branco (indicativo de estrofes)
+            function hasBlankLines(text) {
+                // Verifica se há linhas em branco que separam estrofes
+                return /\n\s*\n/.test(text);
+            }
+            
+            // Detecta se o texto parece ser uma letra de música
+            function detectLyrics(text) {
+                // Remove espaços extras e quebras de linha múltiplas
+                const cleanText = text.trim().replace(/\n\s*\n/g, '\n\n');
+                
+                console.log('🔍 Analisando texto para detecção de letra...');
+                console.log('📏 Comprimento:', cleanText.length);
+                
+                // Critérios básicos
+                if (cleanText.length < 30) {
+                    console.log('❌ Texto muito curto');
+                    return false;
+                }
+                if (!cleanText.includes('\n')) {
+                    console.log('❌ Sem quebras de linha');
+                    return false;
+                }
+                if (cleanText.includes('http')) {
+                    console.log('❌ Contém URLs');
+                    return false;
+                }
+                if (cleanText.includes('cifraclub.com')) {
+                    console.log('❌ Contém link do Cifra Club');
+                    return false;
+                }
+                
+                // Verifica se contém quebras de linha duplas (indicativo de estrofes)
+                const hasDoubleLineBreaks = hasBlankLines(text);
+                console.log('📄 Tem linhas em branco:', hasDoubleLineBreaks);
+                
+                // Verifica se contém palavras típicas de estrutura musical
+                const musicalStructureWords = /\b(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)\b/i;
+                const hasMusicalStructure = musicalStructureWords.test(cleanText);
+                console.log('🎵 Tem estrutura musical:', hasMusicalStructure);
+                
+                // Verifica se contém acordes musicais (cifras)
+                const chordPattern = /\b[A-G][#b]?[m]?[0-9]?[\/A-G#b]*\b/g;
+                const hasChords = chordPattern.test(cleanText);
+                console.log('🎸 Tem acordes/cifras:', hasChords);
+                
+                // Verifica se tem indicadores de tom
+                const hasTone = /Tom:\s*[A-G][#b]?/i.test(cleanText);
+                console.log('🎼 Tem indicação de tom:', hasTone);
+                
+                // Verifica se tem seções entre colchetes
+                const hasSections = /\[[^\]]+\]/g.test(cleanText);
+                console.log('📋 Tem seções em colchetes:', hasSections);
+                
+                // Verifica se tem múltiplas linhas (mais de 3)
+                const lineCount = cleanText.split('\n').length;
+                const hasMultipleLines = lineCount >= 3;
+                console.log('📊 Múltiplas linhas:', hasMultipleLines, `(${lineCount} linhas)`);
+                
+                // Verifica se não é apenas uma lista ou código (mas exclui seções musicais)
+                const looksLikeCode = /^\s*[\{<]/.test(cleanText) || /[\}>]\s*$/.test(cleanText);
+                const looksLikeList = /^\s*[-*•]/.test(cleanText);
+                
+                // Se tem seções musicais entre colchetes, não é código
+                const hasMusicSections = /\[(intro|refrão|coro|verso|estrofe|ponte|final|bis|primeira parte|pré-refrão|segunda parte)\]/i.test(cleanText);
+                
+                console.log('💻 Parece código/lista:', looksLikeCode || looksLikeList);
+                console.log('🎵 Tem seções musicais:', hasMusicSections);
+                
+                // Se parece código MAS tem seções musicais, provavelmente é letra
+                if ((looksLikeCode || looksLikeList) && !hasMusicSections) {
+                    console.log('❌ Rejeitado: parece código/lista sem seções musicais');
+                    return false;
+                }
+                
+                // NOVA LÓGICA MELHORADA: Múltiplos critérios para identificar letras
+                const criteria = {
+                    hasBlankLines: hasDoubleLineBreaks,
+                    hasMusicalStructure: hasMusicalStructure,
+                    hasChords: hasChords,
+                    hasTone: hasTone,
+                    hasSections: hasSections,
+                    hasMusicSections: hasMusicSections,
+                    hasMultipleLines: hasMultipleLines
+                };
+                
+                console.log('📊 Critérios atendidos:', criteria);
+                
+                // Se tem linhas em branco + múltiplas linhas = muito provável
+                if (hasDoubleLineBreaks && hasMultipleLines) {
+                    console.log('✅ Aprovado: linhas em branco + múltiplas linhas');
+                    return true;
+                }
+                
+                // Se tem acordes/cifras + múltiplas linhas = letra com cifra
+                if (hasChords && hasMultipleLines) {
+                    console.log('✅ Aprovado: acordes + múltiplas linhas');
+                    return true;
+                }
+                
+                // Se tem seções musicais + múltiplas linhas = letra estruturada
+                if ((hasMusicalStructure || hasSections || hasMusicSections) && hasMultipleLines) {
+                    console.log('✅ Aprovado: estrutura musical + múltiplas linhas');
+                    return true;
+                }
+                
+                // Se tem indicação de tom = definitivamente música
+                if (hasTone && hasMultipleLines) {
+                    console.log('✅ Aprovado: indicação de tom + múltiplas linhas');
+                    return true;
+                }
+                
+                console.log('❌ Não atendeu aos critérios de letra de música');
+                return false;
+            }
+            
+            // Separa a letra em seções automaticamente
+            function separateLyricsIntoSections(text) {
+                // Remove espaços extras no início e fim
+                const cleanText = text.trim();
+                
+                console.log('🔄 Iniciando separação de seções...');
+                console.log('📄 Texto original:', cleanText);
+                
+                // PRIORIDADE 1: Separa por quebras de linha duplas (linhas em branco)
+                let sections = cleanText.split(/\n\s*\n/);
+                console.log('📊 Seções encontradas por linhas em branco:', sections.length);
+                
+                // Se encontrou seções por linhas em branco, usa essa separação
+                if (sections.length > 1) {
+                    console.log('✅ Separação por linhas em branco bem-sucedida!');
+                    sections = sections
+                        .map(section => section.trim())
+                        .filter(section => section.length > 0);
+                    return sections;
+                }
+                
+                // PRIORIDADE 2: Tenta separar por seções entre colchetes [Intro], [Refrão], etc.
+                const bracketSections = /\n(?=\s*\[[^\]]+\])/g;
+                if (bracketSections.test(cleanText)) {
+                    console.log('✅ Separação por seções em colchetes!');
+                    sections = cleanText.split(bracketSections);
+                    sections = sections
+                        .map(section => section.trim())
+                        .filter(section => section.length > 0);
+                    return sections;
+                }
+                
+                // PRIORIDADE 3: Tenta separar por marcadores de seção explícitos
+                const sectionMarkers = /\n(?=\s*(Refrão|Coro|Verso|Estrofe|Ponte|Intro|Final|Bis|Primeira Parte|Pré-Refrão|Segunda Parte)\s*:?\s*\n)/gi;
+                if (sectionMarkers.test(cleanText)) {
+                    console.log('✅ Separação por marcadores explícitos!');
+                    sections = cleanText.split(sectionMarkers);
+                    sections = sections
+                        .map(section => section.trim())
+                        .filter(section => section.length > 0);
+                    return sections;
+                }
+                
+                // PRIORIDADE 3: Separação inteligente por padrões de linha
+                const lines = cleanText.split('\n');
+                console.log('📏 Total de linhas:', lines.length);
+                
+                if (lines.length > 6) {
+                    console.log('⚙️ Tentando separação inteligente...');
+                    sections = [];
+                    let currentSection = [];
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i];
+                        
+                        // Se a linha está vazia, pode ser um separador
+                        if (line.trim() === '') {
+                            if (currentSection.length > 0) {
+                                sections.push(currentSection.join('\n'));
+                                currentSection = [];
+                            }
+                        } else {
+                            currentSection.push(line);
+                        }
+                        
+                        // Se chegou ao final, adiciona a última seção
+                        if (i === lines.length - 1 && currentSection.length > 0) {
+                            sections.push(currentSection.join('\n'));
+                        }
+                    }
+                    
+                    // Se não conseguiu separar bem, tenta por tamanho
+                    if (sections.length <= 1) {
+                        console.log('⚙️ Separação por tamanho de seção...');
+                        sections = [];
+                        currentSection = [];
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            currentSection.push(lines[i]);
+                            
+                            // Separa a cada 4-6 linhas
+                            if (currentSection.length >= 4 || i === lines.length - 1) {
+                                if (currentSection.some(line => line.trim() !== '')) {
+                                    sections.push(currentSection.join('\n'));
+                                }
+                                currentSection = [];
+                            }
+                        }
+                    }
+                }
+                
+                // Limpa e filtra seções vazias
+                sections = sections
+                    .map(section => section.trim())
+                    .filter(section => section.length > 0);
+                
+                console.log('🎯 Seções finais:', sections.length);
+                sections.forEach((section, i) => {
+                    console.log(`📝 Seção ${i + 1}:`, section.substring(0, 50) + '...');
+                });
+                
+                return sections;
+            }
+            
+            // Detecta e sugere títulos para seções baseado no conteúdo
+            function suggestSectionTitle(content, index) {
+                const lowerContent = content.toLowerCase();
+                
+                // Verifica se tem seção entre colchetes [Intro], [Refrão], etc.
+                const bracketMatch = content.match(/^\s*\[([^\]]+)\]/i);
+                if (bracketMatch) {
+                    return bracketMatch[1].trim();
+                }
+                
+                // Verifica se já tem um título explícito
+                const explicitTitles = /^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)\s*:?/i;
+                const match = content.match(explicitTitles);
+                if (match) {
+                    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+                }
+                
+                // Sugere títulos baseado no padrão e posição
+                if (index === 0) {
+                    if (lowerContent.includes('intro') || content.length < 50) {
+                        return 'Intro';
+                    }
+                    return 'Verso 1';
+                }
+                
+                // Verifica se parece ser um refrão (texto repetitivo ou com palavras-chave)
+                const chorusKeywords = /\b(refrão|coro|chorus|hey|oh|yeah|na na|la la)\b/i;
+                if (chorusKeywords.test(content)) {
+                    return 'Refrão';
+                }
+                
+                // Verifica se é uma ponte
+                if (lowerContent.includes('ponte') || (index > 2 && content.length < 100)) {
+                    return 'Ponte';
+                }
+                
+                // Verifica se é o final
+                if (index >= 3 && (lowerContent.includes('final') || lowerContent.includes('fim'))) {
+                    return 'Final';
+                }
+                
+                // Padrão padrão: alterna entre verso e refrão
+                if (index % 2 === 0) {
+                    return `Verso ${Math.floor(index / 2) + 1}`;
+                } else {
+                    return 'Refrão';
+                }
+            }
+            
+            // Processa a letra colada e cria seções automaticamente
+            async function processLyrics(text, targetElement) {
+                try {
+                    console.log('🎵 Processando letra de música...');
+                    
+                    const sections = separateLyricsIntoSections(text);
+                    
+                    if (sections.length <= 1) {
+                        console.log('❌ Não foi possível separar em seções automaticamente');
+                        return false;
+                    }
+                    
+                    console.log(`✅ Letra separada em ${sections.length} seções`);
+                    
+                    // Limpa o editor atual
+                    blocks = [];
+                    selectedBlocks.clear();
+                    
+                    // Cria blocos para cada seção
+                    sections.forEach((sectionContent, index) => {
+                        // Adiciona bloco de seção (título)
+                        const sectionTitle = suggestSectionTitle(sectionContent, index);
+                        blocks.push({
+                            type: 'section',
+                            content: sectionTitle,
+                            id: Date.now() + index * 1000
+                        });
+                        
+                        // Remove título explícito do conteúdo se existir
+                        let cleanContent = sectionContent;
+                        
+                        // Remove seções entre colchetes do início
+                        cleanContent = cleanContent.replace(/^\s*\[[^\]]+\]\s*\n?/i, '');
+                        
+                        // Remove títulos explícitos do início
+                        cleanContent = cleanContent.replace(/^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)\s*:?\s*\n?/i, '');
+                        
+                        // Remove indicação de tom se estiver no início
+                        cleanContent = cleanContent.replace(/^\s*Tom:\s*[A-G][#b]?\s*\n?/i, '');
+                        
+                        cleanContent = cleanContent.trim();
+                        
+                        // Adiciona bloco de texto
+                        blocks.push({
+                            type: 'text',
+                            content: cleanContent,
+                            id: Date.now() + index * 1000 + 500
+                        });
+                    });
+                    
+                    // Re-renderiza o editor
+                    renderBlocks();
+                    
+                    // Limpa o campo original
+                    if (targetElement) {
+                        targetElement.value = '';
+                    }
+                    
+                    console.log('🎉 Letra processada e organizada em seções!');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ Erro ao processar letra:', error);
+                    return false;
+                }
+            }
+            
+            // ===== EDITOR DE BLOCOS INTEGRADO =====
+            
+            let blocks = [
+                { type: 'section', title: '', id: Date.now() },
+                { type: 'text', content: '', id: Date.now() + 1 }
+            ];
+            let selectionMode = false;
+            let selectedBlocks = new Set();
+            let currentSheetData = null;
+            
+            // Expõe o array blocks globalmente para o formulário poder acessá-lo
+            window.editorBlocks = blocks;
+            
+            // Elementos
+            const blockContainer = document.getElementById('blockContainer');
+            const hiddenTextarea = document.getElementById('entrada');
+            
+            // Renderiza todos os blocos
+            // skipFocus: se true, não foca em nenhum elemento (usado ao deletar para manter scroll)
+            function renderBlocks(skipFocus = false) {
+                console.log('🎨 renderBlocks() chamada! Total de blocos:', blocks.length);
+                console.log('📦 Container:', blockContainer);
+                blockContainer.innerHTML = '';
+                
+                blocks.forEach((block, index) => {
+                    console.log(`🧱 Renderizando bloco ${index}:`, block.type, block);
+                    // Adiciona botão de inserção antes do bloco (exceto no primeiro)
+                    if (index > 0) {
+                        const insertButton = createInsertButton(index);
+                        blockContainer.appendChild(insertButton);
+                    }
+                    
+                    // Adiciona o bloco
+                    if (block.type === 'text') {
+                        const textBlock = createTextBlock(block, index);
+                        blockContainer.appendChild(textBlock);
+                    } else if (block.type === 'sheet') {
+                        const sheetBlock = createSheetBlock(block, index);
+                        blockContainer.appendChild(sheetBlock);
+                    } else if (block.type === 'section') {
+                        const sectionBlock = createSectionBlock(block, index);
+                        blockContainer.appendChild(sectionBlock);
+                    }
+                });
+                
+                // Adiciona botão de inserção no final
+                const finalInsertButton = createInsertButton(blocks.length);
+                blockContainer.appendChild(finalInsertButton);
+                
+                // Atualiza campo oculto
+                updateHiddenField();
+            }
+            
+            // Expõe a função globalmente para o script de carregamento
+            window.renderBlocksFunction = renderBlocks;
+            
+            // Cria botão de inserção entre blocos
+            function createInsertButton(position) {
+                const container = document.createElement('div');
+                container.style.cssText = 'text-align: center; margin: 5px 0; position: relative;';
+                
+                const button = document.createElement('button');
+                button.type = 'button'; // Importante: evita submit do formulário
+                button.innerHTML = '<i class="fas fa-plus"></i>';
+                button.title = 'Inserir bloco aqui';
+                button.style.cssText = `
+                    background: #4caf50; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 50%; 
+                    width: 30px; 
+                    height: 30px; 
+                    cursor: pointer; 
+                    font-size: 14px;
+                    opacity: 0.7;
+                    transition: all 0.2s ease;
+                `;
+                
+                // Menu de opções (inicialmente oculto)
+                const menu = document.createElement('div');
+                menu.style.cssText = `
+                    position: absolute;
+                    top: 35px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: white;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    padding: 8px;
+                    display: none;
+                    z-index: 1000;
+                    min-width: 200px;
+                `;
+                
+                // Opções do menu
+                const options = [
+                    { icon: 'fas fa-font', text: 'Bloco de Texto', action: () => insertBlockAt(position, 'text') },
+                    { icon: 'fas fa-heading', text: 'Seção (Coro, Verso...)', action: () => insertBlockAt(position, 'section') },
+                    { icon: 'fas fa-music', text: 'Partitura', action: () => insertBlockAt(position, 'sheet') }
+                ];
+                
+                options.forEach(option => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.style.cssText = `
+                        padding: 8px 12px;
+                        cursor: pointer;
+                        border-radius: 4px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        transition: background 0.2s ease;
+                    `;
+                    optionDiv.innerHTML = `<i class="${option.icon}"></i> ${option.text}`;
+                    
+                    optionDiv.addEventListener('mouseenter', () => {
+                        optionDiv.style.background = '#f5f5f5';
+                    });
+                    
+                    optionDiv.addEventListener('mouseleave', () => {
+                        optionDiv.style.background = 'transparent';
+                    });
+                    
+                    optionDiv.addEventListener('click', (e) => {
+                        e.preventDefault(); // Evita submit do formulário
+                        e.stopPropagation();
+                        option.action();
+                        menu.style.display = 'none';
+                        button.style.opacity = '0.7';
+                    });
+                    
+                    menu.appendChild(optionDiv);
+                });
+                
+                // Event listeners do botão
+                button.addEventListener('mouseenter', () => {
+                    button.style.opacity = '1';
+                    button.style.transform = 'scale(1.1)';
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    if (menu.style.display === 'none') {
+                        button.style.opacity = '0.7';
+                        button.style.transform = 'scale(1)';
+                    }
+                });
+                
+                button.addEventListener('click', (e) => {
+                    e.preventDefault(); // Evita submit do formulário
+                    e.stopPropagation();
+                    const isVisible = menu.style.display === 'block';
+                    
+                    // Fecha todos os outros menus
+                    document.querySelectorAll('.insert-menu').forEach(m => m.style.display = 'none');
+                    
+                    menu.style.display = isVisible ? 'none' : 'block';
+                    button.style.opacity = isVisible ? '0.7' : '1';
+                });
+                
+                // Fecha menu ao clicar fora
+                document.addEventListener('click', () => {
+                    menu.style.display = 'none';
+                    button.style.opacity = '0.7';
+                });
+                
+                menu.className = 'insert-menu';
+                container.appendChild(button);
+                container.appendChild(menu);
+                
+                return container;
+            }
+            
+            // Insere bloco na posição especificada
+            function insertBlockAt(position, type) {
+                let newBlock;
+                
+                if (type === 'text') {
+                    newBlock = { type: 'text', content: '', id: Date.now() };
+                } else if (type === 'section') {
+                    const sectionName = prompt('Nome da seção (ex: Coro, Verso 1, Ponte...):', 'Coro');
+                    if (!sectionName) return;
+                    newBlock = { type: 'section', title: sectionName, id: Date.now() };
+                } else if (type === 'sheet') {
+                    newBlock = { type: 'sheet', content: '', id: Date.now() };
+                }
+                
+                // Salva a posição do scroll antes de re-renderizar
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // Insere o bloco na posição correta
+                blocks.splice(position, 0, newBlock);
+                
+                // Re-renderiza
+                renderBlocks(true); // skipFocus=true para manter posição do scroll
+                
+                // Restaura a posição do scroll após re-renderizar
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollTop);
+                });
+                
+                console.log(`✅ Bloco ${type} inserido na posição ${position}`);
+            }
+            
+            // Cria bloco de texto
+            function createTextBlock(block, index) {
+                const container = document.createElement('div');
+                container.style.cssText = 'position: relative; margin: 10px 0;';
+                
+                const div = document.createElement('textarea');
+                div.className = 'text-block';
+                div.style.cssText = `padding: ${selectionMode ? '10px 10px 10px 35px' : '10px'}; min-height: 50px; outline: none; border: none; border-bottom: 1px dashed #eee; background: white; white-space: pre; overflow-x: auto; overflow-y: hidden; width: 100%; resize: none; line-height: 1.4; box-sizing: border-box; color: #333;`;
+                div.setAttribute('placeholder', 'Digite a letra da música...');
+                div.setAttribute('wrap', 'off');
+                div.value = block.content || '';
+                
+                // Função para ajustar altura automaticamente
+                const adjustHeight = () => {
+                    div.style.height = 'auto';
+                    div.style.height = div.scrollHeight + 'px';
+                };
+                
+                // Ajusta altura inicial
+                setTimeout(adjustHeight, 0);
+                
+                // Event listeners
+                div.addEventListener('input', () => {
+                    const content = div.value;
+                    blocks[index].content = content;
+                    updateHiddenField();
+                    adjustHeight();
+                });
+                
+                div.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        e.preventDefault();
+                        addTextBlock(index + 1);
+                    }
+                });
+                
+                // Evento de paste para detecção de letras
+                div.addEventListener('paste', function(e) {
+                    console.log('🎵 Evento de paste detectado!');
+                    setTimeout(async () => {
+                        const text = div.value || '';
+                        console.log('📝 Texto colado:', text);
+                        console.log('📏 Tamanho do texto:', text.length);
+                        
+                        // Verifica se tem linhas em branco (separação automática)
+                        const hasBlankLinesInText = hasBlankLines(text);
+                        console.log('📄 Tem linhas em branco?', hasBlankLinesInText);
+                        
+                        // Verifica se é uma letra de música
+                        const isLyrics = detectLyrics(text);
+                        console.log('🎼 É letra de música?', isLyrics);
+                        
+                        if (isLyrics) {
+                            let shouldProcess = false;
+                            
+                            // Se tem linhas em branco, processa automaticamente
+                            if (hasBlankLinesInText) {
+                                console.log('🚀 Linhas em branco detectadas - processamento automático!');
+                                shouldProcess = true;
+                            } else {
+                                // Se não tem linhas em branco, pergunta ao usuário
+                                shouldProcess = confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`);
+                            }
+                            
+                            if (shouldProcess) {
+                                console.log('⚙️ Iniciando processamento...');
+                                const success = await processLyrics(text, null);
+                                if (success) {
+                                    // Limpa o bloco atual após processar
+                                    div.innerHTML = '';
+                                    blocks[index].content = '';
+                                    updateHiddenField();
+                                    console.log('✅ Processamento concluído com sucesso!');
+                                    
+                                    // Mostra notificação se foi automático
+                                    if (hasBlankLinesInText) {
+                                        // Pequena notificação não intrusiva
+                                        console.log('🎉 Letra organizada automaticamente em seções!');
+                                    }
+                                } else {
+                                    console.log('❌ Falha no processamento');
+                                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
+                                }
+                            }
+                        } else {
+                            console.log('ℹ️ Texto não identificado como letra de música');
+                        }
+                    }, 500);
+                });
+                
+                // Checkbox de seleção
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.style.cssText = `position: absolute; top: 10px; left: 10px; z-index: 10; display: ${selectionMode ? 'block' : 'none'};`;
+                checkbox.checked = selectedBlocks.has(index);
+                checkbox.onchange = () => toggleBlockSelection(index);
+                
+                // Controles de ação
+                const controls = document.createElement('div');
+                controls.className = 'text-controls';
+                controls.style.cssText = `position: absolute; top: 5px; right: 5px; opacity: 1; display: ${selectionMode ? 'none' : 'block'};`;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button'; // Evita submit do formulário
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.title = 'Excluir bloco';
+                deleteBtn.style.cssText = 'background: #d32f2f; color: white; border: 2px solid white; border-radius: 5px; padding: 6px 10px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+                deleteBtn.onclick = (e) => {
+                    e.preventDefault(); // Evita submit do formulário
+                    e.stopPropagation();
+                    deleteBlock(index);
+                };
+                
+                controls.appendChild(deleteBtn);
+                container.appendChild(checkbox);
+                container.appendChild(div);
+                container.appendChild(controls);
+                
+                // Mostra controles no hover
+                container.addEventListener('mouseenter', () => controls.style.opacity = '1');
+                container.addEventListener('mouseleave', () => controls.style.opacity = '0');
+                
+                return container;
+            }
+            
+            // Cria bloco de partitura
+            function createSheetBlock(block, index) {
+                const div = document.createElement('div');
+                div.className = 'sheet-block';
+                div.style.cssText = 'padding: 15px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; margin: 10px 0; position: relative; text-align: center;';
+                
+                // Container para a partitura
+                const sheetContainer = document.createElement('div');
+                sheetContainer.id = `sheet-preview-${block.id}`;
+                sheetContainer.style.cssText = 'min-height: 120px; display: flex; align-items: center; justify-content: center;';
+                
+                // Cria os controles primeiro (antes de usar)
+                const controls = document.createElement('div');
+                controls.className = 'sheet-controls';
+                controls.style.cssText = 'position: absolute; top: 5px; right: 5px; opacity: 1;';
+                
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.textContent = '✏️';
+                editBtn.title = 'Editar';
+                editBtn.style.cssText = 'background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 3px; padding: 4px 8px; margin-left: 4px; cursor: pointer; font-size: 12px;';
+                editBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    editSheet(index);
+                };
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.title = 'Excluir';
+                deleteBtn.style.cssText = 'background: #d32f2f; color: white; border: 2px solid white; border-radius: 5px; padding: 6px 10px; margin-left: 4px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+                deleteBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    deleteBlock(index);
+                };
+                
+                controls.appendChild(editBtn);
+                controls.appendChild(deleteBtn);
+                
+                // Renderiza a partitura se tiver dados
+                if (block.originalData && block.originalData.notes) {
+                    // Verifica se VexFlow está disponível
+                    console.log('🔍 Verificando VexFlow para partitura:', typeof Vex, typeof window.Vex);
+                    if (typeof Vex === 'undefined' || typeof Vex.Flow === 'undefined') {
+                        console.warn('⚠️ VexFlow não disponível para renderizar partitura');
+                        sheetContainer.innerHTML = '<p style="color: #ff9800; font-style: italic;">⚠️ VexFlow não disponível. Partitura não pode ser renderizada.</p>';
+                        div.appendChild(sheetContainer);
+                        div.appendChild(controls);
+                        div.addEventListener('mouseenter', () => controls.style.opacity = '1');
+                        div.addEventListener('mouseleave', () => controls.style.opacity = '0');
+                        return div;
+                    }
+                    console.log('✅ VexFlow disponível! Renderizando partitura...');
+                    
+                    try {
+                        // Calcula num_beats e beat_value da fórmula de compasso
+                        let numBeats = 4;
+                        let beatValue = 4;
+                        if (block.originalData.timeSignature) {
+                            const timeSig = block.originalData.timeSignature.split('/');
+                            if (timeSig.length === 2) {
+                                numBeats = parseInt(timeSig[0]) || 4;
+                                beatValue = parseInt(timeSig[1]) || 4;
+                            }
+                        }
+                        
+                        // Cria o renderer VexFlow
+                        const VF = Vex.Flow;
+                        const renderer = new VF.Renderer(sheetContainer, VF.Renderer.Backends.SVG);
+                        renderer.resize(600, 120);
+                        const context = renderer.getContext();
+                        
+                        // Função para calcular ticks de uma duração
+                        const durationToTicks = (duration) => {
+                            const map = { 'w': 4096, 'h': 2048, 'q': 1024, '8': 512, '16': 256 };
+                            return map[duration] || 1024;
+                        };
+                        
+                        const ticksPerMeasure = numBeats * (4096 / beatValue);
+                        
+                        // Divide notas em compassos
+                        const measures = [];
+                        let currentMeasure = [];
+                        let currentTicks = 0;
+                        
+                        block.originalData.notes.forEach(noteData => {
+                            const noteTicks = durationToTicks(noteData.duration);
+                            
+                            if (currentTicks + noteTicks > ticksPerMeasure && currentMeasure.length > 0) {
+                                measures.push(currentMeasure);
+                                currentMeasure = [];
+                                currentTicks = 0;
+                            }
+                            
+                            currentMeasure.push(noteData);
+                            currentTicks += noteTicks;
+                        });
+                        
+                        if (currentMeasure.length > 0) {
+                            measures.push(currentMeasure);
+                        }
+                        
+                        console.log(`🎼 Renderizando ${measures.length} compasso(s)`);
+                        
+                        // Renderiza cada compasso
+                        let xOffset = 0;
+                        const staveWidth = 250;
+                        
+                        measures.forEach((measureNotes, measureIndex) => {
+                            // Cria stave para este compasso
+                            const measureStave = new VF.Stave(xOffset, 20, staveWidth);
+                            
+                            // Adiciona clef, key signature e time signature apenas no primeiro compasso
+                            if (measureIndex === 0) {
+                                measureStave.addClef(block.originalData.clef || 'treble');
+                                if (block.originalData.keySignature) {
+                                    measureStave.addKeySignature(block.originalData.keySignature);
+                                }
+                                if (block.originalData.timeSignature) {
+                                    measureStave.addTimeSignature(block.originalData.timeSignature);
+                                }
+                            }
+                            
+                            measureStave.setContext(context).draw();
+                            
+                            // Cria as notas deste compasso
+                            const notes = measureNotes.map(noteData => {
+                                let noteKeys = noteData.keys || [noteData.key];
+                                
+                                // Converte formato "C4" para "c/4"
+                                noteKeys = noteKeys.map(key => {
+                                    if (key && typeof key === 'string' && !key.includes('/')) {
+                                        const match = key.match(/^([A-Ga-g][#b]?)(\d+)$/);
+                                        if (match) {
+                                            return `${match[1].toLowerCase()}/${match[2]}`;
+                                        }
+                                    }
+                                    return key;
+                                });
+                                
+                                const note = new VF.StaveNote({
+                                    clef: block.originalData.clef || 'treble',
+                                    keys: noteKeys,
+                                    duration: noteData.duration
+                                });
+                                
+                                if (noteData.accidental) {
+                                    note.addModifier(new VF.Accidental(noteData.accidental));
+                                }
+                                
+                                return note;
+                            });
+                            
+                            // Formata e desenha as notas
+                            const voice = new VF.Voice({ num_beats: numBeats, beat_value: beatValue });
+                            voice.setStrict(false);
+                            voice.addTickables(notes);
+                            new VF.Formatter().joinVoices([voice]).format([voice], staveWidth - 20);
+                            voice.draw(context, measureStave);
+                            
+                            // Renderiza cifras se existirem
+                            if (block.originalData.chords && block.originalData.chords.length > 0) {
+                                block.originalData.chords.forEach(chord => {
+                                    // Verifica se a cifra é deste compasso
+                                    if (chord.m === measureIndex) {
+                                        const note = notes[chord.i];
+                                        if (note) {
+                                            try {
+                                                const bbox = note.getBoundingBox();
+                                                context.save();
+                                                context.setFont('Arial', 14, 'bold');
+                                                context.fillStyle = '#000';
+                                                // Posiciona sempre acima da pauta (Y fixo = 22, logo acima do stave que está em Y=20)
+                                                context.fillText(chord.symbol, bbox.x + bbox.w/2, 22);
+                                                context.restore();
+                                            } catch(e) {
+                                                console.log('⚠️ Erro ao renderizar cifra:', e);
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            xOffset += staveWidth;
+                        });
+                        
+                        // Ajusta SVG
+                        const svg = sheetContainer.querySelector('svg');
+                        if (svg) {
+                            svg.style.cssText = 'max-width: 100%; height: auto; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+                        }
+                    } catch (error) {
+                        console.error('Erro ao renderizar partitura:', error);
+                        sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Erro ao renderizar partitura</p>';
+                    }
+                } else {
+                    sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Partitura sem dados</p>';
+                }
+                
+                div.appendChild(sheetContainer);
+                div.appendChild(controls);
+                
+                // Mostra controles no hover
+                div.addEventListener('mouseenter', () => controls.style.opacity = '1');
+                div.addEventListener('mouseleave', () => controls.style.opacity = '0');
+                
+                return div;
+            }
+            
+            // Cria bloco de seção
+            function createSectionBlock(block, index) {
+                const div = document.createElement('div');
+                div.className = 'section-block';
+                div.style.cssText = `background: linear-gradient(135deg, #2196f3, #1976d2); color: white; padding: 12px 20px; margin: 20px 0 10px 0; border-radius: 8px; font-weight: bold; font-size: 16px; position: relative; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3); border: ${selectedBlocks.has(index) ? '3px solid #ffeb3b' : 'none'};`;
+                
+                // Checkbox de seleção
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.style.cssText = `position: absolute; top: 12px; left: 15px; z-index: 10; display: ${selectionMode ? 'block' : 'none'}; transform: scale(1.2);`;
+                checkbox.checked = selectedBlocks.has(index);
+                checkbox.onchange = () => toggleBlockSelection(index);
+                
+                // Input para o título da seção
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Nome da seção (ex: Verso 1, Coro, Estrofe...)';
+                input.value = block.title || '';
+                input.style.cssText = `background: transparent; border: none; color: white; font-weight: bold; font-size: 16px; width: calc(100% - ${selectionMode ? '120px' : '80px'}); outline: none; margin-left: ${selectionMode ? '25px' : '0'};`;
+                
+                // Event listener para atualizar título
+                input.addEventListener('input', () => {
+                    blocks[index].title = input.value;
+                    updateHiddenField();
+                });
+                
+                // Controles
+                const controls = document.createElement('div');
+                controls.className = 'section-controls';
+                controls.style.cssText = `position: absolute; top: 8px; right: 10px; opacity: 1; display: ${selectionMode ? 'none' : 'block'};`;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button'; // Evita submit do formulário
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.title = 'Excluir Seção';
+                deleteBtn.style.cssText = 'background: #d32f2f; color: white; border: 2px solid white; border-radius: 5px; padding: 6px 10px; margin-left: 4px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+                deleteBtn.onclick = (e) => {
+                    e.preventDefault(); // Evita submit do formulário
+                    e.stopPropagation();
+                    deleteBlock(index);
+                };
+                
+                controls.appendChild(deleteBtn);
+                div.appendChild(checkbox);
+                div.appendChild(input);
+                div.appendChild(controls);
+                
+                // Mostra controles no hover
+                div.addEventListener('mouseenter', () => controls.style.opacity = '1');
+                div.addEventListener('mouseleave', () => controls.style.opacity = '0');
+                
+                return div;
+            }
+            
+            // Adiciona bloco de texto
+            function addTextBlock(position = -1) {
+                // Salva a posição do scroll antes de re-renderizar
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                const newBlock = { type: 'text', content: '', id: Date.now() };
+                if (position === -1) {
+                    blocks.push(newBlock);
+                } else {
+                    blocks.splice(position, 0, newBlock);
+                }
+                renderBlocks(true); // skipFocus=true para manter posição do scroll
+                
+                // Restaura a posição do scroll após re-renderizar
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollTop);
+                });
+            }
+            
+            // Adiciona bloco de seção
+            function addSectionBlock() {
+                // Salva a posição do scroll antes de re-renderizar
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                const newBlock = { 
+                    type: 'section', 
+                    title: '',
+                    id: Date.now()
+                };
+                blocks.push(newBlock);
+                renderBlocks(true); // skipFocus=true para manter posição do scroll
+                
+                // Restaura a posição do scroll após re-renderizar
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollTop);
+                });
+                
+                console.log('✅ Bloco de seção adicionado!');
+            }
+            
+            // Adiciona bloco de partitura
+            function addSheetBlock() {
+                const svgData = localStorage.getItem('vexflow_sheet_svg');
+                const sheetData = localStorage.getItem('vexflow_sheet_data');
+                
+                if (!svgData) {
+                    alert('❌ Nenhuma partitura encontrada. Crie uma partitura primeiro!');
+                    return;
+                }
+                
+                // Verifica se há dados válidos (não apenas uma partitura vazia)
+                if (sheetData) {
+                    try {
+                        const parsed = JSON.parse(sheetData);
+                        if (parsed.measures && parsed.measures.length > 0 && parsed.measures[0].length === 0) {
+                            alert('⚠️ A partitura está vazia. Adicione algumas notas antes de inserir!');
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('Erro ao verificar dados da partitura:', e);
+                    }
+                }
+                
+                // Salva a posição do scroll antes de re-renderizar
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                console.log('📊 Dados capturados do localStorage:');
+                console.log('SVG:', svgData ? 'Presente' : 'Ausente');
+                console.log('JSON:', sheetData ? 'Presente' : 'Ausente');
+                
+                const newBlock = { 
+                    type: 'sheet', 
+                    svgData: svgData,
+                    sheetData: sheetData, // Salva como string mesmo
+                    originalData: sheetData, // Backup dos dados originais
+                    id: Date.now()
+                };
+                blocks.push(newBlock);
+                renderBlocks(true); // skipFocus=true para manter posição do scroll
+                
+                // Restaura a posição do scroll após re-renderizar
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, scrollTop);
+                });
+                
+                console.log('✅ Bloco de partitura adicionado com dados:', newBlock);
+            }
+            
+            // Edita partitura
+            function editSheet(index) {
+                // Salva dados da partitura atual no localStorage para o editor carregar
+                const currentBlock = window.editorBlocks[index];
+                console.log('🔍 Editando partitura do bloco:', index, currentBlock);
+                console.log('🔍 Total de blocos:', window.editorBlocks.length);
+                console.log('🔍 Todos os blocos:', window.editorBlocks);
+                
+                if (currentBlock && (currentBlock.originalData || currentBlock.sheetData)) {
+                    // LIMPA localStorage COMPLETAMENTE primeiro para evitar cache antigo
+                    localStorage.clear();
+                    console.log('🧹 localStorage completamente limpo');
+                    
+                    // Salva o SVG atual para o editor poder carregar
+                    localStorage.setItem('vexflow_sheet_svg', currentBlock.svgData);
+                    console.log('💾 SVG salvo no localStorage');
+                    
+                    // Usa os dados originais se existirem
+                    if (currentBlock.originalData || currentBlock.sheetData) {
+                        let originalData = currentBlock.originalData || JSON.parse(currentBlock.sheetData);
+                        
+                        console.log('📊 Dados originais da partitura:', originalData);
+                        
+                        // Converte formato {notes: [...]} para {measures: [[...]]}
+                        if (originalData.notes && originalData.notes.length > 0) {
+                            // Converte cada nota de {keys: ["C4"], duration: "q"} para {pitch: "C/4", duration: "q"}
+                            const convertedNotes = originalData.notes.map((note, idx) => {
+                                console.log(`🔍 Nota ${idx}:`, note);
+                                
+                                // Pega a primeira key (pode ser array)
+                                const key = Array.isArray(note.keys) ? note.keys[0] : note.key;
+                                console.log(`  - Key extraída:`, key);
+                                
+                                // Converte "C4" para "C/4" (formato do sheet_editor)
+                                let pitch = key;
+                                if (key && !key.includes('/')) {
+                                    const match = key.match(/^([A-Ga-g][#b]?)(\d+)$/);
+                                    if (match) {
+                                        pitch = `${match[1]}/${match[2]}`;
+                                        console.log(`  - Convertido para:`, pitch);
+                                    }
+                                }
+                                
+                                const converted = {
+                                    pitch: pitch,
+                                    duration: note.duration,
+                                    accidental: note.accidental || null,
+                                    dotted: note.dotted || false,
+                                    rest: note.rest || false
+                                };
+                                console.log(`  - Nota convertida:`, converted);
+                                return converted;
+                            });
+                            
+                            // Divide as notas em compassos baseado na fórmula de compasso
+                            const timeSig = originalData.timeSignature || '4/4';
+                            const [beatsPerMeasure, beatValue] = timeSig.split('/').map(Number);
+                            
+                            // Calcula quantos ticks cada compasso pode ter
+                            // Em 4/4: 4 beats * (4096/4) = 4096 ticks por compasso
+                            const ticksPerMeasure = beatsPerMeasure * (4096 / beatValue);
+                            
+                            // Função para calcular ticks de uma nota
+                            const durationToTicks = (duration) => {
+                                const map = {
+                                    'w': 4096,   // whole note
+                                    'h': 2048,   // half note
+                                    'q': 1024,   // quarter note
+                                    '8': 512,    // eighth note
+                                    '16': 256    // sixteenth note
+                                };
+                                return map[duration] || 1024;
+                            };
+                            
+                            // Divide notas em compassos
+                            const measures = [];
+                            let currentMeasure = [];
+                            let currentTicks = 0;
+                            
+                            convertedNotes.forEach(note => {
+                                const noteTicks = durationToTicks(note.duration);
+                                
+                                if (currentTicks + noteTicks > ticksPerMeasure && currentMeasure.length > 0) {
+                                    // Compasso cheio, inicia novo
+                                    measures.push(currentMeasure);
+                                    currentMeasure = [];
+                                    currentTicks = 0;
+                                }
+                                
+                                currentMeasure.push(note);
+                                currentTicks += noteTicks;
+                            });
+                            
+                            // Adiciona o último compasso se não estiver vazio
+                            if (currentMeasure.length > 0) {
+                                measures.push(currentMeasure);
+                            }
+                            
+                            console.log(`📊 Notas divididas em ${measures.length} compasso(s)`);
+                            
+                            const convertedData = {
+                                clef: originalData.clef || 'treble',
+                                keySig: originalData.keySignature || 'C',
+                                timeSig: timeSig,
+                                measures: measures, // Múltiplos compassos
+                                ties: [],
+                                chords: []
+                            };
+                            
+                            const dataToSave = JSON.stringify(convertedData);
+                            localStorage.setItem('vexflow_sheet_data', dataToSave);
+                            console.log('💾 Dados convertidos e salvos no localStorage');
+                            console.log('📄 Conteúdo:', dataToSave);
+                        } else {
+                            console.log('⚠️ Dados vazios detectados - não salvando');
+                            alert('⚠️ Esta partitura está vazia. Crie algumas notas primeiro!');
+                            return;
+                        }
+                    } else {
+                        console.log('⚠️ Criando dados básicos para edição');
+                        const basicData = JSON.stringify({
+                            clef: 'treble',
+                            keySig: 'C',
+                            timeSig: '4/4',
+                            measures: [[{pitch: 'C/4', duration: 'q'}]], // Adiciona uma nota básica
+                            ties: [],
+                            chords: []
+                        });
+                        localStorage.setItem('vexflow_sheet_data', basicData);
+                        console.log('💾 Dados básicos salvos:', basicData);
+                    }
+                    
+                    console.log('📝 Dados preparados para edição');
+                } else {
+                    console.log('❌ Nenhuma partitura encontrada no bloco');
+                }
+                
+                // Abre editor VexFlow
+                const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                // Monitora fechamento
+                const checkClosed = setInterval(() => {
+                    if (vexWindow.closed) {
+                        clearInterval(checkClosed);
+                        
+                        console.log('🎼 Editor VexFlow fechado, capturando dados...');
+                        
+                        // Captura dados da partitura para persistência
+                        const sheetDataFromStorage = localStorage.getItem('vexflow_sheet_data');
+                        if (sheetDataFromStorage) {
+                            try {
+                                const parsedData = JSON.parse(sheetDataFromStorage);
+                                console.log('📊 Dados capturados do localStorage:', parsedData);
+                                
+                                // Converte para formato compatível com nosso sistema
+                                const convertedNotes = [];
+                                if (parsedData.measures && parsedData.measures.length > 0) {
+                                    parsedData.measures.forEach(measure => {
+                                        if (Array.isArray(measure)) {
+                                            measure.forEach(note => {
+                                                if (note.pitch && note.duration) {
+                                                    convertedNotes.push({
+                                                        keys: [note.pitch],
+                                                        duration: note.duration,
+                                                        accidental: null
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                                
+                                // Salva os dados globalmente para envio posterior
+                                window.currentSheetData = {
+                                    notes: convertedNotes,
+                                    time_signature: parsedData.timeSig || "4/4",
+                                    clef: parsedData.clef || "treble"
+                                };
+                                
+                                console.log('💾 Dados convertidos e salvos globalmente:', window.currentSheetData);
+                                
+                                // Adiciona marcador no texto se há notas
+                                if (convertedNotes.length > 0) {
+                                    const textareas = document.querySelectorAll('textarea[name="texts[]"]');
+                                    const textarea = textareas[textareas.length - 1]; // Pega o último textarea
+                                    if (textarea && !textarea.value.includes('[🎼 PARTITURA_INTEGRADA]')) {
+                                        textarea.value += '\n[🎼 PARTITURA_INTEGRADA]\n';
+                                        console.log('📝 Marcador adicionado ao texto');
+                                    }
+                                }
+                                
+                            } catch (error) {
+                                console.error('❌ Erro ao processar dados da partitura:', error);
+                            }
+                        }
+                        
+                        // Atualiza partitura
+                        const newSvgData = localStorage.getItem('vexflow_sheet_svg');
+                        const newSheetData = localStorage.getItem('vexflow_sheet_data');
+                        
+                        console.log('🔄 Atualizando partitura após edição...');
+                        console.log('Novo SVG:', newSvgData ? 'Presente' : 'Ausente');
+                        console.log('Novos dados:', newSheetData ? 'Presente' : 'Ausente');
+                        
+                        if (newSheetData && window.currentSheetData) {
+                            // Atualiza com os dados convertidos (formato original)
+                            window.editorBlocks[index].svgData = newSvgData;
+                            window.editorBlocks[index].sheetData = JSON.stringify(window.currentSheetData);
+                            window.editorBlocks[index].originalData = window.currentSheetData; // Objeto já parseado
+                            
+                            console.log('📝 Bloco atualizado:', window.editorBlocks[index]);
+                            renderBlocks();
+                            console.log('✅ Partitura atualizada com sucesso!');
+                        } else {
+                            console.log('❌ Nenhum dado novo encontrado');
+                        }
+                    }
+                }, 1000);
+                
+                vexWindow.focus();
+            }
+            
+            // Funções de seleção múltipla
+            function toggleSelectionMode() {
+                selectionMode = !selectionMode;
+                selectedBlocks.clear();
+                
+                const selectBtn = document.getElementById('selectModeBtn');
+                const deleteBtn = document.getElementById('deleteSelectedBtn');
+                
+                if (selectionMode) {
+                    selectBtn.textContent = '❌ Cancelar';
+                    selectBtn.style.background = '#f44336';
+                    deleteBtn.style.display = 'inline-block';
+                } else {
+                    selectBtn.textContent = '☑️ Selecionar';
+                    selectBtn.style.background = '#607d8b';
+                    deleteBtn.style.display = 'none';
+                }
+                
+                renderBlocks();
+            }
+            
+            function toggleBlockSelection(index) {
+                if (selectedBlocks.has(index)) {
+                    selectedBlocks.delete(index);
+                } else {
+                    selectedBlocks.add(index);
+                }
+                renderBlocks();
+            }
+            
+            function deleteSelectedBlocks() {
+                if (selectedBlocks.size === 0) {
+                    alert('⚠️ Nenhum bloco selecionado!');
+                    return;
+                }
+                
+                if (confirm(`🗑️ Tem certeza que deseja excluir ${selectedBlocks.size} bloco(s) selecionado(s)?`)) {
+                    // Salva a posição do scroll antes de re-renderizar
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    
+                    // Ordena índices em ordem decrescente para não afetar os índices durante remoção
+                    const sortedIndexes = Array.from(selectedBlocks).sort((a, b) => b - a);
+                    
+                    sortedIndexes.forEach(index => {
+                        blocks.splice(index, 1);
+                    });
+                    
+                    selectedBlocks.clear();
+                    
+                    if (blocks.length === 0) {
+                        blocks.push({ type: 'text', content: '', id: Date.now() });
+                    }
+                    
+                    renderBlocks(true); // skipFocus=true para manter posição do scroll
+                    
+                    // Restaura a posição do scroll após re-renderizar
+                    requestAnimationFrame(() => {
+                        window.scrollTo(0, scrollTop);
+                    });
+                    
+                    console.log(`✅ ${sortedIndexes.length} bloco(s) excluído(s)!`);
+                }
+            }
+            
+            // Deleta bloco
+            function deleteBlock(index) {
+                const block = blocks[index];
+                const blockType = block.type === 'section' ? 'seção' : 
+                                 block.type === 'sheet' ? 'partitura' : 'texto';
+                
+                if (confirm(`🗑️ Tem certeza que deseja excluir este bloco de ${blockType}?`)) {
+                    // Salva a posição do scroll antes de re-renderizar
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    
+                    blocks.splice(index, 1);
+                    if (blocks.length === 0) {
+                        blocks.push({ type: 'text', content: '', id: Date.now() });
+                    }
+                    renderBlocks(true); // skipFocus=true para manter posição do scroll
+                    
+                    // Restaura a posição do scroll após re-renderizar
+                    requestAnimationFrame(() => {
+                        window.scrollTo(0, scrollTop);
+                    });
+                    
+                    console.log(`✅ Bloco de ${blockType} excluído!`);
+                }
+            }
+            
+            // Atualiza campo oculto para envio
+            function updateHiddenField() {
+                let content = '';
+                blocks.forEach(block => {
+                    if (block.type === 'section') {
+                        content += `[${block.title || 'SEÇÃO'}]\n\n`;
+                    } else if (block.type === 'text') {
+                        // Usa diretamente o conteúdo para preservar espaços
+                        content += block.content || '';
+                        content += '\n\n';
+                    } else if (block.type === 'sheet') {
+                        content += '[🎼 PARTITURA_INTEGRADA]\n\n';
+                    }
+                });
+                hiddenTextarea.value = content;
+            }
+            
+            // Mostra preview da música em modal
+            function showPreviewModal() {
+                updateHiddenField();
+                
+                // Cria modal
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    z-index: 1000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                `;
+                
+                // Conteúdo do modal - estilo folha de papel
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: #fefefe;
+                    border-radius: 8px;
+                    padding: 40px;
+                    max-width: 900px;
+                    max-height: 85vh;
+                    overflow-y: auto;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+                    position: relative;
+                    border: 1px solid #f0f0f0;
+                `;
+                
+                // Cabeçalho
+                const header = document.createElement('div');
+                header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;';
+                header.innerHTML = `
+                    <h3 style="margin: 0; color: #1976d2;">👁️ Preview da Música</h3>
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="background: #f44; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">✕</button>
+                `;
+                
+                // Conteúdo da música - estilo folha limpa com formatação preservada
+                const musicContent = document.createElement('div');
+                musicContent.style.cssText = 'line-height: 1.8; white-space: pre-wrap; color: #2c2c2c;';
+                
+                // Gera preview visual dos blocos - estilo folha limpa
+                let previewHTML = '';
+                blocks.forEach(block => {
+                    if (block.type === 'section') {
+                        previewHTML += `<div style="color: #1976d2; font-weight: bold; font-size: 18px; margin: 25px 0 15px 0; text-transform: uppercase; letter-spacing: 1px;">${block.title || 'SEÇÃO'}</div>`;
+                    } else if (block.type === 'text') {
+                        if (block.content && block.content.trim()) {
+                            // Preserva formatação HTML original: cores, espaçamento, etc.
+                            previewHTML += `<div style="margin: 15px 0; line-height: 1.8; white-space: pre-wrap; font-family: 'Courier New', monospace;">${block.content}</div>`;
+                        }
+                    } else if (block.type === 'sheet') {
+                        previewHTML += `<div style="margin: 20px 0; text-align: left;">`;
+                        if (block.svgData) {
+                            previewHTML += block.svgData;
+                        } else {
+                            previewHTML += '<p style="color: #999; font-style: italic;">🎼 Partitura</p>';
+                        }
+                        previewHTML += '</div>';
+                    }
+                });
+                
+                if (!previewHTML.trim()) {
+                    previewHTML = '<p style="color: #999; font-style: italic; text-align: center;">Nenhum conteúdo para mostrar</p>';
+                }
+                
+                musicContent.innerHTML = previewHTML;
+                
+                // Ajusta SVGs no preview - tamanho menor e mais proporcional
+                const svgs = musicContent.querySelectorAll('svg');
+                svgs.forEach(svg => {
+                    svg.style.cssText = 'max-width: 100%; height: auto; transform: scale(1.1); transform-origin: center;';
+                });
+                
+                // Monta modal
+                modalContent.appendChild(header);
+                modalContent.appendChild(musicContent);
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                // Fecha modal clicando fora
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                console.log('👁️ Preview modal aberto');
+            }
+            
+            // ===== FUNCIONALIDADE CIFRA CLUB =====
+            
+            // Detecta links do Cifra Club
+            function detectCifraClubLink(text) {
+                const cifraClubRegex = /https?:\/\/(www\.)?cifraclub\.com\.br\/[^\/\s]+\/[^\/\s]+\/?/g;
+                return text.match(cifraClubRegex);
+            }
+            
+            // Extrai informações do link
+            function extractSongInfo(url) {
+                try {
+                    console.log('🔍 Analisando URL:', url);
+                    const parts = url.split('/');
+                    console.log('📊 Partes da URL:', parts);
+                    
+                    // URL: https://www.cifraclub.com.br/harpa-crista/porque-ele-vive/
+                    // Índices: [0]https: [1]'' [2]www.cifraclub.com.br [3]harpa-crista [4]porque-ele-vive [5]''
+                    const artist = parts[3]?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    const song = parts[4]?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    console.log('🎤 Artista extraído:', artist);
+                    console.log('🎵 Música extraída:', song);
+                    
+                    return { artist, song, url };
+                } catch (e) {
+                    console.error('❌ Erro ao extrair informações:', e);
+                    return null;
+                }
+            }
+            
+            // Extrai letra da música do Cifra Club
+            async function extractLyricsFromCifraClub(url) {
+                try {
+                    console.log('🎵 Extraindo letra do Cifra Club...');
+                    const response = await fetch(`/cifra?url=${encodeURIComponent(url)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP: ${response.status}`);
+                    }
+                    
+                    const lyrics = await response.text();
+                    console.log('✅ Letra extraída com sucesso!');
+                    return lyrics;
+                } catch (error) {
+                    console.error('❌ Erro ao extrair letra:', error);
+                    return null;
+                }
+            }
+            
+            // Divide letra em blocos automáticos
+            function divideLyricsIntoBlocks(lyrics) {
+                console.log('🔄 Dividindo letra em blocos...');
+                
+                // Remove título/artista (primeiras linhas)
+                const lines = lyrics.split('\n');
+                const lyricsStart = lines.findIndex(line => 
+                    line.includes('[') || line.match(/^[A-G]/) || line.trim().length > 50
+                ) || 3;
+                
+                const cleanLyrics = lines.slice(lyricsStart).join('\n');
+                
+                // Divide por parágrafos (linhas vazias)
+                const paragraphs = cleanLyrics.split(/\n\s*\n/).filter(p => p.trim());
+                
+                const blocks = [];
+                let verseCount = 1;
+                
+                paragraphs.forEach((paragraph, index) => {
+                    let sectionName = 'VERSO ' + verseCount;
+                    
+                    // Detecta tipo de seção
+                    const text = paragraph.toLowerCase();
+                    if (text.includes('refrão') || text.includes('coro')) {
+                        sectionName = 'REFRÃO';
+                    } else if (text.includes('intro')) {
+                        sectionName = 'INTRO';
+                    } else if (text.includes('ponte')) {
+                        sectionName = 'PONTE';
+                    } else if (text.includes('final')) {
+                        sectionName = 'FINAL';
+                    } else {
+                        verseCount++;
+                    }
+                    
+                    // Remove marcadores [Refrão], [Verso], etc.
+                    const cleanText = paragraph.replace(/\[.*?\]/g, '').trim();
+                    
+                    blocks.push({
+                        type: 'section',
+                        title: sectionName,
+                        id: Date.now() + index * 2
+                    });
+                    
+                    blocks.push({
+                        type: 'text',
+                        content: cleanText,
+                        id: Date.now() + index * 2 + 1
+                    });
+                });
+                
+                return blocks;
+            }
+            // Processa link do Cifra Club
+            async function processCifraClubLink(url) {
+                const info = extractSongInfo(url);
+                if (!info) return false;
+                
+                // Atualiza campos do formulário
+                console.log('📝 Preenchendo campos:');
+                console.log('  - Título:', info.song);
+                console.log('  - Autor:', info.artist);
+                
+                const titleField = document.getElementById('title');
+                const authorField = document.getElementById('author');
+                
+                if (titleField) {
+                    titleField.value = info.song || '';
+                    console.log('✅ Título preenchido:', titleField.value);
+                } else {
+                    console.error('❌ Campo título não encontrado!');
+                }
+                
+                if (authorField) {
+                    authorField.value = info.artist || '';
+                    console.log('✅ Autor preenchido:', authorField.value);
+                } else {
+                    console.error('❌ Campo autor não encontrado!');
+                }
+                
+                // Tenta extrair cifra COM vídeo usando a nova rota
+                console.log('🔄 Extraindo cifra e vídeo...');
+                let lyrics = null;
+                let videoUrl = null;
+                
+                try {
+                    const response = await fetch(`/cifra_com_video?url=${encodeURIComponent(url)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        lyrics = data.cifra;
+                        videoUrl = data.video_url;
+                        
+                        console.log('✅ Cifra extraída com sucesso!');
+                        if (videoUrl) {
+                            console.log('🎬 Vídeo encontrado:', videoUrl);
+                            
+                            // Atualiza campo oculto do vídeo
+                            const videoField = document.getElementById('video_url');
+                            if (videoField) {
+                                videoField.value = videoUrl;
+                            }
+                            
+                            // Carrega vídeo no player flutuante
+                            if (window.ytPlayer) {
+                                window.ytPlayer.loadVideoFromUrl(videoUrl);
+                            }
+                        } else {
+                            console.log('⚠️ Nenhum vídeo encontrado na página');
+                        }
+                    } else {
+                        // Fallback para rota antiga
+                        lyrics = await extractLyricsFromCifraClub(url);
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao extrair cifra com vídeo:', error);
+                    // Fallback para rota antiga
+                    lyrics = await extractLyricsFromCifraClub(url);
+                }
+                
+                // Limpa blocos existentes
+                blocks = [];
+                
+                // Adiciona bloco de referência
+                blocks.push({
+                    type: 'section',
+                    title: '🔗 REFERÊNCIA',
+                    id: Date.now()
+                });
+                
+                blocks.push({
+                    type: 'text',
+                    content: `Link original: ${url}\nArtista: ${info.artist}\nMúsica: ${info.song}`,
+                    id: Date.now() + 1
+                });
+                
+                if (lyrics) {
+                    // Divide letra em blocos automáticos
+                    const lyricsBlocks = divideLyricsIntoBlocks(lyrics);
+                    blocks.push(...lyricsBlocks);
+                    console.log('✅ Letra dividida em blocos automáticos!');
+                } else {
+                    // Se não conseguiu extrair, cria estrutura básica
+                    console.log('⚠️ Não foi possível extrair a letra. Criando estrutura básica...');
+                    const sections = ['INTRO', 'VERSO 1', 'REFRÃO', 'VERSO 2', 'REFRÃO', 'PONTE', 'REFRÃO FINAL'];
+                    
+                    sections.forEach((section, index) => {
+                        blocks.push({
+                            type: 'section',
+                            title: section,
+                            id: Date.now() + index + 2
+                        });
+                        
+                        blocks.push({
+                            type: 'text',
+                            content: `[Cole aqui a ${section.toLowerCase()}]`,
+                            id: Date.now() + index + 10
+                        });
+                    });
+                }
+                
+                // Atualiza a referência global para o formulário poder acessar
+                window.editorBlocks = blocks;
+                
+                renderBlocks();
+                
+                // Notifica o usuário
+                const message = lyrics 
+                    ? `🎵 Link processado com sucesso!\n\nArtista: ${info.artist}\nMúsica: ${info.song}\n\n✅ Letra extraída e dividida automaticamente em blocos!\n🎼 Seções: Intro, Versos, Refrão, Ponte, etc.`
+                    : `🎵 Link processado!\n\nArtista: ${info.artist}\nMúsica: ${info.song}\n\n⚠️ Não foi possível extrair a letra automaticamente.\nEstrutura básica criada para preenchimento manual.`;
+                
+                alert(message);
+                
+                console.log('✅ Link do Cifra Club processado:', info);
+                return true;
+            }
+            
+            // Monitora colagem no campo de título
+            const titleField = document.getElementById('title');
+            if (titleField) {
+                titleField.addEventListener('paste', function(e) {
+                    const self = this;
+                    setTimeout(async () => {
+                        const text = self.value;
+                        
+                        // Primeiro verifica se é um link do Cifra Club
+                        const links = detectCifraClubLink(text);
+                        
+                        if (links && links.length > 0) {
+                            const shouldProcess = confirm(`🎵 Link do Cifra Club detectado!\n\n${links[0]}\n\nDeseja processar automaticamente?\n\n✅ SIM: Extrair informações e criar estrutura\n❌ NÃO: Manter como texto normal`);
+                            
+                            if (shouldProcess) {
+                                await processCifraClubLink(links[0]);
+                                self.value = ''; // Limpa o campo após processar
+                            }
+                        }
+                        // Se não for link, verifica se é uma letra de música
+                        else if (detectLyrics(text)) {
+                            const shouldProcess = confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`);
+                            
+                            if (shouldProcess) {
+                                const success = await processLyrics(text, self);
+                                if (!success) {
+                                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
+                                }
+                            }
+                        }
+                    }, 500); // Delay para permitir que o usuário termine de colar
+                });
+            }
+            
+            document.addEventListener('paste', function(e) {
+                if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+                    setTimeout(async () => {
+                        const text = e.target.value;
+                        
+                        // Primeiro verifica se é um link do Cifra Club
+                        const links = detectCifraClubLink(text);
+                        
+                        if (links && links.length > 0) {
+                            const shouldProcess = confirm(`🎵 Link do Cifra Club detectado!\n\n${links[0]}\n\nDeseja processar automaticamente?`);
+                            
+                            if (shouldProcess) {
+                                await processCifraClubLink(links[0]);
+                                e.target.value = '';
+                            }
+                        }
+                        // Se não for link, verifica se é uma letra de música
+                        else if (detectLyrics(text)) {
+                            const shouldProcess = confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`);
+                            
+                            if (shouldProcess) {
+                                const success = await processLyrics(text, e.target);
+                                if (!success) {
+                                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
+                                }
+                            }
+                        }
+                    }, 500);
+                }
+            });
+            
+            // Função para processamento manual de links
+            window.processCifraClubManual = async function() {
+                const url = prompt(`🎵 Cole o link do Cifra Club:\n\nExemplo:\nhttps://www.cifraclub.com.br/legiao-urbana/tempo-perdido/`);
+                
+                if (url && url.trim()) {
+                    const links = detectCifraClubLink(url.trim());
+                    
+                    if (links && links.length > 0) {
+                        await processCifraClubLink(links[0]);
+                    } else {
+                        alert('❌ Link inválido!\n\nCertifique-se de que é um link válido do Cifra Club.\n\nExemplo correto:\nhttps://www.cifraclub.com.br/artista/musica/');
+                    }
+                } else if (url !== null) {
+                    alert('⚠️ Nenhum link foi fornecido.');
+                }
+            };
+            
+            // Função para processamento manual de letras
+            window.processLyricsManual = async function() {
+                const lyrics = prompt(`🎵 Cole a letra da música:\n\nDica: Separe as estrofes com linhas em branco para melhor resultado.\n\nExemplo:\nVerso 1\nLetra do primeiro verso\n\nRefrão\nLetra do refrão\n\nVerso 2\nLetra do segundo verso`);
+                
+                if (lyrics && lyrics.trim()) {
+                    if (detectLyrics(lyrics.trim())) {
+                        const success = await processLyrics(lyrics.trim(), null);
+                        if (!success) {
+                            alert('⚠️ Não foi possível separar automaticamente.\n\nTente separar manualmente as seções com linhas em branco duplas entre as estrofes.');
+                        }
+                    } else {
+                        alert('❌ O texto não parece ser uma letra de música.\n\nCertifique-se de que:\n• Tem múltiplas linhas\n• Não contém URLs\n• Tem pelo menos 30 caracteres\n• Parece ser uma letra musical');
+                    }
+                } else if (lyrics !== null) {
+                    alert('⚠️ Nenhuma letra foi fornecida.');
+                }
+            };
+            
+            // Função de teste para debug
+            window.testLyricsFunction = async function() {
+                console.log('🧪 INICIANDO TESTE DE SEPARAÇÃO DE LETRAS');
+                
+                const testLyrics = `Verso 1
+Esta é a primeira estrofe
+Da nossa música de teste
+
+Refrão
+Este é o refrão principal
+Que se repete sempre
+
+Verso 2
+Segunda estrofe aqui
+Com mais conteúdo musical`;
+                
+                console.log('📝 Letra de teste:', testLyrics);
+                console.log('📄 Tem linhas em branco?', hasBlankLines(testLyrics));
+                console.log('🎼 É letra de música?', detectLyrics(testLyrics));
+                
+                const success = await processLyrics(testLyrics, null);
+                console.log('✅ Resultado:', success);
+                
+                if (success) {
+                    alert('✅ Teste de separação funcionou!\nVerifique o console (F12) para detalhes.');
+                } else {
+                    alert('❌ Teste falhou!\nVerifique o console (F12) para detalhes.');
+                }
+            };
+            
+            // Event listeners dos botões
+            document.getElementById('addSectionBtn').onclick = () => addSectionBlock();
+            document.getElementById('addTextBlockBtn').onclick = () => addTextBlock();
+            document.getElementById('addSheetBlockBtn').onclick = () => addSheetBlock();
+            
+            document.getElementById('insertSheetBtn').onclick = () => {
+                const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                vexWindow.focus();
+            };
+            
+            document.getElementById('previewBtn').onclick = () => {
+                showPreviewModal();
+            };
+            
+            document.getElementById('clearAllBtn').onclick = () => {
+                if (confirm('🗑️ Tem certeza que deseja limpar TODOS os blocos?\n\nEsta ação não pode ser desfeita!')) {
+                    blocks = [{ type: 'text', content: '', id: Date.now() }];
+                    selectedBlocks.clear();
+                    renderBlocks();
+                    console.log('🧹 Todos os blocos foram limpos!');
+                }
+            };
+            
+            document.getElementById('selectModeBtn').onclick = () => {
+                toggleSelectionMode();
+            };
+            
+            document.getElementById('deleteSelectedBtn').onclick = () => {
+                deleteSelectedBlocks();
+            };
+            
+            // Renderização inicial
+            renderBlocks();
+            
+            // Inicializa o player de vídeo flutuante
+            window.ytPlayer = new YouTubeFloatingPlayer({
+                onVideoUrlChange: function(url) {
+                    // Atualiza o campo oculto quando o usuário adicionar vídeo manualmente
+                    const videoField = document.getElementById('video_url');
+                    if (videoField) {
+                        videoField.value = url;
+                        console.log('🎬 URL do vídeo atualizada:', url);
+                    }
+                }
+            });
+            console.log('🎬 Player de vídeo inicializado');
+            
+            // Carrega áudio local existente se houver (prioridade sobre vídeo)
+            const audioField = document.getElementById('audio_url');
+            const videoField = document.getElementById('video_url');
+            const existingAudioUrl = audioField?.value;
+            const existingVideoUrl = videoField?.value;
+            
+            console.log('🔍 Campo audio_url encontrado:', !!audioField, 'valor:', existingAudioUrl);
+            console.log('🔍 Campo video_url encontrado:', !!videoField, 'valor:', existingVideoUrl);
+            
+            if (existingAudioUrl && existingAudioUrl.trim()) {
+                console.log('🎵 Carregando áudio local existente:', existingAudioUrl);
+                window.ytPlayer.loadLocalAudio(existingAudioUrl);
+            } else if (existingVideoUrl && existingVideoUrl.trim()) {
+                console.log('🎬 Carregando vídeo existente:', existingVideoUrl);
+                window.ytPlayer.loadVideoFromUrl(existingVideoUrl);
+            } else {
+                console.log('⚠️ Nenhum áudio ou vídeo para carregar');
+            }
+            
+            // Teste das funções de separação de letras
+            console.log('🧪 Testando funções de separação de letras...');
+            console.log('🔍 Função detectLyrics existe?', typeof detectLyrics === 'function');
+            console.log('🔍 Função hasBlankLines existe?', typeof hasBlankLines === 'function');
+            console.log('🔍 Função processLyrics existe?', typeof processLyrics === 'function');
+            
+            // Teste básico
+            const testText = "Verso 1\nPrimeira linha\n\nRefrão\nSegunda parte";
+            console.log('🧪 Teste com texto:', testText);
+            console.log('🧪 hasBlankLines resultado:', hasBlankLines(testText));
+            console.log('🧪 detectLyrics resultado:', detectLyrics(testText));
+            
+            // Adiciona evento de teste para debug
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'l') {
+                    e.preventDefault();
+                    console.log('🧪 TESTE MANUAL DE SEPARAÇÃO DE LETRAS');
+                    const testLyrics = `Verso 1
+Esta é a primeira estrofe
+Da nossa música de teste
+
+Refrão
+Este é o refrão principal
+Que se repete sempre
+
+Verso 2
+Segunda estrofe aqui
+Com mais conteúdo musical`;
+                    
+                    console.log('📝 Testando com letra completa...');
+                    const hasBlank = hasBlankLines(testLyrics);
+                    const isLyrics = detectLyrics(testLyrics);
+                    console.log('📄 Tem linhas em branco?', hasBlank);
+                    console.log('🎼 É letra de música?', isLyrics);
+                    
+                    if (isLyrics) {
+                        processLyrics(testLyrics, null).then(success => {
+                            console.log('✅ Resultado do processamento:', success);
+                        });
+                    }
+                }
+            });
+            
+            // ===== FUNÇÃO DE TRANSPOSIÇÃO DE ACORDES =====
+            
+            // Mapeamento de acordes para transposição
+            const chordMap = {
+                'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5,
+                'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+            };
+            
+            const chordNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            
+            // Função para transpor um acorde individual (incluindo baixo após a barra)
+            function transposeChord(chord, semitones) {
+                // Regex para capturar a nota base e o restante dos modificadores
+                const chordRegex = /^([A-G][#b]?)(.*)$/;
+                const match = chord.match(chordRegex);
+
+                if (!match) return chord; // Se não for um acorde válido, retorna original
+
+                const [, baseNote, modifiers] = match;
+
+                // Encontra o índice da nota base
+                const baseIndex = chordMap[baseNote];
+                if (baseIndex === undefined) return chord;
+
+                // Calcula a nova posição da nota base
+                let newIndex = (baseIndex + semitones) % 12;
+                if (newIndex < 0) newIndex += 12;
+
+                const transposedBase = chordNames[newIndex];
+
+                // Também transpõe a nota do baixo após a barra, se existir (ex: /G#)
+                const bassRegex = /(\/)([A-G][#b]?)/g;
+                const transposedModifiers = modifiers.replace(bassRegex, (m, slash, bassNote) => {
+                    const bassIndex = chordMap[bassNote];
+                    if (bassIndex === undefined) return m;
+
+                    let newBassIndex = (bassIndex + semitones) % 12;
+                    if (newBassIndex < 0) newBassIndex += 12;
+
+                    return slash + chordNames[newBassIndex];
+                });
+
+                // Retorna o novo acorde com base e baixo transpostos
+                return transposedBase + transposedModifiers;
+            }
+            
+            // Função principal de transposição (disponível globalmente)
+            window.transposeChords = function() {
+                const transposeSelect = document.getElementById('transpose');
+                const semitones = parseInt(transposeSelect.value);
+                
+                if (semitones === 0) {
+                    alert('ℹ️ Selecione um valor diferente de 0 para transpor.');
+                    return;
+                }
+                
+                console.log(`🎵 Iniciando transposição de ${semitones > 0 ? '+' : ''}${semitones} semitons...`);
+                
+                let transposedCount = 0;
+                
+                // Transpõe acordes em todos os blocos de texto
+                blocks.forEach((block, index) => {
+                    if (block.type === 'text' && block.content) {
+                        const originalContent = block.content;
+                        
+                        // Regex mais inteligente para detectar apenas acordes musicais
+                        // Aceita sufixos musicais comuns (m, maj, M, sus, dim, aug, add, 7M, º, etc.) e acordes com parênteses/baixo
+                        // Evita engolir palavras comuns (ex: "Deus")
+                        const chordRegex = /(^|[\s\[(]+)([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([0-9]+\))?(?:\/[A-G][#b]?)?)(?=\s+|$|\n|[\])])/gm;
+                        
+                        console.log('🔍 Conteúdo original:', originalContent);
+                        console.log('🎯 Procurando acordes...');
+                        
+                        const newContent = originalContent.replace(chordRegex, (match, prefix, chord, offset, fullString) => {
+                            // Lista de palavras comuns que não devem ser transpostas
+                            const commonWords = ['DA', 'DE', 'DO', 'EU', 'ELA', 'ELE', 'SE', 'ME', 'TE', 'LA', 'SO', 'SI'];
+
+                            // Se for uma palavra comum curta (ex: "DE", "DO"), não transpor
+                            if (commonWords.includes(chord.toUpperCase()) && chord.length <= 3) {
+                                console.log(`⚠️ Ignorando palavra comum: "${chord}"`);
+                                return match; // Retorna sem alterar
+                            }
+
+                            // Tratamento especial para acordes de uma letra (A-G) que podem ser palavras (ex: D em "Deus")
+                            if (chord.length === 1 && /[A-G]/.test(chord.toUpperCase())) {
+                                const chordStart = offset + prefix.length;
+                                let i = chordStart + chord.length;
+
+                                // Avança pelos espaços após o acorde
+                                while (i < fullString.length && fullString[i] === ' ') {
+                                    i++;
+                                }
+
+                                const nextChar = fullString[i];
+
+                                // Se o próximo caractere não vazio for uma letra minúscula, provavelmente é palavra da letra
+                                if (nextChar && nextChar.toLowerCase() === nextChar && nextChar.toUpperCase() !== nextChar) {
+                                    console.log(`⚠️ Ignorando "${chord}" - identificado como palavra (próximo caractere: '${nextChar}')`);
+                                    return match;
+                                }
+                            }
+
+                            // Tratamento especial para "Em" como preposição no português (ex: "Em toda minha vida")
+                            if (chord.toUpperCase() === 'EM') {
+                                const chordStart2 = offset + prefix.length;
+                                let j = chordStart2 + chord.length;
+
+                                // Avança pelos espaços após "Em"
+                                while (j < fullString.length && fullString[j] === ' ') {
+                                    j++;
+                                }
+
+                                const nextChar2 = fullString[j];
+
+                                // Se depois de "Em" vier letra minúscula, consideramos preposição, não acorde
+                                if (nextChar2 && nextChar2.toLowerCase() === nextChar2 && nextChar2.toUpperCase() !== nextChar2) {
+                                    console.log(`⚠️ Ignorando "${chord}" - identificado como preposição (próximo caractere: '${nextChar2}')`);
+                                    return match;
+                                }
+                            }
+
+                            console.log(`🎵 Transpondo acorde: "${chord}"`);
+                            const transposed = transposeChord(chord, semitones);
+                            if (transposed !== chord) {
+                                transposedCount++;
+                                console.log(`✅ ${chord} → ${transposed}`);
+                            }
+                            return prefix + transposed;
+                        });
+                        
+                        // Atualiza o bloco
+                        blocks[index].content = newContent;
+                    }
+                });
+                
+                // Re-renderiza os blocos
+                renderBlocks();
+                
+                // Feedback para o usuário
+                if (transposedCount > 0) {
+                    alert(`✅ Transposição concluída!\n\n🎵 ${transposedCount} acordes foram transpostos ${semitones > 0 ? '+' : ''}${semitones} semitons.`);
+                    console.log(`✅ ${transposedCount} acordes transpostos com sucesso!`);
+                } else {
+                    alert('ℹ️ Nenhum acorde foi encontrado para transpor.\n\nCertifique-se de que há acordes nos blocos de texto (ex: C, Am, F#, etc.)');
+                    console.log('ℹ️ Nenhum acorde encontrado para transposição');
+                }
+                
+                // Reseta o seletor para 0
+                transposeSelect.value = '0';
+            };
+            
+            console.log('✅ Editor de blocos integrado inicializado!');
+            
+            // Dispara evento de inicialização (não aguarda VexFlow)
+            console.log('🔍 Verificando VexFlow:', typeof Vex !== 'undefined' ? 'Disponível' : 'Não disponível');
+            window.editorReady = true;
+            console.log('🚀 Disparando evento editorInitialized...');
+            $(document).trigger('editorInitialized');
+            console.log('✅ Evento editorInitialized disparado!');
+        });
+
+// Script para carregar dados da música existente (só roda se a música existir)
+if (CONFIG.song) {
+        // REGISTRA O HANDLER IMEDIATAMENTE, antes de qualquer coisa
+        $(document).on('editorInitialized', function() {
+                console.log('🎉 Editor inicializado! Carregando dados da música...');
+                
+                // Limpa os blocos iniciais (usa o array global do editor)
+                window.editorBlocks.length = 0;
+                
+                // Carrega as seções da música
+                const songData = CONFIG.song;
+                console.log('📊 Dados da música:', songData);
+                
+                if (songData.sections && songData.sections.length > 0) {
+                    songData.sections.forEach(function(section, index) {
+                        console.log(`📦 Processando seção ${index}:`, section);
+                        
+                        // Primeiro: verifica se há um título (seção ou partitura)
+                        if (section.title && section.title.trim()) {
+                            // Verifica se é uma partitura
+                            if (section.title.includes('🎼 PARTITURA_INTEGRADA')) {
+                                // Extrai o ID da partitura
+                                const sheetIdMatch = section.title.match(/_(\d+)$/);
+                                const sheetId = sheetIdMatch ? parseInt(sheetIdMatch[1]) : Date.now();
+                                
+                                // Busca os dados da partitura correspondente
+                                if (songData.sheet_data) {
+                                    const sheetDataArray = Array.isArray(songData.sheet_data) ? songData.sheet_data : [songData.sheet_data];
+                                    const sheetData = sheetDataArray.find(s => s.id === sheetId);
+                                    
+                                    if (sheetData) {
+                                        const newBlock = {
+                                            type: 'sheet',
+                                            id: sheetId,
+                                            sheetData: JSON.stringify(sheetData),
+                                            originalData: sheetData,
+                                            svgData: null // Será renderizado depois
+                                        };
+                                        window.editorBlocks.push(newBlock);
+                                        console.log('🎼 Bloco de partitura adicionado:', sheetId);
+                                    }
+                                }
+                            } else {
+                                // Bloco de seção (título)
+                                const newBlock = {
+                                    type: 'section',
+                                    title: section.title,
+                                    id: Date.now() + window.editorBlocks.length
+                                };
+                                window.editorBlocks.push(newBlock);
+                                console.log('📋 Bloco de seção adicionado:', section.title);
+                            }
+                        }
+                        
+                        // Depois: adiciona o texto se houver (depois do título)
+                        if (section.text && section.text.length > 0) {
+                            // Junta todo o texto
+                            let fullText = section.text.join('\n');
+                            
+                            // Limpa tags HTML que podem ter sido inseridas acidentalmente
+                            fullText = fullText
+                                .replace(/<div>/gi, '\n')      // Converte <div> em quebra de linha
+                                .replace(/<\/div>/gi, '')      // Remove </div>
+                                .replace(/<br\s*\/?>/gi, '\n') // Converte <br> em quebra de linha
+                                .replace(/<[^>]+>/g, '')       // Remove qualquer outra tag HTML
+                                .replace(/\n{3,}/g, '\n\n');   // Normaliza múltiplas quebras de linha
+                            
+                            // Verifica se há marcações de partitura no texto
+                            const sheetMarkerRegex = /🎼 PARTITURA_INTEGRADA_(\d+)/g;
+                            const parts = fullText.split(sheetMarkerRegex);
+                            
+                            // Processa as partes alternadas: texto, sheetId, texto, sheetId, ...
+                            for (let i = 0; i < parts.length; i++) {
+                                if (i % 2 === 0) {
+                                    // Parte de texto (NÃO usar trim para preservar espaços)
+                                    const textContent = parts[i];
+                                    if (textContent && textContent.trim()) {
+                                        const newBlock = {
+                                            type: 'text',
+                                            content: textContent,
+                                            id: Date.now() + window.editorBlocks.length
+                                        };
+                                        window.editorBlocks.push(newBlock);
+                                        console.log('📝 Bloco de texto adicionado:', textContent.substring(0, 50));
+                                        
+                                        // Debug: mostra espaços ao carregar
+                                        const spaces = (textContent.match(/ /g) || []).length;
+                                        console.log('🔍 Espaços carregados:', spaces, 'Preview:', JSON.stringify(textContent.substring(0, 100)));
+                                    }
+                                } else {
+                                    // ID da partitura (capturado pelo grupo do regex)
+                                    const sheetId = parseInt(parts[i]);
+                                    
+                                    // Busca os dados da partitura correspondente
+                                    if (songData.sheet_data) {
+                                        const sheetDataArray = Array.isArray(songData.sheet_data) ? songData.sheet_data : [songData.sheet_data];
+                                        const sheetData = sheetDataArray.find(s => s.id === sheetId);
+                                        
+                                        if (sheetData) {
+                                            const newBlock = {
+                                                type: 'sheet',
+                                                id: sheetId,
+                                                sheetData: JSON.stringify(sheetData),
+                                                originalData: sheetData,
+                                                svgData: null // Será renderizado depois
+                                            };
+                                            window.editorBlocks.push(newBlock);
+                                            console.log('🎼 Bloco de partitura adicionado do text:', sheetId);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Se não há blocos, adiciona um bloco de texto vazio
+                if (window.editorBlocks.length === 0) {
+                    window.editorBlocks.push({ type: 'text', content: '', id: Date.now() });
+                }
+                
+                console.log('📦 Total de blocos carregados:', window.editorBlocks.length);
+                console.log('🔍 Verificando função renderBlocksFunction:', typeof window.renderBlocksFunction);
+                
+                // Renderiza os blocos usando a função global
+                if (typeof window.renderBlocksFunction === 'function') {
+                    console.log('🎨 Chamando renderBlocksFunction...');
+                    window.renderBlocksFunction();
+                    console.log('✅ Blocos renderizados!');
+                } else {
+                    console.error('❌ Função renderBlocksFunction não encontrada');
+                    console.log('🔍 Tentando renderizar diretamente...');
+                    // Tenta encontrar o container e renderizar manualmente
+                    const container = document.getElementById('blockContainer');
+                    if (container) {
+                        console.log('📦 Container encontrado, limpando...');
+                        container.innerHTML = '';
+                        window.editorBlocks.forEach((block, index) => {
+                            console.log(`🧱 Renderizando bloco ${index}:`, block.type);
+                            if (block.type === 'text') {
+                                const div = document.createElement('div');
+                                div.className = 'text-block';
+                                div.style.cssText = 'margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;';
+                                const textarea = document.createElement('div');
+                                textarea.contentEditable = true;
+                                textarea.textContent = block.content;
+                                textarea.style.cssText = 'min-height: 50px; padding: 8px;';
+                                div.appendChild(textarea);
+                                container.appendChild(div);
+                            } else if (block.type === 'section') {
+                                const div = document.createElement('div');
+                                div.className = 'section-block';
+                                div.style.cssText = 'margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 4px;';
+                                div.innerHTML = `<strong>📋 ${block.title}</strong>`;
+                                container.appendChild(div);
+                            } else if (block.type === 'sheet') {
+                                const div = document.createElement('div');
+                                div.className = 'sheet-block';
+                                div.style.cssText = 'margin: 10px 0; padding: 10px; background: #fff3e0; border-radius: 4px;';
+                                div.innerHTML = `<strong>🎼 Partitura (ID: ${block.id})</strong>`;
+                                container.appendChild(div);
+                            }
+                        });
+                    } else {
+                        console.error('❌ Container blockContainer não encontrado!');
+                    }
+                }
+                
+                console.log('✅ Dados carregados com sucesso! Total de blocos:', window.editorBlocks.length);
+            });
+
+}
