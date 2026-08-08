@@ -327,3 +327,74 @@ def test_orders_store_save_and_load_round_trip(tmp_path, monkeypatch):
     sample = {"2026-08-09": {"tipo": "culto", "itens": []}}
     assert orders_store.save_orders(sample) is True
     assert orders_store.load_orders() == sample
+
+
+def test_api_order_save_get_delete_round_trip(logged_in_client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    payload = {
+        "tipo": "culto",
+        "horario_culto": "19:00",
+        "dirigente": "João",
+        "pregador": "Pedro",
+        "itens": [{"title": "Abertura"}],
+    }
+
+    save_response = logged_in_client.post("/api/orders/2026-08-09", json=payload)
+    assert save_response.status_code == 200
+
+    get_response = logged_in_client.get("/api/orders/2026-08-09")
+    assert get_response.get_json()["dirigente"] == "João"
+
+    delete_response = logged_in_client.delete("/api/orders/2026-08-09")
+    assert delete_response.status_code == 200
+    assert logged_in_client.get("/api/orders/2026-08-09").status_code == 404
+
+
+def test_api_template_save_and_delete_round_trip(logged_in_client, tmp_path, monkeypatch):
+    # TEMPLATES_FILE é relativo ao __file__ de orders_store.py, não ao cwd
+    # — monkeypatch.chdir sozinho não isola; precisa trocar o caminho
+    # direto, senão o teste escreve em order_templates.json de verdade.
+    monkeypatch.setattr("orders_store.TEMPLATES_FILE", str(tmp_path / "order_templates.json"))
+
+    save_response = logged_in_client.post(
+        "/api/templates", json={"name": "Padrão", "items": ["Abertura", "Louvor"]}
+    )
+    assert save_response.get_json()["ok"] is True
+    assert "Padrão" in logged_in_client.get("/api/templates").get_json()
+
+    logged_in_client.delete("/api/templates/Padrão")
+    assert "Padrão" not in logged_in_client.get("/api/templates").get_json()
+
+
+def test_api_section_template_save_and_delete_round_trip(logged_in_client, tmp_path, monkeypatch):
+    # Mesmo cuidado do teste acima, pra SECTION_TEMPLATES_FILE.
+    monkeypatch.setattr("orders_store.SECTION_TEMPLATES_FILE", str(tmp_path / "section_templates.json"))
+
+    save_response = logged_in_client.post(
+        "/api/section-templates/louvor",
+        json={"name": "Padrão", "fields": {"dirigente": "João"}},
+    )
+    assert save_response.get_json()["ok"] is True
+    section = logged_in_client.get("/api/section-templates/louvor").get_json()
+    assert section["Padrão"]["dirigente"] == "João"
+
+    logged_in_client.delete("/api/section-templates/louvor/Padrão")
+    section = logged_in_client.get("/api/section-templates/louvor").get_json()
+    assert "Padrão" not in section
+
+
+def test_legacy_save_and_load_compat_routes(client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    save_response = client.post("/save", json=[{"title": "Item legado"}])
+    assert save_response.status_code == 200
+
+    load_response = client.get("/load")
+    assert load_response.get_json() == [{"title": "Item legado"}]
+
+
+def test_order_pages_load_with_login(logged_in_client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert logged_in_client.get("/order").status_code == 200
+    assert logged_in_client.get("/order/new").status_code == 200
+    assert logged_in_client.get("/order/2026-08-09").status_code == 200
