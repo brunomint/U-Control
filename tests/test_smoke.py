@@ -29,3 +29,20 @@ def test_display_state_table_has_media_type_column(app):
     with app.app_context():
         columns = [c.name for c in ucontrol_main.DisplayState.__table__.columns]
     assert "media_type" in columns
+
+
+def test_countdown_page_route_resolves_to_blueprint(client):
+    response = client.get("/countdown")
+    assert response.status_code == 200
+
+
+def test_start_countdown_broadcasts_and_updates_state(app):
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("start_countdown", {"duration_seconds": 60, "label": "Sermão"})
+    received = socket_client.get_received()
+    events = [msg["name"] for msg in received]
+    assert "countdown_start" in events
+
+    state_response = app.test_client().get("/api/countdown/state")
+    assert state_response.get_json()["active"] is True
+    socket_client.disconnect()
