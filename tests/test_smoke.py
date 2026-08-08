@@ -186,10 +186,44 @@ def test_delete_audio_returns_404_for_missing_file(logged_in_client):
     assert response.status_code == 404
 
 
-def test_add_search_and_delete_song_use_isolated_songs_file(client, tmp_path, monkeypatch):
-    songs_file = tmp_path / "songs.json"
-    monkeypatch.chdir(tmp_path)
+def test_visiting_lyrics_page_does_not_rewrite_unrelated_song_children(logged_in_client, app):
+    # /lyrics/<id> chama save_songs() com a LISTA INTEIRA em toda visita,
+    # só pra atualizar last_played de uma música — se o sync fosse um
+    # "apaga tudo e reinsere" ingênuo, as seções desta música E das outras
+    # 380 seriam recriadas (novos ids de linha) a cada visita.
+    from models_songs import Song
+    from songs_store import save_songs
 
+    with app.app_context():
+        save_songs([
+            {"id": 90001, "title": "Música A", "author": "Autor", "sections": [{"title": "Verso", "text": ["la la"]}]},
+            {"id": 90002, "title": "Música B", "author": "Autor", "sections": [{"title": "Verso", "text": ["la la"]}]},
+        ])
+        ids_before = {
+            90001: [s.id for s in ucontrol_main.db.session.get(Song, 90001).sections],
+            90002: [s.id for s in ucontrol_main.db.session.get(Song, 90002).sections],
+        }
+
+    logged_in_client.get("/lyrics/90001")
+    logged_in_client.get("/lyrics/90001")
+
+    with app.app_context():
+        song_a = ucontrol_main.db.session.get(Song, 90001)
+        last_played = song_a.last_played
+        ids_after = {
+            90001: [s.id for s in song_a.sections],
+            90002: [s.id for s in ucontrol_main.db.session.get(Song, 90002).sections],
+        }
+        ucontrol_main.db.session.delete(song_a)
+        ucontrol_main.db.session.delete(ucontrol_main.db.session.get(Song, 90002))
+        ucontrol_main.db.session.commit()
+
+    assert last_played is not None
+    assert ids_after[90001] == ids_before[90001]
+    assert ids_after[90002] == ids_before[90002]
+
+
+def test_add_search_and_delete_song_round_trip(client):
     add_response = client.post(
         "/add_song",
         data={
@@ -200,7 +234,6 @@ def test_add_search_and_delete_song_use_isolated_songs_file(client, tmp_path, mo
         },
     )
     assert add_response.status_code == 200
-    assert songs_file.exists()
 
     search_response = client.get("/search", query_string={"q": "Teste"})
     results = search_response.get_json()

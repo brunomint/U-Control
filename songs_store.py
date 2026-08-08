@@ -1,23 +1,141 @@
-"""Acesso a songs.json — usado pelo blueprint de songs (CRUD) e também
-pela área de letras em main.py (lyrics, api_lyrics, section, etc.) e por
-/view/<song_id>, por isso vive num módulo à parte em vez de dentro do
-blueprint."""
-import json
-import os
+"""Acesso às músicas — tabelas Song/SongSection/SheetData (models_songs.py),
+substituindo songs.json. Usado pelo blueprint de songs (CRUD) e também
+pela área de letras em blueprints/lyrics.py/display.py e por /view/<song_id>,
+por isso vive num módulo à parte em vez de dentro do blueprint.
+
+load_songs()/save_songs() mantêm exatamente o mesmo formato de antes —
+lista de dicts, no mesmo formato que songs.json produzia (chaves opcionais
+omitidas quando o valor é None, igual o código original fazia com `del`).
+
+save_songs(songs) faz um sync completo por id, mas com DIFF real: cada
+chamador sempre recarrega a lista inteira, muda uma música, e chama save
+com a lista inteira de novo (mesmo padrão de sempre) — só que
+/lyrics/<id> faz isso em TODA visita de página só pra atualizar
+last_played. Um "apaga tudo e reinsere" ingênuo reescreveria as seções e
+partituras das 381 músicas a cada visita de letra durante um culto ao
+vivo. Por isso: colunas escalares (title/author/video_url/audio_url/
+theme/last_played) são sempre atribuídas — o SQLAlchemy já não gera
+UPDATE se o valor não mudou — mas as listas-filhas (sections/sheet_data)
+só são recriadas quando o conteúdo comparado realmente difere do que já
+está no banco."""
+from datetime import datetime
+
+from extensions import db
+from models_songs import SheetData, Song, SongSection
+
+
+def _sections_to_dicts(sections):
+    return [{'title': s.title, 'text': s.text} for s in sections]
+
+
+def _normalize_sheet(sh):
+    return {
+        'id': sh.get('id'),
+        'notes': sh.get('notes'),
+        'time_signature': sh.get('time_signature'),
+        'clef': sh.get('clef'),
+        'keySig': sh.get('keySig'),
+        'chords': sh.get('chords'),
+    }
+
+
+def _sheets_to_dicts(sheet_data):
+    return [_normalize_sheet({
+        'id': sd.client_id,
+        'notes': sd.notes,
+        'time_signature': sd.time_signature,
+        'clef': sd.clef,
+        'keySig': sd.key_sig,
+        'chords': sd.chords,
+    }) for sd in sheet_data]
+
+
+def _song_to_dict(song):
+    d = {'id': song.id, 'title': song.title, 'author': song.author}
+    if song.video_url is not None:
+        d['video_url'] = song.video_url
+    if song.audio_url is not None:
+        d['audio_url'] = song.audio_url
+    if song.theme is not None:
+        d['theme'] = song.theme
+    if song.last_played is not None:
+        d['last_played'] = song.last_played.isoformat()
+    d['sections'] = _sections_to_dicts(song.sections)
+    if song.sheet_data:
+        sheets = []
+        for sd in song.sheet_data:
+            item = {'id': sd.client_id, 'notes': sd.notes, 'time_signature': sd.time_signature, 'clef': sd.clef}
+            if sd.key_sig is not None:
+                item['keySig'] = sd.key_sig
+            if sd.chords is not None:
+                item['chords'] = sd.chords
+            sheets.append(item)
+        d['sheet_data'] = sheets
+    return d
 
 
 def load_songs():
-    """Carrega as músicas do arquivo JSON."""
-    if not os.path.exists('songs.json'):
-        return []
-    with open('songs.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
+    """Carrega as músicas."""
+    songs = Song.query.order_by(Song.id.asc()).all()
+    return [_song_to_dict(s) for s in songs]
+
+
+def _apply_song_fields(song, data, is_new):
+    song.title = data.get('title')
+    song.author = data.get('author')
+    song.video_url = data.get('video_url')
+    song.audio_url = data.get('audio_url')
+    song.theme = data.get('theme')
+    last_played = data.get('last_played')
+    song.last_played = datetime.fromisoformat(last_played) if last_played else None
+
+    incoming_sections = data.get('sections') or []
+    if is_new or incoming_sections != _sections_to_dicts(song.sections):
+        song.sections = [
+            SongSection(position=i, title=sec.get('title'), text=sec.get('text'))
+            for i, sec in enumerate(incoming_sections)
+        ]
+
+    incoming_sheets = [_normalize_sheet(sh) for sh in (data.get('sheet_data') or [])]
+    if is_new or incoming_sheets != _sheets_to_dicts(song.sheet_data):
+        song.sheet_data = [
+            SheetData(
+                client_id=sh.get('id'),
+                notes=sh.get('notes'),
+                time_signature=sh.get('time_signature'),
+                clef=sh.get('clef'),
+                key_sig=sh.get('keySig'),
+                chords=sh.get('chords'),
+            )
+            for sh in incoming_sheets
+        ]
 
 
 def save_songs(songs):
-    """Salva as músicas no arquivo JSON."""
-    with open('songs.json', 'w', encoding='utf-8') as f:
-        json.dump(songs, f, ensure_ascii=False, indent=4)
+    """Salva as músicas (sync completo por id, com diff — ver docstring do
+    módulo)."""
+    incoming_ids = {s['id'] for s in songs}
+    existing = {s.id: s for s in Song.query.all()}
+
+    for song_id, song in existing.items():
+        if song_id not in incoming_ids:
+            db.session.delete(song)
+
+    for data in songs:
+        song = existing.get(data['id'])
+        if song is None:
+            song = Song(id=data['id'])
+            db.session.add(song)
+            _apply_song_fields(song, data, is_new=True)
+        else:
+            _apply_song_fields(song, data, is_new=False)
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    finally:
+        db.session.close()
 
 
 def get_next_id(songs):
