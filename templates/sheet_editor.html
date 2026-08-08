@@ -262,8 +262,7 @@
   let Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam;
   let VF_READY=false;
   try{
-    const VF = await import('https://unpkg.com/vexflow@4/build/esm/entry/vexflow.js')
-      .catch(()=>import('https://cdn.jsdelivr.net/npm/vexflow@4/build/esm/entry/vexflow.js'));
+    const VF = await import('/static/vendor/vexflow/4.2.5-esm/entry/vexflow.js');
     ({ Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam } = VF);
     VF_READY=true;
   }catch(e){ console.warn('VexFlow não carregou.', e); }

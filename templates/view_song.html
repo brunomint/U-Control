@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
     <!-- Adicione no <head> -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+        <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
         <script src="/static/js/youtube-player.js?v=10"></script>
 
     <title>Visualizar Músicas</title>
@@ -1162,7 +1162,7 @@ window.onload = () => {
 
     <!-- Script para renderizar partituras (múltiplas) se disponível -->
     {% if song.sheet_data %}
-    <script src="https://unpkg.com/vexflow@4.2.2/releases/vexflow-min.js"></script>
+    <script src="/static/vendor/vexflow/4.2.2-releases/vexflow-min.js"></script>
     <script>
         function renderPartituras() {
             console.log('🎼 Iniciando renderização das partituras...');
