@@ -40,6 +40,7 @@ from blueprints.ticker import ticker_bp
 from blueprints.auth import auth_bp
 from blueprints.bible import bible_bp, generate_bible_url
 from blueprints.cifras import cifras_bp
+from songs_store import load_songs, save_songs, get_next_id
 
 logger = logging.getLogger('ucontrol')
 
@@ -440,31 +441,6 @@ def get_current_image_path():
 
 
 
-
-# --- Funções Para editor de música para exibir na tela ---
-
-def load_songs():
-    """Carrega as músicas do arquivo JSON."""
-    if not os.path.exists('songs.json'):
-        return []
-    with open('songs.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-def save_songs(songs):
-    """Salva as músicas no arquivo JSON e atualiza a cache."""
-    global songs_cache
-    with open('songs.json', 'w', encoding='utf-8') as f:
-        json.dump(songs, f, ensure_ascii=False, indent=4)
-    songs_cache = songs  # Atualiza a cache
-
-def get_next_id(songs):
-    """Obtém o próximo ID disponível para uma nova música."""
-    return max((song['id'] for song in songs), default=0) + 1
-
-def format_lyrics(text):
-    """Formata os acordes nas letras das músicas."""
-    chord_pattern = r'\b[A-G][#b]?[mM]?[7-9]?\b'
-    return re.sub(chord_pattern, r'<span class="chord">\g<0></span>', text)
 
 # --- Rotas principais editor---
 
