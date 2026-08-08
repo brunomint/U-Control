@@ -452,3 +452,26 @@ def test_show_image_updates_display_state_module_live(app):
     assert display_state._current_display_mode == "image"
     assert display_state._last_image_url == "/static/imagens/teste.jpg"
     socket_client.disconnect()
+
+
+def test_screen_share_offer_relays_to_target_sid(app):
+    import connections
+
+    # test_client.eio_sid é o sid de transporte do engine.io, não o
+    # request.sid que os handlers usam — pega o sid de verdade via
+    # connections.socketio_clients_by_sid (populado pelo handler connect),
+    # conectando o receiver sozinho primeiro pra identificar sem ambiguidade.
+    receiver = ucontrol_main.socketio.test_client(app)
+    receiver_sid = next(iter(connections.socketio_clients_by_sid))
+    sender = ucontrol_main.socketio.test_client(app)
+
+    sender.emit("screen_share_offer", {"sdp": "fake-sdp", "target_sid": receiver_sid})
+
+    received = receiver.get_received()
+    events = [msg["name"] for msg in received]
+    assert "screen_share_offer" in events
+    payload = next(msg["args"][0] for msg in received if msg["name"] == "screen_share_offer")
+    assert payload["sdp"] == "fake-sdp"
+
+    sender.disconnect()
+    receiver.disconnect()
