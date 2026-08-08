@@ -7,6 +7,9 @@ __pycache__/
 # Dados de instância (banco com credenciais, gerado em runtime)
 instance/
 
+# Banco SQLite local (o schema vem de migrations/, não do arquivo em si)
+*.db
+
 # Configurações locais de ferramentas (não são convenção do projeto)
 .claude/settings.local.json
 .vscode/

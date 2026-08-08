@@ -11,6 +11,14 @@
 # script troca `ctx.session` por `ctx._session` no pacote instalado.
 # Documentado também no KANBAN.md. Necessário até o projeto migrar pra uma
 # versão do Flask-SocketIO que já resolva isso.
+# Flask-Migrate/alembic/Mako: adicionados aqui em 2026-08-07, ainda não
+# instalados no Pi — o próximo deploy lá precisa de
+# `pip install -r requirements.txt` antes de rodar `flask db upgrade`
+# (ver Etapa D / KANBAN.md pro passo a passo do primeiro rollout).
+alembic==1.19.0
+Flask-Migrate==4.1.0
+Mako==1.4.1
+
 beautifulsoup4==4.14.3
 bidict==0.23.1
 blinker==1.9.0

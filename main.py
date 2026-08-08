@@ -14,6 +14,7 @@ from werkzeug.routing import BaseConverter
 from flask_socketio import SocketIO, emit, join_room
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from PIL import Image
 from datetime import datetime, date
@@ -58,6 +59,7 @@ def _setup_logging(app):
 
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -154,6 +156,7 @@ def create_app(config=None):
         app.config.update(config)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     socketio.init_app(
         app,
@@ -168,8 +171,12 @@ def create_app(config=None):
         transports=['polling', 'websocket'],
     )
 
-    with app.app_context():
-        db.create_all()
+    if app.config.get('TESTING'):
+        # Banco em memória dos testes: recriado do zero a cada processo, não
+        # faz sentido versionar com migration. Fora de teste (dev ou
+        # produção), o schema vem só de `flask db upgrade` (migrations/).
+        with app.app_context():
+            db.create_all()
 
     return app
 
