@@ -34,6 +34,7 @@ from logging.handlers import RotatingFileHandler
 from extensions import db, migrate, login_manager, socketio
 from models import User, DisplayState, LyricsState
 from display_log import DISPLAY_LOG_PATH, load_display_log, append_display_log
+from settings_store import load_settings, save_settings
 from blueprints.countdown import countdown_bp
 from blueprints.ticker import ticker_bp
 from blueprints.auth import auth_bp
@@ -653,21 +654,6 @@ def get_current_image_path():
 # Cache para Bíblias carregadas
 _bible_cache = {}
 _bible_metadata = None
-
-# Arquivo de configurações
-SETTINGS_FILE = os.path.join(os.getcwd(), 'settings.json')
-
-def load_settings():
-    """Carrega as configurações do arquivo JSON."""
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
-
-def save_settings(settings):
-    """Salva as configurações no arquivo JSON."""
-    with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(settings, f, ensure_ascii=False, indent=4)
 
 def get_preferred_translation():
     """Retorna a tradução preferida da Bíblia."""
