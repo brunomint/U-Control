@@ -1,13 +1,11 @@
 """Rotas utilitárias soltas: links/QR codes, relógio, ajuda, histórico,
 status do sistema e download do launcher do monitor. api_culto_status
 fica de fora — depende de dados de agenda, ainda não modularizados."""
-import json
-
 from flask import Blueprint, current_app, jsonify, make_response, render_template, request
 
 import connections
 from connections import socketio_clients_by_sid
-from display_log import DISPLAY_LOG_PATH, load_display_log
+from display_log import clear_display_log, load_display_log
 from flask_login import login_required
 from network_utils import PORTA, obter_endereco_ip
 
@@ -215,11 +213,7 @@ def api_historico():
 @utils_bp.route('/api/historico', methods=['DELETE'])
 @login_required
 def api_historico_clear():
-    try:
-        with open(DISPLAY_LOG_PATH, 'w', encoding='utf-8') as f:
-            json.dump([], f)
-    except Exception:
-        pass
+    clear_display_log()
     return jsonify({'ok': True})
 
 @utils_bp.route('/api/system/status', methods=['GET'])

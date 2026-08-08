@@ -207,21 +207,50 @@ def test_historico_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_api_historico_clear_empties_the_log(logged_in_client, tmp_path, monkeypatch):
-    # load_display_log() (GET) resolve o path no namespace de display_log;
-    # api_historico_clear (DELETE) usa o nome já importado em
-    # blueprints.utils — os dois precisam ser trocados separadamente.
-    log_file = tmp_path / "display_log.json"
-    log_file.write_text('[{"type": "song", "title": "x", "ts": "2026-01-01T00:00:00"}]', encoding="utf-8")
-    monkeypatch.setattr("display_log.DISPLAY_LOG_PATH", str(log_file))
-    monkeypatch.setattr("blueprints.utils.DISPLAY_LOG_PATH", str(log_file))
+def test_api_historico_clear_empties_the_log(logged_in_client, app):
+    from datetime import datetime
+
+    from models import DisplayLog
+
+    with app.app_context():
+        ucontrol_main.db.session.add(DisplayLog(type="song", title="x", ts=datetime(2026, 1, 1)))
+        ucontrol_main.db.session.commit()
 
     before = logged_in_client.get("/api/historico").get_json()
-    assert len(before) == 1
+    assert len(before) >= 1
 
     clear_response = logged_in_client.delete("/api/historico")
     assert clear_response.get_json() == {"ok": True}
-    assert log_file.read_text(encoding="utf-8") == "[]"
+
+    after = logged_in_client.get("/api/historico").get_json()
+    assert after == []
+
+
+def test_append_display_log_inserts_a_real_row(app):
+    from display_log import append_display_log, clear_display_log, load_display_log
+
+    with app.app_context():
+        clear_display_log()
+        append_display_log({"type": "bible", "title": "João 3:16"})
+        log = load_display_log()
+
+    assert len(log) == 1
+    assert log[0]["type"] == "bible"
+    assert log[0]["title"] == "João 3:16"
+    assert log[0]["url"] is None
+    assert "ts" in log[0]
+
+
+def test_load_display_log_returns_oldest_first(app):
+    from display_log import append_display_log, clear_display_log, load_display_log
+
+    with app.app_context():
+        clear_display_log()
+        append_display_log({"type": "image", "title": "primeira"})
+        append_display_log({"type": "image", "title": "segunda"})
+        log = load_display_log()
+
+    assert [entry["title"] for entry in log] == ["primeira", "segunda"]
 
 
 def test_download_monitor_launcher_invalid_os_returns_400(client):
