@@ -6,6 +6,7 @@ import os
 
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
+from werkzeug.utils import safe_join, secure_filename
 from PIL import Image
 import fitz  # PyMuPDF
 
@@ -13,6 +14,13 @@ gallery_bp = Blueprint('gallery', __name__)
 
 # Diretório onde as imagens estão armazenadas
 IMAGE_FOLDER = 'static/imagens'
+
+
+def _safe_folder_path(*parts):
+    """Junta IMAGE_FOLDER com os segmentos dados, recusando qualquer
+    tentativa de sair da pasta (ex: folder/name/filename contendo '..').
+    Retorna None se o caminho resultante escaparia de IMAGE_FOLDER."""
+    return safe_join(IMAGE_FOLDER, *parts)
 
 
 def get_current_image_path():
@@ -51,7 +59,9 @@ def create_image_folder():
 def delete_image_folder(name):
     if name == 'Geral':
         return jsonify({'status': 'error', 'message': 'Não é possível excluir a pasta Geral.'}), 400
-    folder_path = os.path.join(IMAGE_FOLDER, name)
+    folder_path = _safe_folder_path(name)
+    if folder_path is None:
+        return jsonify({'status': 'error', 'message': 'Nome inválido.'}), 400
     if not os.path.exists(folder_path):
         return jsonify({'status': 'error', 'message': 'Pasta não encontrada.'}), 404
     import shutil
@@ -62,14 +72,13 @@ def delete_image_folder(name):
 @gallery_bp.route('/imagens')
 def list_images():
     folder = request.args.get('folder', 'Geral')
-    base = IMAGE_FOLDER
     if folder == 'Geral':
-        target = base
+        target = IMAGE_FOLDER
         prefix = '/static/imagens'
     else:
-        target = os.path.join(base, folder)
+        target = _safe_folder_path(folder)
         prefix = f'/static/imagens/{folder}'
-    if not os.path.exists(target):
+    if not target or not os.path.exists(target):
         return jsonify([])
     images = [f for f in os.listdir(target) if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and os.path.isfile(os.path.join(target, f))]
     image_urls = [f'{prefix}/{image}' for image in images]
@@ -82,14 +91,13 @@ def foto_atual():
 @gallery_bp.route('/lista-fotos')
 def lista_fotos():
     folder = request.args.get('folder', 'Geral')
-    base = IMAGE_FOLDER
     if folder == 'Geral':
-        target = base
+        target = IMAGE_FOLDER
         prefix = '/static/imagens'
     else:
-        target = os.path.join(base, folder)
+        target = _safe_folder_path(folder)
         prefix = f'/static/imagens/{folder}'
-    if not os.path.exists(target):
+    if not target or not os.path.exists(target):
         return jsonify({'fotos': []})
     IMAGE_EXTS = ('.png', '.jpg', '.jpeg', '.gif')
     VIDEO_EXTS = ('.mp4', '.webm', '.mov')
@@ -107,15 +115,20 @@ def lista_fotos():
 
 @gallery_bp.route('/upload', methods=['POST'])
 def upload_files():
+    # Sem @login_required de propósito: /presenter é acessado sem login (via
+    # QR code, pra qualquer pessoa da igreja enviar fotos durante o culto) e
+    # chama esta rota diretamente. A proteção aqui é a validação de caminho
+    # abaixo (_safe_folder_path + secure_filename), não autenticação.
     if 'images' not in request.files:
         return jsonify({'status': 'error', 'message': 'Nenhum arquivo enviado'}), 400
 
     folder = request.form.get('folder', 'Geral')
-    base = IMAGE_FOLDER
     if folder == 'Geral':
-        target_dir = base
+        target_dir = IMAGE_FOLDER
     else:
-        target_dir = os.path.join(base, folder)
+        target_dir = _safe_folder_path(folder)
+        if target_dir is None:
+            return jsonify({'status': 'error', 'message': 'Pasta inválida.'}), 400
         os.makedirs(target_dir, exist_ok=True)
 
     files = request.files.getlist('images')
@@ -126,11 +139,15 @@ def upload_files():
         if file.filename == '':
             return jsonify({'status': 'error', 'message': 'Nome de arquivo vazio'}), 400
 
-        file_ext = os.path.splitext(file.filename)[1].lower()
+        filename = secure_filename(file.filename)
+        if not filename:
+            return jsonify({'status': 'error', 'message': 'Nome de arquivo inválido'}), 400
+
+        file_ext = os.path.splitext(filename)[1].lower()
         if file_ext in ('.mp4', '.webm', '.mov'):
-            file_path = os.path.join(target_dir, file.filename)
+            file_path = os.path.join(target_dir, filename)
             file.save(file_path)
-            saved_files.append(file.filename)
+            saved_files.append(filename)
         elif file_ext == '.pdf':
             # Converter PDF para imagens otimizadas para projeção
             pdf_document = fitz.open(stream=file.read(), filetype="pdf")
@@ -146,13 +163,13 @@ def upload_files():
                 img.thumbnail(max_size, Image.LANCZOS)
 
                 # Salva como JPEG otimizado (muito mais leve que PNG)
-                img_path = os.path.join(target_dir, f"{os.path.splitext(file.filename)[0]}_page-{str(page_num + 1).zfill(4)}.jpg")
+                img_path = os.path.join(target_dir, f"{os.path.splitext(filename)[0]}_page-{str(page_num + 1).zfill(4)}.jpg")
                 img.save(img_path, 'JPEG', quality=85, optimize=True)
                 saved_files.append(os.path.basename(img_path))
         elif file_ext == '.pptx':
             import subprocess, tempfile
             with tempfile.TemporaryDirectory() as tmp:
-                pptx_path = os.path.join(tmp, file.filename)
+                pptx_path = os.path.join(tmp, filename)
                 file.save(pptx_path)
                 subprocess.run(
                     ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', tmp, pptx_path],
@@ -162,7 +179,7 @@ def upload_files():
                 if not os.path.exists(pdf_path):
                     continue
                 pdf_document = fitz.open(pdf_path)
-                base_name = os.path.splitext(file.filename)[0]
+                base_name = os.path.splitext(filename)[0]
                 for page_num in range(len(pdf_document)):
                     page = pdf_document[page_num]
                     matrix = fitz.Matrix(2, 2)
@@ -174,7 +191,7 @@ def upload_files():
                     saved_files.append(os.path.basename(img_path))
         else:
             # Salvar e redimensionar imagens com compressão otimizada
-            file_path = os.path.join(target_dir, file.filename)
+            file_path = os.path.join(target_dir, filename)
             with Image.open(file) as img:
                 # Converte para RGB se for RGBA (PNG com transparência)
                 if img.mode == 'RGBA':
@@ -193,21 +210,22 @@ def upload_files():
                 else:
                     img.save(file_path, quality=85, optimize=True)
 
-            saved_files.append(file.filename)
+            saved_files.append(filename)
 
     return jsonify({'status': 'success', 'saved_files': saved_files}), 200
 
 # Rota para deletar imagens (suporta ?folder=nome)
 @gallery_bp.route('/delete_image', methods=['POST'])
+@login_required
 def delete_image():
     image_name = request.json.get('image_name')
     folder = request.json.get('folder', 'Geral')
     if not image_name:
         return jsonify({'status': 'error', 'message': 'Nome de imagem não fornecido.'}), 400
 
-    base = IMAGE_FOLDER
-    target_dir = base if folder == 'Geral' else os.path.join(base, folder)
-    image_path = os.path.join(target_dir, image_name)
+    image_path = _safe_folder_path(folder, image_name) if folder != 'Geral' else _safe_folder_path(image_name)
+    if image_path is None:
+        return jsonify({'status': 'error', 'message': 'Caminho inválido.'}), 400
     if os.path.exists(image_path):
         os.remove(image_path)
         return jsonify({'status': 'success', 'message': 'Imagem deletada com sucesso.'})
@@ -223,13 +241,12 @@ def delete_images():
     if not image_names:
         return jsonify({'status': 'error', 'message': 'Nenhuma imagem selecionada.'}), 400
 
-    base = IMAGE_FOLDER
-    target_dir = base if folder == 'Geral' else os.path.join(base, folder)
+    target_dir = IMAGE_FOLDER if folder == 'Geral' else _safe_folder_path(folder)
     deleted = []
     errors = []
     for name in image_names:
-        image_path = os.path.join(target_dir, name)
-        if os.path.exists(image_path):
+        image_path = safe_join(target_dir, name) if target_dir else None
+        if image_path and os.path.exists(image_path):
             os.remove(image_path)
             deleted.append(name)
         else:

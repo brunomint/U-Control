@@ -397,7 +397,7 @@ def test_create_image_folder_and_see_it_listed(logged_in_client, tmp_path, monke
     assert "Louvor" in folders
 
 
-def test_upload_list_and_delete_image_round_trip(client, tmp_path, monkeypatch):
+def test_upload_list_and_delete_image_round_trip(logged_in_client, tmp_path, monkeypatch):
     import io
     from PIL import Image
 
@@ -408,7 +408,7 @@ def test_upload_list_and_delete_image_round_trip(client, tmp_path, monkeypatch):
     Image.new("RGB", (2, 2), color="red").save(buffer, format="PNG")
     buffer.seek(0)
 
-    upload_response = client.post(
+    upload_response = logged_in_client.post(
         "/upload",
         data={"images": (buffer, "teste.png")},
         content_type="multipart/form-data",
@@ -417,12 +417,28 @@ def test_upload_list_and_delete_image_round_trip(client, tmp_path, monkeypatch):
     saved = upload_response.get_json()["saved_files"]
     assert saved == ["teste.png"]
 
-    images = client.get("/imagens").get_json()
+    images = logged_in_client.get("/imagens").get_json()
     assert images == ["/static/imagens/teste.png"]
 
-    delete_response = client.post("/delete_image", json={"image_name": "teste.png"})
+    delete_response = logged_in_client.post("/delete_image", json={"image_name": "teste.png"})
     assert delete_response.get_json()["status"] == "success"
-    assert client.get("/imagens").get_json() == []
+    assert logged_in_client.get("/imagens").get_json() == []
+
+
+def test_delete_image_and_folder_reject_path_traversal(logged_in_client, tmp_path, monkeypatch):
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    (tmp_path / "secret.txt").write_text("não deveria ser apagado")
+    monkeypatch.chdir(tmp_path)
+
+    delete_response = logged_in_client.post(
+        "/delete_image", json={"image_name": "../secret.txt"}
+    )
+    assert delete_response.get_json()["status"] == "error"
+    assert (tmp_path / "secret.txt").exists()
+
+    folder_response = logged_in_client.delete("/api/image_folders/..")
+    assert folder_response.status_code == 400
+    assert (tmp_path / "static" / "imagens").exists()
 
 
 def test_orders_store_save_and_load_round_trip(tmp_path, monkeypatch):
