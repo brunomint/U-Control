@@ -268,12 +268,13 @@ def view_song(song_id):
             order_date = next((d for d in dates if d >= today), dates[-1] if dates else None)
             order_data = orders.get(order_date, {}).get('itens', [])
         
-        # Fallback para sistema antigo
+        # Fallback: nenhuma ordem encontrada pra essa música, usa a ordem de
+        # hoje (antes lia order_of_service.json, um bucket solto sem data
+        # — Fase 5.6, unificado na mesma tabela Order das demais ordens)
         if not order_data:
-            order_file = os.path.join(os.getcwd(), 'order_of_service.json')
-            if os.path.exists(order_file):
-                with open(order_file, 'r', encoding='utf-8') as f:
-                    order_data = json.load(f)
+            from datetime import date as _date_cls
+            today = _date_cls.today().isoformat()
+            order_data = orders.get(today, {}).get('itens', [])
     
     # Extrai itens bíblicos
     for item in order_data:

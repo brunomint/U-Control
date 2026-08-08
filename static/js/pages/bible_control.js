@@ -129,6 +129,7 @@ async function addBibleFromMenu() {
         const data = await response.json();
 
         if (data.success) {
+            if (data.message) alert(data.message);
             window.location.reload();
         } else {
             alert(data.error || 'Erro ao adicionar passagem');

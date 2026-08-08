@@ -1,16 +1,15 @@
 """Ordem do culto: CRUD via API, templates de item, section-templates,
-compatibilidade com o sistema antigo (/save, /load), páginas de edição, e
-api_culto_status (passos da ordem de hoje — por dado, não por escala de
-equipe, por isso fica aqui e não em agenda)."""
-import json
-import os
+compatibilidade com o sistema antigo (/save, /load — Fase 5.6: migradas
+pra mirar a ordem de HOJE em vez do antigo order_of_service.json, um
+bucket solto sem data), páginas de edição, e api_culto_status (passos da
+ordem de hoje — por dado, não por escala de equipe, por isso fica aqui e
+não em agenda)."""
 from datetime import date
 
 from flask import Blueprint, jsonify, render_template, request
 from flask_login import login_required
 
 from orders_store import (
-    DATA_FILE,
     load_orders,
     save_orders,
     load_templates,
@@ -292,36 +291,43 @@ def api_apply_section_template_month():
     save_orders(orders)
     return jsonify({'ok': True, 'applied': len(dates)})
 
-# Rota para salvar a lista (mantém compatibilidade com sistema antigo)
+# Rota para salvar a lista (mantém compatibilidade com sistema antigo —
+# sem data no contexto, mira sempre a ordem de HOJE)
 @orders_bp.route('/save', methods=['POST'])
 def save_list():
     try:
         data = request.json
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        today = date.today().isoformat()
+        orders = load_orders()
+        order = orders.get(today, {})
+        if data:
+            order['itens'] = data
+        else:
+            order.pop('itens', None)
+        orders[today] = order
+        save_orders(orders)
         return jsonify({"message": "Lista salva com sucesso!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Rota para carregar a lista (mantém compatibilidade com sistema antigo)
+# Rota para carregar a lista (mantém compatibilidade com sistema antigo —
+# sem data no contexto, mira sempre a ordem de HOJE)
 @orders_bp.route('/load', methods=['GET'])
 def load_list():
     try:
-        # Verifica se há parâmetro de data
-        date = request.args.get('date')
-        if date:
-            orders = load_orders()
-            if date in orders:
-                return jsonify(orders[date].get('itens', [])), 200
+        # Verifica se há parâmetro de data explícito
+        date_param = request.args.get('date')
+        orders = load_orders()
+        if date_param:
+            if date_param in orders:
+                return jsonify(orders[date_param].get('itens', [])), 200
             return jsonify([]), 200
 
-        # Fallback para sistema antigo
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        else:
-            data = []
-        return jsonify(data), 200
+        # Sem data no parâmetro: usa a ordem de hoje (antes lia
+        # order_of_service.json, um bucket solto sem data — Fase 5.6)
+        today = date.today().isoformat()
+        order = orders.get(today, {})
+        return jsonify(order.get('itens', [])), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

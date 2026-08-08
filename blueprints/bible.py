@@ -1,10 +1,18 @@
 """Bíblia: navegação, busca, exibição e integração com a ordem do culto.
 Praticamente autocontido — só generate_bible_url() é usada fora daqui
-(pelas rotas /view/* em main.py, que importam direto deste módulo)."""
+(pelas rotas /view/* em main.py, que importam direto deste módulo).
+
+A integração com a ordem do culto (add/remove/listar passagem) mira
+sempre a ordem de HOJE (tabela Order, por data) — Fase 5.6, unificação
+do antigo order_of_service.json (sem data, bucket solto). Os botões daqui
+não têm nenhum seletor de data, por isso a resposta sempre indica a data
+que recebeu o item, pra quem estiver preparando um culto futuro perceber
+na hora que caiu no lugar errado."""
 import json
 import logging
 import os
 import re
+from datetime import date
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
@@ -12,6 +20,7 @@ from flask_socketio import emit
 
 from display_log import append_display_log
 from extensions import socketio
+from orders_store import load_orders, save_orders
 from settings_store import load_settings, save_settings
 
 logger = logging.getLogger('ucontrol')
@@ -531,82 +540,71 @@ def bible_display():
 @bible_bp.route('/api/bible/add_to_order', methods=['POST'])
 @login_required
 def api_bible_add_to_order():
-    """Adiciona uma passagem bíblica à ordem do culto."""
+    """Adiciona uma passagem bíblica à ordem do culto de hoje."""
     data = request.get_json()
     reference = data.get('reference', '').strip()
 
     if not reference:
         return jsonify({'success': False, 'error': 'Referência vazia'})
 
-    # Carrega a ordem do culto
-    order_file = os.path.join(os.getcwd(), 'order_of_service.json')
-    order_data = []
+    today = date.today().isoformat()
+    orders = load_orders()
+    order = orders.get(today, {})
+    itens = list(order.get('itens') or [])
 
-    if os.path.exists(order_file):
-        with open(order_file, 'r', encoding='utf-8') as f:
-            order_data = json.load(f)
-
-    # Cria o novo item de Bíblia
-    new_item = {
+    itens.append({
         'isBible': True,
         'reference': reference,
         'title': f'📖 {reference}'
-    }
+    })
+    order['itens'] = itens
+    orders[today] = order
+    save_orders(orders)
 
-    # Adiciona à lista
-    order_data.append(new_item)
-
-    # Salva o arquivo
-    with open(order_file, 'w', encoding='utf-8') as f:
-        json.dump(order_data, f, ensure_ascii=False, indent=4)
-
-    return jsonify({'success': True, 'url': generate_bible_url(reference)})
+    return jsonify({
+        'success': True,
+        'url': generate_bible_url(reference),
+        'date': today,
+        'message': f"Adicionado à ordem de hoje ({date.today().strftime('%d/%m')})",
+    })
 
 @bible_bp.route('/api/bible/remove_from_order', methods=['POST'])
 @login_required
 def api_bible_remove_from_order():
-    """Remove uma passagem bíblica da ordem do culto."""
+    """Remove uma passagem bíblica da ordem do culto de hoje."""
     data = request.get_json()
     reference = data.get('reference', '').strip()
 
     if not reference:
         return jsonify({'success': False, 'error': 'Referência vazia'})
 
-    # Carrega a ordem do culto
-    order_file = os.path.join(os.getcwd(), 'order_of_service.json')
+    today = date.today().isoformat()
+    orders = load_orders()
+    order = orders.get(today, {})
+    itens = list(order.get('itens') or [])
 
-    if not os.path.exists(order_file):
-        return jsonify({'success': False, 'error': 'Arquivo não encontrado'})
+    original_len = len(itens)
+    itens = [item for item in itens if not (item.get('isBible') and item.get('reference') == reference)]
 
-    with open(order_file, 'r', encoding='utf-8') as f:
-        order_data = json.load(f)
+    if len(itens) == original_len:
+        return jsonify({'success': False, 'error': 'Passagem não encontrada na ordem de hoje'})
 
-    # Remove o item com a referência correspondente
-    original_len = len(order_data)
-    order_data = [item for item in order_data if not (item.get('isBible') and item.get('reference') == reference)]
-
-    if len(order_data) == original_len:
-        return jsonify({'success': False, 'error': 'Passagem não encontrada'})
-
-    # Salva o arquivo
-    with open(order_file, 'w', encoding='utf-8') as f:
-        json.dump(order_data, f, ensure_ascii=False, indent=4)
+    if itens:
+        order['itens'] = itens
+    else:
+        order.pop('itens', None)
+    orders[today] = order
+    save_orders(orders)
 
     return jsonify({'success': True})
 
 @bible_bp.route('/bible/control/')
 @login_required
 def bible_control_list():
-    """Lista de passagens bíblicas da ordem do culto."""
-    # Carrega a ordem do culto
-    order_file = os.path.join(os.getcwd(), 'order_of_service.json')
-    bible_items = []
-
-    if os.path.exists(order_file):
-        with open(order_file, 'r', encoding='utf-8') as f:
-            order_data = json.load(f)
-            # Filtra apenas itens de Bíblia
-            bible_items = [item for item in order_data if item.get('isBible')]
+    """Lista de passagens bíblicas da ordem do culto de hoje."""
+    today = date.today().isoformat()
+    order = load_orders().get(today, {})
+    bible_items = [item for item in (order.get('itens') or []) if item.get('isBible')]
 
     return render_template('bible_control_list.html', bible_items=bible_items)
 
@@ -643,18 +641,16 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
     prev_chapter = chapter - 1 if chapter > 1 else None
     next_chapter = chapter + 1 if chapter < len(chapters) else None
 
-    # Carrega passagens bíblicas da ordem do culto
-    order_file = os.path.join(os.getcwd(), 'order_of_service.json')
+    # Carrega passagens bíblicas da ordem do culto de hoje
+    today = date.today().isoformat()
+    order = load_orders().get(today, {})
     bible_items = []
-    if os.path.exists(order_file):
-        with open(order_file, 'r', encoding='utf-8') as f:
-            order_data = json.load(f)
-            for item in order_data:
-                if item.get('isBible'):
-                    # Gera URL a partir da referência se não existir
-                    if not item.get('url'):
-                        item['url'] = generate_bible_url(item.get('reference', ''))
-                    bible_items.append(item)
+    for item in (order.get('itens') or []):
+        if item.get('isBible'):
+            # Gera URL a partir da referência se não existir
+            if not item.get('url'):
+                item['url'] = generate_bible_url(item.get('reference', ''))
+            bible_items.append(item)
 
     return render_template('bible_control.html',
         book_abbrev=book_abbrev,

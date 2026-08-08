@@ -17,6 +17,7 @@ async function addBiblePassage() {
         const data = await response.json();
 
         if (data.success) {
+            if (data.message) alert(data.message);
             // Recarrega a página para mostrar a nova passagem
             window.location.reload();
         } else {

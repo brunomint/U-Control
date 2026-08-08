@@ -142,25 +142,41 @@ def test_update_bible_broadcasts_and_appends_to_display_log(app):
     socket_client.disconnect()
 
 
-def test_bible_add_and_remove_from_order_use_isolated_order_file(
-    logged_in_client, tmp_path, monkeypatch
-):
-    order_file = tmp_path / "order_of_service.json"
-    monkeypatch.chdir(tmp_path)
+def test_bible_add_and_remove_from_order_target_todays_order(app, logged_in_client):
+    # Fase 5.6: unificado na tabela Order (por data) — os botões de bíblia
+    # não têm seletor de data, então miram sempre a ordem de hoje.
+    import orders_store
+    from datetime import date
+
+    today = date.today().isoformat()
+
+    with app.app_context():
+        existing = orders_store.load_orders()
 
     add_response = logged_in_client.post(
         "/api/bible/add_to_order", json={"reference": "João 3:16"}
     )
-    assert add_response.get_json()["success"] is True
-    assert order_file.exists()
-    saved = order_file.read_text(encoding="utf-8")
-    assert "João 3:16" in saved
+    add_json = add_response.get_json()
+    assert add_json["success"] is True
+    assert add_json["date"] == today
+    assert "hoje" in add_json["message"]
+
+    with app.app_context():
+        order = orders_store.load_orders().get(today, {})
+        itens = order.get("itens") or []
+        assert any(i.get("isBible") and i.get("reference") == "João 3:16" for i in itens)
 
     remove_response = logged_in_client.post(
         "/api/bible/remove_from_order", json={"reference": "João 3:16"}
     )
     assert remove_response.get_json()["success"] is True
-    assert order_file.read_text(encoding="utf-8") == "[]"
+
+    with app.app_context():
+        order = orders_store.load_orders().get(today, {})
+        itens = order.get("itens") or []
+        assert not any(i.get("isBible") and i.get("reference") == "João 3:16" for i in itens)
+        # limpeza — banco de teste é compartilhado entre todos os testes da sessão
+        orders_store.save_orders(existing)
 
 
 def test_list_audio_returns_json_structure(client):
@@ -243,6 +259,38 @@ def test_add_search_and_delete_song_round_trip(client):
 
     delete_response = client.post(f"/delete_song/{song_id}")
     assert delete_response.status_code == 200
+
+
+def test_view_song_falls_back_to_todays_order_when_no_order_found(app, client):
+    # /view/<id> sem ?order= e sem nenhuma ordem referenciando a música
+    # cai no fallback pra ordem de hoje (Fase 5.6 — antes lia
+    # order_of_service.json). Cobertura nova: essa rota nunca teve teste.
+    # Usa um item bíblico porque é o único pedaço de order_data que o
+    # template view_song.html realmente renderiza (bible_items).
+    import orders_store
+    import songs_store
+    from datetime import date
+
+    today = date.today().isoformat()
+    with app.app_context():
+        existing_orders = orders_store.load_orders()
+        existing_songs = songs_store.load_songs()
+        song_id = songs_store.get_next_id(existing_songs)
+        songs_store.save_songs(existing_songs + [{
+            "id": song_id, "title": "Música Fallback", "author": "Autor",
+            "sections": [{"title": "Verso", "text": ["la la"]}],
+        }])
+        orders_store.save_orders(dict(existing_orders, **{
+            today: {"itens": [{"isBible": True, "reference": "Salmos 23:1", "title": "📖 Salmos 23:1"}]},
+        }))
+
+    response = client.get(f"/view/{song_id}")
+    assert response.status_code == 200
+    assert "Salmos 23:1".encode() in response.data
+
+    with app.app_context():
+        songs_store.save_songs(existing_songs)
+        orders_store.save_orders(existing_orders)
 
     empty_search = client.get("/search", query_string={"q": "Teste"})
     assert empty_search.get_json() == []
@@ -508,14 +556,28 @@ def test_api_section_template_save_and_delete_round_trip(logged_in_client):
     assert "Padrão" not in section
 
 
-def test_legacy_save_and_load_compat_routes(client, tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+def test_legacy_save_and_load_compat_routes(app, client):
+    # Fase 5.6: /save e /load (sem ?date=) miram a ordem de HOJE na tabela
+    # Order, não mais o antigo order_of_service.json (bucket sem data).
+    import orders_store
+    from datetime import date
 
-    save_response = client.post("/save", json=[{"title": "Item legado"}])
+    today = date.today().isoformat()
+    with app.app_context():
+        existing = orders_store.load_orders()
+
+    save_response = client.post("/save", json=[{"title": "Item legado", "url": "/order"}])
     assert save_response.status_code == 200
 
     load_response = client.get("/load")
-    assert load_response.get_json() == [{"title": "Item legado"}]
+    assert load_response.get_json() == [{"title": "Item legado", "url": "/order"}]
+
+    with app.app_context():
+        assert orders_store.load_orders().get(today, {}).get("itens") == [
+            {"title": "Item legado", "url": "/order"}
+        ]
+        # limpeza — banco de teste é compartilhado entre todos os testes da sessão
+        orders_store.save_orders(existing)
 
 
 def test_order_pages_load_with_login(logged_in_client, tmp_path, monkeypatch):
