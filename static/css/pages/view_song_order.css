@@ -1,0 +1,300 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #0a0a0a;
+    color: #e2e8f0;
+}
+
+/* Estilo do menu - Tema Moderno */
+.menu {
+    width: 260px;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    color: #e2e8f0;
+    height: 100vh;
+    padding-top: 20px;
+    padding-bottom: 80px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+    border-right: 1px solid rgba(74, 222, 128, 0.2);
+    overflow-y: auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    scrollbar-width: thin;
+    scrollbar-color: #4ade80 #1a1a2e;
+    z-index: 900;
+    box-sizing: border-box;
+}
+
+.menu h1 {
+    font-weight: bold;
+    font-size: 22px;
+    color: #4ade80;
+    text-align: center;
+    margin: 0 0 20px 0;
+    padding: 0 15px;
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+.menu.hidden {
+    transform: translateX(-100%);
+}
+
+.menu-title {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+    margin-bottom: 5px;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.menu a {
+    display: block;
+    color: #e2e8f0;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid transparent;
+}
+
+.menu a:hover {
+    background: rgba(74, 222, 128, 0.1);
+    border-left: 3px solid #4ade80;
+    color: #4ade80;
+    padding-left: 24px;
+}
+
+.menu-item {
+    font-size: 22px;
+    font-weight: bold;
+    padding: 20px 15px;
+    margin-bottom: 10px;
+    color: #4ade80;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+h1, h3, h4 {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h1 {
+    color: #4ade80;
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+h5 {
+    color: #4ade80;
+    margin-top: 20px;
+}
+
+pre {
+    background: transparent !important;
+    color: #e2e8f0 !important;
+    padding: 0 !important;
+    margin: 0 0 15px 0 !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
+}
+
+pre * {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    font-family: inherit !important;
+}
+
+a {
+    display: inline-block;
+    margin-top: 20px;
+    color: #007BFF;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+@media print {
+    a, a:visited {
+        display: none !important;
+        visibility: hidden;
+    }
+
+    #toggle-menu {
+        display: none !important;
+        visibility: hidden;
+    }
+
+    .menu {
+        display: none !important;
+        visibility: hidden;
+    }
+
+    .menu a, .menu a:visited {
+        display: none !important;
+        visibility: hidden;
+    }
+
+    .controls {
+        visibility: hidden;
+    }
+}
+
+/* Branding */
+.branding {
+    text-align: center;
+    padding: 0 10px 20px;
+    margin-bottom: 20px;
+}
+
+.branding img {
+    width: 120px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.branding p {
+    font-size: 16px;
+    color: white;
+    margin: 0;
+}
+
+/* Estilo do botão de esconder/exibir - escondido em telas grandes */
+#toggle-menu {
+    display: none; /* Escondido por padrão em telas grandes */
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #4ade80;
+    border: 2px solid #4ade80;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 1000;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+    transition: all 0.2s ease;
+}
+
+#toggle-menu:hover {
+    background: rgba(74, 222, 128, 0.15);
+    box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
+    transform: scale(1.05);
+}
+
+/* Ajuste para dispositivos móveis */
+@media (max-width: 768px) {
+    /* Menu escondido por padrão em mobile */
+    .menu {
+        width: 240px;
+        font-size: 16px;
+        height: 100vh;
+        max-height: 100vh;
+        overflow-y: auto;
+        transform: translateX(-100%); /* Escondido por padrão */
+    }
+
+    .menu.visible {
+        transform: translateX(0); /* Visível quando tem classe .visible */
+    }
+
+    /* Botão visível em mobile */
+    #toggle-menu {
+        display: block !important;
+        top: 8px;
+        left: 8px;
+        padding: 10px 12px;
+        font-size: 20px;
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 20px;
+        margin-top: 60px;
+    }
+}
+
+/* Telas grandes */
+@media (min-width: 769px) {
+    .menu {
+        width: 280px;
+        font-size: 18px;
+        z-index: 1000;
+    }
+
+    .menu a {
+        font-size: 16px;
+        padding: 14px 20px;
+    }
+
+    .menu-title {
+        font-size: 14px;
+        padding: 14px 20px;
+    }
+
+    .content {
+        margin-left: 300px;
+    }
+
+    pre {
+        font-size: 18px !important;
+        line-height: 1.7 !important;
+    }
+
+    pre * {
+        font-size: 18px !important;
+        line-height: 1.7 !important;
+    }
+}
+
+.img-content {
+    border-radius: 0px;
+}
+
+.description {
+    font-size: 18px;
+    color: #e2e8f0;
+    text-align: center;
+    padding: 30px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    border: 1px solid rgba(74, 222, 128, 0.15);
+}
+
+.description p {
+    color: #a0aec0;
+    line-height: 1.6;
+}
+
+.description strong {
+    color: #4ade80;
+}
+
+.footer {
+    position: fixed;
+    font-size: 12px;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #a0aec0;
+    padding: 12px;
+    z-index: 1000;
+    border-top: 1px solid rgba(74, 222, 128, 0.2);
+}
