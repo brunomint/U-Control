@@ -475,3 +475,37 @@ def test_screen_share_offer_relays_to_target_sid(app):
 
     sender.disconnect()
     receiver.disconnect()
+
+
+def test_update_lyrics_broadcasts_and_updates_display_state(app):
+    import display_state
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("update_lyrics", {"title": "Seção 1", "text": "Letra de teste"})
+
+    received = socket_client.get_received()
+    events = [msg["name"] for msg in received]
+    assert "update_lyrics" in events
+    assert display_state._current_display_mode == "lyrics"
+    assert display_state._last_lyrics_payload == {"title": "Seção 1", "text": "Letra de teste"}
+    socket_client.disconnect()
+
+
+def test_api_lyrics_returns_song_data(client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    add_response = client.post(
+        "/add_song",
+        data={
+            "title": "Música de Letras",
+            "author": "Autor",
+            "sections[]": ["Verso 1"],
+            "texts[]": ["Letra aqui"],
+        },
+    )
+    assert add_response.status_code == 200
+    songs = client.get("/search", query_string={"q": "Letras"}).get_json()
+    song_id = songs[0]["id"]
+
+    response = client.get(f"/api/lyrics/{song_id}")
+    assert response.status_code == 200
+    assert response.get_json()["title"] == "Música de Letras"
