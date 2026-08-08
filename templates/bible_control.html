@@ -1,656 +1,129 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>{{ book_name }} {{ chapter }} - Controle</title>
-    <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-    <script src="/static/vendor/socketio/socket.io.min.js"></script>
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+{% block title %}{{ book_name }} {{ chapter }} - Controle{% endblock %}
 
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+{% block head_extra %}
+<script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
-        .header h1 {
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible_control.css') }}">
+{% endblock %}
 
-        .header-nav {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .header-nav a, .header-nav button {
-            padding: 8px 15px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            text-decoration: none;
-            border-radius: 20px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .header-nav a:hover, .header-nav button:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        /* Main content */
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* Verses list */
-        .verses-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .verse-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            background: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-            border-left: 4px solid transparent;
-        }
-
-        .verse-item:hover {
-            background: #e8f4ff;
-            border-left-color: #7c3aed;
-        }
-
-        .verse-item.active {
-            background: linear-gradient(135deg, #e8f4ff, #f0e6ff);
-            border-left-color: #7c3aed;
-        }
-
-        .verse-number {
-            font-weight: bold;
-            color: #7c3aed;
-            font-size: 1.2em;
-            min-width: 30px;
-        }
-
-        .verse-text {
-            flex: 1;
-            font-size: 1.1em;
-            line-height: 1.6;
-            color: #333;
-        }
-
-        /* Navigation buttons */
-        .nav-buttons {
-            position: fixed;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            z-index: 100;
-        }
-
-        .nav-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-            transition: all 0.3s;
-        }
-
-        .nav-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
-        }
-
-        .nav-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Toggle button */
-        #toggle-bible {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 100;
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        #toggle-bible:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
-        }
-
-        #toggle-bible.show-mode {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
-        }
-
-        /* Chapter navigation */
-        .chapter-nav {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .chapter-nav a {
-            padding: 10px 20px;
-            background: #7c3aed;
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            transition: all 0.3s;
-        }
-
-        .chapter-nav a:hover {
-            background: #5a4fcf;
-            transform: translateY(-2px);
-        }
-
-        .chapter-nav select {
-            padding: 10px 15px;
-            border: 2px solid #7c3aed;
-            border-radius: 10px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .nav-buttons {
-                right: 10px;
-            }
-
-            .nav-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-
-            .verse-text {
-                font-size: 1em;
-            }
-
-            #toggle-bible {
-                top: auto;
-                bottom: 20px;
-                right: 50%;
-                transform: translateX(50%);
-            }
-        }
-        /* Menu lateral */
-        #menu {
-            width: 250px;
-            height: 100vh;
-            background-color: #333;
-            color: white;
-            padding: 20px;
-            position: fixed;
-            left: 0;
-            top: 0;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        #menu.active {
-            transform: translateX(0);
-        }
-
-        #menu h2 {
-            font-size: 1.1em;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #555;
-        }
-
-        .menu-item {
-            display: block;
-            padding: 12px 15px;
-            margin-bottom: 8px;
-            background: #444;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s;
-            font-size: 14px;
-            border-left: 3px solid transparent;
-        }
-
-        .menu-item:hover {
-            background: #555;
-            border-left-color: #7c3aed;
-        }
-
-        .menu-item.active {
-            background: #7c3aed;
-            border-left-color: #fff;
-        }
-
-        .menu-item i {
-            margin-right: 8px;
-        }
-
-        #toggle-menu {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1100;
-            padding: 10px 15px;
-            font-size: 18px;
-            cursor: pointer;
-            background-color: #7c3aed;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        #toggle-menu:hover {
-            background-color: #5a4fcf;
-        }
-
-        .menu-empty {
-            color: #999;
-            font-style: italic;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .menu-links {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #555;
-        }
-
-        .menu-links a {
-            display: block;
-            padding: 10px;
-            color: #aaa;
-            text-decoration: none;
-            font-size: 13px;
-        }
-
-        .menu-links a:hover {
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <!-- Menu lateral -->
-    <button id="toggle-menu" onclick="toggleMenu()">☰</button>
-    <div id="menu">
-        <h2><i class="fas fa-book-bible"></i> Ordem do Culto</h2>
-        {% if bible_items %}
-            {% for item in bible_items %}
-            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                <a href="{{ item.url if item.url else '#' }}" class="menu-item" style="flex: 1; margin-bottom: 0;">
-                    <i class="fas fa-bookmark"></i> {{ item.reference }}
-                </a>
-                <button onclick="removeBibleFromMenu('{{ item.reference }}')" 
-                    style="background: #e74c3c; color: white; border: none; padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-left: 5px;"
-                    title="Remover">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="menu-empty">
-                <p>Nenhuma passagem na ordem</p>
-            </div>
-        {% endif %}
-        <!-- Adicionar passagem -->
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #555;">
-            <input type="text" id="menuBibleRef" placeholder="Ex: Rm 8:28" 
-                style="width: 100%; padding: 10px; border: none; border-radius: 8px; margin-bottom: 8px; font-size: 14px;">
-            <button onclick="addBibleFromMenu()" 
-                style="width: 100%; padding: 10px; background: #7c3aed; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                <i class="fas fa-plus"></i> Adicionar
+{% block content %}
+<!-- Menu lateral -->
+<button id="toggle-menu" onclick="toggleMenu()">☰</button>
+<div id="menu">
+    <h2><i class="fas fa-book-bible"></i> Ordem do Culto</h2>
+    {% if bible_items %}
+        {% for item in bible_items %}
+        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+            <a href="{{ item.url if item.url else '#' }}" class="menu-item" style="flex: 1; margin-bottom: 0;">
+                <i class="fas fa-bookmark"></i> {{ item.reference }}
+            </a>
+            <button onclick="removeBibleFromMenu('{{ item.reference }}')"
+                style="background: #e74c3c; color: white; border: none; padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-left: 5px;"
+                title="Remover">
+                <i class="fas fa-times"></i>
             </button>
         </div>
-
-        <div class="menu-links">
-            <a href="/order"><i class="fas fa-edit"></i> Editar Ordem</a>
-            <a href="/bible"><i class="fas fa-search"></i> Buscar na Bíblia</a>
-            <a href="/"><i class="fas fa-home"></i> Início</a>
+        {% endfor %}
+    {% else %}
+        <div class="menu-empty">
+            <p>Nenhuma passagem na ordem</p>
         </div>
+    {% endif %}
+    <!-- Adicionar passagem -->
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #555;">
+        <input type="text" id="menuBibleRef" placeholder="Ex: Rm 8:28"
+            style="width: 100%; padding: 10px; border: none; border-radius: 8px; margin-bottom: 8px; font-size: 14px;">
+        <button onclick="addBibleFromMenu()"
+            style="width: 100%; padding: 10px; background: #7c3aed; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            <i class="fas fa-plus"></i> Adicionar
+        </button>
     </div>
 
-    <div class="header">
-        <h1><i class="fas fa-book-bible"></i> {{ book_name }} {{ chapter }}</h1>
-        <div class="header-nav">
-            <select id="translationSelect" onchange="changeTranslation()">
-                {% for key, trans in translations.items() %}
-                <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
-                    {{ trans.abbrev }}
-                </option>
-                {% endfor %}
-            </select>
-            <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}">
-                <i class="fas fa-list"></i> Capítulos
-            </a>
-            <a href="/bible?translation={{ current_translation }}">
-                <i class="fas fa-book"></i> Livros
-            </a>
-            <a href="/order">
-                <i class="fas fa-list-ol"></i> Ordem
-            </a>
-        </div>
+    <div class="menu-links">
+        <a href="/order"><i class="fas fa-edit"></i> Editar Ordem</a>
+        <a href="/bible"><i class="fas fa-search"></i> Buscar na Bíblia</a>
+        <a href="/"><i class="fas fa-home"></i> Início</a>
     </div>
+</div>
 
-    <div class="main-content">
-        <div class="verses-container">
-            {% for verse in verses %}
-            <div class="verse-item" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="selectVerse({{ loop.index }})">
-                <span class="verse-number">{{ loop.index }}</span>
-                <span class="verse-text">{{ verse }}</span>
-            </div>
+<div class="header">
+    <h1><i class="fas fa-book-bible"></i> {{ book_name }} {{ chapter }}</h1>
+    <div class="header-nav">
+        <select id="translationSelect" onchange="changeTranslation()">
+            {% for key, trans in translations.items() %}
+            <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
+                {{ trans.abbrev }}
+            </option>
             {% endfor %}
-        </div>
+        </select>
+        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}">
+            <i class="fas fa-list"></i> Capítulos
+        </a>
+        <a href="/bible?translation={{ current_translation }}">
+            <i class="fas fa-book"></i> Livros
+        </a>
+        <a href="/order">
+            <i class="fas fa-list-ol"></i> Ordem
+        </a>
+    </div>
+</div>
 
-        <div class="chapter-nav">
-            {% if prev_chapter %}
-            <a href="/bible/control/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}">
-                <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
-            </a>
-            {% endif %}
-            
-            <select id="chapterSelect" onchange="goToChapter()">
-                {% for i in range(1, num_chapters + 1) %}
-                <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
-                {% endfor %}
-            </select>
-
-            {% if next_chapter %}
-            <a href="/bible/control/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}">
-                Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
-            </a>
-            {% endif %}
+<div class="main-content">
+    <div class="verses-container">
+        {% for verse in verses %}
+        <div class="verse-item" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="selectVerse({{ loop.index }})">
+            <span class="verse-number">{{ loop.index }}</span>
+            <span class="verse-text">{{ verse }}</span>
         </div>
+        {% endfor %}
     </div>
 
-    <!-- Navigation buttons -->
-    <div class="nav-buttons">
-        <button class="nav-btn" id="prev" onclick="prevVerse()">
-            <i class="fas fa-arrow-up"></i>
-        </button>
-        <button class="nav-btn" id="next" onclick="nextVerse()">
-            <i class="fas fa-arrow-down"></i>
-        </button>
-    </div>
+    <div class="chapter-nav">
+        {% if prev_chapter %}
+        <a href="/bible/control/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}">
+            <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
+        </a>
+        {% endif %}
 
-    <!-- Toggle button -->
-    <button id="toggle-bible" onclick="toggleVisibility()">
-        <i class="fas fa-eye"></i>
-        <span id="toggle-text">Esconder</span>
+        <select id="chapterSelect" onchange="goToChapter()">
+            {% for i in range(1, num_chapters + 1) %}
+            <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
+            {% endfor %}
+        </select>
+
+        {% if next_chapter %}
+        <a href="/bible/control/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}">
+            Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Navigation buttons -->
+<div class="nav-buttons">
+    <button class="nav-btn" id="prev" onclick="prevVerse()">
+        <i class="fas fa-arrow-up"></i>
     </button>
+    <button class="nav-btn" id="next" onclick="nextVerse()">
+        <i class="fas fa-arrow-down"></i>
+    </button>
+</div>
 
-    <script>
-        const socket = io();
-        const bookName = "{{ book_name }}";
-        const bookAbbrev = "{{ book_abbrev }}";
-        const chapter = {{ chapter }};
-        const totalVerses = {{ verses|length }};
-        let currentVerse = 1;
-        let isVisible = true;
+<!-- Toggle button -->
+<button id="toggle-bible" onclick="toggleVisibility()">
+    <i class="fas fa-eye"></i>
+    <span id="toggle-text">Esconder</span>
+</button>
 
-        // Dados dos versículos
-        const versesData = [
-            {% for verse in verses %}
-            { num: {{ loop.index }}, text: {{ verse|tojson }} },
-            {% endfor %}
-        ];
+<script id="bible-control-data" type="application/json">{{ {"bookName": book_name, "bookAbbrev": book_abbrev, "chapter": chapter, "verses": verses, "initialVerse": (initial_verse if initial_verse else 1)} | tojson }}</script>
+{% endblock %}
 
-        function selectVerse(verseNum) {
-            currentVerse = verseNum;
-            
-            // Remove active de todos
-            document.querySelectorAll('.verse-item').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            // Adiciona active ao selecionado
-            const verseEl = document.getElementById(`verse-${verseNum}`);
-            if (verseEl) {
-                verseEl.classList.add('active');
-                verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            
-            // Envia para o display
-            sendToDisplay();
-        }
-
-        function sendToDisplay() {
-            const verse = versesData[currentVerse - 1];
-            const reference = `${bookName} ${chapter}:${currentVerse}`;
-            
-            socket.emit('update_bible', {
-                reference: reference,
-                text: `${verse.num} ${verse.text}`,
-                book: bookName,
-                chapter: chapter,
-                verses: [verse]
-            });
-            
-            console.log(`📖 Enviado: ${reference}`);
-        }
-
-        function prevVerse() {
-            if (currentVerse > 1) {
-                selectVerse(currentVerse - 1);
-            }
-        }
-
-        function nextVerse() {
-            if (currentVerse < totalVerses) {
-                selectVerse(currentVerse + 1);
-            }
-        }
-
-        function toggleVisibility() {
-            isVisible = !isVisible;
-            const btn = document.getElementById('toggle-bible');
-            const text = document.getElementById('toggle-text');
-            const icon = btn.querySelector('i');
-            
-            if (isVisible) {
-                btn.classList.remove('show-mode');
-                text.textContent = 'Esconder';
-                icon.className = 'fas fa-eye';
-                sendToDisplay();
-            } else {
-                btn.classList.add('show-mode');
-                text.textContent = 'Mostrar';
-                icon.className = 'fas fa-eye-slash';
-                
-                // Envia texto vazio para esconder
-                socket.emit('update_bible', {
-                    reference: '',
-                    text: '',
-                    verses: []
-                });
-            }
-        }
-
-        async function changeTranslation() {
-            const translation = document.getElementById('translationSelect').value;
-            
-            // Salva a tradução preferida no servidor
-            try {
-                await fetch('/api/bible/set_translation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ translation: translation })
-                });
-            } catch (error) {
-                console.error('Erro ao salvar tradução:', error);
-            }
-            
-            window.location.href = `/bible/control/${bookAbbrev}/${chapter}?translation=${translation}`;
-        }
-
-        function goToChapter() {
-            const chapterNum = document.getElementById('chapterSelect').value;
-            const translation = document.getElementById('translationSelect').value;
-            window.location.href = `/bible/control/${bookAbbrev}/${chapterNum}?translation=${translation}`;
-        }
-
-        // Toggle menu
-        function toggleMenu() {
-            document.getElementById('menu').classList.toggle('active');
-        }
-
-        // Adicionar passagem do menu
-        async function addBibleFromMenu() {
-            const input = document.getElementById('menuBibleRef');
-            const reference = input.value.trim();
-            
-            if (!reference) {
-                alert('Digite uma referência bíblica');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/bible/add_to_order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: reference })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Erro ao adicionar passagem');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao adicionar passagem');
-            }
-        }
-        
-        // Enter para adicionar no menu
-        document.getElementById('menuBibleRef').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addBibleFromMenu();
-            }
-        });
-
-        // Remover passagem do menu
-        async function removeBibleFromMenu(reference) {
-            if (!confirm(`Remover "${reference}"?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/bible/remove_from_order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: reference })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Erro ao remover');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao remover');
-            }
-        }
-
-        // Keyboard navigation
-        document.addEventListener('keydown', function(e) {
-            // Ignora atalhos quando está digitando em um input
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                return;
-            }
-            
-            if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-                e.preventDefault();
-                prevVerse();
-            } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-                e.preventDefault();
-                nextVerse();
-            } else if (e.key === ' ') {
-                e.preventDefault();
-                toggleVisibility();
-            } else if (e.key === 'Escape') {
-                document.getElementById('menu').classList.remove('active');
-            }
-        });
-
-        // Seleciona o versículo inicial ao carregar
-        window.addEventListener('load', function() {
-            const initialVerse = {{ initial_verse if initial_verse else 1 }};
-            selectVerse(initialVerse);
-        });
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/bible_control.js') }}"></script>
+{% endblock %}

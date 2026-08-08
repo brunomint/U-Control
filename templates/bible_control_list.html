@@ -1,305 +1,73 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Passagens Bíblicas - Ordem do Culto</title>
-    <script src="/static/vendor/socketio/socket.io.min.js"></script>
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+{% block title %}Passagens Bíblicas - Ordem do Culto{% endblock %}
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+{% block head_extra %}
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible_control_list.css') }}">
+{% endblock %}
 
-        .header h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .header p {
-            opacity: 0.9;
-        }
-
-        .nav-links {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .nav-links a {
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            transition: all 0.3s;
-        }
-
-        .nav-links a:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-        }
-
-        .bible-list {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-
-        .bible-list h2 {
-            color: #5a4fcf;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .bible-item {
-            display: flex;
-            align-items: center;
-            padding: 15px 20px;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            color: #333;
-            border-left: 4px solid #7c3aed;
-        }
-
-        .bible-item:hover {
-            background: linear-gradient(135deg, #e8f4ff, #f0e6ff);
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
-        }
-
-        .bible-item .icon {
-            font-size: 1.5em;
-            margin-right: 15px;
-            color: #7c3aed;
-        }
-
-        .bible-item .reference {
-            flex: 1;
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #5a4fcf;
-        }
-
-        .bible-item .arrow {
-            color: #7c3aed;
-            font-size: 1.2em;
-        }
-
-        .empty-message {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .empty-message i {
-            font-size: 3em;
-            color: #ccc;
-            margin-bottom: 15px;
-        }
-
-        .empty-message p {
-            margin-bottom: 20px;
-        }
-
-        .empty-message a {
-            display: inline-block;
-            padding: 12px 25px;
-            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            transition: all 0.3s;
-        }
-
-        .empty-message a:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
-        }
-
-        .item-number {
-            background: #7c3aed;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 15px;
-            font-size: 14px;
-        }
-
-        @media (max-width: 600px) {
-            .header h1 {
-                font-size: 1.5em;
-            }
-
-            .bible-item {
-                padding: 12px 15px;
-            }
-
-            .bible-item .reference {
-                font-size: 1em;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-book-bible"></i> Passagens Bíblicas</h1>
-            <p>Ordem do Culto</p>
-        </div>
-
-        <div class="nav-links">
-            <a href="/bible"><i class="fas fa-search"></i> Buscar na Bíblia</a>
-            <a href="/order"><i class="fas fa-list-ol"></i> Ordem do Culto</a>
-            <a href="/"><i class="fas fa-home"></i> Início</a>
-        </div>
-
-        <!-- Adicionar nova passagem -->
-        <div class="add-passage" style="background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-            <h3 style="color: #5a4fcf; margin-bottom: 15px;"><i class="fas fa-plus-circle"></i> Adicionar Passagem</h3>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="newBibleRef" placeholder="Ex: João 3:16, Salmos 23:1-6" 
-                    style="flex: 1; min-width: 200px; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
-                <button onclick="addBiblePassage()" 
-                    style="padding: 12px 25px; background: linear-gradient(135deg, #7c3aed, #5a4fcf); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
-                    <i class="fas fa-plus"></i> Adicionar
-                </button>
-            </div>
-            <p style="color: #888; font-size: 13px; margin-top: 10px;">
-                <i class="fas fa-info-circle"></i> A passagem será salva na ordem do culto
-            </p>
-        </div>
-
-        <div class="bible-list">
-            <h2><i class="fas fa-list"></i> Passagens para Hoje</h2>
-            
-            {% if bible_items %}
-                {% for item in bible_items %}
-                <div class="bible-item" style="display: flex; align-items: center;">
-                    <a href="{{ item.url if item.url else '/bible?search=' + item.reference }}" style="flex: 1; display: flex; align-items: center; text-decoration: none; color: inherit;">
-                        <span class="item-number">{{ loop.index }}</span>
-                        <span class="reference">{{ item.reference }}</span>
-                    </a>
-                    <button onclick="removeBiblePassage('{{ item.reference }}')" 
-                        style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 10px;"
-                        title="Remover">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-message">
-                    <i class="fas fa-inbox"></i>
-                    <p>Nenhuma passagem bíblica na ordem do culto</p>
-                    <a href="/order"><i class="fas fa-plus"></i> Adicionar Passagens</a>
-                </div>
-            {% endif %}
-        </div>
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-book-bible"></i> Passagens Bíblicas</h1>
+        <p>Ordem do Culto</p>
     </div>
 
-    <script>
-        async function addBiblePassage() {
-            const input = document.getElementById('newBibleRef');
-            const reference = input.value.trim();
-            
-            if (!reference) {
-                alert('Digite uma referência bíblica');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/bible/add_to_order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: reference })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Recarrega a página para mostrar a nova passagem
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Erro ao adicionar passagem');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao adicionar passagem');
-            }
-        }
-        
-        // Enter para adicionar
-        document.getElementById('newBibleRef').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addBiblePassage();
-            }
-        });
+    <div class="nav-links">
+        <a href="/bible"><i class="fas fa-search"></i> Buscar na Bíblia</a>
+        <a href="/order"><i class="fas fa-list-ol"></i> Ordem do Culto</a>
+        <a href="/"><i class="fas fa-home"></i> Início</a>
+    </div>
 
-        async function removeBiblePassage(reference) {
-            if (!confirm(`Remover "${reference}" da ordem do culto?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/bible/remove_from_order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference: reference })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Erro ao remover passagem');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao remover passagem');
-            }
-        }
-    </script>
-</body>
-</html>
+    <!-- Adicionar nova passagem -->
+    <div class="add-passage" style="background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <h3 style="color: #5a4fcf; margin-bottom: 15px;"><i class="fas fa-plus-circle"></i> Adicionar Passagem</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="newBibleRef" placeholder="Ex: João 3:16, Salmos 23:1-6"
+                style="flex: 1; min-width: 200px; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+            <button onclick="addBiblePassage()"
+                style="padding: 12px 25px; background: linear-gradient(135deg, #7c3aed, #5a4fcf); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
+                <i class="fas fa-plus"></i> Adicionar
+            </button>
+        </div>
+        <p style="color: #888; font-size: 13px; margin-top: 10px;">
+            <i class="fas fa-info-circle"></i> A passagem será salva na ordem do culto
+        </p>
+    </div>
+
+    <div class="bible-list">
+        <h2><i class="fas fa-list"></i> Passagens para Hoje</h2>
+
+        {% if bible_items %}
+            {% for item in bible_items %}
+            <div class="bible-item" style="display: flex; align-items: center;">
+                <a href="{{ item.url if item.url else '/bible?search=' + item.reference }}" style="flex: 1; display: flex; align-items: center; text-decoration: none; color: inherit;">
+                    <span class="item-number">{{ loop.index }}</span>
+                    <span class="reference">{{ item.reference }}</span>
+                </a>
+                <button onclick="removeBiblePassage('{{ item.reference }}')"
+                    style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 10px;"
+                    title="Remover">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-message">
+                <i class="fas fa-inbox"></i>
+                <p>Nenhuma passagem bíblica na ordem do culto</p>
+                <a href="/order"><i class="fas fa-plus"></i> Adicionar Passagens</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/bible_control_list.js') }}"></script>
+{% endblock %}

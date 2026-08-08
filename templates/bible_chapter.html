@@ -1,595 +1,128 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>{{ book_name }} {{ chapter }} - Bíblia U-Control</title>
-    <link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% extends "base.html" %}
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            padding-top: 80px;
-        }
+{% block title %}{{ book_name }} {{ chapter }} - Bíblia U-Control{% endblock %}
 
-        .tabs {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: linear-gradient(135deg, #5a4fcf, #7c3aed);
-            color: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-        }
+{% block head_extra %}
+<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
-        .tab {
-            padding: 10px 20px;
-            text-align: center;
-            cursor: pointer;
-        }
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible_chapter.css') }}">
+{% endblock %}
 
-        .tab a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-        }
+{% block content %}
+<div class="tabs">
+    <div class="tab"><a href="/dashboard"><i class="fas fa-home"></i> Início</a></div>
+    <div class="tab"><a href="/songs"><i class="fas fa-music"></i> Músicas</a></div>
+    <div class="tab active"><a href="/bible"><i class="fas fa-book-bible"></i> Bíblia</a></div>
+    <div class="tab"><a href="/order"><i class="fas fa-list-ol"></i> Ordem</a></div>
+    <div class="tab"><a href="/links"><i class="fas fa-qrcode"></i> Links</a></div>
+</div>
 
-        .tab a:hover {
-            text-decoration: underline;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .breadcrumb {
-            background: rgba(255,255,255,0.2);
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .breadcrumb a {
-            color: white;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        .breadcrumb span {
-            color: rgba(255,255,255,0.7);
-            margin: 0 10px;
-        }
-
-        .chapter-header {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .chapter-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .chapter-title h1 {
-            color: #5a4fcf;
-            font-size: 1.8em;
-        }
-
-        .translation-select {
-            padding: 10px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-        }
-
-        .chapter-nav {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .nav-btn {
-            padding: 10px 20px;
-            background: #f0f0f0;
-            color: #555;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-btn:hover {
-            background: #7c3aed;
-            color: white;
-        }
-
-        .nav-btn.disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .chapter-selector {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chapter-selector select {
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        /* Conteúdo dos versículos */
-        .verses-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-        }
-
-        .verse {
-            padding: 12px 15px;
-            margin-bottom: 8px;
-            border-radius: 10px;
-            line-height: 1.8;
-            font-family: 'Merriweather', serif;
-            font-size: 1.1em;
-            color: #333;
-            transition: all 0.3s;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .verse:hover {
-            background: #f8f4ff;
-        }
-
-        .verse.selected {
-            background: linear-gradient(135deg, #e8f4fd, #f0e6ff);
-            border-left: 4px solid #7c3aed;
-        }
-
-        .verse-number {
-            font-weight: 700;
-            color: #7c3aed;
-            font-size: 0.85em;
-            margin-right: 8px;
-            font-family: 'Roboto', sans-serif;
-        }
-
-        .verse-actions {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: none;
-            gap: 5px;
-        }
-
-        .verse:hover .verse-actions {
-            display: flex;
-        }
-
-        .verse-action-btn {
-            padding: 8px 12px;
-            background: #7c3aed;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
-        }
-
-        .verse-action-btn:hover {
-            background: #5a4fcf;
-            transform: scale(1.05);
-        }
-
-        /* Barra de ações flutuante */
-        .action-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 15px 25px;
-            border-radius: 50px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            display: none;
-            gap: 15px;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .action-bar.active {
-            display: flex;
-        }
-
-        .action-bar .selected-count {
-            color: #7c3aed;
-            font-weight: 600;
-        }
-
-        .action-bar button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-display {
-            background: linear-gradient(135deg, #7c3aed, #5a4fcf);
-            color: white;
-        }
-
-        .btn-display:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
-        }
-
-        .btn-copy {
-            background: #f0f0f0;
-            color: #555;
-        }
-
-        .btn-copy:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-clear {
-            background: #ff5252;
-            color: white;
-        }
-
-        .btn-clear:hover {
-            background: #ff1744;
-        }
-
-        /* Toast notification */
-        .toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 10px;
-            display: none;
-            z-index: 200;
-            animation: fadeIn 0.3s;
-        }
-
-        .toast.show {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        /* Responsivo */
-        @media (max-width: 768px) {
-            .chapter-title {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .verse {
-                font-size: 1em;
-                padding: 10px;
-            }
-
-            .verse-actions {
-                position: static;
-                display: flex;
-                margin-top: 10px;
-                transform: none;
-            }
-
-            .action-bar {
-                flex-direction: column;
-                border-radius: 20px;
-                padding: 15px;
-                width: 90%;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="tabs">
-        <div class="tab"><a href="/dashboard"><i class="fas fa-home"></i> Início</a></div>
-        <div class="tab"><a href="/songs"><i class="fas fa-music"></i> Músicas</a></div>
-        <div class="tab active"><a href="/bible"><i class="fas fa-book-bible"></i> Bíblia</a></div>
-        <div class="tab"><a href="/order"><i class="fas fa-list-ol"></i> Ordem</a></div>
-        <div class="tab"><a href="/links"><i class="fas fa-qrcode"></i> Links</a></div>
+<div class="container">
+    <div class="breadcrumb">
+        <a href="/bible?translation={{ current_translation }}"><i class="fas fa-book-bible"></i> Bíblia</a>
+        <span>›</span>
+        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}">{{ book_name }}</a>
+        <span>›</span>
+        <strong>Capítulo {{ chapter }}</strong>
     </div>
 
-    <div class="container">
-        <div class="breadcrumb">
-            <a href="/bible?translation={{ current_translation }}"><i class="fas fa-book-bible"></i> Bíblia</a>
-            <span>›</span>
-            <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}">{{ book_name }}</a>
-            <span>›</span>
-            <strong>Capítulo {{ chapter }}</strong>
+    <div class="chapter-header">
+        <div class="chapter-title">
+            <h1><i class="fas fa-book-open"></i> {{ book_name }} {{ chapter }}</h1>
+            <select class="translation-select" id="translationSelect" onchange="changeTranslation()">
+                {% for key, trans in translations.items() %}
+                <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
+                    {{ trans.name }} ({{ trans.abbrev }})
+                </option>
+                {% endfor %}
+            </select>
         </div>
 
-        <div class="chapter-header">
-            <div class="chapter-title">
-                <h1><i class="fas fa-book-open"></i> {{ book_name }} {{ chapter }}</h1>
-                <select class="translation-select" id="translationSelect" onchange="changeTranslation()">
-                    {% for key, trans in translations.items() %}
-                    <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
-                        {{ trans.name }} ({{ trans.abbrev }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="chapter-nav">
-                {% if prev_chapter %}
-                <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="nav-btn">
-                    <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
-                </a>
-                {% else %}
-                <span class="nav-btn disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
-                {% endif %}
-
-                <div class="chapter-selector">
-                    <span>Ir para:</span>
-                    <select id="chapterSelect" onchange="goToChapter()">
-                        {% for i in range(1, num_chapters + 1) %}
-                        <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                {% if next_chapter %}
-                <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="nav-btn">
-                    Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
-                </a>
-                {% else %}
-                <span class="nav-btn disabled">Próximo <i class="fas fa-chevron-right"></i></span>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="verses-container">
-            {% for verse in verses %}
-            <div class="verse" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="toggleVerse(this)">
-                <span class="verse-number">{{ loop.index }}</span>
-                <span class="verse-text">{{ verse }}</span>
-                <div class="verse-actions">
-                    <button class="verse-action-btn" onclick="event.stopPropagation(); sendSingleVerse({{ loop.index }}, '{{ verse|e }}')">
-                        <i class="fas fa-tv"></i> Exibir
-                    </button>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="chapter-nav" style="justify-content: center; margin-bottom: 30px;">
+        <div class="chapter-nav">
             {% if prev_chapter %}
             <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="nav-btn">
                 <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
             </a>
+            {% else %}
+            <span class="nav-btn disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
             {% endif %}
-            
-            <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}" class="nav-btn">
-                <i class="fas fa-list"></i> Todos os Capítulos
-            </a>
+
+            <div class="chapter-selector">
+                <span>Ir para:</span>
+                <select id="chapterSelect" onchange="goToChapter()">
+                    {% for i in range(1, num_chapters + 1) %}
+                    <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
             {% if next_chapter %}
             <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="nav-btn">
                 Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
             </a>
+            {% else %}
+            <span class="nav-btn disabled">Próximo <i class="fas fa-chevron-right"></i></span>
             {% endif %}
         </div>
     </div>
 
-    <!-- Barra de ações flutuante -->
-    <div class="action-bar" id="actionBar">
-        <span class="selected-count"><span id="selectedCount">0</span> versículo(s)</span>
-        <button class="btn-display" onclick="sendToDisplay()">
-            <i class="fas fa-tv"></i> Exibir no Telão
-        </button>
-        <button class="btn-copy" onclick="copyVerses()">
-            <i class="fas fa-copy"></i> Copiar
-        </button>
-        <button class="btn-clear" onclick="clearSelection()">
-            <i class="fas fa-times"></i>
-        </button>
+    <div class="verses-container">
+        {% for verse in verses %}
+        <div class="verse" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="toggleVerse(this)">
+            <span class="verse-number">{{ loop.index }}</span>
+            <span class="verse-text">{{ verse }}</span>
+            <div class="verse-actions">
+                <button class="verse-action-btn" onclick="event.stopPropagation(); sendSingleVerse({{ loop.index }}, '{{ verse|e }}')">
+                    <i class="fas fa-tv"></i> Exibir
+                </button>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
+    <div class="chapter-nav" style="justify-content: center; margin-bottom: 30px;">
+        {% if prev_chapter %}
+        <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="nav-btn">
+            <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
+        </a>
+        {% endif %}
 
-    <script src="/static/vendor/socketio/socket.io.min.js"></script>
-    <script>
-        const socket = io();
-        const bookName = "{{ book_name }}";
-        const chapter = {{ chapter }};
-        const bookAbbrev = "{{ book_abbrev }}";
-        let selectedVerses = [];
+        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}" class="nav-btn">
+            <i class="fas fa-list"></i> Todos os Capítulos
+        </a>
 
-        function toggleVerse(element) {
-            const verseNum = parseInt(element.dataset.verse);
-            const index = selectedVerses.findIndex(v => v.num === verseNum);
-            
-            if (index > -1) {
-                selectedVerses.splice(index, 1);
-                element.classList.remove('selected');
-            } else {
-                const text = element.querySelector('.verse-text').textContent;
-                selectedVerses.push({ num: verseNum, text: text });
-                selectedVerses.sort((a, b) => a.num - b.num);
-                element.classList.add('selected');
-            }
-            
-            updateActionBar();
-        }
+        {% if next_chapter %}
+        <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="nav-btn">
+            Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
 
-        function updateActionBar() {
-            const actionBar = document.getElementById('actionBar');
-            const countSpan = document.getElementById('selectedCount');
-            
-            if (selectedVerses.length > 0) {
-                actionBar.classList.add('active');
-                countSpan.textContent = selectedVerses.length;
-            } else {
-                actionBar.classList.remove('active');
-            }
-        }
+<!-- Barra de ações flutuante -->
+<div class="action-bar" id="actionBar">
+    <span class="selected-count"><span id="selectedCount">0</span> versículo(s)</span>
+    <button class="btn-display" onclick="sendToDisplay()">
+        <i class="fas fa-tv"></i> Exibir no Telão
+    </button>
+    <button class="btn-copy" onclick="copyVerses()">
+        <i class="fas fa-copy"></i> Copiar
+    </button>
+    <button class="btn-clear" onclick="clearSelection()">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
 
-        function clearSelection() {
-            selectedVerses = [];
-            document.querySelectorAll('.verse.selected').forEach(el => {
-                el.classList.remove('selected');
-            });
-            updateActionBar();
-        }
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
-        function getReference() {
-            if (selectedVerses.length === 0) return '';
-            
-            const nums = selectedVerses.map(v => v.num);
-            const min = Math.min(...nums);
-            const max = Math.max(...nums);
-            
-            if (min === max) {
-                return `${bookName} ${chapter}:${min}`;
-            } else {
-                return `${bookName} ${chapter}:${min}-${max}`;
-            }
-        }
+<script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev} | tojson }}</script>
+{% endblock %}
 
-        function sendToDisplay() {
-            if (selectedVerses.length === 0) return;
-            
-            const reference = getReference();
-            const text = selectedVerses.map(v => `${v.num} ${v.text}`).join('\n');
-            
-            socket.emit('update_bible', {
-                reference: reference,
-                text: text,
-                book: bookName,
-                chapter: chapter,
-                verses: selectedVerses
-            });
-            
-            showToast('Versículos enviados para o display!');
-        }
-
-        function sendSingleVerse(verseNum, text) {
-            const reference = `${bookName} ${chapter}:${verseNum}`;
-            
-            socket.emit('update_bible', {
-                reference: reference,
-                text: `${verseNum} ${text}`,
-                book: bookName,
-                chapter: chapter,
-                verses: [{ num: verseNum, text: text }]
-            });
-            
-            showToast(`${reference} enviado para o display!`);
-        }
-
-        function copyVerses() {
-            if (selectedVerses.length === 0) return;
-            
-            const reference = getReference();
-            const text = selectedVerses.map(v => `${v.num} ${v.text}`).join('\n');
-            const fullText = `${reference}\n\n${text}`;
-            
-            navigator.clipboard.writeText(fullText).then(() => {
-                showToast('Versículos copiados!');
-            });
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        async function changeTranslation() {
-            const translation = document.getElementById('translationSelect').value;
-            
-            // Salva a tradução preferida no servidor
-            try {
-                await fetch('/api/bible/set_translation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ translation: translation })
-                });
-            } catch (error) {
-                console.error('Erro ao salvar tradução:', error);
-            }
-            
-            window.location.href = `/bible/${bookAbbrev}/${chapter}?translation=${translation}`;
-        }
-
-        function goToChapter() {
-            const chapterNum = document.getElementById('chapterSelect').value;
-            const translation = document.getElementById('translationSelect').value;
-            window.location.href = `/bible/${bookAbbrev}/${chapterNum}?translation=${translation}`;
-        }
-
-        // Scroll para versículo se houver hash na URL
-        window.addEventListener('load', function() {
-            const hash = window.location.hash;
-            if (hash && hash.startsWith('#verse-')) {
-                const element = document.querySelector(hash);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    element.style.animation = 'highlight 2s';
-                }
-            }
-        });
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages/bible_chapter.js') }}"></script>
+{% endblock %}

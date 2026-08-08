@@ -1,0 +1,172 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.header p {
+    opacity: 0.9;
+}
+
+.nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.nav-links a {
+    padding: 10px 20px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    transition: all 0.3s;
+}
+
+.nav-links a:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+}
+
+.bible-list {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.bible-list h2 {
+    color: #5a4fcf;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bible-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: #333;
+    border-left: 4px solid #7c3aed;
+}
+
+.bible-item:hover {
+    background: linear-gradient(135deg, #e8f4ff, #f0e6ff);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+}
+
+.bible-item .icon {
+    font-size: 1.5em;
+    margin-right: 15px;
+    color: #7c3aed;
+}
+
+.bible-item .reference {
+    flex: 1;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #5a4fcf;
+}
+
+.bible-item .arrow {
+    color: #7c3aed;
+    font-size: 1.2em;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.empty-message i {
+    font-size: 3em;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.empty-message p {
+    margin-bottom: 20px;
+}
+
+.empty-message a {
+    display: inline-block;
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #7c3aed, #5a4fcf);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    transition: all 0.3s;
+}
+
+.empty-message a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+}
+
+.item-number {
+    background: #7c3aed;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 15px;
+    font-size: 14px;
+}
+
+@media (max-width: 600px) {
+    .header h1 {
+        font-size: 1.5em;
+    }
+
+    .bible-item {
+        padding: 12px 15px;
+    }
+
+    .bible-item .reference {
+        font-size: 1em;
+    }
+}
