@@ -141,3 +141,26 @@ def test_bible_add_and_remove_from_order_use_isolated_order_file(
     )
     assert remove_response.get_json()["success"] is True
     assert order_file.read_text(encoding="utf-8") == "[]"
+
+
+def test_list_audio_returns_json_structure(client):
+    response = client.get("/list_audio")
+    assert response.status_code == 200
+    assert "audios" in response.get_json()
+
+
+def test_download_audio_without_url_returns_400(client):
+    response = client.post("/download_audio", json={})
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_delete_audio_requires_login(client):
+    response = client.delete("/delete_audio/nao-existe.mp3")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_delete_audio_returns_404_for_missing_file(logged_in_client):
+    response = logged_in_client.delete("/delete_audio/nao-existe.mp3")
+    assert response.status_code == 404
