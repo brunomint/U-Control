@@ -398,3 +398,34 @@ def test_order_pages_load_with_login(logged_in_client, tmp_path, monkeypatch):
     assert logged_in_client.get("/order").status_code == 200
     assert logged_in_client.get("/order/new").status_code == 200
     assert logged_in_client.get("/order/2026-08-09").status_code == 200
+
+
+def test_agenda_calendar_dashboard_and_edit_selector_load(logged_in_client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert logged_in_client.get("/agenda").status_code == 200
+    assert logged_in_client.get("/agenda/dashboard").status_code == 200
+    assert logged_in_client.get("/agenda/edit").status_code == 200
+
+
+def test_agenda_detail_shows_real_order_data(logged_in_client, tmp_path, monkeypatch):
+    import orders_store
+
+    monkeypatch.chdir(tmp_path)
+    orders_store.save_orders({"2026-08-09": {"dirigente": "João", "itens": []}})
+
+    response = logged_in_client.get("/agenda/2026-08-09")
+    assert response.status_code == 200
+    assert "João".encode() in response.data
+
+
+def test_agenda_edit_renders_same_template_as_order_edit(logged_in_client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    agenda_response = logged_in_client.get("/agenda/2026-08-09/edit")
+    order_response = logged_in_client.get("/order/2026-08-09")
+    assert agenda_response.status_code == 200
+    assert order_response.status_code == 200
+    # Mesmo template (order_edit.html) por trás das duas rotas — o mesmo
+    # título gerado pelo template confirma isso.
+    title = "Editar Ordem - 2026-08-09".encode()
+    assert title in agenda_response.data
+    assert title in order_response.data

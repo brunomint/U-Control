@@ -45,6 +45,7 @@ from blueprints.utils import utils_bp
 from blueprints.gallery import gallery_bp, get_current_image_path
 from orders_store import load_orders
 from blueprints.orders import orders_bp
+from blueprints.agenda import agenda_bp
 from connections import _get_monitor_sids, _skip_sids
 
 logger = logging.getLogger('ucontrol')
@@ -164,6 +165,7 @@ def create_app(config=None):
     app.register_blueprint(utils_bp)
     app.register_blueprint(gallery_bp)
     app.register_blueprint(orders_bp)
+    app.register_blueprint(agenda_bp)
 
     return app
 
@@ -513,91 +515,6 @@ try:
         songs = json.load(f)
 except FileNotFoundError:
     songs = []
-
-# Agenda com calendário e detalhes por data
-@app.route("/agenda/hoje")
-def agenda_hoje():
-    """Redireciona para o próximo culto cadastrado (hoje ou futuro)."""
-    from datetime import date as _date, timedelta
-    orders = load_orders()
-    today = _date.today()
-    # Procura até 30 dias à frente
-    for i in range(30):
-        d = (today + timedelta(days=i)).strftime("%Y-%m-%d")
-        if d in orders and orders[d]:
-            return redirect(url_for("agenda_detail", date=d))
-    # Nenhum culto cadastrado nos próximos 30 dias
-    return render_template("agenda_hoje_vazio.html"), 200
-
-
-@app.route("/agenda")
-def agenda_calendar():
-    """Calendário de escalas por data"""
-    return render_template("agenda_calendar.html")
-
-
-@app.route("/agenda/edit", methods=["GET"])
-@login_required
-def agenda_edit_selector():
-    """Calendário privado para escolher a data e editar a agenda/ordem"""
-    return render_template("agenda_calendar_edit.html")
-
-
-@app.route("/agenda/dashboard")
-@login_required
-def agenda_dashboard():
-    """Painel privado de acesso rápido à Agenda de Equipes"""
-    return render_template("agenda_dashboard.html")
-
-
-@app.route("/agenda/<dateslug:date>")
-def agenda_detail(date):
-    """Detalhe da agenda de uma data específica"""
-    orders = load_orders()
-    order = orders.get(date, {})
-    return render_template("agenda_detail.html", date=date, order=order, allow_clicks=False)
-
-
-@app.route("/agenda/<dateslug:date>/louvor")
-def agenda_louvor(date):
-    """Página específica para Louvor e Dirigência"""
-    orders = load_orders()
-    order = orders.get(date, {})
-    return render_template("agenda_section.html", date=date, order=order, section="louvor")
-
-
-@app.route("/agenda/<dateslug:date>/midia")
-def agenda_midia(date):
-    """Página específica para Escala de Mídia"""
-    orders = load_orders()
-    order = orders.get(date, {})
-    return render_template("agenda_section.html", date=date, order=order, section="midia")
-
-
-@app.route("/agenda/<dateslug:date>/eventos")
-def agenda_eventos(date):
-    """Página específica para Eventos"""
-    orders = load_orders()
-    order = orders.get(date, {})
-    return render_template("agenda_section.html", date=date, order=order, section="eventos")
-
-
-@app.route("/agenda/<dateslug:date>/edit")
-@login_required
-def agenda_edit(date):
-    """Rota privada para editar a agenda/ordem de uma data (mesmo form de /order/<date>)"""
-    orders = load_orders()
-    order = orders.get(date)
-    return render_template("order_edit.html", date=date, order=order, is_new=False)
-
-
-@app.route("/agenda/<dateslug:date>/admin")
-@login_required
-def agenda_detail_admin(date):
-    """Detalhe da agenda para administradores, com cards clicáveis"""
-    orders = load_orders()
-    order = orders.get(date, {})
-    return render_template("agenda_detail.html", date=date, order=order, allow_clicks=True)
 
 
 # Função para garantir que o diretório existe e o arquivo será criado
