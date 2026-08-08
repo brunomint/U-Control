@@ -31,7 +31,7 @@ from logging.handlers import RotatingFileHandler
 
 from extensions import db, migrate, login_manager, socketio
 from models import User, DisplayState, LyricsState
-from display_log import DISPLAY_LOG_PATH, load_display_log, append_display_log
+from display_log import append_display_log
 from settings_store import load_settings, save_settings
 from blueprints.countdown import countdown_bp
 from blueprints.ticker import ticker_bp
@@ -482,21 +482,6 @@ def lyrics_display_Public():
 def lyrics_display_obs():
     """Overlay transparente para OBS/streaming (Browser Source)."""
     return render_template('display_obs.html')
-
-@app.route('/save_route', methods=['POST'])
-def save_route():
-    data = request.get_json()  # Obtém os dados JSON enviados
-    new_url = data.get('url1')  # Obtém a nova URL do JSON
-
-    # Lê o conteúdo existente do arquivo urls.json
-    with open('urls.json', 'r+') as file:
-        urls = json.load(file)  # Carrega o conteúdo existente
-        urls['url1'] = new_url  # Atualiza o valor de url1
-        file.seek(0)  # Volta para o início do arquivo
-        json.dump(urls, file, indent=4)  # Salva as URLs atualizadas
-        file.truncate()  # Remove o restante do arquivo, se houver
-
-    return jsonify(status='success')  # Retorna uma resposta de sucesso
 
 # Rota para limpar as informações
 @app.route('/limpar')
@@ -1123,12 +1108,6 @@ def registrar_mdns():
     Zeroconf().register_service(info)
     logger.info(f"🔗 Serviço mDNS registrado: http://ucontrol.local:{PORTA}")
 
-
-
-# === Rota de teste ===
-@app.route('/')
-def home():
-    return "Servidor Flask com mDNS ativo!"
 
 
 # === Abrir navegador ===

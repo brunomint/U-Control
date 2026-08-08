@@ -429,3 +429,11 @@ def test_agenda_edit_renders_same_template_as_order_edit(logged_in_client, tmp_p
     title = "Editar Ordem - 2026-08-09".encode()
     assert title in agenda_response.data
     assert title in order_response.data
+
+
+def test_save_route_and_duplicate_home_route_were_removed(client):
+    assert not hasattr(ucontrol_main, "save_route")
+    assert not hasattr(ucontrol_main, "home")
+    # index() é quem responde em / (sempre venceu; home() nunca era alcançável)
+    response = client.get("/")
+    assert response.status_code == 302
