@@ -1,22 +1,46 @@
-"""Configurações persistidas em settings.json — usado pela tradução
-preferida da Bíblia e pelo tema (claro/escuro) do display. Puro stdlib,
-sem dependência de Flask/db, por isso vive num módulo à parte em vez de
-dentro de qualquer blueprint específico."""
-import json
-import os
+"""Configurações persistidas na tabela Setting (linha única) — substitui o
+antigo settings.json. Usado pela tradução preferida da Bíblia e pelo tema
+(claro/escuro) do display. Mantém o mesmo formato de dict de antes
+(load_settings()/save_settings(dict)) pra não exigir mudança nos
+consumidores (blueprints/bible.py, blueprints/display.py)."""
+from extensions import db
+from models import Setting
 
-SETTINGS_FILE = os.path.join(os.getcwd(), 'settings.json')
+
+def _get_or_create():
+    row = Setting.query.first()
+    if not row:
+        row = Setting()
+        db.session.add(row)
+        db.session.commit()
+    return row
 
 
 def load_settings():
-    """Carrega as configurações do arquivo JSON."""
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
+    """Carrega as configurações."""
+    row = Setting.query.first()
+    if not row:
+        return {}
+    settings = {}
+    if row.bible_translation is not None:
+        settings['bible_translation'] = row.bible_translation
+    if row.display_bg_dark is not None:
+        settings['display_bg_dark'] = row.display_bg_dark
+    return settings
 
 
 def save_settings(settings):
-    """Salva as configurações no arquivo JSON."""
-    with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(settings, f, ensure_ascii=False, indent=4)
+    """Salva as configurações (mescla com o que já existe, igual antes —
+    chamadores fazem load, mutam uma chave, e chamam save com o dict
+    inteiro)."""
+    row = _get_or_create()
+    if 'bible_translation' in settings:
+        row.bible_translation = settings['bible_translation']
+    if 'display_bg_dark' in settings:
+        row.display_bg_dark = settings['display_bg_dark']
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    finally:
+        db.session.close()

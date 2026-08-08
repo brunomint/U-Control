@@ -253,6 +253,31 @@ def test_load_display_log_returns_oldest_first(app):
     assert [entry["title"] for entry in log] == ["primeira", "segunda"]
 
 
+def test_settings_store_save_and_load_round_trip(app):
+    from settings_store import load_settings, save_settings
+
+    with app.app_context():
+        save_settings({"bible_translation": "nvi"})
+        save_settings({"display_bg_dark": True})
+        settings = load_settings()
+
+    assert settings["bible_translation"] == "nvi"
+    assert settings["display_bg_dark"] is True
+
+
+def test_image_path_and_saved_urls_round_trip(app):
+    from blueprints.display import load_image_path, load_urls, save_image_path, save_urls
+
+    with app.app_context():
+        save_image_path("/static/imagens/foo.jpg")
+        save_urls({"url1": "http://a", "url2": "http://b", "url3": ""})
+        image = load_image_path()
+        urls = load_urls()
+
+    assert image == {"image": "/static/imagens/foo.jpg"}
+    assert urls == {"url1": "http://a", "url2": "http://b", "url3": ""}
+
+
 def test_download_monitor_launcher_invalid_os_returns_400(client):
     response = client.get("/download-monitor-launcher/xyz")
     assert response.status_code == 400

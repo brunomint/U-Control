@@ -10,8 +10,6 @@ resolve sozinho — por isso capturam `current_app._get_current_object()`
 (o app de verdade) antes de disparar a thread, e usam esse objeto
 capturado dentro dela. Onde o app_context é usado só dentro do próprio
 handler (sem thread), current_app.app_context() direto já basta."""
-import json
-import os
 import re
 import threading
 import time
@@ -25,26 +23,36 @@ from blueprints.gallery import get_current_image_path
 from connections import _get_monitor_sids, _skip_sids
 from display_log import append_display_log
 from extensions import db, socketio
-from models import DisplayState, LyricsState
+from models import DisplayState, ImagePath, LyricsState, SavedUrls
 from settings_store import load_settings, save_settings
 from songs_store import load_songs
 
 display_bp = Blueprint('display', __name__)
 
-# Caminho do arquivo para salvar as URLs
-URLS_FILE = 'urls.json'
 
-# Função para carregar URLs do arquivo JSON
+# URLs salvas manualmente (favoritos do operador em control.html) —
+# tabela SavedUrls (linha única), substitui urls.json.
 def load_urls():
-    if os.path.exists(URLS_FILE):
-        with open(URLS_FILE, 'r') as file:
-            return json.load(file)
-    return {'url1': '', 'url2': '', 'url3': ''}
+    row = SavedUrls.query.first()
+    if not row:
+        return {'url1': '', 'url2': '', 'url3': ''}
+    return {'url1': row.url1 or '', 'url2': row.url2 or '', 'url3': row.url3 or ''}
 
-# Função para salvar URLs no arquivo JSON
+
 def save_urls(urls):
-    with open(URLS_FILE, 'w') as file:
-        json.dump(urls, file)
+    row = SavedUrls.query.first()
+    if not row:
+        row = SavedUrls()
+        db.session.add(row)
+    row.url1 = urls.get('url1', '')
+    row.url2 = urls.get('url2', '')
+    row.url3 = urls.get('url3', '')
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    finally:
+        db.session.close()
 
 
 # Rota para limpar as informações
@@ -55,26 +63,24 @@ def limpar():
     return 'Informações limpas!', 200
 
 
-# Função para garantir que o diretório existe e o arquivo será criado
-def ensure_file_exists():
-    if not os.path.exists('image_paths.json'):
-        # Cria o arquivo com uma estrutura inicial se não existir
-        with open('image_paths.json', 'w') as f:
-            json.dump({"image": None}, f, indent=4)
-
-# Função para carregar o arquivo JSON com o caminho da imagem
+# Último caminho de imagem da galeria mostrado — tabela ImagePath (linha
+# única), substitui image_paths.json. Fallback de 3º nível em /last_image.
 def load_image_path():
-    ensure_file_exists()  # Verifica se o arquivo existe e cria se necessário
-    with open('image_paths.json', 'r') as f:
-        return json.load(f)
+    row = ImagePath.query.first()
+    return {"image": row.image if row else None}
 
-# Função para salvar o caminho da imagem no arquivo JSON
 def save_image_path(image_path):
-    # Altera para salvar apenas um caminho
-    data = {"image": image_path}
-
-    with open('image_paths.json', 'w') as f:
-        json.dump(data, f, indent=4)
+    row = ImagePath.query.first()
+    if not row:
+        row = ImagePath()
+        db.session.add(row)
+    row.image = image_path
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    finally:
+        db.session.close()
 
 # Endpoint para salvar o caminho da imagem
 @display_bp.route('/save_image_path', methods=['POST'])
