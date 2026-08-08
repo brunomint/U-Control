@@ -8,12 +8,10 @@ from flask import (
     jsonify,
     send_file,
     make_response,
-    session,
 )
 from werkzeug.routing import BaseConverter
 from flask_socketio import emit, join_room
-from flask_login import login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_required
 from PIL import Image
 from datetime import datetime, date
 import os
@@ -38,6 +36,7 @@ from models import User, DisplayState, LyricsState
 from display_log import DISPLAY_LOG_PATH, load_display_log, append_display_log
 from blueprints.countdown import countdown_bp
 from blueprints.ticker import ticker_bp
+from blueprints.auth import auth_bp
 
 logger = logging.getLogger('ucontrol')
 
@@ -154,6 +153,7 @@ def create_app(config=None):
 
     app.register_blueprint(countdown_bp)
     app.register_blueprint(ticker_bp)
+    app.register_blueprint(auth_bp)
 
     return app
 
@@ -196,44 +196,6 @@ def _video_current_position():
     if _video_state['paused']:
         return _video_state['position_offset']
     return _video_state['position_offset'] + (time.time() - _video_state['started_at'])
-
-@login_manager.user_loader
-def load_user(user_id):
-    return db.session.get(User, int(user_id))
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            next_url = request.args.get('next') or request.form.get('next')
-            if next_url and next_url.startswith('/') and not next_url.startswith('//'):
-                return redirect(next_url)
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Usuário ou senha incorretos.')
-    return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if User.query.filter_by(username=username).first():
-            flash('Usuário já existe.')
-        else:
-            # Use pbkdf2:sha256 como método de hash
-            hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-            new_user = User(username=username, password=hashed_password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Cadastro realizado com sucesso!')
-            return redirect(url_for('login'))
-    return render_template('register.html')
-
 
 @app.route('/api/culto/status', methods=['GET'])
 @login_required
@@ -354,72 +316,6 @@ def api_system_status():
         payload['disk_error'] = disk_error
 
     return jsonify(payload)
-
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    log = load_display_log()
-
-    # 3 músicas tocadas mais recentemente (únicas, do display_log)
-    seen, recent_songs = set(), []
-    for entry in reversed(log):
-        if entry.get('type') == 'song' and entry.get('title') not in seen:
-            seen.add(entry['title'])
-            recent_songs.append(entry)
-            if len(recent_songs) >= 3:
-                break
-
-    # 5 entradas mais recentes de atividade
-    recent_activity = list(reversed(log[-5:])) if log else []
-
-    return render_template('dashboard.html', recent_songs=recent_songs, recent_activity=recent_activity)
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    session.clear()  # Limpa qualquer dado da sessão
-    return redirect(url_for('login'))
-
-@app.route('/usuarios')
-@login_required
-def visualizar_usuarios():
-    # Buscar todos os usuários no banco de dados
-    usuarios = User.query.all()
-    return render_template('usuarios.html', usuarios=usuarios)
-
-@app.route('/remover_usuario/<int:id>', methods=['POST'])
-@login_required
-def remover_usuario(id):
-    usuario = User.query.get(id)
-    if usuario:
-        db.session.delete(usuario)
-        db.session.commit()
-        flash('Usuário removido com sucesso.')
-    else:
-        flash('Usuário não encontrado.')
-    return redirect(url_for('visualizar_usuarios'))
-
-@app.route('/adicionar_usuario', methods=['POST'])
-@login_required
-def adicionar_usuario():
-    username = request.form['username']
-    password = request.form['password']
-    
-    # Verifica se o nome de usuário já existe
-    if User.query.filter_by(username=username).first():
-        flash('Usuário já existe.')
-    else:
-        # Criptografa a senha
-        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-        new_user = User(username=username, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Usuário adicionado com sucesso!')
-    
-    return redirect(url_for('visualizar_usuarios'))
-
-
 
 
 
@@ -2498,7 +2394,7 @@ def last_image_endpoint():
 @app.route('/')
 @login_required
 def index():
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('auth.dashboard'))
 
 @app.route('/control')
 @login_required

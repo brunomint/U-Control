@@ -78,7 +78,7 @@
         <h1>Usuários Registrados</h1>
 
         <!-- Formulário para adicionar um novo usuário -->
-        <form class="form-cadastro" action="{{ url_for('adicionar_usuario') }}" method="post">
+        <form class="form-cadastro" action="{{ url_for('auth.adicionar_usuario') }}" method="post">
             <input type="text" name="username" placeholder="Nome de usuário" required>
             <div class="input-container">
                 <input type="password" name="password" placeholder="Senha" id="password" required>
@@ -101,7 +101,7 @@
                     <td>{{ usuario.id }}</td>
                     <td>{{ usuario.username }}</td>
                     <td>
-                        <form action="{{ url_for('remover_usuario', id=usuario.id) }}" method="post" style="display: inline;">
+                        <form action="{{ url_for('auth.remover_usuario', id=usuario.id) }}" method="post" style="display: inline;">
                             <button type="submit" class="btn-remover">
                                 <i class="fas fa-trash-alt"></i> Remover
                             </button>

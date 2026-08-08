@@ -1,3 +1,5 @@
+from werkzeug.security import generate_password_hash
+
 import main as ucontrol_main
 
 
@@ -60,3 +62,32 @@ def test_set_ticker_broadcasts_and_updates_state(app):
     assert data["text"] == "Bem-vindos!"
     assert data["active"] is True
     socket_client.disconnect()
+
+
+def test_login_redirects_to_dashboard_and_authenticates(app, client):
+    with app.app_context():
+        user = ucontrol_main.User(
+            username="tester",
+            password=generate_password_hash("senha123", method="pbkdf2:sha256"),
+        )
+        ucontrol_main.db.session.add(user)
+        ucontrol_main.db.session.commit()
+
+    response = client.post(
+        "/login", data={"username": "tester", "password": "senha123"}
+    )
+    assert response.status_code == 302
+    assert "/dashboard" in response.headers["Location"]
+
+    dashboard_response = client.get("/dashboard")
+    assert dashboard_response.status_code == 200
+
+
+def test_login_with_wrong_password_shows_flash_message(client):
+    response = client.post(
+        "/login",
+        data={"username": "nao-existe", "password": "errada"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "incorretos".encode() in response.data

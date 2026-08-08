@@ -269,7 +269,7 @@
             <i class="fas fa-tachometer-alt"></i>
             Bem-vindo, {{ current_user.username }}!
         </h1>
-        <a href="{{ url_for('logout') }}" style="text-decoration: none;">
+        <a href="{{ url_for('auth.logout') }}" style="text-decoration: none;">
             <button class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
