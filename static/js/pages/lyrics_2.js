@@ -1,0 +1,718 @@
+const CONFIG = JSON.parse(document.getElementById('lyrics-config').textContent);
+const songId = CONFIG.songId;
+const rawSections = CONFIG.sections; // Seções da música do backend
+const sheetData = CONFIG.sheetData; // Dados das partituras
+let currentTheme = CONFIG.theme;
+
+        // ── Tema visual ───────────────────────────────────────────────
+        function atualizarBotaoTema() {
+            const lbl = document.getElementById('btn-tema-label');
+            lbl.textContent = currentTheme ? 'Tema ✓' : 'Tema';
+        }
+        atualizarBotaoTema();
+
+        function abrirModalTema() {
+            document.getElementById('modal-tema').style.display = 'block';
+            if (currentTheme && currentTheme.url) {
+                document.getElementById('tema-preview-img').src = currentTheme.url;
+                document.getElementById('tema-preview').style.display = 'block';
+            }
+            carregarPastasTema();
+        }
+
+        function fecharModalTema() {
+            document.getElementById('modal-tema').style.display = 'none';
+        }
+
+        function limparTema() {
+            currentTheme = null;
+            document.getElementById('tema-preview').style.display = 'none';
+            salvarTema(null);
+            fecharModalTema();
+        }
+
+        function salvarTema(theme) {
+            fetch(`/api/lyrics/${songId}/theme`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({theme: theme})
+            }).then(() => { atualizarBotaoTema(); })
+              .catch(err => console.error('Erro ao salvar tema:', err));
+        }
+
+        function selecionarTema(url, type) {
+            currentTheme = {type: type, url: url};
+            document.getElementById('tema-preview-img').src = url;
+            document.getElementById('tema-preview').style.display = 'block';
+            salvarTema(currentTheme);
+            fecharModalTema();
+        }
+
+        function aplicarCorTema() {
+            const color = document.getElementById('cor-tema').value;
+            currentTheme = { type: 'color', color: color };
+            salvarTema(currentTheme);
+            fecharModalTema();
+            atualizarBotaoTema();
+        }
+
+        function aplicarCorPreset(color) {
+            document.getElementById('cor-tema').value = color;
+        }
+
+        function aplicarGradiente(css) {
+            currentTheme = { type: 'gradient', css: css };
+            salvarTema(currentTheme);
+            fecharModalTema();
+            atualizarBotaoTema();
+        }
+
+        let pastaAtiva = 'Geral';
+        function carregarPastasTema() {
+            fetch('/api/image_folders')
+                .then(r => r.json())
+                .then(data => {
+                    const all = Array.isArray(data) ? data : (data.folders || []);
+                    const pastas = ['Geral', ...all.filter(f => f !== 'Geral')];
+                    const foldersDiv = document.getElementById('tema-folders');
+                    foldersDiv.innerHTML = pastas.map(p =>
+                        `<button onclick="carregarImagensTema('${p}')"
+                            style="padding:6px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;
+                            background:${p===pastaAtiva?'#7c3aed':'rgba(255,255,255,.08)'};
+                            color:${p===pastaAtiva?'#fff':'#94a3b8'};border:1px solid rgba(255,255,255,.1);">
+                            ${p}</button>`
+                    ).join('');
+                    carregarImagensTema(pastaAtiva);
+                }).catch(() => carregarImagensTema('Geral'));
+        }
+
+        function carregarImagensTema(pasta) {
+            pastaAtiva = pasta;
+            document.querySelectorAll('#tema-folders button').forEach(b => {
+                b.style.background = b.textContent.trim() === pasta ? '#7c3aed' : 'rgba(255,255,255,.08)';
+                b.style.color = b.textContent.trim() === pasta ? '#fff' : '#94a3b8';
+            });
+            fetch(`/imagens?folder=${encodeURIComponent(pasta)}`)
+                .then(r => r.json())
+                .then(urls => {
+                    const grid = document.getElementById('tema-grid');
+                    if (!urls.length) {
+                        grid.innerHTML = '<p style="color:#64748b;font-size:.85rem;">Nenhuma imagem nesta pasta.</p>';
+                        return;
+                    }
+                    grid.innerHTML = urls.map(url => {
+                        const active = currentTheme && currentTheme.url === url;
+                        return `<div onclick="selecionarTema('${url}','image')"
+                            style="cursor:pointer;border-radius:8px;overflow:hidden;
+                            border:2px solid ${active?'#7c3aed':'transparent'};transition:border-color .2s;"
+                            onmouseover="this.style.borderColor='#a78bfa'"
+                            onmouseout="this.style.borderColor='${active?'#7c3aed':'transparent'}'">
+                            <img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;display:block;">
+                        </div>`;
+                    }).join('');
+                }).catch(() => {
+                    document.getElementById('tema-grid').innerHTML =
+                        '<p style="color:#64748b;font-size:.85rem;">Erro ao carregar imagens.</p>';
+                });
+        }
+
+        document.getElementById('modal-tema').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalTema();
+        });
+
+        // ── Fundo do monitor (preto / branco) ───────────────────────
+        let _displayBgDark = true;
+        function _atualizarBtnBg() {
+            const btn = document.getElementById('btn-bg');
+            btn.innerHTML = (_displayBgDark ? '⬛' : '⬜') + ' Fundo';
+            btn.style.background = _displayBgDark ? '#1e1e2e' : '#f1f5f9';
+            btn.style.color = _displayBgDark ? '#fff' : '#1e293b';
+        }
+        fetch('/api/display-bg').then(r => r.json()).then(d => {
+            _displayBgDark = d.dark !== false;
+            _atualizarBtnBg();
+        });
+        function alternarFundoDisplay() {
+            _displayBgDark = !_displayBgDark;
+            _atualizarBtnBg();
+            socket.emit('set_display_bg', { dark: _displayBgDark });
+        }
+        
+        // Função para salvar estado das letras no banco
+        function saveLyricsState(songId, sectionIndex) {
+            fetch('/save_lyrics_state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ song_id: songId, section_index: sectionIndex })
+            }).catch(err => console.error('❌ Erro ao salvar estado:', err));
+        }
+        
+        // Função para carregar estado salvo das letras
+        function loadLyricsState() {
+            fetch('/get_lyrics_state')
+                .then(res => res.json())
+                .then(state => {
+                    console.log('💾 Estado das letras carregado:', state);
+                    
+                    // Se o estado é da música atual, carrega a seção salva
+                    if (state.song_id === songId && state.section_index !== null) {
+                        // Valida se o índice ainda existe (pode ter mudado após edição)
+                        const validIndex = Math.min(state.section_index, sections.length - 1);
+                        if (validIndex !== state.section_index) {
+                            console.log(`⚠️ Seção ${state.section_index} não existe mais, carregando seção ${validIndex}`);
+                        } else {
+                            console.log(`🎯 Restaurando seção ${state.section_index}`);
+                        }
+                        loadSection(validIndex);
+                    } else {
+                        // Carrega primeira seção por padrão
+                        loadSection(0);
+                    }
+                })
+                .catch(err => {
+                    console.error('❌ Erro ao carregar estado:', err);
+                    loadSection(0); // Fallback para primeira seção
+                });
+        }
+        
+        // Detecta se um bloco de texto contém linhas de cifra (acordes)
+        function temCifra(text) {
+            const reAcorde = /^[\s]*[A-G][#b]?(?:m|maj|min|sus|aug|dim|add|M)?(?:\d+)?(?:\/[A-G][#b]?)?(?:\s+[A-G][#b]?(?:m|maj|min|sus|aug|dim|add|M)?(?:\d+)?(?:\/[A-G][#b]?)?)*[\s]*$/;
+            return text.split('\n').some(line => line.trim() && reAcorde.test(line));
+        }
+
+        // Função para processar e separar seções por marcadores [TÍTULO]
+        function processSections(rawSections) {
+            const processedSections = [];
+            
+            rawSections.forEach(section => {
+                // Verifica se é uma seção de partitura integrada no título
+                if (section.title && section.title.includes('🎼 PARTITURA_INTEGRADA_')) {
+                    // Extrai o ID da partitura do título
+                    const sheetIdMatch = section.title.match(/PARTITURA_INTEGRADA_(\d+)/);
+                    if (sheetIdMatch) {
+                        const sheetId = parseInt(sheetIdMatch[1]);
+                        processedSections.push({
+                            title: '🎼 Partitura',
+                            text: [''],
+                            type: 'sheet',
+                            sheetId: sheetId
+                        });
+                    }
+                    return;
+                }
+                
+                const fullText = section.text ? section.text.join('\n\n') : '';
+                
+                // Verifica se há marcações de partitura no texto
+                if (fullText.includes('🎼 PARTITURA_INTEGRADA_')) {
+                    // Divide o texto por marcações de partitura
+                    const parts = fullText.split(/🎼 PARTITURA_INTEGRADA_(\d+)/);
+                    
+                    // Cria uma única seção com texto e partituras intercalados
+                    const sectionContent = [];
+                    const sheetIds = [];
+                    
+                    for (let i = 0; i < parts.length; i++) {
+                        if (i % 2 === 0) {
+                            // Parte de texto
+                            const textContent = parts[i].trim();
+                            if (textContent) {
+                                sectionContent.push(textContent);
+                            }
+                        } else {
+                            // ID da partitura (capturado pelo grupo do regex)
+                            const sheetId = parseInt(parts[i]);
+                            sheetIds.push(sheetId);
+                        }
+                    }
+                    
+                    // Adiciona uma única seção com texto e IDs das partituras
+                    processedSections.push({
+                        title: section.title || '',
+                        text: sectionContent,
+                        type: 'mixed', // Indica que tem texto e partitura
+                        sheetIds: sheetIds
+                    });
+                    return;
+                }
+                
+                // Detecta marcadores de seção no formato [TÍTULO]
+                const sectionRegex = /\[([^\]]+)\]/g;
+                const matches = [...fullText.matchAll(sectionRegex)];
+                
+                if (matches.length > 0) {
+                    // Tem marcadores, divide o texto
+                    let lastIndex = 0;
+                    
+                    matches.forEach((match, idx) => {
+                        const sectionTitle = match[1];
+                        const startIndex = match.index + match[0].length;
+                        
+                        // Pega o texto até o próximo marcador (ou até o final)
+                        const nextMatch = matches[idx + 1];
+                        const endIndex = nextMatch ? nextMatch.index : fullText.length;
+                        const sectionContent = fullText.substring(startIndex, endIndex).trim();
+                        
+                        if (sectionContent) {
+                            processedSections.push({
+                                title: sectionTitle,
+                                text: [sectionContent],
+                                type: 'text'
+                            });
+                        }
+                    });
+                } else {
+                    // Sem marcadores, usa a seção como está
+                    if (fullText.trim()) {
+                        processedSections.push({
+                            title: section.title || '',
+                            text: [fullText],
+                            type: 'text'
+                        });
+                    }
+                }
+            });
+            
+            return processedSections;
+        }
+        
+        const sections = processSections(rawSections);
+        console.log('📊 Seções processadas:', sections);
+        sections.forEach((s, i) => {
+            console.log(`  Seção ${i}: title="${s.title}", type="${s.type}", sheetId=${s.sheetId || 'N/A'}`);
+        });
+        
+        let currentSectionIndex = 0; // Índice da seção atual
+    
+        const socket = io();
+
+        
+    
+        function loadFullLyrics() {
+            $.getJSON(`/full-lyrics/${songId}`, function(data) {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                $('#full-lyrics').text(data.lyrics);
+            }).fail(function() {
+                alert("Erro ao carregar a letra completa.");
+            });
+        }
+    
+        function createSectionLinks() {
+            for (let i = 0; i < sections.length; i++) {
+                const section = sections[i];
+                
+                const styleComment = t => t.split('\n').map(l =>
+                    l.trim().startsWith('//')
+                        ? `<span style="color:#64748b;font-style:italic;font-size:0.85em">${l}</span>`
+                        : l
+                ).join('\n');
+
+                let content = '';
+                if (section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) {
+                    // Seção mista: renderiza partitura + texto
+                    const sectionText = styleComment(section.text ? section.text.join('\n\n') : '');
+                    content = `
+                        <div id="sheet-render-${i}" style="padding:5px; background:#fff; margin:5px 0;"></div>
+                        <pre class="section-preview" style="display:block; white-space:pre; overflow-x:auto; font-size:12px; margin:5px 0; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;">${sectionText}</pre>
+                    `;
+                } else if (section.type === 'sheet') {
+                    // É uma partitura - container para renderização
+                    content = `<div id="sheet-render-${i}" style="padding:10px; background:#fff;"></div>`;
+                } else {
+                    // É texto normal
+                    const sectionText = styleComment(section.text ? section.text.join('\n\n') : '');
+                    content = `<pre class="section-preview" style="white-space:pre; overflow-x:auto; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:12px;">${sectionText}</pre>`;
+                }
+                
+                const link = $(`
+                    <div id="section-${i}" class="section-link">
+                        <span class="section-title">${section.title || `Seção ${i + 1}`}</span>
+                        ${content}
+                    </div>
+                `);
+                link.click(function() {
+                    loadSection(i);
+                });
+                $('#sections-list').append(link);
+                
+                // Se for partitura ou mista, renderiza automaticamente
+                if (section.type === 'sheet') {
+                    renderSheetInSection(i, section);
+                } else if (section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) {
+                    // Renderiza a primeira partitura da seção mista
+                    renderSheetInSection(i, { sheetId: section.sheetIds[0] });
+                }
+            }
+        }
+        
+        // Função para renderizar partitura dentro do bloco de seção
+        function renderSheetInSection(index, section) {
+            const renderDiv = $(`#sheet-render-${index}`);
+            
+            // Busca os dados da partitura
+            const sheet = sheetData.find(s => s.id === section.sheetId);
+            if (!sheet || !sheet.notes || sheet.notes.length === 0) {
+                renderDiv.html('<p style="color:orange;">Partitura vazia</p>');
+                return;
+            }
+            
+            try {
+                renderDiv.empty();
+                
+                const VF = Vex.Flow;
+                const container = document.getElementById(`sheet-render-${index}`);
+                
+                // Converte todas as notas primeiro
+                console.log('🎵 Notas originais:', sheet.notes);
+                
+                const allNotes = sheet.notes.map((noteData, idx) => {
+                    let keys = noteData.keys || [noteData.key];
+                    keys = keys.map(k => {
+                        if (typeof k === 'string' && /^[A-G][#b]?\d$/.test(k)) {
+                            return k.charAt(0).toLowerCase() + (k.charAt(1).match(/[#b]/) ? k.charAt(1) : '') + '/' + k.slice(-1);
+                        }
+                        return k;
+                    });
+                    
+                    console.log(`  Nota ${idx}: key=${noteData.key || noteData.keys}, duration=${noteData.duration}`);
+                    
+                    const note = new VF.StaveNote({
+                        clef: sheet.clef || 'treble',
+                        keys: keys,
+                        duration: noteData.duration || 'q'
+                    });
+                    if (noteData.accidentals) {
+                        noteData.accidentals.forEach((acc, i) => {
+                            if (acc) note.addModifier(new VF.Accidental(acc), i);
+                        });
+                    }
+                    return note;
+                });
+                
+                // Divide em compassos de 4 tempos
+                // Mapeamento de durações para tempos (em 4/4)
+                const durationToBeats = {
+                    'w': 4,   // semibreve = 4 tempos
+                    'h': 2,   // mínima = 2 tempos
+                    'q': 1,   // semínima = 1 tempo
+                    '8': 0.5, // colcheia = 0.5 tempo
+                    '16': 0.25 // semicolcheia = 0.25 tempo
+                };
+                
+                const measures = [];
+                const beatsPerMeasure = 4; // 4/4
+                
+                console.log(`📏 Tempos por compasso: ${beatsPerMeasure}`);
+                
+                let currentMeasure = [];
+                let currentBeats = 0;
+                
+                allNotes.forEach((note, idx) => {
+                    const duration = note.duration.replace(/[dr]/g, ''); // Remove 'd' (ponto) e 'r' (pausa)
+                    const noteBeats = durationToBeats[duration] || 1;
+                    
+                    console.log(`  Nota ${idx}: duration=${note.duration}, tempos=${noteBeats}, acumulado antes=${currentBeats}, depois=${currentBeats + noteBeats}`);
+                    
+                    // Se adicionar esta nota ultrapassar o limite E já temos notas no compasso atual
+                    if (currentBeats + noteBeats > beatsPerMeasure && currentMeasure.length > 0) {
+                        console.log(`  → Novo compasso! (${currentMeasure.length} notas, ${currentBeats} tempos)`);
+                        measures.push(currentMeasure);
+                        currentMeasure = [];
+                        currentBeats = 0;
+                    }
+                    
+                    currentMeasure.push(note);
+                    currentBeats += noteBeats;
+                    
+                    // Se completou exatamente o compasso, fecha
+                    if (currentBeats === beatsPerMeasure) {
+                        console.log(`  → Compasso completo! (${currentMeasure.length} notas, ${currentBeats} tempos)`);
+                        measures.push(currentMeasure);
+                        currentMeasure = [];
+                        currentBeats = 0;
+                    }
+                });
+                
+                // Adiciona último compasso se tiver notas
+                if (currentMeasure.length > 0) {
+                    console.log(`  → Último compasso: ${currentMeasure.length} notas, ${currentBeats} tempos`);
+                    measures.push(currentMeasure);
+                }
+                
+                // Calcula largura total - aumenta para dar mais espaço
+                const staveWidth = 300; // Aumentado de 200 para 300
+                const totalWidth = measures.length * staveWidth + 20;
+                const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+                renderer.resize(totalWidth, 200);
+                const context = renderer.getContext();
+                
+                // Renderiza cada compasso
+                measures.forEach((measureNotes, i) => {
+                    const x = 10 + (i * staveWidth);
+                    const stave = new VF.Stave(x, 40, staveWidth);
+                    
+                    // Só adiciona clave e fórmula de compasso no primeiro compasso
+                    if (i === 0) {
+                        stave.addClef(sheet.clef || 'treble');
+                        if (sheet.time_signature) {
+                            stave.addTimeSignature(sheet.time_signature);
+                        }
+                    }
+                    
+                    // Adiciona barra de compasso (exceto no último)
+                    if (i < measures.length - 1) {
+                        stave.setEndBarType(VF.Barline.type.SINGLE);
+                    } else {
+                        stave.setEndBarType(VF.Barline.type.END);
+                    }
+                    
+                    stave.setContext(context).draw();
+                    
+                    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+                    voice.setStrict(false);
+                    voice.addTickables(measureNotes);
+                    // Aumenta espaço de formatação para dar mais espaço entre notas
+                    new VF.Formatter().joinVoices([voice]).format([voice], staveWidth - 40);
+                    voice.draw(context, stave);
+                    
+                    // Renderiza cifras se existirem
+                    if (sheet.chords && sheet.chords.length > 0) {
+                        sheet.chords.forEach(chord => {
+                            // Verifica se a cifra é deste compasso
+                            if (chord.m === i) {
+                                const note = measureNotes[chord.i];
+                                if (note) {
+                                    try {
+                                        const bbox = note.getBoundingBox();
+                                        context.save();
+                                        context.setFont('Arial', 14, 'bold');
+                                        context.fillStyle = '#000';
+                                        // Posiciona sempre acima da pauta (Y fixo = 32, logo acima do stave que está em Y=40)
+                                        context.fillText(chord.symbol, bbox.x + bbox.w/2, 32);
+                                        context.restore();
+                                    } catch(e) {
+                                        console.log('⚠️ Erro ao renderizar cifra:', e);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                console.log(`✅ Partitura renderizada no bloco ${index}: ${measures.length} compassos`);
+            } catch (error) {
+                console.error('❌ Erro ao renderizar partitura:', error);
+                renderDiv.html(`<p style="color:red;">Erro: ${error.message}</p>`);
+            }
+        }
+
+// Função para limpar o conteúdo da exibição
+const clearLyricsDisplay = () => {
+    $('#section-text').empty(); // Limpa o conteúdo do <pre> onde a letra é exibida
+    $('#section-title').empty(); // Limpa o título da música, se necessário
+    localStorage.removeItem('currentTitle'); // Remove os dados salvos no localStorage
+    localStorage.removeItem('currentText');
+    localStorage.removeItem('currentSongId');
+};
+
+// Adiciona o evento de clique no botão "Limpar Letras"
+$('#clear-lyrics').click(function() {
+    clearLyricsDisplay(); // Chama a função para limpar
+    socket.emit('clear_lyrics'); // Emite o evento para outros clientes, se necessário
+});
+
+    
+        function separarNotas(rawText) {
+            if (!rawText) return { texto: '', notas: '' };
+            const linhas = rawText.split('\n');
+            const notas  = linhas.filter(l => l.trim().startsWith('//')).map(l => l.trim().slice(2).trim());
+            const texto  = linhas.filter(l => !l.trim().startsWith('//'));
+            return { texto: texto.join('\n'), notas: notas.join(' · ') };
+        }
+
+        function loadSection(index, fromRemote = false) {
+            if (index < 0 || index >= sections.length) {
+                alert("Seção inválida.");
+                return;
+            }
+            
+            // Usa os dados locais das seções processadas (não precisa chamar o backend)
+            const section = sections[index];
+            
+            // Verifica o tipo de seção
+            if (section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) {
+                // Seção mista: tem texto e partituras
+                const sectionText = section.text ? section.text.join('\n\n') : '';
+                const sheets = section.sheetIds.map(id => sheetData.find(s => s.id === id)).filter(s => s);
+                
+                const dataToSend = {
+                    title: section.title || `Seção ${index + 1}`,
+                    type: 'mixed',
+                    text: sectionText,
+                    sheets: sheets,
+                    theme: null
+                };
+                
+                console.log(`📤 Enviando seção mista ${index}:`, dataToSend);
+                
+                // Emite para o display via WebSocket com texto e partituras
+                socket.emit('update_lyrics', dataToSend);
+                console.log(`✅ Seção mista ${index} carregada:`, section.title, `${sheets.length} partitura(s)`);
+            } else if (section.type === 'sheet' && section.sheetId) {
+                // Apenas partitura
+                const sheet = sheetData.find(s => s.id === section.sheetId);
+                
+                if (sheet) {
+                    // Emite partitura para o display via WebSocket
+                    socket.emit('update_lyrics', {
+                        title: section.title || '🎼 Partitura',
+                        type: 'sheet',
+                        sheetData: sheet,
+                        theme: null
+                    });
+                    console.log(`✅ Partitura ${index} carregada:`, section.title, sheet);
+                } else {
+                    console.warn(`⚠️ Dados da partitura ${section.sheetId} não encontrados`);
+                }
+            } else {
+                // É uma seção de texto normal
+                const sectionText = section.text ? section.text.join('\n\n') : '';
+
+                // Emite para o display via WebSocket (texto completo, incluindo linhas //)
+                socket.emit('update_lyrics', {
+                    title: section.title || `Seção ${index + 1}`,
+                    type: 'text',
+                    text: sectionText,
+                    theme: currentTheme || null
+                });
+                console.log(`✅ Seção ${index} carregada:`, section.title);
+            }
+            
+            highlightActiveSection(index);
+            currentSectionIndex = index; // Atualiza o índice da seção atual
+            
+            // Ajusta fonte do conteúdo para não quebrar linha
+            setTimeout(() => {
+                ajustarFonteParaCabimento('.main-content');
+            }, 100);
+            
+            // Salva estado das letras no banco de dados
+            saveLyricsState(songId, currentSectionIndex);
+            
+            // Atualiza também o DisplayState para que o monitor siga
+            const displayUrl = `/lyrics/display?song_id=${songId}&section=${currentSectionIndex}`;
+            fetch('/save_display_state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url1: displayUrl, url2: '' })
+            }).catch(err => console.error('❌ Erro ao salvar display state:', err));
+            
+            // Só emite section_changed se não veio de um evento remoto (evita loop)
+            if (!fromRemote) {
+                const nextSec  = sections[currentSectionIndex + 1] || null;
+                const nextRaw  = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
+                const nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
+                const currRaw  = sections[currentSectionIndex]?.text?.[0] || '';
+                const currObs  = separarNotas(currRaw).notas;
+                socket.emit('section_changed', {
+                    songId: songId,
+                    sectionIndex: currentSectionIndex,
+                    sectionTitles: sections.map(s => s.title),
+                    total: sections.length,
+                    nextTitle: nextSec ? nextSec.title : null,
+                    nextText: nextClean,
+                    currentObs: currObs
+                });
+            }
+        }
+    
+        function highlightActiveSection(index) {
+            $('.section-link').removeClass('active');
+            const activeSection = $(`#section-${index}`);
+            activeSection.addClass('active');
+            
+            // Scroll automático para manter a seção ativa visível na tela
+            if (activeSection.length) {
+                activeSection[0].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'  // Centraliza a seção na tela
+                });
+            }
+        }
+    
+        $(document).ready(function() {
+            loadFullLyrics();
+            createSectionLinks();
+            loadLyricsState(); // Carrega estado salvo (música + seção)
+    
+            $('#next').click(function() {
+                if (currentSectionIndex < sections.length - 1) {
+                    loadSection(currentSectionIndex + 1); // Carrega a próxima seção
+                } else {
+                    alert("Você já está na última seção.");
+                }
+            });
+    
+            $('#prev').click(function() {
+                if (currentSectionIndex > 0) {
+                    loadSection(currentSectionIndex - 1); // Carrega a seção anterior
+                } else {
+                    alert("Você já está na primeira seção.");
+                }
+            });
+            
+            // Botão para mostrar/esconder letras no monitor e public
+            let lyricsVisible = true;
+            $('#toggle-lyrics').click(function() {
+                lyricsVisible = !lyricsVisible;
+                socket.emit('toggle_lyrics_visibility', { visible: lyricsVisible });
+                
+                // Atualiza texto, ícone e classe do botão
+                if (lyricsVisible) {
+                    $('#toggle-text').text('Esconder');
+                    $(this).removeClass('show-mode');
+                    $(this).find('i').removeClass('fa-eye-slash').addClass('fa-eye');
+                } else {
+                    $('#toggle-text').text('Mostrar');
+                    $(this).addClass('show-mode');
+                    $(this).find('i').removeClass('fa-eye').addClass('fa-eye-slash');
+                }
+                console.log(`👁️ Letras ${lyricsVisible ? 'mostradas' : 'escondidas'}`);
+            });
+    
+            // Adicionando a funcionalidade de navegação com as teclas "up" e "down"
+            // Também suporta pedais Bluetooth (PageUp/PageDown, Space, Enter, etc.)
+            $(document).keydown(function(event) {
+                // Teclas para VOLTAR seção (pedal esquerdo)
+                // ArrowUp, PageUp, ArrowLeft
+                if (event.key === "ArrowUp" || event.key === "PageUp" || event.key === "ArrowLeft") {
+                    event.preventDefault();
+                    if (currentSectionIndex > 0) {
+                        loadSection(currentSectionIndex - 1);
+                    }
+                } 
+                // Teclas para AVANÇAR seção (pedal direito)
+                // ArrowDown, PageDown, ArrowRight, Space, Enter
+                else if (event.key === "ArrowDown" || event.key === "PageDown" || event.key === "ArrowRight" || event.key === " " || event.key === "Enter") {
+                    // Ignora se estiver digitando em um input
+                    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                        return;
+                    }
+                    event.preventDefault();
+                    if (currentSectionIndex < sections.length - 1) {
+                        loadSection(currentSectionIndex + 1);
+                    }
+                }
+            });
+    
+            // Ouvir o evento de mudança de seção (de outros clientes)
+            socket.on('section_changed', function(data) {
+                if (data.songId === songId) { // Verifica se é a mesma música
+                    loadSection(data.sectionIndex, true); // fromRemote=true para evitar loop
+                }
+            });
+        });

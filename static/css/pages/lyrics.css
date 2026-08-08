@@ -1,0 +1,655 @@
+/* BASE */
+body {
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  
+}
+
+h1 {
+  font-size: 2.5rem;
+  text-align: center;
+  padding-top: 10px;
+}
+
+/* MENU LATERAL */
+#menu h2 {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: #60a5fa;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+
+
+
+
+/* CONTEÚDO PRINCIPAL */
+.main-content {
+  width: 100%;
+  padding: 10px 100px 10px 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: pre;
+  overflow: hidden;
+  
+}
+
+#sections-list {
+  width: 100%;
+  max-width:1100px;
+  padding: 0 20px;
+  margin-right: 0px;
+}
+
+.section-title {
+  color: rgb(56, 1, 110);
+  font-size: clamp(22px, 4vw, 32px);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.section-link {
+  font-size: clamp(18px, 2.5vw, 28px);
+  display: block;
+  margin: 5px 0;
+  padding: 12px 18px;
+  background-color: #fff;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.section-link:hover {
+  background-color: #f0f0f0;
+}
+.order {
+  margin-top: 15px;
+  font-size: 14px;
+  padding: 0 5px;
+}
+.section-link.active {
+  background-color: #007bff;
+  color: #fff;
+  font-weight: bold;
+}
+
+.section-link pre,
+.section-link code {
+  white-space: pre;
+  overflow-x: auto;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  font-size: 12px;
+}
+
+.section-link span {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* BOTÕES DE NAVEGAÇÃO */
+button#prev,
+button#next {
+  position: fixed;
+  right: 20px;
+  height: 150px;
+  width: 70px;
+  transform: translateY(-50%);
+}
+
+button#prev {
+  top: 40%;
+}
+
+button#next {
+  top: 60%;
+}
+
+button:hover {
+  background-color: #0056b3;
+  border-color: #000000;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* MENU OCULTO (MOBILE) */
+#menu {
+  width: 260px;
+  height: 100vh;
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  color: #e2e8f0;
+  padding: 20px 15px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow-y: auto;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+  border-right: 1px solid rgba(96, 165, 250, 0.2);
+  scrollbar-width: thin;
+  scrollbar-color: #60a5fa #1a1a2e;
+  box-sizing: border-box;
+}
+
+#menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+#menu::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+#menu::-webkit-scrollbar-thumb {
+  background: #60a5fa;
+  border-radius: 3px;
+}
+
+#menu.active {
+  transform: translateX(0);
+}
+
+#menu > a {
+  display: inline-block;
+  margin: 5px 8px 5px 0;
+  padding: 8px 16px;
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  color: #60a5fa;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+#menu > a:hover {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+  transform: translateY(-1px);
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.menu-list li a:hover {
+  background-color: rgba(96, 165, 250, 0.1);
+}
+
+h2 + #songListTitle {
+  margin-top: 1.5rem;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #60a5fa;
+}
+
+
+
+
+
+
+
+
+
+/* CAMPOS DE TEXTO */
+.search-box,
+.anyText {
+  margin-bottom: 15px;
+}
+
+.search-box input[type="text"],
+.anyText input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.search-box input[type="text"]::placeholder,
+.anyText input[type="text"]::placeholder {
+  color: rgba(226, 232, 240, 0.5);
+}
+
+.search-box input[type="text"]:focus,
+.anyText input[type="text"]:focus {
+  outline: none;
+  border-color: #60a5fa;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.anyText button {
+  cursor: pointer;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.anyText button:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+
+
+
+
+
+
+
+
+/* LISTA DE MÚSICAS */
+.list {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.list h2 {
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+#songList {
+  list-style: none;
+  padding: 8px;
+  margin: 0.5rem 0 1rem 0;
+  font-size: 12px;
+  border: 2px dashed rgba(96, 165, 250, 0.4);
+  border-radius: 8px;
+  min-height: 60px;
+  background: rgba(255, 255, 255, 0.03);
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.song-item {
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.song-item:hover {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: #60a5fa;
+}
+
+.song-item:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#songList li {
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  color: #e2e8f0;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+#songList li:hover {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: #60a5fa;
+}
+
+#songList li:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* BOTÃO DE AÇÃO */
+.action-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-top: 5px;
+}
+
+.action-button:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+/* BOTÃO DE TOGGLE MENU */
+#toggle-button {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1100;
+  padding: 10px 15px;
+  font-size: 18px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+#toggle-button.hide {
+  display: none;
+}
+
+/* BOTÃO MOSTRAR/ESCONDER LETRAS */
+#toggle-lyrics {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 1100;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#toggle-lyrics:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+}
+
+#toggle-lyrics:active {
+  transform: translateY(0);
+}
+
+#toggle-lyrics i {
+  font-size: 18px;
+}
+
+/* Quando estiver no modo "Mostrar" (verde) */
+#toggle-lyrics.show-mode {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+}
+
+#toggle-lyrics.show-mode:hover {
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+}
+
+/* RESPONSIVO */
+@media (max-width: 768px) {
+  .foto-lista img {
+    max-width: 250px;
+  }
+  .main-content {
+    padding-right: 70px;
+  }
+
+  h1 {
+    font-size: 1rem;
+    padding-top: 35px;
+  }
+
+  button#prev,
+  button#next {
+    right: 4px;
+    height: 145px;
+    width: 50px;
+  }
+
+  button#prev {
+    top: 40%;
+    transform: translateY(-80%);
+  }
+
+  button#next {
+    top: 46%;
+    transform: translateY(10%);
+  }
+}
+
+@media (max-width: 540px) {
+  /* Botões ↑↓: compactos */
+  button#prev,
+  button#next {
+    right: 2px;
+    height: 64px;
+    width: 38px;
+    font-size: 20px;
+    padding: 4px 2px;
+    border-radius: 8px;
+  }
+  button#prev {
+    top: 42%;
+    transform: translateY(-50%);
+  }
+  button#next {
+    top: 58%;
+    transform: translateY(-50%);
+  }
+
+  /* Conteúdo: folga para os botões menores */
+  .main-content {
+    padding-right: 48px !important;
+  }
+
+  /* Título */
+  h1 {
+    font-size: 0.85rem;
+    padding-top: 58px;
+    padding-left: 8px;
+    padding-right: 8px;
+    text-align: center;
+  }
+
+  /* Barra de controles no topo: compacta */
+  #toggle-button {
+    top: 8px !important;
+    left: 6px !important;
+    padding: 7px 10px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+  }
+
+  #btn-bg {
+    left: 80px !important;
+    right: auto !important;
+    top: 8px !important;
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+    gap: 4px !important;
+  }
+
+  #btn-tema {
+    left: 162px !important;
+    right: auto !important;
+    top: 8px !important;
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+    gap: 4px !important;
+  }
+
+  #toggle-lyrics {
+    right: 6px !important;
+    top: 8px !important;
+    padding: 7px 11px !important;
+    font-size: 12px !important;
+    border-radius: 20px !important;
+    gap: 4px !important;
+  }
+  #toggle-lyrics i {
+    font-size: 13px !important;
+  }
+
+  /* Cards de seção: fonte menor */
+  .section-link {
+    font-size: clamp(14px, 3.5vw, 20px);
+    padding: 10px 12px;
+  }
+  .section-title {
+    font-size: clamp(16px, 4vw, 24px);
+  }
+}
+
+.song-link {
+  display: block;
+  flex: 1;
+  box-sizing: border-box;
+  color: #93c5fd;
+  font-size: 0.8rem;
+  text-decoration: none;
+  line-height: 1.3;
+  word-break: break-word;
+  transition: color 0.15s;
+}
+
+.song-link:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+
+/* AUTOCOMPLETE */
+#autocompleteList {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  margin-top: 4px;
+  background: #0f172a;
+}
+
+#autocompleteList:empty {
+  border: none;
+}
+
+.autocomplete-item {
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+  transition: background 0.15s, color 0.15s;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
+/* MÚSICA ATUAL NA LISTA */
+.song-item.current-song {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: inset 3px 0 0 #6366f1;
+}
+
+.song-item.current-song .song-link {
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.remove-btn {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.remove-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  transform: scale(1.05);
+}
+
+.remove-btn:active {
+  transform: scale(0.95);
+}
+
+a {
+  color: blue; /* Azul escuro mais agradável */
+  font-weight: 600; /* Peso intermediário para boa leitura */
+  text-decoration: none; /* Remove o sublinhado */
+  transition: color 0.3s ease, text-decoration 0.3s ease;
+  margin-top: 5px;
+}
+
+a:hover {
+  color: #1d4ed8; /* Azul mais vibrante no hover */
+  text-decoration: underline; /* Sublinha ao passar o mouse */
+}
+
+
