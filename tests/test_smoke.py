@@ -1,6 +1,7 @@
 from werkzeug.security import generate_password_hash
 
 import main as ucontrol_main
+from models import DisplayState
 
 
 def test_create_app_uses_in_memory_db_when_testing(app):
@@ -29,7 +30,7 @@ def test_data_pt_returns_input_unchanged_on_invalid_date():
 
 def test_display_state_table_has_media_type_column(app):
     with app.app_context():
-        columns = [c.name for c in ucontrol_main.DisplayState.__table__.columns]
+        columns = [c.name for c in DisplayState.__table__.columns]
     assert "media_type" in columns
 
 
@@ -452,6 +453,51 @@ def test_show_image_updates_display_state_module_live(app):
     assert display_state._current_display_mode == "image"
     assert display_state._last_image_url == "/static/imagens/teste.jpg"
     socket_client.disconnect()
+
+
+def test_show_video_updates_display_state_module_live(app):
+    import display_state
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("show_video", {"video_url": "/static/videos/teste.mp4"})
+
+    assert display_state._current_display_mode == "video"
+    assert display_state._video_state["url"] == "/static/videos/teste.mp4"
+    assert display_state._video_state["paused"] is False
+    socket_client.disconnect()
+
+
+def test_api_current_display_reflects_last_shown_image(app, client):
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("show_image", {"image_url": "/static/imagens/atual.jpg"})
+    socket_client.disconnect()
+
+    response = client.get("/api/current-display")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["mode"] == "image"
+    assert data["image_url"] == "/static/imagens/atual.jpg"
+
+
+def test_api_monitor_sync_forwards_current_video_to_monitor_sids(app, client):
+    monitor_client = ucontrol_main.socketio.test_client(app)
+    monitor_client.emit("identify", {"role": "monitor"})
+
+    presenter_client = ucontrol_main.socketio.test_client(app)
+    presenter_client.emit("show_video", {"video_url": "/static/videos/sync.mp4"})
+    presenter_client.disconnect()
+
+    monitor_client.get_received()  # limpa os eventos já recebidos até aqui
+    response = client.post("/api/monitor/sync")
+    assert response.status_code == 200
+
+    received = monitor_client.get_received()
+    events = [msg["name"] for msg in received]
+    assert "display_monitor_video" in events
+    payload = next(msg["args"][0] for msg in received if msg["name"] == "display_monitor_video")
+    assert payload["video_url"] == "/static/videos/sync.mp4"
+
+    monitor_client.disconnect()
 
 
 def test_screen_share_offer_relays_to_target_sid(app):

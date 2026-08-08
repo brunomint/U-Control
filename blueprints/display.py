@@ -1,0 +1,562 @@
+"""Núcleo de display: broadcast de imagem/vídeo, sincronização do monitor
+de palco, persistência do estado exibido (URLs, letra, tema) e as páginas
+/control, /monitor, /img. É a área mais entrelaçada do projeto — as
+variáveis de display_state.py são lidas e escritas por praticamente todo
+handler aqui.
+
+Nota sobre app_context: alguns handlers salvam no banco numa thread de
+fundo (threading.Thread), onde `current_app` (proxy de contexto) não
+resolve sozinho — por isso capturam `current_app._get_current_object()`
+(o app de verdade) antes de disparar a thread, e usam esse objeto
+capturado dentro dela. Onde o app_context é usado só dentro do próprio
+handler (sem thread), current_app.app_context() direto já basta."""
+import json
+import os
+import re
+import threading
+import time
+
+from flask import Blueprint, current_app, jsonify, make_response, render_template, request
+from flask_login import login_required
+from flask_socketio import emit
+
+import display_state
+from blueprints.gallery import get_current_image_path
+from connections import _get_monitor_sids, _skip_sids
+from display_log import append_display_log
+from extensions import db, socketio
+from models import DisplayState, LyricsState
+from settings_store import load_settings, save_settings
+from songs_store import load_songs
+
+display_bp = Blueprint('display', __name__)
+
+# Caminho do arquivo para salvar as URLs
+URLS_FILE = 'urls.json'
+
+# Função para carregar URLs do arquivo JSON
+def load_urls():
+    if os.path.exists(URLS_FILE):
+        with open(URLS_FILE, 'r') as file:
+            return json.load(file)
+    return {'url1': '', 'url2': '', 'url3': ''}
+
+# Função para salvar URLs no arquivo JSON
+def save_urls(urls):
+    with open(URLS_FILE, 'w') as file:
+        json.dump(urls, file)
+
+
+# Rota para limpar as informações
+@display_bp.route('/limpar')
+def limpar():
+    # Aqui você pode emitir um evento para limpar as informações na tela
+    socketio.emit('limpar_tela')
+    return 'Informações limpas!', 200
+
+
+# Função para garantir que o diretório existe e o arquivo será criado
+def ensure_file_exists():
+    if not os.path.exists('image_paths.json'):
+        # Cria o arquivo com uma estrutura inicial se não existir
+        with open('image_paths.json', 'w') as f:
+            json.dump({"image": None}, f, indent=4)
+
+# Função para carregar o arquivo JSON com o caminho da imagem
+def load_image_path():
+    ensure_file_exists()  # Verifica se o arquivo existe e cria se necessário
+    with open('image_paths.json', 'r') as f:
+        return json.load(f)
+
+# Função para salvar o caminho da imagem no arquivo JSON
+def save_image_path(image_path):
+    # Altera para salvar apenas um caminho
+    data = {"image": image_path}
+
+    with open('image_paths.json', 'w') as f:
+        json.dump(data, f, indent=4)
+
+# Endpoint para salvar o caminho da imagem
+@display_bp.route('/save_image_path', methods=['POST'])
+def save_image_path_endpoint():
+    data = request.get_json()
+    image_path = data.get('image_path')
+    if image_path:
+        save_image_path(image_path)
+        return jsonify({"status": "success"}), 200
+    return jsonify({"status": "error", "message": "Caminho da imagem não fornecido."}), 400
+
+# Endpoint para obter a última imagem ou vídeo
+def _is_static_media(url):
+    if not url:
+        return False
+    return url.startswith('/static/') or \
+        bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', url, re.I))
+
+@display_bp.route('/last_image', methods=['GET'])
+def last_image_endpoint():
+    # 1. Usa cache em memória (mais recente)
+    if display_state._last_static_media_url:
+        ext = display_state._last_static_media_url.lower().split('?')[0]
+        media_type = 'video' if ext.endswith(('.mp4', '.webm', '.mov')) else 'image'
+        return jsonify({'image_url': display_state._last_static_media_url, 'media_type': media_type}), 200
+    # 2. Fallback: busca no banco — procura a primeira URL estática em url1 ou url2
+    state = DisplayState.query.first()
+    if state:
+        for url in [state.url1, state.url2]:
+            if _is_static_media(url):
+                ext = (url or '').lower().split('?')[0]
+                media_type = 'video' if ext.endswith(('.mp4', '.webm', '.mov')) else 'image'
+                display_state._last_static_media_url = url
+                return jsonify({'image_url': url, 'media_type': media_type}), 200
+    data = load_image_path()
+    return jsonify({'image_url': data.get('image'), 'media_type': 'image'}), 200
+
+
+@display_bp.route('/control')
+@login_required
+def control():
+    return render_template('control.html')
+
+@display_bp.route('/monitor')
+def monitor():
+    return render_template('monitor.html')
+
+# Rota para obter o estado atual do display
+@display_bp.route('/get_display_state')
+def get_display_state():
+    import time as time_module
+
+    # Verifica se o cache ainda é válido
+    current_time = time_module.time()
+    if display_state._display_state_cache['data'] and (current_time - display_state._display_state_cache['timestamp']) < display_state._cache_ttl:
+        return jsonify(display_state._display_state_cache['data'])
+
+    # Cache expirado ou vazio, busca do banco
+    state = DisplayState.query.first()
+    if state:
+        result = {
+            'url1': state.url1 or '',
+            'url2': state.url2 or ''
+        }
+    else:
+        result = {'url1': '', 'url2': ''}
+
+    # Atualiza o cache
+    display_state._display_state_cache['data'] = result
+    display_state._display_state_cache['timestamp'] = current_time
+
+    return jsonify(result)
+
+# Rota para salvar o estado do display
+@display_bp.route('/save_display_state', methods=['POST'])
+def save_display_state():
+    data = request.json
+    state = DisplayState.query.first()
+
+    if not state:
+        state = DisplayState(url1=data.get('url1', ''), url2=data.get('url2', ''))
+        db.session.add(state)
+    else:
+        state.url1 = data.get('url1', '')
+        state.url2 = data.get('url2', '')
+
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+# Rota para obter o estado atual das letras (música + seção)
+@display_bp.route('/get_lyrics_state')
+def get_lyrics_state():
+    state = LyricsState.query.first()
+    if state:
+        return jsonify({
+            'song_id': state.song_id,
+            'section_index': state.section_index
+        })
+    return jsonify({'song_id': None, 'section_index': 0})
+
+# Rota para salvar o estado das letras (música + seção)
+@display_bp.route('/save_lyrics_state', methods=['POST'])
+def save_lyrics_state():
+    data = request.json
+    state = LyricsState.query.first()
+
+    if not state:
+        state = LyricsState(
+            song_id=data.get('song_id'),
+            section_index=data.get('section_index', 0)
+        )
+        db.session.add(state)
+    else:
+        state.song_id = data.get('song_id')
+        state.section_index = data.get('section_index', 0)
+
+    db.session.commit()
+    current_app.logger.debug(f'💾 Estado das letras salvo: Música {state.song_id}, Seção {state.section_index}')
+    return jsonify({'status': 'success'})
+
+# Rota para exibir uma imagem específica
+@display_bp.route('/img')
+def serve_image():
+    image_url = get_current_image_path()
+    response = make_response(render_template('img.html', image_url=image_url))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+
+@socketio.on('video_ended')
+def handle_video_ended(data):
+    emit('video_ended', {}, broadcast=True)
+
+
+# Rota para salvar URLs no servidor
+@display_bp.route('/save_urls', methods=['POST'])
+def save_urls_route():
+    urls = request.json
+    save_urls(urls)
+    return jsonify({'status': 'success'})
+
+# Rota para carregar as URLs salvas
+@display_bp.route('/load_urls', methods=['GET'])
+def load_urls_route():
+    urls = load_urls()
+    return jsonify(urls)
+
+# Evento WebSocket para transmitir a URL da imagem
+@socketio.on('show_image')
+def handle_show_image(data):
+    image_url = data['image_url']
+    real_app = current_app._get_current_object()
+
+    # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
+    display_state._video_state['url'] = None
+    display_state._video_state['paused'] = False
+    display_state._video_state['position_offset'] = 0.0
+
+    # Atualiza modo imediatamente (antes de qualquer retorno antecipado)
+    display_state._last_image_url = image_url
+    display_state._current_display_mode = 'image'
+    current_app.logger.debug(f'🖼️ show_image recebido: {image_url} → modo=image')
+
+    # Envia para clientes primeiro (não espera banco)
+    emit('display_image', {'image_url': image_url}, broadcast=True, skip_sid=_skip_sids(data))
+    append_display_log({'type': 'image', 'title': image_url})
+
+    # Só persiste no banco se for arquivo estático real (não rotas como /img, /lyrics/display)
+    is_static_file = image_url.startswith('/static/') or \
+        bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', image_url, re.I))
+    if not is_static_file:
+        return
+
+    # Mantém cache da última mídia estática
+    display_state._last_static_media_url = image_url
+
+    # Atualiza cache
+    display_state._display_state_cache['data'] = {'url1': image_url, 'url2': ''}
+    display_state._display_state_cache['timestamp'] = time.time()
+
+    # Salva no banco de forma assíncrona
+    def save_async():
+        with real_app.app_context():
+            state = DisplayState.query.first()
+            if not state:
+                state = DisplayState(url1=image_url, url2='', media_type='image')
+                db.session.add(state)
+            else:
+                state.url1 = image_url
+                state.url2 = ''
+                state.media_type = 'image'
+            db.session.commit()
+
+    threading.Thread(target=save_async, daemon=True).start()
+
+@socketio.on('show_video')
+def handle_show_video(data):
+    video_url = data.get('video_url')
+    real_app = current_app._get_current_object()
+    current_app.logger.debug(f'🎬 [show_video] recebido: {video_url}')
+    if not video_url:
+        return
+
+    display_state._display_state_cache['data'] = {'url1': video_url, 'url2': '', 'media_type': 'video'}
+    display_state._display_state_cache['timestamp'] = time.time()
+
+    # Inicia novo vídeo: zera estado de reprodução
+    display_state._video_state['url'] = video_url
+    display_state._video_state['started_at'] = time.time()
+    display_state._video_state['position_offset'] = 0.0
+    display_state._video_state['paused'] = False
+
+    display_state._last_static_media_url = video_url
+    display_state._current_display_mode = 'video'
+    # Um único emit — mandar de novo pro monitor (mesmo com skip_sid diferente)
+    # entregava o evento duas vezes e as duas chamadas de .play() colidiam,
+    # quebrando o vídeo no /monitor ("interrupted by a new load request").
+    emit('display_video', {'video_url': video_url}, broadcast=True, skip_sid=_skip_sids(data))
+    append_display_log({'type': 'image', 'title': video_url})
+
+    def save_async():
+        with real_app.app_context():
+            state = DisplayState.query.first()
+            if not state:
+                state = DisplayState(url1=video_url, url2='', media_type='video')
+                db.session.add(state)
+            else:
+                state.url1 = video_url
+                state.url2 = ''
+                state.media_type = 'video'
+            db.session.commit()
+
+    threading.Thread(target=save_async, daemon=True).start()
+
+
+@socketio.on('toggle_video_pause')
+def handle_toggle_video_pause(data):
+    """Pausa ou retoma o vídeo no monitor (/img) e atualiza o estado central."""
+    paused = bool(data.get('paused'))
+    current_app.logger.debug(f'⏯️ [toggle_video_pause] paused={paused}')
+
+    if display_state._video_state['url']:
+        if paused and not display_state._video_state['paused']:
+            # Pausando: congela posição atual no offset
+            display_state._video_state['position_offset'] += time.time() - display_state._video_state['started_at']
+            display_state._video_state['paused'] = True
+        elif not paused and display_state._video_state['paused']:
+            # Retomando: started_at = agora; offset preservado
+            display_state._video_state['started_at'] = time.time()
+            display_state._video_state['paused'] = False
+
+    emit('video_pause', {'paused': paused}, broadcast=True, skip_sid=_skip_sids(data))
+
+
+@socketio.on('restart_video')
+def handle_restart_video(data):
+    """Reinicia o vídeo atual no monitor (/img) do início."""
+    current_app.logger.debug('⏮️ [restart_video] recebido')
+    if display_state._video_state['url']:
+        display_state._video_state['started_at'] = time.time()
+        display_state._video_state['position_offset'] = 0.0
+        display_state._video_state['paused'] = False
+    emit('video_restart', {}, broadcast=True)
+
+
+@socketio.on('seek_video')
+def handle_seek_video(data):
+    """Posiciona o vídeo do monitor em um tempo específico (segundos)."""
+    try:
+        target = max(0.0, float(data.get('time', 0)))
+    except (TypeError, ValueError):
+        return
+    current_app.logger.debug(f'⏩ [seek_video] time={target:.2f}s')
+    if display_state._video_state['url']:
+        # Mantém estado de pause: se está pausado, só atualiza o offset; se está
+        # tocando, redefine started_at para "agora" com o novo offset.
+        display_state._video_state['position_offset'] = target
+        display_state._video_state['started_at'] = time.time()
+        # paused permanece como está
+    emit('video_seek', {'time': target}, broadcast=True)
+
+
+@display_bp.route('/video_state')
+def video_state():
+    """
+    Retorna o estado atual de reprodução de vídeo. Usado por novas janelas /img
+    para sincronizar a posição do vídeo com as janelas já abertas.
+    """
+    return jsonify({
+        'url': display_state._video_state['url'],
+        'position': display_state._video_current_position(),
+        'paused': display_state._video_state['paused'],
+    })
+
+
+# ── Monitor de Palco ─────────────────────────────────────────────────────────
+
+@socketio.on('show_monitor_content')
+def handle_show_monitor_content(data):
+    """Exibe URL/imagem apenas no /monitor, sem afetar o público."""
+    url = data.get('url', '')
+    # O botão "Letra" manda o /monitor recarregar '/lyrics/display/public' num
+    # iframe. Essa página, ao carregar do zero, busca /api/current-display pra
+    # saber o que mostrar — e sem isto aqui, ela mostra o que foi exibido por
+    # último de verdade ao público (ex: relógio), não a letra atual.
+    # display_state._last_lyrics_payload some a cada restart do servidor, então reconstrói a
+    # partir do banco (song_id + section_index), igual ao fallback que
+    # /api/current-display já usa quando não há payload em memória.
+    if url == '/lyrics/display/public':
+        with current_app.app_context():
+            state = LyricsState.query.first()
+            if state and state.song_id:
+                song = next((s for s in load_songs() if s['id'] == state.song_id), None)
+                if song and 0 <= state.section_index < len(song['sections']):
+                    section = song['sections'][state.section_index]
+                    display_state._last_lyrics_payload = {'title': section['title'], 'text': section['text'][0]}
+                    display_state._current_display_mode = 'lyrics'
+    for sid in _get_monitor_sids():
+        emit('display_monitor_content', {'url': url}, to=sid)
+
+@socketio.on('show_monitor_video')
+def handle_show_monitor_video(data):
+    """Exibe vídeo apenas no /monitor."""
+    for sid in _get_monitor_sids():
+        emit('display_monitor_video', {'video_url': data.get('video_url', '')}, to=sid)
+
+@socketio.on('show_monitor_pause')
+def handle_show_monitor_pause(data):
+    """Pausa/retoma vídeo apenas no /monitor."""
+    for sid in _get_monitor_sids():
+        emit('video_pause', {'paused': data.get('paused', False)}, to=sid)
+
+@socketio.on('show_monitor_two_urls')
+def handle_show_monitor_two_urls(data):
+    """Exibe tela dividida apenas no /monitor."""
+    for sid in _get_monitor_sids():
+        emit('display_two_urls', {'url1': data.get('url1', ''), 'url2': data.get('url2', '')}, to=sid)
+
+@display_bp.route('/api/monitor/sync', methods=['POST'])
+def api_monitor_sync():
+    """Sincroniza o /monitor com o estado público atual (vídeo ou display)."""
+    sids = _get_monitor_sids()
+    if display_state._video_state['url']:
+        pos = display_state._video_current_position()
+        for sid in sids:
+            socketio.emit('display_monitor_video', {'video_url': display_state._video_state['url']}, to=sid)
+            socketio.emit('video_seek', {'time': pos}, to=sid)
+            if display_state._video_state['paused']:
+                socketio.emit('video_pause', {'paused': True}, to=sid)
+    elif display_state._display_state_cache.get('data'):
+        state = display_state._display_state_cache['data']
+        url = state.get('url1', '')
+        if url:
+            for sid in sids:
+                socketio.emit('display_monitor_content', {'url': url}, to=sid)
+    return jsonify({'status': 'ok'})
+
+
+@socketio.on('blackout')
+def handle_blackout(data):
+    """Escurece ou restaura a tela de exibição"""
+    emit('blackout', {'active': data.get('active', True)}, broadcast=True)
+
+@socketio.on('show_image_zoom')
+def handle_show_image_zoom(data):
+    """
+    Recebe requisição de zoom do presenter e reenvia aos monitores (/img).
+    Espera payload: { image_url: str, zoom: float, origin?: {x,y} }
+    """
+    image_url = data.get('image_url')
+    zoom = float(data.get('zoom', 1.0))
+    origin = data.get('origin', None)
+    pan = data.get('pan', None)
+    try:
+        current_app.logger.debug(f"[show_image_zoom] url={image_url} zoom={zoom} origin={origin} pan={pan}")
+    except Exception:
+        pass
+    if not image_url:
+        return
+    emit('display_image_zoom', {'image_url': image_url, 'zoom': zoom, 'origin': origin, 'pan': pan}, broadcast=True)
+
+# Evento WebSocket para transmitir duas URLs de imagem
+@socketio.on('show_two_urls')
+def handle_show_two_urls(data):
+    real_app = current_app._get_current_object()
+
+    url1 = data['url1'] or ''
+    url2 = data['url2'] or ''
+
+    # Detecta media_type de url1 pela extensão
+    url1_lower = url1.lower().split('?')[0]
+    if url1_lower.endswith(('.mp4', '.webm', '.mov')):
+        media_type = 'video'
+    else:
+        media_type = 'image'
+
+    # Tela dividida substituiu o vídeo: limpa estado de reprodução
+    display_state._video_state['url'] = None
+    display_state._video_state['paused'] = False
+    display_state._video_state['position_offset'] = 0.0
+
+    # Envia para clientes primeiro (não espera banco)
+    emit('display_two_urls', {'url1': url1, 'url2': url2}, broadcast=True, skip_sid=_skip_sids(data))
+    append_display_log({'type': 'image', 'title': url1 + (' + ' + url2 if url2 else '')})
+
+    # Para salvar no banco, substitui '/img' pela URL real da última imagem salva
+    def _resolve_img_url(u):
+        if u != '/img':
+            return u
+        cached = display_state._display_state_cache.get('data') or {}
+        if cached.get('url1') and cached['url1'] != '/img':
+            return cached['url1']
+        try:
+            with real_app.app_context():
+                state = DisplayState.query.first()
+                if state and state.url1 and state.url1 != '/img':
+                    return state.url1
+        except Exception:
+            pass
+        return ''
+
+    def save_async():
+        save_url1 = _resolve_img_url(url1)
+        save_url2 = _resolve_img_url(url2)
+        # Não sobrescreve o banco se ambas as URLs são rotas sem valor persistível
+        if not save_url1 and not save_url2:
+            return
+        with real_app.app_context():
+            state = DisplayState.query.first()
+            if not state:
+                state = DisplayState(url1=save_url1, url2=save_url2, media_type=media_type)
+                db.session.add(state)
+            else:
+                if save_url1:
+                    state.url1 = save_url1
+                state.url2 = save_url2
+                state.media_type = media_type
+            db.session.commit()
+
+    threading.Thread(target=save_async, daemon=True).start()
+
+# Evento WebSocket para transmitir a URL
+@socketio.on('send_url')
+def handle_send_url(url):
+    emit('update_url', {'url': url}, broadcast=True)
+
+@display_bp.route('/api/current-display')
+def api_current_display():
+    if display_state._current_display_mode == 'image' and display_state._last_image_url:
+        is_static = display_state._last_image_url.startswith('/static/') or \
+            bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', display_state._last_image_url, re.I))
+        return jsonify({'mode': 'image', 'image_url': display_state._last_image_url, 'is_static': is_static})
+    if display_state._current_display_mode == 'video' and display_state._last_static_media_url:
+        return jsonify({'mode': 'video', 'video_url': display_state._last_static_media_url})
+    if display_state._current_display_mode == 'lyrics' and display_state._last_lyrics_payload:
+        return jsonify({'mode': 'lyrics', **display_state._last_lyrics_payload})
+    # Fallback: busca do banco (song_id + section_index salvos pelo operador)
+    state = LyricsState.query.first()
+    if state and state.song_id:
+        song = next((s for s in load_songs() if s['id'] == state.song_id), None)
+        if song and state.section_index < len(song['sections']):
+            section = song['sections'][state.section_index]
+            return jsonify({
+                'mode': 'lyrics',
+                'title': section['title'],
+                'text': section['text'][0],
+                'type': 'text',
+                'theme': None
+            })
+    return jsonify({'mode': 'blank'})
+
+@socketio.on('set_display_bg')
+def handle_set_display_bg(data):
+    dark = data.get('dark', True)
+    settings = load_settings()
+    settings['display_bg_dark'] = dark
+    save_settings(settings)
+    emit('set_display_bg', data, broadcast=True)
+
+@display_bp.route('/api/display-bg')
+def get_display_bg():
+    settings = load_settings()
+    return jsonify({'dark': settings.get('display_bg_dark', True)})
