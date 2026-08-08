@@ -11,10 +11,8 @@ from flask import (
     session,
 )
 from werkzeug.routing import BaseConverter
-from flask_socketio import SocketIO, emit, join_room
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from flask_socketio import emit, join_room
+from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from PIL import Image
 from datetime import datetime, date
@@ -34,6 +32,9 @@ from bs4 import BeautifulSoup
 from zeroconf import ServiceInfo, Zeroconf
 import logging
 from logging.handlers import RotatingFileHandler
+
+from extensions import db, migrate, login_manager, socketio
+from models import User, DisplayState, LyricsState
 
 logger = logging.getLogger('ucontrol')
 
@@ -57,14 +58,6 @@ def _setup_logging(app):
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-
-db = SQLAlchemy()
-migrate = Migrate()
-
-login_manager = LoginManager()
-login_manager.login_view = 'login'
-
-socketio = SocketIO()
 
 socketio_clients_connected = 0
 socketio_clients_by_sid = {}
@@ -108,28 +101,6 @@ def _load_or_create_secret_key(app):
         f.write(key)
     os.chmod(key_path, 0o600)
     return key
-
-
-# Modelo de Usuário no Banco de Dados
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
-
-# Modelo para persistir estado do display
-class DisplayState(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url1 = db.Column(db.String(500), nullable=True)
-    url2 = db.Column(db.String(500), nullable=True)
-    media_type = db.Column(db.String(10), nullable=True, default='image')  # 'image' ou 'video'
-    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
-
-# Modelo para persistir estado das letras (música + seção)
-class LyricsState(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    song_id = db.Column(db.Integer, nullable=True)  # ID da música atual
-    section_index = db.Column(db.Integer, default=0)  # Índice da seção atual
-    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
 
 def create_app(config=None):
