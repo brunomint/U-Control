@@ -1,0 +1,153 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background-color: black;
+}
+
+/* CAMADA DE IMAGEM/VÍDEO — fica atrás das letras */
+#media-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: black;
+}
+#media-layer img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+#media-layer video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+/* LETRAS ficam na frente */
+#lyrics {
+  position: relative;
+  z-index: 1;
+}
+
+#section-title, #lyrics {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  flex-wrap: wrap;
+  padding: 10px;
+  max-width: 90%; /* Limita a largura para evitar que o texto ultrapasse */
+  box-sizing: border-box; /* Garante que o padding não afete o tamanho */
+  overflow: hidden; /* Evita que o conteúdo ultrapasse o limite da tela */
+  word-wrap: break-word; /* Quebra palavras longas */
+  word-break: break-word; /* Garante quebra das palavras longas */
+  white-space: normal; /* Permite que o texto quebre a linha automaticamente */
+}
+
+#section-title {
+
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+#section-text {
+  font-weight: 900;
+  text-shadow:
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+     0    3px 6px rgba(0,0,0,0.6);
+  max-height: 100%;
+  max-width: 90%; /* Limita largura para melhor quebra de linha */
+  margin: 0 auto; /* Centraliza */
+  overflow: hidden;
+  text-align: center;
+  line-height: 1.3; /* Espaçamento entre linhas otimizado */
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  color: white;
+  hyphens: auto; /* Hifenização automática */
+}
+
+
+
+#lyrics {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+  #section-title {
+
+  }
+
+  #lyrics {
+
+  }
+
+  #section-title, #lyrics {
+    padding: 5px; /* Reduz o padding em telas menores */
+    max-width: 80%; /* Ajusta o limite de largura */
+  }
+}
+
+/* Ajustes para telas muito pequenas, como smartphones */
+@media (max-width: 480px) {
+  #section-title {
+
+  }
+
+  #lyrics {
+
+  }
+
+  #section-title, #lyrics {
+    padding: 3px; /* Reduz ainda mais o padding */
+    max-width: 75%; /* Ajusta o limite de largura para telas pequenas */
+  }
+}
+
+
+
+
+
+
+
+
+#ticker-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.85);
+    color: #FFD600;
+    font-size: 3vw;
+    font-weight: bold;
+    padding: 12px 0;
+    overflow: hidden;
+    z-index: 100;
+    display: none;
+    text-shadow: 0 0 12px rgba(255,214,0,0.5);
+}
+#ticker-text {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker-scroll linear infinite;
+}
+@keyframes ticker-scroll {
+    from { transform: translateX(100vw); }
+    to   { transform: translateX(-100%); }
+}
