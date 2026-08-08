@@ -232,3 +232,26 @@ def test_download_monitor_launcher_windows_returns_bat_attachment(client):
     response = client.get("/download-monitor-launcher/windows")
     assert response.status_code == 200
     assert ".bat" in response.headers["Content-Disposition"]
+
+
+def test_connect_and_disconnect_update_client_tracking(app):
+    import connections
+
+    before = connections.socketio_clients_connected
+    socket_client = ucontrol_main.socketio.test_client(app)
+    assert connections.socketio_clients_connected == before + 1
+
+    socket_client.disconnect()
+    assert connections.socketio_clients_connected == before
+
+
+def test_identify_as_monitor_is_returned_by_get_monitor_sids(app):
+    import connections
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("identify", {"role": "monitor"})
+
+    monitor_sids = connections._get_monitor_sids()
+    assert len(monitor_sids) >= 1
+
+    socket_client.disconnect()

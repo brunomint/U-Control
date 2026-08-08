@@ -44,6 +44,8 @@ from songs_store import load_songs, save_songs
 from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
+import connections
+from connections import socketio_clients_by_sid, _get_monitor_sids, _skip_sids
 
 logger = logging.getLogger('ucontrol')
 
@@ -66,10 +68,6 @@ def _setup_logging(app):
     )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-
-
-socketio_clients_connected = 0
-socketio_clients_by_sid = {}
 
 
 class DateSlugConverter(BaseConverter):
@@ -311,7 +309,7 @@ def api_system_status():
         'port': PORTA,
         'public_url': public_url,
         'local_url': local_url,
-        'socketio_clients': socketio_clients_connected,
+        'socketio_clients': connections.socketio_clients_connected,
         'socketio_by_role': socketio_by_role,
         'cpu_percent': cpu_percent,
         'ram_percent': ram_percent,
@@ -634,44 +632,6 @@ def limpar():
     # Aqui você pode emitir um evento para limpar as informações na tela
     socketio.emit('limpar_tela')
     return 'Informações limpas!', 200
-
-# Evento para quando o cliente se conectar
-@socketio.on('connect')
-def handle_connect():
-    global socketio_clients_connected
-    sid = request.sid
-    socketio_clients_by_sid[sid] = socketio_clients_by_sid.get(sid) or {'role': 'unknown'}
-    socketio_clients_connected = len(socketio_clients_by_sid)
-    logger.info('Cliente conectado')
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    global socketio_clients_connected
-    sid = request.sid
-    if sid in socketio_clients_by_sid:
-        del socketio_clients_by_sid[sid]
-    socketio_clients_connected = len(socketio_clients_by_sid)
-    logger.info('Cliente desconectado')
-
-
-@socketio.on('identify')
-def handle_identify(data):
-    sid = request.sid
-    role = None
-    if isinstance(data, dict):
-        role = data.get('role')
-    if not role:
-        role = 'unknown'
-    if sid not in socketio_clients_by_sid:
-        socketio_clients_by_sid[sid] = {'role': role}
-    else:
-        socketio_clients_by_sid[sid]['role'] = role
-    if role in ('public', 'monitor'):
-        join_room(role)
-
-
-
 
 # --- FIM ------ #
 
@@ -1692,15 +1652,6 @@ def video_state():
 
 
 # ── Monitor de Palco ─────────────────────────────────────────────────────────
-
-def _get_monitor_sids():
-    return [sid for sid, info in socketio_clients_by_sid.items()
-            if info.get('role') == 'monitor']
-
-def _skip_sids(data):
-    """Se data.exclude_monitor for true (Modo Público), retorna os sids do
-    monitor de palco para excluí-los do broadcast — o monitor fica congelado."""
-    return _get_monitor_sids() if data.get('exclude_monitor') else None
 
 @socketio.on('show_monitor_content')
 def handle_show_monitor_content(data):
