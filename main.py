@@ -46,6 +46,7 @@ from blueprints.gallery import gallery_bp, get_current_image_path
 from orders_store import load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
+import display_state
 from connections import _get_monitor_sids, _skip_sids
 
 logger = logging.getLogger('ucontrol')
@@ -171,43 +172,6 @@ def create_app(config=None):
 
 
 app = create_app()
-
-# Cache simples em memória para reduzir queries no banco
-_display_state_cache = {'data': None, 'timestamp': 0}
-_cache_ttl = 5  # Cache válido por 5 segundos
-
-# URL da última imagem/vídeo estático clicado — separado do estado do display
-_last_static_media_url = None
-
-# Último payload de update_lyrics recebido (para display_public carregar ao abrir)
-_last_lyrics_payload = None
-
-# Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
-_current_display_mode = 'blank'
-_last_image_url = None
-
-# Estado de reprodução de vídeo para sincronização entre clientes /img.
-# Quando uma nova janela /img conecta, ela consulta este estado para começar
-# o vídeo na mesma posição em que ele está tocando nas outras janelas.
-#   url:           URL do vídeo atualmente em reprodução (ou None)
-#   started_at:    timestamp Unix de quando o vídeo começou OU foi retomado
-#   position_offset: posição (segundos) no vídeo no momento de started_at
-#                  (0 quando começa do zero; X quando retoma após pausa)
-#   paused:        True se está pausado
-_video_state = {
-    'url': None,
-    'started_at': 0.0,
-    'position_offset': 0.0,
-    'paused': False,
-}
-
-def _video_current_position():
-    """Retorna a posição (em segundos) atual do vídeo, ou 0 se nada tocando."""
-    if not _video_state['url']:
-        return 0.0
-    if _video_state['paused']:
-        return _video_state['position_offset']
-    return _video_state['position_offset'] + (time.time() - _video_state['started_at'])
 
 
 
@@ -542,12 +506,11 @@ def _is_static_media(url):
 
 @app.route('/last_image', methods=['GET'])
 def last_image_endpoint():
-    global _last_static_media_url
     # 1. Usa cache em memória (mais recente)
-    if _last_static_media_url:
-        ext = _last_static_media_url.lower().split('?')[0]
+    if display_state._last_static_media_url:
+        ext = display_state._last_static_media_url.lower().split('?')[0]
         media_type = 'video' if ext.endswith(('.mp4', '.webm', '.mov')) else 'image'
-        return jsonify({'image_url': _last_static_media_url, 'media_type': media_type}), 200
+        return jsonify({'image_url': display_state._last_static_media_url, 'media_type': media_type}), 200
     # 2. Fallback: busca no banco — procura a primeira URL estática em url1 ou url2
     state = DisplayState.query.first()
     if state:
@@ -555,7 +518,7 @@ def last_image_endpoint():
             if _is_static_media(url):
                 ext = (url or '').lower().split('?')[0]
                 media_type = 'video' if ext.endswith(('.mp4', '.webm', '.mov')) else 'image'
-                _last_static_media_url = url
+                display_state._last_static_media_url = url
                 return jsonify({'image_url': url, 'media_type': media_type}), 200
     data = load_image_path()
     return jsonify({'image_url': data.get('image'), 'media_type': 'image'}), 200
@@ -590,13 +553,12 @@ def monitor():
 # Rota para obter o estado atual do display
 @app.route('/get_display_state')
 def get_display_state():
-    global _display_state_cache
     import time as time_module
     
     # Verifica se o cache ainda é válido
     current_time = time_module.time()
-    if _display_state_cache['data'] and (current_time - _display_state_cache['timestamp']) < _cache_ttl:
-        return jsonify(_display_state_cache['data'])
+    if display_state._display_state_cache['data'] and (current_time - display_state._display_state_cache['timestamp']) < display_state._cache_ttl:
+        return jsonify(display_state._display_state_cache['data'])
     
     # Cache expirado ou vazio, busca do banco
     state = DisplayState.query.first()
@@ -609,8 +571,8 @@ def get_display_state():
         result = {'url1': '', 'url2': ''}
     
     # Atualiza o cache
-    _display_state_cache['data'] = result
-    _display_state_cache['timestamp'] = current_time
+    display_state._display_state_cache['data'] = result
+    display_state._display_state_cache['timestamp'] = current_time
     
     return jsonify(result)
 
@@ -697,17 +659,16 @@ def load_urls_route():
 # Evento WebSocket para transmitir a URL da imagem
 @socketio.on('show_image')
 def handle_show_image(data):
-    global _display_state_cache, _video_state, _last_static_media_url, _current_display_mode, _last_image_url
     image_url = data['image_url']
 
     # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
-    _video_state['url'] = None
-    _video_state['paused'] = False
-    _video_state['position_offset'] = 0.0
+    display_state._video_state['url'] = None
+    display_state._video_state['paused'] = False
+    display_state._video_state['position_offset'] = 0.0
 
     # Atualiza modo imediatamente (antes de qualquer retorno antecipado)
-    _last_image_url = image_url
-    _current_display_mode = 'image'
+    display_state._last_image_url = image_url
+    display_state._current_display_mode = 'image'
     logger.debug(f'🖼️ show_image recebido: {image_url} → modo=image')
 
     # Envia para clientes primeiro (não espera banco)
@@ -721,11 +682,11 @@ def handle_show_image(data):
         return
 
     # Mantém cache da última mídia estática
-    _last_static_media_url = image_url
+    display_state._last_static_media_url = image_url
 
     # Atualiza cache
-    _display_state_cache['data'] = {'url1': image_url, 'url2': ''}
-    _display_state_cache['timestamp'] = time.time()
+    display_state._display_state_cache['data'] = {'url1': image_url, 'url2': ''}
+    display_state._display_state_cache['timestamp'] = time.time()
 
     # Salva no banco de forma assíncrona
     def save_async():
@@ -744,23 +705,22 @@ def handle_show_image(data):
 
 @socketio.on('show_video')
 def handle_show_video(data):
-    global _display_state_cache, _video_state, _last_static_media_url, _current_display_mode
     video_url = data.get('video_url')
     logger.debug(f'🎬 [show_video] recebido: {video_url}')
     if not video_url:
         return
 
-    _display_state_cache['data'] = {'url1': video_url, 'url2': '', 'media_type': 'video'}
-    _display_state_cache['timestamp'] = time.time()
+    display_state._display_state_cache['data'] = {'url1': video_url, 'url2': '', 'media_type': 'video'}
+    display_state._display_state_cache['timestamp'] = time.time()
 
     # Inicia novo vídeo: zera estado de reprodução
-    _video_state['url'] = video_url
-    _video_state['started_at'] = time.time()
-    _video_state['position_offset'] = 0.0
-    _video_state['paused'] = False
+    display_state._video_state['url'] = video_url
+    display_state._video_state['started_at'] = time.time()
+    display_state._video_state['position_offset'] = 0.0
+    display_state._video_state['paused'] = False
 
-    _last_static_media_url = video_url
-    _current_display_mode = 'video'
+    display_state._last_static_media_url = video_url
+    display_state._current_display_mode = 'video'
     # Um único emit — mandar de novo pro monitor (mesmo com skip_sid diferente)
     # entregava o evento duas vezes e as duas chamadas de .play() colidiam,
     # quebrando o vídeo no /monitor ("interrupted by a new load request").
@@ -785,19 +745,18 @@ def handle_show_video(data):
 @socketio.on('toggle_video_pause')
 def handle_toggle_video_pause(data):
     """Pausa ou retoma o vídeo no monitor (/img) e atualiza o estado central."""
-    global _video_state
     paused = bool(data.get('paused'))
     logger.debug(f'⏯️ [toggle_video_pause] paused={paused}')
 
-    if _video_state['url']:
-        if paused and not _video_state['paused']:
+    if display_state._video_state['url']:
+        if paused and not display_state._video_state['paused']:
             # Pausando: congela posição atual no offset
-            _video_state['position_offset'] += time.time() - _video_state['started_at']
-            _video_state['paused'] = True
-        elif not paused and _video_state['paused']:
+            display_state._video_state['position_offset'] += time.time() - display_state._video_state['started_at']
+            display_state._video_state['paused'] = True
+        elif not paused and display_state._video_state['paused']:
             # Retomando: started_at = agora; offset preservado
-            _video_state['started_at'] = time.time()
-            _video_state['paused'] = False
+            display_state._video_state['started_at'] = time.time()
+            display_state._video_state['paused'] = False
 
     emit('video_pause', {'paused': paused}, broadcast=True, skip_sid=_skip_sids(data))
 
@@ -805,29 +764,27 @@ def handle_toggle_video_pause(data):
 @socketio.on('restart_video')
 def handle_restart_video(data):
     """Reinicia o vídeo atual no monitor (/img) do início."""
-    global _video_state
     logger.debug('⏮️ [restart_video] recebido')
-    if _video_state['url']:
-        _video_state['started_at'] = time.time()
-        _video_state['position_offset'] = 0.0
-        _video_state['paused'] = False
+    if display_state._video_state['url']:
+        display_state._video_state['started_at'] = time.time()
+        display_state._video_state['position_offset'] = 0.0
+        display_state._video_state['paused'] = False
     emit('video_restart', {}, broadcast=True)
 
 
 @socketio.on('seek_video')
 def handle_seek_video(data):
     """Posiciona o vídeo do monitor em um tempo específico (segundos)."""
-    global _video_state
     try:
         target = max(0.0, float(data.get('time', 0)))
     except (TypeError, ValueError):
         return
     logger.debug(f'⏩ [seek_video] time={target:.2f}s')
-    if _video_state['url']:
+    if display_state._video_state['url']:
         # Mantém estado de pause: se está pausado, só atualiza o offset; se está
         # tocando, redefine started_at para "agora" com o novo offset.
-        _video_state['position_offset'] = target
-        _video_state['started_at'] = time.time()
+        display_state._video_state['position_offset'] = target
+        display_state._video_state['started_at'] = time.time()
         # paused permanece como está
     emit('video_seek', {'time': target}, broadcast=True)
 
@@ -839,9 +796,9 @@ def video_state():
     para sincronizar a posição do vídeo com as janelas já abertas.
     """
     return jsonify({
-        'url': _video_state['url'],
-        'position': _video_current_position(),
-        'paused': _video_state['paused'],
+        'url': display_state._video_state['url'],
+        'position': display_state._video_current_position(),
+        'paused': display_state._video_state['paused'],
     })
 
 
@@ -850,13 +807,12 @@ def video_state():
 @socketio.on('show_monitor_content')
 def handle_show_monitor_content(data):
     """Exibe URL/imagem apenas no /monitor, sem afetar o público."""
-    global _current_display_mode, _last_lyrics_payload
     url = data.get('url', '')
     # O botão "Letra" manda o /monitor recarregar '/lyrics/display/public' num
     # iframe. Essa página, ao carregar do zero, busca /api/current-display pra
     # saber o que mostrar — e sem isto aqui, ela mostra o que foi exibido por
     # último de verdade ao público (ex: relógio), não a letra atual.
-    # _last_lyrics_payload some a cada restart do servidor, então reconstrói a
+    # display_state._last_lyrics_payload some a cada restart do servidor, então reconstrói a
     # partir do banco (song_id + section_index), igual ao fallback que
     # /api/current-display já usa quando não há payload em memória.
     if url == '/lyrics/display/public':
@@ -866,8 +822,8 @@ def handle_show_monitor_content(data):
                 song = next((s for s in load_songs() if s['id'] == state.song_id), None)
                 if song and 0 <= state.section_index < len(song['sections']):
                     section = song['sections'][state.section_index]
-                    _last_lyrics_payload = {'title': section['title'], 'text': section['text'][0]}
-                    _current_display_mode = 'lyrics'
+                    display_state._last_lyrics_payload = {'title': section['title'], 'text': section['text'][0]}
+                    display_state._current_display_mode = 'lyrics'
     for sid in _get_monitor_sids():
         emit('display_monitor_content', {'url': url}, to=sid)
 
@@ -893,15 +849,15 @@ def handle_show_monitor_two_urls(data):
 def api_monitor_sync():
     """Sincroniza o /monitor com o estado público atual (vídeo ou display)."""
     sids = _get_monitor_sids()
-    if _video_state['url']:
-        pos = _video_current_position()
+    if display_state._video_state['url']:
+        pos = display_state._video_current_position()
         for sid in sids:
-            socketio.emit('display_monitor_video', {'video_url': _video_state['url']}, to=sid)
+            socketio.emit('display_monitor_video', {'video_url': display_state._video_state['url']}, to=sid)
             socketio.emit('video_seek', {'time': pos}, to=sid)
-            if _video_state['paused']:
+            if display_state._video_state['paused']:
                 socketio.emit('video_pause', {'paused': True}, to=sid)
-    elif _display_state_cache.get('data'):
-        state = _display_state_cache['data']
+    elif display_state._display_state_cache.get('data'):
+        state = display_state._display_state_cache['data']
         url = state.get('url1', '')
         if url:
             for sid in sids:
@@ -935,7 +891,6 @@ def handle_show_image_zoom(data):
 # Evento WebSocket para transmitir duas URLs de imagem
 @socketio.on('show_two_urls')
 def handle_show_two_urls(data):
-    global _display_state_cache, _video_state
 
     url1 = data['url1'] or ''
     url2 = data['url2'] or ''
@@ -948,9 +903,9 @@ def handle_show_two_urls(data):
         media_type = 'image'
 
     # Tela dividida substituiu o vídeo: limpa estado de reprodução
-    _video_state['url'] = None
-    _video_state['paused'] = False
-    _video_state['position_offset'] = 0.0
+    display_state._video_state['url'] = None
+    display_state._video_state['paused'] = False
+    display_state._video_state['position_offset'] = 0.0
 
     # Envia para clientes primeiro (não espera banco)
     emit('display_two_urls', {'url1': url1, 'url2': url2}, broadcast=True, skip_sid=_skip_sids(data))
@@ -960,7 +915,7 @@ def handle_show_two_urls(data):
     def _resolve_img_url(u):
         if u != '/img':
             return u
-        cached = _display_state_cache.get('data') or {}
+        cached = display_state._display_state_cache.get('data') or {}
         if cached.get('url1') and cached['url1'] != '/img':
             return cached['url1']
         try:
@@ -1000,22 +955,21 @@ def handle_send_url(url):
 # Evento WebSocket para transmitir letras de músicas
 @socketio.on('update_lyrics')
 def handle_update_lyrics(data):
-    global _last_lyrics_payload, _current_display_mode
     logger.debug(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
-    _last_lyrics_payload = data
-    _current_display_mode = 'lyrics'
+    display_state._last_lyrics_payload = data
+    display_state._current_display_mode = 'lyrics'
     emit('update_lyrics', data, broadcast=True)
 
 @app.route('/api/current-display')
 def api_current_display():
-    if _current_display_mode == 'image' and _last_image_url:
-        is_static = _last_image_url.startswith('/static/') or \
-            bool(__import__('re').search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', _last_image_url, __import__('re').I))
-        return jsonify({'mode': 'image', 'image_url': _last_image_url, 'is_static': is_static})
-    if _current_display_mode == 'video' and _last_static_media_url:
-        return jsonify({'mode': 'video', 'video_url': _last_static_media_url})
-    if _current_display_mode == 'lyrics' and _last_lyrics_payload:
-        return jsonify({'mode': 'lyrics', **_last_lyrics_payload})
+    if display_state._current_display_mode == 'image' and display_state._last_image_url:
+        is_static = display_state._last_image_url.startswith('/static/') or \
+            bool(__import__('re').search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', display_state._last_image_url, __import__('re').I))
+        return jsonify({'mode': 'image', 'image_url': display_state._last_image_url, 'is_static': is_static})
+    if display_state._current_display_mode == 'video' and display_state._last_static_media_url:
+        return jsonify({'mode': 'video', 'video_url': display_state._last_static_media_url})
+    if display_state._current_display_mode == 'lyrics' and display_state._last_lyrics_payload:
+        return jsonify({'mode': 'lyrics', **display_state._last_lyrics_payload})
     # Fallback: busca do banco (song_id + section_index salvos pelo operador)
     state = LyricsState.query.first()
     if state and state.song_id:

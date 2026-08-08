@@ -437,3 +437,18 @@ def test_save_route_and_duplicate_home_route_were_removed(client):
     # index() é quem responde em / (sempre venceu; home() nunca era alcançável)
     response = client.get("/")
     assert response.status_code == 302
+
+
+def test_show_image_updates_display_state_module_live(app):
+    # display_state._current_display_mode é reatribuído (não mutado em
+    # lugar) pelos handlers — precisa ler via módulo pra pegar o valor
+    # vivo, não um `from display_state import ...` que congelaria no
+    # momento do import (mesma pegadinha do connections.py).
+    import display_state
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("show_image", {"image_url": "/static/imagens/teste.jpg"})
+
+    assert display_state._current_display_mode == "image"
+    assert display_state._last_image_url == "/static/imagens/teste.jpg"
+    socket_client.disconnect()
