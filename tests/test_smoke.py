@@ -265,3 +265,54 @@ def test_api_system_status_returns_expected_payload(logged_in_client):
     assert data["port"] == 8585
     assert "socketio_clients" in data
     assert "socketio_by_role" in data
+
+
+def test_orphaned_photo_navigation_handlers_were_removed():
+    assert not hasattr(ucontrol_main, "handle_proxima_foto")
+    assert not hasattr(ucontrol_main, "handle_anterior_foto")
+    assert not hasattr(ucontrol_main, "obter_proxima_foto")
+
+
+def test_list_image_folders_always_includes_root(client, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    response = client.get("/api/image_folders")
+    assert response.get_json() == ["Geral"]
+
+
+def test_create_image_folder_and_see_it_listed(logged_in_client, tmp_path, monkeypatch):
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    create_response = logged_in_client.post("/api/image_folders", json={"name": "Louvor"})
+    assert create_response.get_json()["status"] == "success"
+
+    folders = logged_in_client.get("/api/image_folders").get_json()
+    assert "Louvor" in folders
+
+
+def test_upload_list_and_delete_image_round_trip(client, tmp_path, monkeypatch):
+    import io
+    from PIL import Image
+
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (2, 2), color="red").save(buffer, format="PNG")
+    buffer.seek(0)
+
+    upload_response = client.post(
+        "/upload",
+        data={"images": (buffer, "teste.png")},
+        content_type="multipart/form-data",
+    )
+    assert upload_response.status_code == 200
+    saved = upload_response.get_json()["saved_files"]
+    assert saved == ["teste.png"]
+
+    images = client.get("/imagens").get_json()
+    assert images == ["/static/imagens/teste.png"]
+
+    delete_response = client.post("/delete_image", json={"image_name": "teste.png"})
+    assert delete_response.get_json()["status"] == "success"
+    assert client.get("/imagens").get_json() == []
