@@ -46,3 +46,17 @@ def test_start_countdown_broadcasts_and_updates_state(app):
     state_response = app.test_client().get("/api/countdown/state")
     assert state_response.get_json()["active"] is True
     socket_client.disconnect()
+
+
+def test_set_ticker_broadcasts_and_updates_state(app):
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("set_ticker", {"text": "Bem-vindos!", "target": "all"})
+    received = socket_client.get_received()
+    events = [msg["name"] for msg in received]
+    assert "ticker_update" in events
+
+    ticker_response = app.test_client().get("/api/ticker")
+    data = ticker_response.get_json()
+    assert data["text"] == "Bem-vindos!"
+    assert data["active"] is True
+    socket_client.disconnect()

@@ -37,6 +37,7 @@ from extensions import db, migrate, login_manager, socketio
 from models import User, DisplayState, LyricsState
 from display_log import DISPLAY_LOG_PATH, load_display_log, append_display_log
 from blueprints.countdown import countdown_bp
+from blueprints.ticker import ticker_bp
 
 logger = logging.getLogger('ucontrol')
 
@@ -152,6 +153,7 @@ def create_app(config=None):
             db.create_all()
 
     app.register_blueprint(countdown_bp)
+    app.register_blueprint(ticker_bp)
 
     return app
 
@@ -171,26 +173,6 @@ _last_lyrics_payload = None
 # Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
 _current_display_mode = 'blank'
 _last_image_url = None
-
-# Estado do ticker de avisos (texto rolando na base da tela)
-_TICKER_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ticker_config.json')
-
-def _load_ticker_config():
-    try:
-        with open(_TICKER_CONFIG_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {'text': ''}
-
-def _save_ticker_config(text):
-    try:
-        with open(_TICKER_CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump({'text': text}, f, ensure_ascii=False)
-    except Exception:
-        pass
-
-_ticker_text = _load_ticker_config().get('text', '')
-_ticker_active = False  # nunca ativo no boot; exige comando explícito
 
 # Estado de reprodução de vídeo para sincronização entre clientes /img.
 # Quando uma nova janela /img conecta, ela consulta este estado para começar
@@ -2824,41 +2806,6 @@ def clock():
         pass
 
     return render_template("relogio.html")
-
-@app.route('/api/ticker')
-def ticker_api():
-    return jsonify({'text': _ticker_text, 'active': _ticker_active})
-
-@socketio.on('set_ticker')
-def handle_set_ticker(data):
-    global _ticker_text, _ticker_active
-    _ticker_text = str(data.get('text', '')).strip()
-    target = str(data.get('target', 'all'))
-    _ticker_active = bool(_ticker_text)
-    _save_ticker_config(_ticker_text)
-    if _ticker_text:
-        append_display_log({'type': 'ticker', 'title': _ticker_text})
-    payload = {'text': _ticker_text}
-    if target == 'public':
-        emit('ticker_update', payload, to='public')
-    elif target == 'monitor':
-        emit('ticker_update', payload, to='monitor')
-    else:
-        emit('ticker_update', payload, broadcast=True)
-
-@socketio.on('stop_ticker')
-def handle_stop_ticker(data):
-    global _ticker_active
-    target = str(data.get('target', 'all'))
-    if target == 'all':
-        _ticker_active = False
-    payload = {'text': ''}
-    if target == 'public':
-        emit('ticker_update', payload, to='public')
-    elif target == 'monitor':
-        emit('ticker_update', payload, to='monitor')
-    else:
-        emit('ticker_update', payload, broadcast=True)
 
 @socketio.on('video_ended')
 def handle_video_ended(data):
