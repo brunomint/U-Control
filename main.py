@@ -42,6 +42,7 @@ from blueprints.bible import bible_bp, generate_bible_url
 from blueprints.cifras import cifras_bp
 from songs_store import load_songs, save_songs
 from blueprints.songs import songs_bp
+from network_utils import PORTA, obter_endereco_ip
 
 logger = logging.getLogger('ucontrol')
 
@@ -89,7 +90,6 @@ def data_pt(date_str):
         return date_str
 
 texto = "Acessar ucontrol"
-PORTA = 8585
 MDNS_NOME = "ucontrol"
 MDNS_DOMINIO = f"{MDNS_NOME}.local."
 
@@ -330,13 +330,6 @@ def api_system_status():
 
 
 # QR CODE
-
-def obter_endereco_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    ip_local = s.getsockname()[0]
-    s.close()
-    return ip_local
 
 def gerar_qrcodes(rotas):
     ip_local = obter_endereco_ip()
