@@ -517,9 +517,6 @@ def adicionar_usuario():
 
 # QR CODE
 
-# Defina a porta que você deseja usar
-porta = 8585
-
 def obter_endereco_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
@@ -535,7 +532,7 @@ def gerar_qrcodes(rotas):
     os.makedirs(caminho_pasta, exist_ok=True)  # Garante que a pasta exista
 
     for rota in rotas:
-        url_completa = f"http://{ip_local}:{porta}/{rota}"
+        url_completa = f"http://{ip_local}:{PORTA}/{rota}"
         nome_arquivo = f"{rota.replace('/', '_')}_qr_code.png"
 
         caminho_arquivo = os.path.join(caminho_pasta, nome_arquivo)
@@ -554,9 +551,9 @@ def gerar_links(rotas):
 
     for rota in rotas:
         if rota == "/":
-            url_completa = f"http://{ip_local}:{porta}/"
+            url_completa = f"http://{ip_local}:{PORTA}/"
         else:
-            url_completa = f"http://{ip_local}:{porta}/{rota}"
+            url_completa = f"http://{ip_local}:{PORTA}/{rota}"
         links.append(url_completa)
 
     return links
@@ -579,7 +576,7 @@ def exibir_links():
         ("help", "Ajuda")
     ]
     ip_local = obter_endereco_ip()
-    porta_url = f"http://{ip_local}:{porta}"
+    porta_url = f"http://{ip_local}:{PORTA}"
     
     dados = []
     for rota, nome in rotas:
