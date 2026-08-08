@@ -35,6 +35,7 @@ from logging.handlers import RotatingFileHandler
 
 from extensions import db, migrate, login_manager, socketio
 from models import User, DisplayState, LyricsState
+from display_log import DISPLAY_LOG_PATH, load_display_log, append_display_log
 
 logger = logging.getLogger('ucontrol')
 
@@ -213,27 +214,6 @@ def _save_ticker_config(text):
 
 _ticker_text = _load_ticker_config().get('text', '')
 _ticker_active = False  # nunca ativo no boot; exige comando explícito
-
-_DISPLAY_LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'display_log.json')
-
-def _load_display_log():
-    try:
-        with open(_DISPLAY_LOG_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-def _append_display_log(entry):
-    log = _load_display_log()
-    entry['ts'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    log.append(entry)
-    if len(log) > 2000:
-        log = log[-2000:]
-    try:
-        with open(_DISPLAY_LOG_PATH, 'w', encoding='utf-8') as f:
-            json.dump(log, f, ensure_ascii=False)
-    except Exception:
-        pass
 
 # Estado de reprodução de vídeo para sincronização entre clientes /img.
 # Quando uma nova janela /img conecta, ela consulta este estado para começar
@@ -419,7 +399,7 @@ def api_system_status():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    log = _load_display_log()
+    log = load_display_log()
 
     # 3 músicas tocadas mais recentemente (únicas, do display_log)
     seen, recent_songs = set(), []
@@ -1324,7 +1304,7 @@ def handle_update_bible(data):
     logger.debug(f'📖 Recebido update_bible: {data.get("reference", "Sem referência")}')
     ref = data.get('reference') or str(data.get('text', ''))[:60]
     if ref:
-        _append_display_log({'type': 'bible', 'title': ref})
+        append_display_log({'type': 'bible', 'title': ref})
     emit('update_bible', data, broadcast=True)
 
 @app.route('/bible/display')
@@ -2947,7 +2927,7 @@ def handle_set_ticker(data):
     _ticker_active = bool(_ticker_text)
     _save_ticker_config(_ticker_text)
     if _ticker_text:
-        _append_display_log({'type': 'ticker', 'title': _ticker_text})
+        append_display_log({'type': 'ticker', 'title': _ticker_text})
     payload = {'text': _ticker_text}
     if target == 'public':
         emit('ticker_update', payload, to='public')
@@ -3187,7 +3167,7 @@ def handle_show_image(data):
 
     # Envia para clientes primeiro (não espera banco)
     emit('display_image', {'image_url': image_url}, broadcast=True, skip_sid=_skip_sids(data))
-    _append_display_log({'type': 'image', 'title': image_url})
+    append_display_log({'type': 'image', 'title': image_url})
 
     # Só persiste no banco se for arquivo estático real (não rotas como /img, /lyrics/display)
     is_static_file = image_url.startswith('/static/') or \
@@ -3240,7 +3220,7 @@ def handle_show_video(data):
     # entregava o evento duas vezes e as duas chamadas de .play() colidiam,
     # quebrando o vídeo no /monitor ("interrupted by a new load request").
     emit('display_video', {'video_url': video_url}, broadcast=True, skip_sid=_skip_sids(data))
-    _append_display_log({'type': 'image', 'title': video_url})
+    append_display_log({'type': 'image', 'title': video_url})
 
     def save_async():
         with app.app_context():
@@ -3438,7 +3418,7 @@ def handle_show_two_urls(data):
 
     # Envia para clientes primeiro (não espera banco)
     emit('display_two_urls', {'url1': url1, 'url2': url2}, broadcast=True, skip_sid=_skip_sids(data))
-    _append_display_log({'type': 'image', 'title': url1 + (' + ' + url2 if url2 else '')})
+    append_display_log({'type': 'image', 'title': url1 + (' + ' + url2 if url2 else '')})
 
     # Para salvar no banco, substitui '/img' pela URL real da última imagem salva
     def _resolve_img_url(u):
@@ -3535,7 +3515,7 @@ def handle_section_changed(data):
     logger.debug(f'📨 Recebido section_changed: Song {song_id}, Section {data.get("sectionIndex")}')
     song = next((s for s in load_songs() if s.get('id') == song_id), None)
     song_title = song['title'] if song else str(song_id)
-    _append_display_log({'type': 'song', 'title': song_title, 'url': f'/lyrics/{song_id}'})
+    append_display_log({'type': 'song', 'title': song_title, 'url': f'/lyrics/{song_id}'})
     emit('section_changed', data, broadcast=True)
 
 # Evento WebSocket para mostrar/esconder letras
@@ -3582,7 +3562,7 @@ def historico():
 @app.route('/api/historico')
 @login_required
 def api_historico():
-    log = _load_display_log()
+    log = load_display_log()
     log.reverse()
     return jsonify(log)
 
@@ -3590,7 +3570,7 @@ def api_historico():
 @login_required
 def api_historico_clear():
     try:
-        with open(_DISPLAY_LOG_PATH, 'w', encoding='utf-8') as f:
+        with open(DISPLAY_LOG_PATH, 'w', encoding='utf-8') as f:
             json.dump([], f)
     except Exception:
         pass
