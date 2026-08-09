@@ -1519,162 +1519,31 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 controls.appendChild(editBtn);
                 controls.appendChild(deleteBtn);
                 
-                // Renderiza a partitura se tiver dados
-                if (block.originalData && block.originalData.notes) {
-                    // Verifica se VexFlow está disponível
-                    console.log('🔍 Verificando VexFlow para partitura:', typeof Vex, typeof window.Vex);
-                    if (typeof Vex === 'undefined' || typeof Vex.Flow === 'undefined') {
-                        console.warn('⚠️ VexFlow não disponível para renderizar partitura');
-                        sheetContainer.innerHTML = '<p style="color: #ff9800; font-style: italic;">⚠️ VexFlow não disponível. Partitura não pode ser renderizada.</p>';
-                        div.appendChild(sheetContainer);
-                        div.appendChild(controls);
-                        div.addEventListener('mouseenter', () => controls.style.opacity = '1');
-                        div.addEventListener('mouseleave', () => controls.style.opacity = '0');
-                        return div;
-                    }
-                    console.log('✅ VexFlow disponível! Renderizando partitura...');
-                    
-                    try {
-                        // Calcula num_beats e beat_value da fórmula de compasso
-                        let numBeats = 4;
-                        let beatValue = 4;
-                        if (block.originalData.timeSignature) {
-                            const timeSig = block.originalData.timeSignature.split('/');
-                            if (timeSig.length === 2) {
-                                numBeats = parseInt(timeSig[0]) || 4;
-                                beatValue = parseInt(timeSig[1]) || 4;
-                            }
-                        }
-                        
-                        // Cria o renderer VexFlow
-                        const VF = Vex.Flow;
-                        const renderer = new VF.Renderer(sheetContainer, VF.Renderer.Backends.SVG);
-                        renderer.resize(600, 120);
-                        const context = renderer.getContext();
-                        
-                        // Função para calcular ticks de uma duração
-                        const durationToTicks = (duration) => {
-                            const map = { 'w': 4096, 'h': 2048, 'q': 1024, '8': 512, '16': 256 };
-                            return map[duration] || 1024;
-                        };
-                        
-                        const ticksPerMeasure = numBeats * (4096 / beatValue);
-                        
-                        // Divide notas em compassos
-                        const measures = [];
-                        let currentMeasure = [];
-                        let currentTicks = 0;
-                        
-                        block.originalData.notes.forEach(noteData => {
-                            const noteTicks = durationToTicks(noteData.duration);
-                            
-                            if (currentTicks + noteTicks > ticksPerMeasure && currentMeasure.length > 0) {
-                                measures.push(currentMeasure);
-                                currentMeasure = [];
-                                currentTicks = 0;
-                            }
-                            
-                            currentMeasure.push(noteData);
-                            currentTicks += noteTicks;
-                        });
-                        
-                        if (currentMeasure.length > 0) {
-                            measures.push(currentMeasure);
-                        }
-                        
-                        console.log(`🎼 Renderizando ${measures.length} compasso(s)`);
-                        
-                        // Renderiza cada compasso
-                        let xOffset = 0;
-                        const staveWidth = 250;
-                        
-                        measures.forEach((measureNotes, measureIndex) => {
-                            // Cria stave para este compasso
-                            const measureStave = new VF.Stave(xOffset, 20, staveWidth);
-                            
-                            // Adiciona clef, key signature e time signature apenas no primeiro compasso
-                            if (measureIndex === 0) {
-                                measureStave.addClef(block.originalData.clef || 'treble');
-                                if (block.originalData.keySignature) {
-                                    measureStave.addKeySignature(block.originalData.keySignature);
-                                }
-                                if (block.originalData.timeSignature) {
-                                    measureStave.addTimeSignature(block.originalData.timeSignature);
-                                }
-                            }
-                            
-                            measureStave.setContext(context).draw();
-                            
-                            // Cria as notas deste compasso
-                            const notes = measureNotes.map(noteData => {
-                                let noteKeys = noteData.keys || [noteData.key];
-                                
-                                // Converte formato "C4" para "c/4"
-                                noteKeys = noteKeys.map(key => {
-                                    if (key && typeof key === 'string' && !key.includes('/')) {
-                                        const match = key.match(/^([A-Ga-g][#b]?)(\d+)$/);
-                                        if (match) {
-                                            return `${match[1].toLowerCase()}/${match[2]}`;
-                                        }
-                                    }
-                                    return key;
-                                });
-                                
-                                const note = new VF.StaveNote({
-                                    clef: block.originalData.clef || 'treble',
-                                    keys: noteKeys,
-                                    duration: noteData.duration
-                                });
-                                
-                                if (noteData.accidental) {
-                                    note.addModifier(new VF.Accidental(noteData.accidental));
-                                }
-                                
-                                return note;
-                            });
-                            
-                            // Formata e desenha as notas
-                            const voice = new VF.Voice({ num_beats: numBeats, beat_value: beatValue });
-                            voice.setStrict(false);
-                            voice.addTickables(notes);
-                            new VF.Formatter().joinVoices([voice]).format([voice], staveWidth - 20);
-                            voice.draw(context, measureStave);
-                            
-                            // Renderiza cifras se existirem
-                            if (block.originalData.chords && block.originalData.chords.length > 0) {
-                                block.originalData.chords.forEach(chord => {
-                                    // Verifica se a cifra é deste compasso
-                                    if (chord.m === measureIndex) {
-                                        const note = notes[chord.i];
-                                        if (note) {
-                                            try {
-                                                const bbox = note.getBoundingBox();
-                                                context.save();
-                                                context.setFont('Arial', 14, 'bold');
-                                                context.fillStyle = '#000';
-                                                // Posiciona sempre acima da pauta (Y fixo = 22, logo acima do stave que está em Y=20)
-                                                context.fillText(chord.symbol, bbox.x + bbox.w/2, 22);
-                                                context.restore();
-                                            } catch(e) {
-                                                console.log('⚠️ Erro ao renderizar cifra:', e);
-                                            }
-                                        }
-                                    }
-                                });
-                            }
-                            
-                            xOffset += staveWidth;
-                        });
-                        
-                        // Ajusta SVG
+                // Renderiza a partitura se tiver dados — desenho delegado a
+                // static/js/sheet_render.js, compartilhado com o editor e as
+                // telas de exibição (ver .claude/plans/harmonic-mixing-breeze.md).
+                // createSheetBlock() precisa devolver `div` de forma síncrona
+                // (renderBlocks() faz appendChild logo em seguida), então o
+                // desenho em si roda em segundo plano (fire-and-forget) depois
+                // que o container já está no DOM — mesmo padrão usado nas
+                // Fases 4/5.
+                const originalData = block.originalData;
+                const hasContent = originalData && (
+                    (Array.isArray(originalData.measures) && originalData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
+                    (Array.isArray(originalData.notes) && originalData.notes.length > 0)
+                );
+                if (hasContent) {
+                    import('/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+                        renderSheetMusic(sheetContainer, originalData, { maxWidth: 600 })
+                    ).then(() => {
                         const svg = sheetContainer.querySelector('svg');
                         if (svg) {
                             svg.style.cssText = 'max-width: 100%; height: auto; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
                         }
-                    } catch (error) {
+                    }).catch(error => {
                         console.error('Erro ao renderizar partitura:', error);
                         sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Erro ao renderizar partitura</p>';
-                    }
+                    });
                 } else {
                     sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Partitura sem dados</p>';
                 }
@@ -1848,126 +1717,54 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     localStorage.setItem('vexflow_sheet_svg', currentBlock.svgData);
                     console.log('💾 SVG salvo no localStorage');
                     
-                    // Usa os dados originais se existirem
-                    if (currentBlock.originalData || currentBlock.sheetData) {
-                        let originalData = currentBlock.originalData || JSON.parse(currentBlock.sheetData);
-                        
-                        console.log('📊 Dados originais da partitura:', originalData);
-                        
-                        // Converte formato {notes: [...]} para {measures: [[...]]}
-                        if (originalData.notes && originalData.notes.length > 0) {
-                            // Converte cada nota de {keys: ["C4"], duration: "q"} para {pitch: "C/4", duration: "q"}
-                            const convertedNotes = originalData.notes.map((note, idx) => {
-                                console.log(`🔍 Nota ${idx}:`, note);
-                                
-                                // Pega a primeira key (pode ser array)
-                                const key = Array.isArray(note.keys) ? note.keys[0] : note.key;
-                                console.log(`  - Key extraída:`, key);
-                                
-                                // Converte "C4" para "C/4" (formato do sheet_editor)
-                                let pitch = key;
-                                if (key && !key.includes('/')) {
-                                    const match = key.match(/^([A-Ga-g][#b]?)(\d+)$/);
-                                    if (match) {
-                                        pitch = `${match[1]}/${match[2]}`;
-                                        console.log(`  - Convertido para:`, pitch);
-                                    }
-                                }
-                                
-                                const converted = {
-                                    pitch: pitch,
-                                    duration: note.duration,
-                                    accidental: note.accidental || null,
-                                    dotted: note.dotted || false,
-                                    rest: note.rest || false
-                                };
-                                console.log(`  - Nota convertida:`, converted);
-                                return converted;
-                            });
-                            
-                            // Divide as notas em compassos baseado na fórmula de compasso
-                            const timeSig = originalData.timeSignature || '4/4';
-                            const [beatsPerMeasure, beatValue] = timeSig.split('/').map(Number);
-                            
-                            // Calcula quantos ticks cada compasso pode ter
-                            // Em 4/4: 4 beats * (4096/4) = 4096 ticks por compasso
-                            const ticksPerMeasure = beatsPerMeasure * (4096 / beatValue);
-                            
-                            // Função para calcular ticks de uma nota
-                            const durationToTicks = (duration) => {
-                                const map = {
-                                    'w': 4096,   // whole note
-                                    'h': 2048,   // half note
-                                    'q': 1024,   // quarter note
-                                    '8': 512,    // eighth note
-                                    '16': 256    // sixteenth note
-                                };
-                                return map[duration] || 1024;
-                            };
-                            
-                            // Divide notas em compassos
-                            const measures = [];
-                            let currentMeasure = [];
-                            let currentTicks = 0;
-                            
-                            convertedNotes.forEach(note => {
-                                const noteTicks = durationToTicks(note.duration);
-                                
-                                if (currentTicks + noteTicks > ticksPerMeasure && currentMeasure.length > 0) {
-                                    // Compasso cheio, inicia novo
-                                    measures.push(currentMeasure);
-                                    currentMeasure = [];
-                                    currentTicks = 0;
-                                }
-                                
-                                currentMeasure.push(note);
-                                currentTicks += noteTicks;
-                            });
-                            
-                            // Adiciona o último compasso se não estiver vazio
-                            if (currentMeasure.length > 0) {
-                                measures.push(currentMeasure);
-                            }
-                            
-                            console.log(`📊 Notas divididas em ${measures.length} compasso(s)`);
-                            
-                            const convertedData = {
-                                clef: originalData.clef || 'treble',
-                                keySig: originalData.keySignature || 'C',
-                                timeSig: timeSig,
-                                measures: measures, // Múltiplos compassos
-                                ties: [],
-                                chords: []
-                            };
-                            
-                            const dataToSave = JSON.stringify(convertedData);
-                            localStorage.setItem('vexflow_sheet_data', dataToSave);
-                            console.log('💾 Dados convertidos e salvos no localStorage');
-                            console.log('📄 Conteúdo:', dataToSave);
-                        } else {
-                            console.log('⚠️ Dados vazios detectados - não salvando');
-                            alert('⚠️ Esta partitura está vazia. Crie algumas notas primeiro!');
-                            return;
-                        }
-                    } else {
-                        console.log('⚠️ Criando dados básicos para edição');
-                        const basicData = JSON.stringify({
-                            clef: 'treble',
-                            keySig: 'C',
-                            timeSig: '4/4',
-                            measures: [[{pitch: 'C/4', duration: 'q'}]], // Adiciona uma nota básica
-                            ties: [],
-                            chords: []
-                        });
-                        localStorage.setItem('vexflow_sheet_data', basicData);
-                        console.log('💾 Dados básicos salvos:', basicData);
+                // Usa os dados originais se existirem — normalizeSheetData
+                // (static/js/sheet_render.js, compartilhado com o editor e as
+                // telas de exibição, ver .claude/plans/harmonic-mixing-breeze.md)
+                // entende tanto o formato canônico (measures aninhado) quanto
+                // o antigo (notes achatado, de antes da Fase 1), então
+                // substitui a conversão manual que só entendia o campo
+                // "notes" — ficou quebrada quando o campo virou "measures".
+                if (currentBlock.originalData || currentBlock.sheetData) {
+                    const originalData = currentBlock.originalData || JSON.parse(currentBlock.sheetData);
+                    console.log('📊 Dados originais da partitura:', originalData);
+
+                    const hasContent =
+                        (Array.isArray(originalData.measures) && originalData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
+                        (Array.isArray(originalData.notes) && originalData.notes.length > 0);
+                    if (!hasContent) {
+                        console.log('⚠️ Dados vazios detectados - não salvando');
+                        alert('⚠️ Esta partitura está vazia. Crie algumas notas primeiro!');
+                        return;
                     }
-                    
-                    console.log('📝 Dados preparados para edição');
+
+                    import('/static/js/sheet_render.js').then(({ normalizeSheetData }) => {
+                        const convertedData = normalizeSheetData(originalData);
+                        const dataToSave = JSON.stringify(convertedData);
+                        localStorage.setItem('vexflow_sheet_data', dataToSave);
+                        console.log('💾 Dados convertidos e salvos no localStorage:', dataToSave);
+                        openSheetEditorPopup();
+                    });
+                    return; // abre o popup só depois do import() acima resolver
+                } else {
+                    console.log('⚠️ Criando dados básicos para edição');
+                    const basicData = JSON.stringify({
+                        clef: 'treble',
+                        keySig: 'C',
+                        timeSig: '4/4',
+                        measures: [[{pitch: 'C/4', duration: 'q'}]], // Adiciona uma nota básica
+                        ties: [],
+                        chords: []
+                    });
+                    localStorage.setItem('vexflow_sheet_data', basicData);
+                    console.log('💾 Dados básicos salvos:', basicData);
+                }
                 } else {
                     console.log('❌ Nenhuma partitura encontrada no bloco');
                 }
-                
+
+                openSheetEditorPopup();
+
+                function openSheetEditorPopup() {
                 // Abre editor VexFlow
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
                 
@@ -2049,10 +1846,11 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         }
                     }
                 }, 1000);
-                
+
                 vexWindow.focus();
+                }
             }
-            
+
             // Funções de seleção múltipla
             function toggleSelectionMode() {
                 selectionMode = !selectionMode;
