@@ -25,8 +25,13 @@
         <ul>
         <!-- Centralizando o "Bem-vindo" e o botão de logout -->
             <div class="welcome-container">
-                <p>Bem-vindo, {{ current_user.username }}!</p>
-
+                <div class="user-profile">
+                    <span class="avatar">{{ current_user.username[0] | upper }}</span>
+                    <div class="user-info">
+                        <p class="name">{{ current_user.username }}</p>
+                        <p class="status">online</p>
+                    </div>
+                </div>
             </div>
             <li>
                 <img src="/static/U-Control.png" alt="U Control" style="width:90px; height:90px; object-fit:contain; margin:8px auto 4px; display:block;" />
