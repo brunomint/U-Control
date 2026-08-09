@@ -338,6 +338,20 @@
             position: relative;
         }
 
+        /* Barra de modo (Fase R.5) — acima do stage preview. Os botões em
+           si mantêm o estilo inline original (JS alterna .style direto),
+           só o container/espaçamento ao redor é novo. */
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 4px;
+            flex-shrink: 0;
+        }
+
         iframe {
             border: none;
             width: 100%; /* Ocupa 50% do contêiner */

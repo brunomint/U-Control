@@ -38,30 +38,6 @@
                 <p style="text-align:center; color:#00bcd4; font-size:13px; font-weight:700; letter-spacing:1px; margin:0 0 8px;">U-Control</p>
             </li>
 
-            <!-- Monitor de Palco -->
-            <li onclick="event.stopPropagation();" style="padding:10px 15px;">
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <button id="monitor-mode-btn" onclick="toggleMonitorMode()"
-                        style="width:100%;padding:8px;border:1px solid #555;border-radius:6px;
-                               background:#333;color:#fff;font-size:0.82em;cursor:pointer;
-                               display:flex;align-items:center;gap:6px;justify-content:center;transition:all .2s;">
-                        <i class="fas fa-tv"></i> Modo Monitor
-                    </button>
-                    <button id="public-mode-btn" onclick="togglePublicMode()"
-                        style="width:100%;padding:8px;border:1px solid #555;border-radius:6px;
-                               background:#333;color:#fff;font-size:0.82em;cursor:pointer;
-                               display:flex;align-items:center;gap:6px;justify-content:center;transition:all .2s;">
-                        <i class="fas fa-users"></i> Modo Público
-                    </button>
-                    <button onclick="syncMonitor()"
-                        style="width:100%;padding:6px;border:1px solid #555;border-radius:6px;
-                               background:#1e3a5f;color:#7eb8f7;font-size:0.78em;cursor:pointer;
-                               display:flex;align-items:center;gap:6px;justify-content:center;transition:opacity .2s;">
-                        <i class="fas fa-sync-alt"></i> Sincronizar Monitor
-                    </button>
-                </div>
-            </li>
-
             <li>
                 <i class="fas fa-sliders-h"></i> URL
                 <i class="fas fa-chevron-right arrow" style="float: right;"></i>
@@ -379,6 +355,30 @@
     <script src="{{ url_for('static', filename='js/pages/control.js') }}"></script>
 
 <div class="content">
+    <!-- Modo Monitor / Modo Público / Sincronizar (Fase R.5 do redesign
+         — relocado da sidebar pra cá, mesmas funções toggleMonitorMode()/
+         togglePublicMode()/syncMonitor(), mesmos estilos inline que o JS
+         alterna diretamente via .style.background/.borderColor. -->
+    <div class="mode-selector">
+        <button id="monitor-mode-btn" onclick="toggleMonitorMode()"
+            style="padding:8px 16px;border:1px solid #555;border-radius:6px;
+                   background:#333;color:#fff;font-size:0.82em;cursor:pointer;
+                   display:flex;align-items:center;gap:6px;justify-content:center;transition:all .2s;">
+            <i class="fas fa-tv"></i> Modo Monitor
+        </button>
+        <button id="public-mode-btn" onclick="togglePublicMode()"
+            style="padding:8px 16px;border:1px solid #555;border-radius:6px;
+                   background:#333;color:#fff;font-size:0.82em;cursor:pointer;
+                   display:flex;align-items:center;gap:6px;justify-content:center;transition:all .2s;">
+            <i class="fas fa-users"></i> Modo Público
+        </button>
+        <button onclick="syncMonitor()"
+            style="padding:8px 12px;border:1px solid #555;border-radius:6px;
+                   background:#1e3a5f;color:#7eb8f7;font-size:0.78em;cursor:pointer;
+                   display:flex;align-items:center;gap:6px;justify-content:center;transition:opacity .2s;">
+            <i class="fas fa-sync-alt"></i> Sincronizar Monitor
+        </button>
+    </div>
     <div class="iframe-container" id="iframe-container-wrap">
         <!-- Indicador de Modo Monitor -->
         <div id="monitor-mode-indicator" style="
