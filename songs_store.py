@@ -5,7 +5,13 @@ por isso vive num módulo à parte em vez de dentro do blueprint.
 
 load_songs()/save_songs() mantêm exatamente o mesmo formato de antes —
 lista de dicts, no mesmo formato que songs.json produzia (chaves opcionais
-omitidas quando o valor é None, igual o código original fazia com `del`).
+omitidas quando o valor é None, igual o código original fazia com `del`) —
+com uma exceção deliberada: cada item de `sheet_data` agora sempre inclui
+todas as chaves do formato canônico (`id, clef, keySig, timeSig, measures,
+ties, chords`), mesmo quando None (ver `_normalize_sheet`). É a Fase 1 da
+unificação de renderização VexFlow (.claude/plans/harmonic-mixing-breeze.md)
+— antes havia duas versões ligeiramente diferentes dessa lógica
+(_normalize_sheet vs. o loop inline em _song_to_dict), fonte de bugs.
 
 save_songs(songs) faz um sync completo por id, mas com DIFF real: cada
 chamador sempre recarrega a lista inteira, muda uma música, e chama save
@@ -29,25 +35,45 @@ def _sections_to_dicts(sections):
 
 
 def _normalize_sheet(sh):
+    """Formato canônico único (chave wire, usado em toda parte — payload
+    do editor, sheet_data embutido no dict da música, coluna do banco):
+    {id, clef, keySig, timeSig, measures, ties, chords}. Ver plano em
+    .claude/plans/harmonic-mixing-breeze.md — unificação de renderização
+    VexFlow.
+
+    `measures`/`timeSig` aceitam as chaves antigas (`notes`/`time_signature`)
+    como fallback — transitório, até a Fase 7 do plano acima atualizar
+    new_song.js/edit_song.js pra mandar o formato novo. O valor antigo
+    (array achatado, não aninhado por compasso) é gravado como veio, sem
+    tentar reagrupar aqui — a detecção formato-antigo-vs-novo já é
+    responsabilidade do renderizador compartilhado (Fase 3+), não deste
+    módulo, e serve tanto pra dado gravado antes da Fase 1 quanto pra
+    dado gravado nessa janela de transição."""
     return {
         'id': sh.get('id'),
-        'notes': sh.get('notes'),
-        'time_signature': sh.get('time_signature'),
         'clef': sh.get('clef'),
         'keySig': sh.get('keySig'),
+        'timeSig': sh.get('timeSig') or sh.get('time_signature'),
+        'measures': sh.get('measures') if sh.get('measures') is not None else sh.get('notes'),
+        'ties': sh.get('ties'),
         'chords': sh.get('chords'),
     }
 
 
-def _sheets_to_dicts(sheet_data):
-    return [_normalize_sheet({
+def _sheet_model_to_dict(sd):
+    return _normalize_sheet({
         'id': sd.client_id,
-        'notes': sd.notes,
-        'time_signature': sd.time_signature,
         'clef': sd.clef,
         'keySig': sd.key_sig,
+        'timeSig': sd.time_signature,
+        'measures': sd.measures,
+        'ties': sd.ties,
         'chords': sd.chords,
-    }) for sd in sheet_data]
+    })
+
+
+def _sheets_to_dicts(sheet_data):
+    return [_sheet_model_to_dict(sd) for sd in sheet_data]
 
 
 def _song_to_dict(song):
@@ -62,15 +88,7 @@ def _song_to_dict(song):
         d['last_played'] = song.last_played.isoformat()
     d['sections'] = _sections_to_dicts(song.sections)
     if song.sheet_data:
-        sheets = []
-        for sd in song.sheet_data:
-            item = {'id': sd.client_id, 'notes': sd.notes, 'time_signature': sd.time_signature, 'clef': sd.clef}
-            if sd.key_sig is not None:
-                item['keySig'] = sd.key_sig
-            if sd.chords is not None:
-                item['chords'] = sd.chords
-            sheets.append(item)
-        d['sheet_data'] = sheets
+        d['sheet_data'] = _sheets_to_dicts(song.sheet_data)
     return d
 
 
@@ -101,8 +119,9 @@ def _apply_song_fields(song, data, is_new):
         song.sheet_data = [
             SheetData(
                 client_id=sh.get('id'),
-                notes=sh.get('notes'),
-                time_signature=sh.get('time_signature'),
+                measures=sh.get('measures'),
+                ties=sh.get('ties'),
+                time_signature=sh.get('timeSig'),
                 clef=sh.get('clef'),
                 key_sig=sh.get('keySig'),
                 chords=sh.get('chords'),

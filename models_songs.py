@@ -45,5 +45,6 @@ class SheetData(db.Model):
     time_signature = db.Column(db.String(20), nullable=True)
     clef = db.Column(db.String(20), nullable=True)
     key_sig = db.Column(db.String(20), nullable=True)
-    notes = db.Column(db.JSON, nullable=False)
+    measures = db.Column(db.JSON, nullable=False)
+    ties = db.Column(db.JSON, nullable=True)
     chords = db.Column(db.JSON, nullable=True)
