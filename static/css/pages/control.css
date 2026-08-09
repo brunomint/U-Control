@@ -311,6 +311,25 @@
             padding: 10px 0;
         }
 
+        /* Título padrão dos painéis de submenu (a maioria não tem estilo
+           inline próprio) — sem isso cai no <h1> padrão do browser (~2em),
+           que não quebra linha em palavras únicas como "Cronômetro" e
+           vaza pra fora do painel. */
+        .submenu h1 {
+            margin: 0 0 12px 0;
+            font-size: 1.1em;
+            color: #eee;
+            overflow-wrap: break-word;
+        }
+
+        /* Botões flex:1 em linha (Iniciar/Pausar/Reset, Exibir/Parar/Limpar
+           etc.) não encolhem por padrão dentro de flex — item flex tem
+           min-width:auto (= largura do conteúdo) a menos que seja zerado,
+           então a linha vaza pra fora do painel em vez de comprimir. */
+        .submenu button {
+            min-width: 0;
+        }
+
  /*       .submenu li:hover {
             background-color: #555;
         } 
