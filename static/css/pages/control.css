@@ -502,7 +502,22 @@
     font-weight: 600;
     cursor: pointer;
     outline: none;
+    box-shadow: none;
+    transform: none;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Neutraliza o pill ring animado (::before/::after) e o "salto" no hover
+   herdados do botão antigo (linhas ~115-183) — ainda cascateiam por cima
+   dos cards do redesign porque usam o mesmo seletor .button. */
+.button::before,
+.button::after {
+    content: none;
+}
+
+.button:hover,
+.button:focus {
+    transform: none;
 }
 
 .button:hover {
