@@ -1,3 +1,30 @@
+/* Tokens de design (Fase R.1 do redesign visual) — primeira vez que
+   custom properties aparecem no projeto; escopado só a esta página de
+   propósito, sem tentar convergir com o ciano espalhado nas outras
+   páginas (mesmo precedente da Fase 4.5 de não forçar convergência de
+   paleta). Ainda não consumidos por nenhum seletor — só declaração. */
+:root {
+    --bg-app: #1a1a1a;
+    --bg-sidebar: #242424;
+    --bg-card: #2c2c2c;
+    --bg-card-hover: #363636;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-muted: #777777;
+    --accent-cyan: #00bcd4;
+    --accent-cyan-dark: #0097a7;
+    --status-online: #4caf50;
+    --status-warning: #ff9800;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-highlight: rgba(0, 188, 212, 0.4);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 0 1px var(--border-highlight), 0 4px 20px rgba(0, 188, 212, 0.25);
+    --font-sans: 'open sans', sans-serif;
+}
+
         body {
             font-family: 'open sans', sans-serif;
             background-color: #222222;
