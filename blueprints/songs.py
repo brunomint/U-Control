@@ -3,6 +3,7 @@ cruzam songs+orders+bíblia) e a área de letras (lyrics/*) ficam de fora,
 em main.py — usam songs_store diretamente."""
 import json
 import logging
+import time
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
@@ -48,21 +49,33 @@ def edit_sheet(song_id):
 @songs_bp.route('/api/save_sheet/<int:song_id>', methods=['POST'])
 @login_required
 def save_sheet_data(song_id):
-    """Salva os dados da partitura em uma música."""
+    """Salva (cria ou atualiza) uma partitura dentro de sheet_data —
+    endereça por `id` em vez de sobrescrever a lista inteira, já que uma
+    música pode ter mais de uma partitura embutida (bug corrigido na
+    Fase 2 do plano de unificação de renderização VexFlow)."""
     try:
-        sheet_data = request.get_json()
+        incoming = request.get_json()
         songs = load_songs()
 
-        # Encontra a música
         song = next((s for s in songs if s['id'] == song_id), None)
         if not song:
             return jsonify({"error": "Música não encontrada"}), 404
 
-        # Salva os dados da partitura
-        song['sheet_data'] = sheet_data
+        sheets = song.get('sheet_data') or []
+        sheet_id = incoming.get('id')
+        idx = next((i for i, sh in enumerate(sheets) if sh.get('id') == sheet_id), None) if sheet_id is not None else None
+
+        if idx is not None:
+            sheets[idx] = incoming
+        else:
+            if sheet_id is None:
+                incoming['id'] = int(time.time() * 1000)
+            sheets.append(incoming)
+
+        song['sheet_data'] = sheets
         save_songs(songs)
 
-        return jsonify({"message": "Partitura salva com sucesso!"})
+        return jsonify({"message": "Partitura salva com sucesso!", "id": incoming['id']})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

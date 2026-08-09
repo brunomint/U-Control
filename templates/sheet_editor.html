@@ -241,6 +241,10 @@
   // ===== Dados da música (se editando uma existente) =====
   const songDataElement = document.getElementById('song-data');
   const songData = songDataElement ? JSON.parse(songDataElement.textContent) : null;
+  // id (client_id) da partitura atualmente carregada dentro de
+  // songData.sheet_data (que é sempre uma lista — uma música pode ter
+  // mais de uma partitura embutida). null = ainda não carregada / nova.
+  let currentSheetId = null;
   
   // ===== Estado =====
   const state = {
@@ -1148,8 +1152,8 @@
         
         // Atualiza os controles da interface (com verificação de segurança)
         const clefEl = document.getElementById('clef');
-        const keySigEl = document.getElementById('keySig');
-        const timeSigEl = document.getElementById('timeSig');
+        const keySigEl = document.getElementById('keysig');
+        const timeSigEl = document.getElementById('timesig');
         
         if (clefEl) clefEl.value = state.clef;
         if (keySigEl) keySigEl.value = state.keySig;
@@ -1174,10 +1178,24 @@
   }
   
   // Função para carregar dados da partitura de uma música específica
-  function loadSheetDataFromSong(sheetData) {
+  function loadSheetDataFromSong(sheetDataList) {
     try {
-      console.log('🎵 Carregando dados da partitura da música...', sheetData);
-      
+      console.log('🎵 Carregando dados da partitura da música...', sheetDataList);
+
+      // songData.sheet_data é sempre uma lista (uma música pode ter mais
+      // de uma partitura embutida) — escolhe pelo ?sheet_id= da URL, ou a
+      // primeira por padrão. Corrige bug em que uma lista era tratada
+      // como se fosse um único sheet flat (nada carregava, silenciosamente).
+      const list = Array.isArray(sheetDataList) ? sheetDataList : [sheetDataList];
+      if (list.length === 0) return false;
+
+      const requestedId = urlParams.get('sheet_id');
+      const sheetData = requestedId
+        ? (list.find(sh => String(sh.id) === requestedId) || list[0])
+        : list[0];
+
+      currentSheetId = sheetData.id ?? null;
+
       // Restaura o estado da partitura
       if (sheetData.clef) state.clef = sheetData.clef;
       if (sheetData.keySig) state.keySig = sheetData.keySig;
@@ -1185,16 +1203,16 @@
       if (sheetData.measures) state.measures = sheetData.measures;
       if (sheetData.ties) state.ties = sheetData.ties;
       if (sheetData.chords) state.chords = sheetData.chords;
-      
+
       // Atualiza os controles da interface
       document.getElementById('clef').value = state.clef;
-      document.getElementById('keySig').value = state.keySig;
-      document.getElementById('timeSig').value = state.timeSig;
-      
+      document.getElementById('keysig').value = state.keySig;
+      document.getElementById('timesig').value = state.timeSig;
+
       // Re-renderiza a partitura
       render();
-      
-      console.log('✅ Dados da música carregados com sucesso!');
+
+      console.log('✅ Dados da música carregados com sucesso! sheetId=', currentSheetId);
       return true;
     } catch (e) {
       console.warn('⚠️ Erro ao carregar dados da música:', e);
@@ -1272,6 +1290,7 @@
     
     try {
       const sheetData = {
+        id: currentSheetId,
         clef: state.clef,
         keySig: state.keySig,
         timeSig: state.timeSig,
@@ -1287,6 +1306,8 @@
       });
 
       if (response.ok) {
+        const result = await response.json();
+        currentSheetId = result.id ?? currentSheetId;
         alert('✅ Partitura salva na música com sucesso!');
       } else {
         alert('❌ Erro ao salvar partitura');
@@ -1299,7 +1320,11 @@
 
   // Adiciona botão de salvar no U-Control se for edição de música
   if (songId) {
-    const exportSection = document.querySelector('.control-group:last-child .row');
+    // Âncora no #exportSVGBtn (estável) em vez de :last-child .row — o
+    // <small> de atalhos depois do grupo Exportação faz :last-child nunca
+    // casar com nada, então o botão nunca era injetado (bug corrigido na
+    // Fase 2 do plano de unificação de renderização VexFlow).
+    const exportSection = document.getElementById('exportSVGBtn')?.closest('.row');
     if (exportSection) {
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
