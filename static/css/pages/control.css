@@ -322,12 +322,14 @@
             overflow-wrap: break-word;
         }
 
-        /* Botões flex:1 em linha (Iniciar/Pausar/Reset, Exibir/Parar/Limpar
-           etc.) não encolhem por padrão dentro de flex — item flex tem
-           min-width:auto (= largura do conteúdo) a menos que seja zerado,
-           então a linha vaza pra fora do painel em vez de comprimir. */
-        .submenu button {
-            min-width: 0;
+        /* Linhas de botões flex:1 (Iniciar/Pausar/Reset, Público/Monitor/
+           Ambos etc.) não quebram linha por padrão — se não couberem na
+           largura do painel, ficam espremidas ou vazam. flex-wrap deixa o
+           botão que não coube cair pra linha de baixo, com largura legível,
+           em vez de forçar min-width:0 (que deixa botão comprimir tanto que
+           o rótulo quebra em cima do emoji e passa da altura da caixa). */
+        .submenu li > div {
+            flex-wrap: wrap;
         }
 
  /*       .submenu li:hover {
