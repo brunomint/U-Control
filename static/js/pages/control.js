@@ -858,6 +858,19 @@ function clearTicker() {
     socket.emit('set_ticker', { text: '', target: 'all' });
 }
 
+// Preview do ticker no próprio /control (não depende do alvo escolhido —
+// mostra o último texto mandado, pra conferir sem abrir o /monitor).
+function updateControlTickerPreview(text) {
+    const bar = document.getElementById('control-ticker-bar');
+    const span = document.getElementById('control-ticker-text');
+    if (!bar || !span) return;
+    if (!text) { bar.style.display = 'none'; return; }
+    span.textContent = text;
+    bar.style.display = 'block';
+}
+socket.on('ticker_preview_update', function (data) { updateControlTickerPreview(data.text || ''); });
+fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateControlTickerPreview(d.text || ''); });
+
 // ── Compartilhar Tela (WebRTC) ───────────────────────────────────────────────
 let _screenStream = null;
 let _screenPeers = {};

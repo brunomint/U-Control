@@ -68,6 +68,9 @@ def handle_set_ticker(data):
         emit('ticker_update', payload, to='monitor')
     else:
         emit('ticker_update', payload, broadcast=True)
+    # Preview no /control (não é room-scoped como o acima — o operador
+    # precisa ver o texto mandado independente de qual alvo escolheu).
+    emit('ticker_preview_update', payload, broadcast=True)
 
 
 @socketio.on('stop_ticker')
@@ -83,3 +86,4 @@ def handle_stop_ticker(data):
         emit('ticker_update', payload, to='monitor')
     else:
         emit('ticker_update', payload, broadcast=True)
+    emit('ticker_preview_update', payload, broadcast=True)

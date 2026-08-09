@@ -394,6 +394,16 @@
             font-weight:700; padding:4px 10px; z-index:10;
             align-items:center; gap:6px; pointer-events:none;
         "><i class="fas fa-users"></i> MODO PÚBLICO — o monitor de palco não será afetado</div>
+        <!-- Ticker de avisos (preview) — mesmo texto que aparece no /monitor
+             e na tela pública via evento 'ticker_update', só que dentro do
+             preview local, pra conferir sem trocar de aba. -->
+        <div id="control-ticker-bar" style="
+            display:none; position:absolute; bottom:0; left:0; right:0;
+            background:rgba(0,0,0,.85); color:#FFD600; font-weight:700;
+            font-size:0.85em; padding:6px 10px; z-index:10; text-align:center;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+            pointer-events:none;
+        "><span id="control-ticker-text"></span></div>
         <iframe id="iframe1" src="about:blank" title="Iframe Esquerdo"></iframe>
         <iframe id="iframe2" src="about:blank" title="Iframe Direito"></iframe>
     </div> <!-- Fechamento da div .iframe-container -->
