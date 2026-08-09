@@ -238,6 +238,8 @@
 </script>
 
 <script type="module">
+  import { renderSheetMusic, normalizeSheetData } from '/static/js/sheet_render.js';
+
   // ===== Dados da música (se editando uma existente) =====
   const songDataElement = document.getElementById('song-data');
   const songData = songDataElement ? JSON.parse(songDataElement.textContent) : null;
@@ -262,14 +264,8 @@
     zoomLevel:100
   };
 
-  // ===== VexFlow =====
-  let Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam;
-  let VF_READY=false;
-  try{
-    const VF = await import('/static/vendor/vexflow/4.2.5-esm/entry/vexflow.js');
-    ({ Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam } = VF);
-    VF_READY=true;
-  }catch(e){ console.warn('VexFlow não carregou.', e); }
+  // ===== VexFlow (delegado ao módulo compartilhado — static/js/sheet_render.js) =====
+  let VF_READY=true;
 
   // ===== UI helpers =====
   const $=id=>document.getElementById(id);
@@ -668,257 +664,46 @@
     applyNoteEdit();
   };
 
-  // pitchToKey
-  function pitchToKey(p){
-    // Aceita tanto "C4" quanto "C/4"
-    const m=/^([A-Ga-g])(?:(?:#{1,2}|b{1,2}|n))?[\/]?(\d)$/.exec(p);
-    if(!m) return 'c/4'; return m[1].toLowerCase()+'/'+m[2];
-  }
-
-  // ===== Beaming (barramento de colcheias) =====
-  function createBeams(notes){
-    if(!notes.length || !Beam) return [];
-    
-    const beams = [];
-    let currentGroup = [];
-    
-    for(let i = 0; i < notes.length; i++){
-      const note = notes[i];
-      const duration = note.getDuration();
-      
-      // Verifica se é uma nota que pode ser barrada (8, 16, 32, etc.)
-      const canBeam = ['8', '16', '32', '64'].includes(duration.replace('r', ''));
-      const isRest = duration.includes('r');
-      
-      if(canBeam && !isRest){
-        currentGroup.push(note);
-      } else {
-        // Finaliza o grupo atual se tiver 2+ notas
-        if(currentGroup.length >= 2){
-          try {
-            beams.push(new Beam(currentGroup));
-          } catch(e) {
-            console.warn('Erro ao criar beam:', e);
-          }
-        }
-        currentGroup = [];
-      }
-    }
-    
-    // Finaliza o último grupo se necessário
-    if(currentGroup.length >= 2){
-      try {
-        beams.push(new Beam(currentGroup));
-      } catch(e) {
-        console.warn('Erro ao criar beam final:', e);
-      }
-    }
-    
-    return beams;
-  }
-
-  // ===== Layout helpers =====
-  function measureVisualWidth(measure, baseW){
-    const NOTE_W = 14;              // largura incremental por nota
-    const MEASURE_PAD_R = 24;       // respiro antes da barra
-    const count = measure?.length ?? 0;
-    return Math.max(baseW*0.75, baseW) + count*NOTE_W + MEASURE_PAD_R;
-  }
-  function splitIntoSystems(widths, maxWidth){
-    const systems=[]; let row=[], acc=0;
-    for(let i=0;i<widths.length;i++){
-      const w=widths[i];
-      if(row.length>0 && acc+w>maxWidth){ systems.push(row); row=[i]; acc=w; }
-      else { row.push(i); acc+=w; }
-    }
-    if(row.length) systems.push(row);
-    return systems;
-  }
-
   // ===== Render =====
+  // O desenho em si (pautas/notas/feixes/ligaduras/cifras) vive em
+  // static/js/sheet_render.js, compartilhado com as telas de exibição
+  // (view_song/lyrics/display) — ver .claude/plans/harmonic-mixing-breeze.md.
+  // Aqui só sobra o que é específico do editor: destaque de seleção.
   function render(){
-    if(!VF_READY||!Factory) return;
-    $score.innerHTML='';
-
-    const BASE_MEASURE_W = 220;
-    const STAVE_H=140, SYSTEM_GAP=30, LEFT=24, RIGHT=24, TOP=20;
-
-    const {beats, beatValue}=timeValues(state.timeSig);
-    const viewportW = ($score.parentElement?.clientWidth ?? 900);
-    const maxSystemW = viewportW - (LEFT+RIGHT);
-
-    // largura base proporcional ao compasso (ex.: 6/8 < 4/4)
-    const proportion = (beats/beatValue) / (4/4); // 4/4 => 1
-    const baseW = BASE_MEASURE_W * Math.max(0.7, proportion);
-
-    // larguras dinâmicas por compasso
-    const widths = state.measures.map(m=>measureVisualWidth(m, baseW));
-    const systemsIdx = splitIntoSystems(widths, Math.max(260, maxSystemW));
-    const totalH = TOP + systemsIdx.length*STAVE_H + (systemsIdx.length-1)*SYSTEM_GAP + 20;
-    const totalW = viewportW;
-
-    const vf = new Factory({ renderer:{ elementId:'score', width: totalW, height: totalH }});
-    const ctx = vf.getContext();
-
-    // mapa de notas para ties
-    const vfNotesByMI = Array(state.measures.length).fill(null).map(()=>[]);
-
-    systemsIdx.forEach((row, s)=>{
-      const y = TOP + s*(STAVE_H+SYSTEM_GAP);
-      let x = LEFT;
-
-      row.forEach((mIndex, j)=>{
-        const measureNotes = state.measures[mIndex] ?? [];
-        const w = widths[mIndex];
-
-        const stave = vf.Stave({ x, y, width: w });
-        // desenha claves/armadura/compasso apenas no primeiro compasso do sistema
-        if(j===0){ stave.addClef(state.clef).addKeySignature(state.keySig).addTimeSignature(state.timeSig); }
-        stave.setContext(ctx).draw();
-
-        const tickables = measureNotes.map(m=>{
-          const dur = m.duration + (m.rest ? 'r' : '');
-          const key = m.rest ? 'b/4' : pitchToKey(m.pitch);
-          const sn = new StaveNote({ clef:state.clef, keys:[key], duration:dur, dots:m.dotted?1:0 });
-
-          if(!m.rest && m.accidental && m.accidental!==''){
-            const type = (m.accidental==='n') ? 'n' : m.accidental; // '#','b','n','##','bb'
-            try{
-              if(typeof sn.addAccidental==='function') sn.addAccidental(0, new Accidental(type));
-              else if(typeof sn.addModifier==='function') sn.addModifier(new Accidental(type), 0);
-            }catch(e){ console.warn('Falha ao anexar acidente:', e); }
-          }
-          if(m.dotted){
-            if(typeof sn.addDotToAll==='function') sn.addDotToAll();
-            else Dot.buildAndAttach([sn], { all:true });
-          }
-          return sn;
-        });
-
-        vfNotesByMI[mIndex]=tickables;
-
-        if(tickables.length){
-          const voice = new Voice({ num_beats:beats, beat_value:beatValue, resolution:4 }).setStrict(false);
-          voice.addTickables(tickables);
-          
-          // Criar beams para colcheias e semicolcheias
-          const beams = createBeams(tickables);
-          
-          const formatter = new Formatter();
-          formatter.joinVoices([voice]);
-
-          // >>> AQUI: formata dentro do espaço útil do Stave (sem invadir a barra!)
-          if(typeof formatter.formatToStave === 'function'){
-            formatter.formatToStave([voice], stave, { stavePadding: 0 });
-          }else{
-            // fallback seguro
-            const startX = (typeof stave.getNoteStartX==='function') ? stave.getNoteStartX() : (stave.getX()+12);
-            const endX   = (typeof stave.getNoteEndX==='function')   ? stave.getNoteEndX()   : (stave.getX()+stave.getWidth()-14);
-            const avail  = Math.max(20, endX - startX);
-            formatter.format([voice], avail);
-          }
-          
-          voice.draw(ctx, stave);
-          
-          // Desenhar os beams (barramento)
-          beams.forEach(beam => {
-            try {
-              beam.setContext(ctx).draw();
-            } catch(e) {
-              console.warn('Erro ao desenhar beam:', e);
-            }
-          });
-        }
-
-        x += w;
-      });
+    if(!VF_READY) return;
+    renderSheetMusic($score, state, { interactive: true }).then(({vfNotesByMI})=>{
+      drawSelectionHighlight(vfNotesByMI);
+    }).catch(e=>{
+      console.warn('Falha ao renderizar partitura.', e);
+      VF_READY=false;
     });
+  }
 
-    // desenha ties
-    state.ties.forEach(t=>{
-      const first=vfNotesByMI[t.from.m]?.[t.from.i];
-      const last =vfNotesByMI[t.to.m]?.[t.to.i];
-      if(first&&last) new StaveTie({first_note:first,last_note:last}).setContext(ctx).draw();
-    });
+  function drawSelectionHighlight(vfNotesByMI){
+    const svg = $score.querySelector('svg');
+    if(!svg) return;
+    const oldHighlight = svg.querySelector('.note-highlight');
+    if(oldHighlight) oldHighlight.remove();
 
-    // desenha acordes (cifras)
-    state.chords.forEach(chord=>{
-      const note = vfNotesByMI[chord.m]?.[chord.i];
-      if(note){
-        try {
-          // Renderiza texto da cifra acima da pauta
-          const bbox = note.getBoundingBox();
-          if(bbox){
-            // Calcula qual sistema (linha) esta nota está
-            const TOP = 20;
-            const STAVE_H = 140;
-            const SYSTEM_GAP = 30;
-            const systemIndex = Math.floor((bbox.y - TOP) / (STAVE_H + SYSTEM_GAP));
-            const staveY = TOP + systemIndex * (STAVE_H + SYSTEM_GAP);
-            
-            ctx.save();
-            ctx.font = '14px Arial, sans-serif';
-            ctx.fillStyle = '#000';
-            ctx.textAlign = 'center';
-            // Posiciona sempre acima da pauta (Y fixo = staveY + 2)
-            ctx.fillText(chord.symbol, bbox.x + bbox.w/2, staveY + 2);
-            ctx.restore();
-          }
-        } catch(e) {
-          console.warn('Erro ao desenhar acorde:', e);
-        }
-      }
-    });
-
-    // Destaca nota selecionada
-    if(state.selectedNote){
-      const note = vfNotesByMI[state.selectedNote.m]?.[state.selectedNote.i];
-      if(note){
-        try {
-          const bbox = note.getBoundingBox();
-          if(bbox){
-            const canvas = ctx.canvas || ctx.element;
-            if(canvas && canvas.getContext) {
-              const canvasCtx = canvas.getContext('2d');
-              canvasCtx.save();
-              canvasCtx.strokeStyle = '#ff0000';
-              canvasCtx.lineWidth = 2;
-              canvasCtx.strokeRect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4);
-              canvasCtx.restore();
-            } else {
-              // Fallback para SVG - criar um retângulo SVG
-              const svg = $score.querySelector('svg');
-              if(svg) {
-                // Remove destaque anterior
-                const oldHighlight = svg.querySelector('.note-highlight');
-                if(oldHighlight) oldHighlight.remove();
-                
-                // Cria novo destaque
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('class', 'note-highlight');
-                rect.setAttribute('x', bbox.x - 2);
-                rect.setAttribute('y', bbox.y - 2);
-                rect.setAttribute('width', bbox.w + 4);
-                rect.setAttribute('height', bbox.h + 4);
-                rect.setAttribute('fill', 'none');
-                rect.setAttribute('stroke', '#ff0000');
-                rect.setAttribute('stroke-width', '2');
-                rect.setAttribute('pointer-events', 'none');
-                svg.appendChild(rect);
-              }
-            }
-          }
-        } catch(e) {
-          console.warn('Erro ao destacar nota:', e);
-        }
-      }
-    } else {
-      // Remove destaque quando não há seleção
-      const svg = $score.querySelector('svg');
-      if(svg) {
-        const oldHighlight = svg.querySelector('.note-highlight');
-        if(oldHighlight) oldHighlight.remove();
-      }
+    if(!state.selectedNote) return;
+    const note = vfNotesByMI[state.selectedNote.m]?.[state.selectedNote.i];
+    if(!note) return;
+    try {
+      const bbox = note.getBoundingBox();
+      if(!bbox) return;
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('class', 'note-highlight');
+      rect.setAttribute('x', bbox.x - 2);
+      rect.setAttribute('y', bbox.y - 2);
+      rect.setAttribute('width', bbox.w + 4);
+      rect.setAttribute('height', bbox.h + 4);
+      rect.setAttribute('fill', 'none');
+      rect.setAttribute('stroke', '#ff0000');
+      rect.setAttribute('stroke-width', '2');
+      rect.setAttribute('pointer-events', 'none');
+      svg.appendChild(rect);
+    } catch(e) {
+      console.warn('Erro ao destacar nota:', e);
     }
   }
 
@@ -1196,13 +981,18 @@
 
       currentSheetId = sheetData.id ?? null;
 
-      // Restaura o estado da partitura
-      if (sheetData.clef) state.clef = sheetData.clef;
-      if (sheetData.keySig) state.keySig = sheetData.keySig;
-      if (sheetData.timeSig) state.timeSig = sheetData.timeSig;
-      if (sheetData.measures) state.measures = sheetData.measures;
-      if (sheetData.ties) state.ties = sheetData.ties;
-      if (sheetData.chords) state.chords = sheetData.chords;
+      // normalizeSheetData converte formato antigo (measures/notes
+      // achatado, de antes da Fase 1) pro formato aninhado que o editor
+      // espera — sem isso, uma partitura antiga carregava clef/timeSig
+      // certos mas ficava com 0 notas (o array achatado não bate com a
+      // estrutura measures[compasso][nota] que addNoteSplit/render usam).
+      const normalized = normalizeSheetData(sheetData);
+      state.clef = normalized.clef;
+      state.keySig = normalized.keySig;
+      state.timeSig = normalized.timeSig;
+      state.measures = normalized.measures;
+      state.ties = normalized.ties;
+      state.chords = normalized.chords;
 
       // Atualiza os controles da interface
       document.getElementById('clef').value = state.clef;
