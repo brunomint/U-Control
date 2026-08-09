@@ -1,6 +1,7 @@
  document.addEventListener('DOMContentLoaded', function () {
     setupMenuToggle();
     setupPreventMenuClose();
+    setupPresetCardSelection();
     loadUrls();
     loadFolders();
     loadDisplayState(); // Carrega estado salvo ao iniciar
@@ -85,6 +86,26 @@ function setupMenuToggle() {
 function setupPreventMenuClose() {
     document.querySelectorAll('input, textarea, button, form, img, select, span, hr, #imageGallery')
         .forEach(input => input.addEventListener('click', event => event.stopPropagation()));
+}
+
+// Marca visualmente o último botão de preset clicado (Fase R.4 do
+// redesign) — puramente cosmético, não toca em sendUrl()/showTwoUrls()
+// nem no estado real de socket. Listener direto em cada botão (não
+// delegação no container) porque setupPreventMenuClose() já para a
+// propagação de clique em todo <button>, o que impediria um listener
+// delegado no ancestral de disparar.
+function setupPresetCardSelection() {
+    const container = document.querySelector('.button-container');
+    if (!container) return;
+    container.querySelectorAll('.button').forEach(button => {
+        button.addEventListener('click', function () {
+            container.querySelectorAll('.button.selected').forEach(b => b.classList.remove('selected'));
+            container.querySelectorAll('.button-group.selected').forEach(g => g.classList.remove('selected'));
+            button.classList.add('selected');
+            const group = button.closest('.button-group');
+            if (group) group.classList.add('selected');
+        });
+    });
 }
 
 function sendUrl(urlNumber) {
