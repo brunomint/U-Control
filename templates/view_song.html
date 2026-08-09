@@ -1160,257 +1160,47 @@ window.onload = () => {
 
     </script>
 
-    <!-- Script para renderizar partituras (múltiplas) se disponível -->
+    <!-- Script para renderizar partituras (múltiplas) se disponível.
+         Desenho delegado a static/js/sheet_render.js, compartilhado com
+         o editor (/sheet_editor) e as outras telas de exibição — ver
+         .claude/plans/harmonic-mixing-breeze.md. Antes disso, essa tela
+         reimplementava o layout/quebra de compasso à mão numa versão
+         mais antiga do VexFlow (4.2.2), o que causava a partitura
+         aparecer diferente daqui pro editor. -->
     {% if song.sheet_data %}
-    <script src="/static/vendor/vexflow/4.2.2-releases/vexflow-min.js"></script>
-    <script>
-        function renderPartituras() {
-            console.log('🎼 Iniciando renderização das partituras...');
-            
-            // Verifica se VexFlow está carregado
-            if (typeof Vex === 'undefined' || !Vex.Flow) {
-                console.error('❌ VexFlow não está carregado');
-                setTimeout(renderPartituras, 1000); // Tenta novamente em 1 segundo
-                return;
-            }
-            
-            console.log('✅ VexFlow carregado com sucesso');
-            
+    <script type="module">
+        import { renderSheetMusic } from '/static/js/sheet_render.js';
+
+        async function renderPartituras() {
             const allSheetData = {{ song.sheet_data | tojson | safe }};
-            console.log('📊 Dados das partituras:', allSheetData);
-            
-            // Verifica se é array (múltiplas partituras) ou objeto (partitura única)
             const sheetDataArray = Array.isArray(allSheetData) ? allSheetData : [allSheetData];
-            
-            // Renderiza cada partitura
-            sheetDataArray.forEach(function(sheetData) {
+
+            for (const sheetData of sheetDataArray) {
                 const sheetId = sheetData.id;
                 const sheetElement = document.getElementById('sheet-display-' + sheetId);
-                
                 if (!sheetElement) {
                     console.error('❌ Elemento sheet-display-' + sheetId + ' não encontrado');
-                    return;
+                    continue;
                 }
-                
-                console.log('🎵 Renderizando partitura ID:', sheetId);
-                
-                if (!sheetData || !sheetData.notes || sheetData.notes.length === 0) {
+
+                const hasContent =
+                    (Array.isArray(sheetData.measures) && sheetData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
+                    (Array.isArray(sheetData.notes) && sheetData.notes.length > 0);
+                if (!hasContent) {
                     sheetElement.innerHTML = '<p style="text-align: center; color: #666;">Nenhuma nota encontrada</p>';
-                    return;
+                    continue;
                 }
-                
+
                 try {
-                    // Limpa o elemento antes de renderizar
-                    sheetElement.innerHTML = '';
-                    
-                    const VF = Vex.Flow;
-                    
-                    // Detecta se é mobile
-                    const isMobile = window.innerWidth <= 768;
-                    const availableWidth = isMobile ? window.innerWidth - 40 : 800;
-                    
-                    const renderer = new VF.Renderer(sheetElement, VF.Renderer.Backends.SVG);
-                    const context = renderer.getContext();
-                    
-                    const notes = sheetData.notes.map(function(noteData, index) {
-                        console.log(`🎵 Processando nota ${index}:`, noteData);
-                    
-                    // Verifica se é uma pausa
-                    const isRest = noteData.type === 'rest' || noteData.rest === true || 
-                                   (noteData.keys && noteData.keys[0] === 'rest');
-                    
-                    let note;
-                    if (isRest) {
-                        // Cria pausa
-                        const duration = noteData.duration || 'qr';
-                        const restDuration = duration.includes('r') ? duration : duration + 'r';
-                        console.log(`🎵 Criando pausa com duration: ${restDuration}`);
-                        
-                        note = new VF.StaveNote({
-                            clef: sheetData.clef || 'treble',
-                            keys: ['b/4'],
-                            duration: restDuration
-                        });
-                    } else {
-                        // Converte formato C4 para c/4 se necessário
-                        let keys = noteData.keys || ['c/4'];
-                        if (keys[0] && !keys[0].includes('/')) {
-                            // Converte C4 para c/4
-                            const pitch = keys[0].charAt(0).toLowerCase();
-                            const octave = keys[0].slice(-1);
-                            keys = [pitch + '/' + octave];
-                            console.log(`🔄 Convertido ${noteData.keys[0]} para ${keys[0]}`);
-                        }
-                        
-                        console.log(`✅ Criando nota com keys: ${keys}, duration: ${noteData.duration}`);
-                        
-                        note = new VF.StaveNote({
-                            clef: sheetData.clef || 'treble',
-                            keys: keys,
-                            duration: noteData.duration || 'q'
-                        });
-                    }
-                    
-                    return note;
-                });
-                
-                if (notes.length > 0) {
-                    // Calcula quantos compassos são necessários baseado nas notas
-                    const ticksMap = { 
-                        'w': 4096, 'wr': 4096,
-                        'h': 2048, 'hr': 2048,
-                        'q': 1024, 'qr': 1024,
-                        '8': 512, '8r': 512,
-                        '16': 256, '16r': 256
-                    };
-                    let totalTicks = 0;
-                    notes.forEach(note => {
-                        const duration = note.duration;
-                        totalTicks += ticksMap[duration] || 1024;
-                    });
-                    
-                    console.log(`📏 Total ticks das notas: ${totalTicks}`);
-                    
-                    // Calcula quantos compassos completos são necessários
-                    const ticksPerMeasure = 4096; // 4/4 = 4096 ticks
-                    const measuresNeeded = Math.ceil(totalTicks / ticksPerMeasure);
-                    
-                    console.log(`📊 Compassos necessários: ${measuresNeeded}`);
-                    
-                    // Define largura de cada compasso para caber na tela
-                    let measureWidth, measuresPerLine, totalWidth, totalHeight;
-                    
-                    if (isMobile) {
-                        // Tenta 2 compassos por linha, se não couber usa 1
-                        const widthFor2 = (availableWidth - 60) / 2;
-                        if (widthFor2 >= 150) {
-                            measuresPerLine = 2;
-                            measureWidth = widthFor2;
-                        } else {
-                            measuresPerLine = 1;
-                            measureWidth = availableWidth - 40;
-                        }
-                        totalWidth = availableWidth;
-                        totalHeight = Math.ceil(measuresNeeded / measuresPerLine) * 120 + 40;
-                    } else {
-                        // Desktop: máximo 3 compassos por linha
-                        measureWidth = 250;
-                        measuresPerLine = Math.min(3, measuresNeeded);
-                        totalWidth = Math.min(measuresNeeded, measuresPerLine) * measureWidth + 100;
-                        totalHeight = Math.ceil(measuresNeeded / measuresPerLine) * 120 + 40;
-                    }
-                    
-                    renderer.resize(totalWidth, totalHeight);
-                    
-                    // Cria múltiplos staves (um para cada compasso)
-                    const staves = [];
-                    for (let i = 0; i < measuresNeeded; i++) {
-                        const lineNumber = Math.floor(i / measuresPerLine);
-                        const posInLine = i % measuresPerLine;
-                        const xPos = 20 + (posInLine * measureWidth);
-                        const yPos = 20 + (lineNumber * 120);
-                        
-                        const stave = new VF.Stave(xPos, yPos, measureWidth);
-                        
-                        // Adiciona clave e fórmula de compasso no primeiro de cada linha
-                        if (posInLine === 0) {
-                            stave.addClef(sheetData.clef || 'treble')
-                                 .addTimeSignature(sheetData.time_signature || '4/4');
-                            
-                            // Adiciona armadura de clave se existir
-                            if (sheetData.key_signature) {
-                                stave.addKeySignature(sheetData.key_signature);
-                            }
-                        }
-                        
-                        stave.setContext(context).draw();
-                        staves.push(stave);
-                    }
-                    
-                    // Distribui as notas pelos compassos
-                    let currentMeasure = 0;
-                    let currentTicks = 0;
-                    const measureVoices = [];
-                    
-                    for (let i = 0; i < measuresNeeded; i++) {
-                        measureVoices.push([]);
-                    }
-                    
-                    notes.forEach(note => {
-                        const noteTicks = ticksMap[note.duration] || 1024;
-                        
-                        // Se a nota não cabe no compasso atual, vai para o próximo
-                        if (currentTicks + noteTicks > ticksPerMeasure && currentMeasure < measuresNeeded - 1) {
-                            currentMeasure++;
-                            currentTicks = 0;
-                        }
-                        
-                        measureVoices[currentMeasure].push(note);
-                        currentTicks += noteTicks;
-                    });
-                    
-                    // Renderiza cada compasso com suas notas
-                    let globalNoteIndex = 0; // Índice global das notas
-                    measureVoices.forEach((measureNotes, measureIndex) => {
-                        if (measureNotes.length > 0) {
-                            const voice = new VF.Voice({
-                                num_beats: 4,
-                                beat_value: 4
-                            }).setMode(Vex.Flow.Voice.Mode.SOFT);
-                            
-                            voice.addTickables(measureNotes);
-                            
-                            // Gera beams automáticos para colcheias e semicolcheias
-                            const beams = VF.Beam.generateBeams(measureNotes);
-                            
-                            const formatterWidth = isMobile ? Math.max(measureWidth - 80, 100) : measureWidth - 60;
-                            new VF.Formatter()
-                                .joinVoices([voice])
-                                .format([voice], formatterWidth);
-                            
-                            voice.draw(context, staves[measureIndex]);
-                            
-                            // Desenha os beams (ligaduras entre colcheias)
-                            beams.forEach(beam => beam.setContext(context).draw());
-                            
-                            // Renderiza cifras se existirem
-                            if (sheetData.chords && sheetData.chords.length > 0) {
-                                measureNotes.forEach((note, localIndex) => {
-                                    // Procura cifra para esta nota
-                                    const chord = sheetData.chords.find(c => 
-                                        c.m === measureIndex && c.i === localIndex
-                                    );
-                                    
-                                    if (chord && chord.symbol) {
-                                        try {
-                                            const bbox = note.getBoundingBox();
-                                            context.save();
-                                            context.setFont('Arial', 14, 'bold');
-                                            context.fillStyle = '#000';
-                                            // Posiciona sempre acima da pauta (Y fixo = 22, logo acima do stave que está em Y=20)
-                                            context.fillText(chord.symbol, bbox.x + bbox.w/2, 22);
-                                            context.restore();
-                                        } catch(e) {
-                                            console.log('⚠️ Erro ao renderizar cifra:', e);
-                                        }
-                                    }
-                                    globalNoteIndex++;
-                                });
-                            }
-                        }
-                    });
+                    const maxWidth = window.innerWidth <= 768 ? window.innerWidth - 40 : 800;
+                    await renderSheetMusic(sheetElement, sheetData, { maxWidth });
+                } catch (error) {
+                    console.error('❌ Erro ao renderizar partitura ' + sheetId + ':', error);
+                    sheetElement.innerHTML = '<p style="text-align: center; color: #f44336;">Erro: ' + error.message + '</p>';
                 }
-                
-                console.log('✅ Partitura ' + sheetId + ' renderizada com sucesso!');
-                
-            } catch (error) {
-                console.error('❌ Erro ao renderizar partitura ' + sheetId + ':', error);
-                sheetElement.innerHTML = '<p style="text-align: center; color: #f44336;">Erro: ' + error.message + '</p>';
             }
-            }); // Fecha forEach
         }
-        
-        // Chama a função quando a página carrega
+
         document.addEventListener('DOMContentLoaded', renderPartituras);
     </script>
     {% endif %}
