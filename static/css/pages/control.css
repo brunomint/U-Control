@@ -501,6 +501,7 @@
     color: #ffffff;
     font-weight: 600;
     cursor: pointer;
+    outline: none;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
