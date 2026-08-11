@@ -2472,7 +2472,7 @@ Com mais conteúdo musical`;
 
                 blocks.forEach((block, index) => {
                     if (block.type === 'text' && block.content) {
-                        blocks[index].content = ChordTranspose.transposeBlockContent(block.content, semitones, countRef);
+                        blocks[index].content = ChordLines.transposeBlockContent(block.content, semitones, countRef);
                     }
                 });
 

@@ -217,9 +217,13 @@
         updateBibleDisplay(data.reference || 'Bíblia', verseText);
     });
 
-    const _reAcorde = /^[\s]*[A-G][#b]?(?:m|maj|min|sus|aug|dim|add|M)?(?:\d+)?(?:\/[A-G][#b]?)?(?:\s+[A-G][#b]?(?:m|maj|min|sus|aug|dim|add|M)?(?:\d+)?(?:\/[A-G][#b]?)?)*[\s]*$/;
+    // Detecção de linha de cifra via ChordLines.isChordLine
+    // (static/js/chord_lines.js) — mesma lógica robusta usada em toda
+    // tela que lida com cifra no projeto (linha inteira, não palavra por
+    // palavra). Aqui a linha de cifra é COLORIDA (mantida visível), não
+    // eliminada — é a tela de retorno de palco, pros músicos.
     function temCifra(text) {
-        return text.split('\n').some(l => l.trim() && _reAcorde.test(l));
+        return text.split('\n').some(l => l.trim() && ChordLines.isChordLine(l));
     }
 
     function applyChordColors(el, text) {
@@ -232,7 +236,7 @@
                 span.className = 'private-note';
                 span.textContent = '📝 ' + line.trim().slice(2).trim();
                 el.appendChild(span);
-            } else if (_reAcorde.test(line)) {
+            } else if (ChordLines.isChordLine(line)) {
                 const span = document.createElement('span');
                 span.className = 'chord';
                 span.textContent = line;
@@ -292,11 +296,15 @@
         // Próximo slide
         const nextBox = document.getElementById('next-section-box');
         if (data.nextTitle != null) {
-            const _reChord = /^[\s]*[A-G][b#♭♯]?[^À-ɏ\w]*[\sA-G0-9#♭♯°ºbm\/\(\)]*$/;
+            // Mesmo ChordLines.isChordLine usado no resto do arquivo —
+            // antes era uma 2ª regex diferente só pra esse preview,
+            // divergente de _reAcorde (agora ChordLines.isChordLine) que
+            // colore a exibição principal, risco de uma reconhecer uma
+            // linha como cifra e a outra não pra o mesmo texto.
             const previewLines = (data.nextText || '')
                 .split('\n')
                 .map(l => l.trim())
-                .filter(l => l && !l.startsWith('//') && !_reChord.test(l))
+                .filter(l => l && !l.startsWith('//') && !ChordLines.isChordLine(l))
                 .slice(0, 3);
             const preview = previewLines.join('  /  ');
             nextBox.innerHTML =

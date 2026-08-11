@@ -8,82 +8,22 @@
             adjustFontSize();
         };
     
+        // Elimina linha de cifra inteira (ChordLines.stripChordLines,
+        // static/js/chord_lines.js) — tela pública não deve mostrar
+        // cifra nenhuma, só a letra. Antes disso era ~65 linhas de regex
+        // tentando limpar cifra palavra-por-palavra dentro do texto
+        // (comentário original já admitia a fragilidade: "removemos a
+        // limpeza agressiva de A/Em/etc. para não sumir com 'Em' de
+        // frases"); o gate de linha inteira resolve isso de raiz.
         const formatLyrics = (text) => {
-    console.log('🎵 Public: Formatando letras (removendo cifras)...');
-    const lines = text.split('\n');
-    
-    return lines.map((line, idx) => {
-        // Remove notas privadas de palco
-        if (line.trim().startsWith('//')) return '';
+            if (!text) return '';
+            const withoutChords = ChordLines.stripChordLines(text);
+            return withoutChords.split('\n')
+                .filter(line => !line.trim().startsWith('//')) // remove notas privadas de palco
+                .filter(line => line.trim() !== '')
+                .join('<br>');
+        };
 
-        const originalLine = line;
-
-        // PRIMEIRO: Verifica se a linha é só cifras (antes de processar)
-        // Remove espaços e underscores temporariamente para verificar
-        const testLine = line.replace(/[\s_]+/g, ' ').trim();
-        // Se linha tem só cifras (letras A-G, números, símbolos musicais, barras, parênteses, modificadores)
-        // Modificadores: m, maj, min, dim, aug, sus, add
-        if (/^[A-G0-9#♯♭b°º\/\(\)+maijndugse\s]+$/i.test(testLine) && testLine.length > 0) {
-            // Verifica se NÃO tem palavras reais (mais de 4 letras seguidas que não sejam modificadores)
-            if (!/[a-záàâãéèêíïóôõöúçñ]{5,}/i.test(testLine)) {
-                console.log(`  Linha ${idx}: "${originalLine}" → [LINHA DE CIFRAS - REMOVIDA]`);
-                return ''; // Remove linha inteira
-            }
-        }
-        
-        // SEGUNDO: Remove cifras do texto
-        let cleanedLine = line
-            // Remove cifras C, D, F, G, B com modificadores
-            .replace(/\b([CDFGB])(?:[b#♭♯])?(?:\d+)?(?:m|maj|min|dim|aug|sus|add)?(?:\d+)?(?:\([^)]*\))?(?:\/[CDEFGAB](?:[b#♭♯])?)?\b(?![a-záàâãéèêíïóôõöúçñ])/gi, '')
-            // (Removemos a limpeza agressiva de A/Em/etc. para não sumir com \"Em\" de frases)
-            // Remove parênteses com números isolados (restos de cifras como (6), (9), etc.)
-            .replace(/\(\d+\)/g, '')
-            // Remove números isolados entre espaços
-            .replace(/\s+\d+\s+/g, ' ')
-            // Remove símbolos musicais residuais (# ♯ ♭ ° º) mas NÃO remove 'b' pois pode ser letra
-            .replace(/[#♯♭°º]/g, '')
-            // Remove underscores
-            .replace(/_/g, '')
-            // Remove parênteses vazios
-            .replace(/\(\s*\)/g, '')
-            // Remove colchetes vazios
-            .replace(/\[\s*\]/g, '')
-            // Remove padrões de compasso com cifras que podem sobrar (ex: "| E | E |" ou "|A|")
-            .replace(/\|\s*[A-G](?:[b#♭♯])?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]*\))?(?:\/[A-G](?:[b#♭♯])?)?\s*\|/gi, '')
-            // Remove barras de compasso soltas
-            .replace(/\|/g, '')
-            // Remove acordes isolados que sobram (ex: " C ", " G "), exceto A e E que são palavras em português
-            .replace(/(^|\s)([CDFGB])(?=\s|$)/g, '$1')
-            // Remove resíduos de acordes com barra que podem sobrar (ex: "E/" de "E/G3")
-            .replace(/\b([A-G])\/(?:[A-G](?:\d+)?(?:[b#♭♯])?)?\b/gi, '')
-            // Remove '/' solta que sobrar
-            .replace(/\//g, '')
-            // Remove '+' que pode sobrar após remoção de cifras (ex: "E11+")
-            .replace(/\+/g, '')
-            // Remove múltiplos espaços
-            .replace(/\s+/g, ' ')
-            // Remove espaços no início e fim
-            .trim();
-        
-        if (originalLine !== cleanedLine && cleanedLine) {
-            console.log(`  Linha ${idx}: "${originalLine}" → "${cleanedLine}"`);
-        }
-        
-        return cleanedLine;
-    })
-    .filter(line => line !== '') // Remove linhas completamente vazias
-    .join('<br>'); // Junta com quebras de linha HTML
-};
-
-// Exemplo de uso
-const lyrics = `Meu Jesus, Salvador
-Outro igual não há
-Todos os dias quero louvar
-As maravilhas de teu amor`;
-
-const formattedLyrics = formatLyrics(lyrics);
-console.log(formattedLyrics);
-    
         const saveToLocalStorage = (title, text, songId) => {
             localStorage.setItem('currentTitle', title);
             localStorage.setItem('currentText', text);

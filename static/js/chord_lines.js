@@ -1,22 +1,23 @@
 /*
- * Transposição de cifras em texto plano (letra+cifra intercalada nos
- * blocos de new_song.html/edit_song.html) — compartilhado entre os dois,
- * que antes tinham essa lógica duplicada byte-a-byte.
+ * Lógica de linha de cifra (texto plano, letra+cifra intercalada) —
+ * compartilhada por toda tela que precisa TRANSPOR (new_song/edit_song),
+ * ELIMINAR (tela pública) ou COLORIR (retorno de palco, página de
+ * referência /view) uma cifra. Cada uma dessas 5 telas tinha sua própria
+ * reimplementação da mesma detecção, com robustez diferente entre elas.
  *
- * Script clássico (não ES module) de propósito: as duas páginas chamam
- * essas funções de dentro de onclick="" inline e de closures que já
- * existem antes de qualquer import assíncrono resolver, então um
- * `import()` dinâmico (como o usado pra static/js/sheet_render.js, que
- * é uma lib pesada carregada sob demanda) traria complexidade sem
- * necessidade aqui — isso é só JS puro, pequeno, sem dependência.
+ * Script clássico (não ES module) de propósito: as páginas chamam essas
+ * funções de dentro de onclick="" inline e de closures que já existem
+ * antes de qualquer import assíncrono resolver — diferente do
+ * static/js/sheet_render.js (lib pesada, carregada sob demanda via
+ * import() dinâmico), isso é só JS puro, pequeno, sem dependência.
  *
- * Classifica por LINHA inteira antes de transpor (mesma estratégia do
- * Quelea, org.quelea.services.utils.LineTypeChecker.checkChords): só
- * mexe numa linha se TODOS os tokens baterem com o padrão de acorde. Uma
- * linha de letra real quase sempre tem alguma palavra multissílaba/
- * acentuada que não bate, então cai inteira como letra — sem precisar de
- * lista de exceção pra palavras que colidem com forma de acorde ("Em",
- * "Deus", "Fé", "Se"...).
+ * Classifica por LINHA inteira (mesma estratégia do Quelea,
+ * org.quelea.services.utils.LineTypeChecker.checkChords): só mexe numa
+ * linha se TODOS os tokens baterem com o padrão de acorde. Uma linha de
+ * letra real quase sempre tem alguma palavra multissílaba/acentuada que
+ * não bate, então cai inteira como letra — sem precisar de lista de
+ * exceção pra palavras que colidem com forma de acorde ("Em", "Deus",
+ * "Fé", "Se"...).
  */
 (function (global) {
   const CHORD_MAP = {
@@ -104,12 +105,45 @@
     return newLines.join('\n');
   }
 
-  global.ChordTranspose = {
+  // Remove linhas de cifra inteiras de um texto multi-linha (usado pela
+  // tela pública, que não deve mostrar cifra nenhuma). Mantém as linhas
+  // de letra exatamente como estão — não tenta limpar cifra dentro de
+  // uma linha mista, porque na prática cifra e letra sempre vêm em
+  // linhas separadas (confirmado nos dados reais do projeto), então essa
+  // cirurgia por palavra nunca é necessária e só adiciona risco.
+  function stripChordLines(text) {
+    if (!text) return '';
+    return text.split('\n')
+      .filter(line => !isChordLine(line))
+      .join('\n');
+  }
+
+  // Envolve cada token (separado por espaço) de uma linha em
+  // <span class="chord">...</span> — inclui barra de compasso "|" e
+  // parênteses que estejam colados/soltos no meio dos tokens, já que
+  // viram "parts" como qualquer outro token não-espaço. Só chame depois
+  // de confirmar isChordLine(line) — não filtra nada sozinha, e não
+  // escapa HTML (espera texto já pronto pra ir direto num innerHTML,
+  // mesmo padrão que view_song.html já usava).
+  function highlightChordTokensHtml(line) {
+    const leading = line.match(/^\s*/)[0];
+    const rest = line.slice(leading.length);
+    const parts = rest.split(/(\s+)/);
+    const html = parts.map(part => {
+      if (part === '' || /^\s+$/.test(part)) return part;
+      return `<span class="chord">${part}</span>`;
+    }).join('');
+    return leading + html;
+  }
+
+  global.ChordLines = {
     chordMap: CHORD_MAP,
     chordNames: CHORD_NAMES,
     transposeChord,
     isChordLine,
     transposeLine,
     transposeBlockContent,
+    stripChordLines,
+    highlightChordTokensHtml,
   };
 })(window);

@@ -7,6 +7,7 @@
     <!-- Adicione no <head> -->
         <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
         <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+        <script src="{{ url_for('static', filename='js/chord_lines.js') }}"></script>
         <script src="/static/js/youtube-player.js?v=10"></script>
 
     <title>Visualizar Músicas</title>
@@ -952,115 +953,49 @@ window.onload = () => {
   {% endif %}
   {% endif %}
   
-  // Destaca acordes em verde
+  // Destaca acordes em verde — detecção de linha de cifra via
+  // ChordLines.isChordLine (static/js/chord_lines.js), a mesma lógica
+  // robusta usada em toda tela que lida com cifra no projeto (linha
+  // inteira, não palavra por palavra com lista de exceção). Antes disso
+  // era uma heurística por percentual (linha de cifra se ≥60% dos
+  // tokens pareciam acorde) — mais frouxa que as outras implementações
+  // do projeto, maior risco de falso positivo numa linha de letra curta.
   function highlightChords() {
     const preElements = document.querySelectorAll('pre');
-    
+
     preElements.forEach(pre => {
       // Evita processar se já foi processado
       if (pre.dataset.chordsHighlighted) return;
       pre.dataset.chordsHighlighted = 'true';
-      
+
       const originalContent = pre.innerHTML;
-      
-      // Regex que captura acordes musicais comuns
-      // Captura: C, Cm, C7, C7M, Cmaj7, C/G, C9, Csus4, Cdim, Caug, D#, A#, D#7M, Gm, Em7, G4(6), F7M, D#°, |A|, D/F#, etc.
-      // Observação: o delimitador após o acorde é checado via lookahead para não consumir caracteres.
-      const chordRegex = /(^|[\s\[(\|\|])([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\([0-9/]+\))?(?:\/[A-G][#b]?)?)(?=$|[\s\]\)\n,\|])/gm;
-      
-      // Palavras em português que parecem acordes mas não são
-      const notChords = ['DA', 'DE', 'DO', 'EU', 'ELA', 'ELE', 'SE', 'ME', 'TE', 'AS', 'OS', 'BEM', 'MAL', 'CÉU', 'DEU', 'FEZ'];
-      
-      // Heurística: decide por linha se ela é "linha de cifra" (maioria de tokens parecem acordes)
-      const lineLooksLikeChordLine = (line) => {
-        const plain = line.replace(/<[^>]*>/g, '');
-        const tokens = plain.trim().split(/\s+/).filter(Boolean);
-        if (tokens.length === 0) return false;
-        
-        // Se tem qualquer token com 2+ chars ou com #/b/m/7/etc, tende a ser cifra
-        const chordLikeToken = /^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\([0-9/]+\))?(?:\/[A-G][#b]?)?$/;
-        let chordLikeCount = 0;
-        
-        for (const t of tokens) {
-          const up = t.toUpperCase();
-          if (notChords.includes(up)) continue;
-          if (chordLikeToken.test(t)) chordLikeCount += 1;
-        }
-        
-        // Considera "linha de cifra" se >= 60% dos tokens parecem acordes
-        // OU se houver pelo menos 2 tokens de acorde na linha (caso comum: "E11+  E  A")
-        return (chordLikeCount / tokens.length >= 0.6) || chordLikeCount >= 2;
-      };
-      
       const lines = originalContent.split('\n');
+
       const processedLines = lines.map((line) => {
-        // Linhas de comentário: estilos antes do processamento de acordes
-        if (line.replace(/<[^>]*>/g, '').trim().startsWith('//')) {
+        const plain = line.replace(/<[^>]*>/g, '');
+
+        // Linhas de comentário: destaca antes de qualquer coisa
+        if (plain.trim().startsWith('//')) {
           return `<span class="comment-line">${line}</span>`;
         }
-        const isChordLine = lineLooksLikeChordLine(line);
-        let processedLine = line.replace(chordRegex, (match, prefix, chord) => {
-          const upper = chord.toUpperCase();
-          
-          // Ignora palavras comuns em português
-          if (notChords.includes(upper)) {
-            return match;
-          }
 
-          // "Em" (e similares) pode ser preposição no início da frase.
-          // Se a linha não é de cifra e o token parece estar iniciando uma frase (seguido de palavra), não destaca.
-          if (!isChordLine) {
-            // Caso clássico reportado: "Em nome..." (Em + espaço + letra minúscula)
-            if (/^[A-G]m$/.test(chord)) {
-              const pos = line.indexOf(match);
-              const nextChar = pos >= 0 ? line.charAt(pos + match.length) : '';
-              if (nextChar && /[a-zàáâãéêíóôõúç]/.test(nextChar)) {
-                return match;
-              }
-            }
+        let processedLine = ChordLines.isChordLine(plain)
+          ? ChordLines.highlightChordTokensHtml(line)
+          : line;
 
-            // Em linhas de letra, evita destacar acordes "curtos" que colidem com palavras (Em, Am, etc.).
-            // Permite apenas acordes com modificadores (7, sus, add, dim, aug, slash, #/b, etc.) ou mais longos.
-            const isPotentiallyAmbiguousShortChord = /^[A-G](?:m|min|M|maj)?$/.test(chord);
-            const hasChordModifiers = /[#b]|\/(?:[A-G])|\d|sus|dim|aug|add|°|º|maj|min/i.test(chord);
-            if (isPotentiallyAmbiguousShortChord && !hasChordModifiers) {
-              return match;
-            }
-          }
-          
-          // A/E isolados: só pinta se a linha inteira aparentar ser linha de cifra
-          if ((chord === 'A' || chord === 'E') && chord.length === 1 && !isChordLine) {
-            // Se está entre barras de compasso (| A |), deve ser acorde
-            const isBarChord = match.includes('|') || prefix.includes('|');
-            if (!isBarChord) {
-              return match;
-            }
-          }
-          
-          return `${prefix}<span class="chord">${chord}</span>`;
-        });
-
-        // Se for linha de cifra, pinta também barras de compasso e parênteses
-        if (isChordLine) {
-          processedLine = processedLine
-            .replace(/\|/g, '<span class="chord">|</span>')
-            .replace(/\(/g, '<span class="chord">(</span>')
-            .replace(/\)/g, '<span class="chord">)</span>');
-        }
-
-        // Segunda passada: destaca acordes explicitamente entre barras de compasso, ex: "|  A   |"
-        // (não depende do contexto da linha ser cifra)
+        // Destaca acorde isolado entre barras de compasso mesmo fora de
+        // linha de cifra (ex.: "algumas palavras | A | mais palavras")
         processedLine = processedLine.replace(/\|\s*([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\/[A-G][#b]?)?)\s*\|/g, (m, chord) => {
           return `<span class="chord">|</span> <span class="chord">${chord}</span> <span class="chord">|</span>`;
         });
 
         return processedLine;
       });
-      
+
       pre.innerHTML = processedLines.join('\n');
     });
   }
-  
+
   // Executa após carregar a página
   highlightChords();
   
