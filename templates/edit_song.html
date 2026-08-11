@@ -153,6 +153,7 @@
 
 
 <script id="edit-song-data" type="application/json">{{ {"songId": (song.id if song else 0), "song": (song if song else none)} | tojson }}</script>
+    <script src="{{ url_for('static', filename='js/chord_transpose.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pages/edit_song.js') }}"></script>
 
     <!-- Editor VexFlow Modal -->
