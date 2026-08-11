@@ -7,7 +7,7 @@
     <!-- Adicione no <head> -->
         <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
         <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-        <script src="{{ url_for('static', filename='js/chord_lines.js') }}"></script>
+        <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
         <script src="/static/js/youtube-player.js?v=10"></script>
 
     <title>Visualizar Músicas</title>
@@ -580,6 +580,125 @@
             white-space: pre !important;
             tab-size: 4;
         }
+
+        /* Widget "Tom: X" estilo Cifra Club — clicar no rótulo abre uma
+           janelinha flutuante com desfazer/±meio-tom/grade de notas.
+           Cores seguem o tema escuro/verde já usado nesta página (mesmo
+           verde do .chord) em vez do roxo do editor. */
+        .tom-widget {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .tom-trigger {
+            display: inline-block;
+            font-size: 14px;
+            color: #e2e8f0;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .tom-trigger:hover {
+            background: rgba(74, 222, 128, 0.2);
+        }
+
+        .tom-trigger strong {
+            color: #4ade80;
+            font-size: 16px;
+        }
+
+        .tom-popover {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            z-index: 10000; /* acima do player flutuante (youtube-player.js usa 9999) */
+            width: 260px;
+            background: #16213e;
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+        }
+
+        .tom-popover-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .tom-btn {
+            flex: 1;
+            background: rgba(74, 222, 128, 0.12);
+            color: #e2e8f0;
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 6px;
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .tom-btn:hover {
+            background: rgba(74, 222, 128, 0.25);
+        }
+
+        .tom-icon-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .tom-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .tom-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+
+        .tom-key-btn {
+            padding: 8px 4px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .tom-key-btn:hover {
+            background: rgba(74, 222, 128, 0.2);
+        }
+
+        .tom-key-btn.active {
+            background: #4ade80;
+            color: #0a0a0a;
+            border-color: #4ade80;
+        }
         </style>
 </head>
 <body>
@@ -613,6 +732,35 @@
             </div>
         </div>
         
+        <!-- Widget de transposição estilo Cifra Club — só ajusta a exibição
+             no navegador (não salva no servidor); o tom escolhido fica
+             guardado em localStorage por música. -->
+        <div class="tom-widget">
+            <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
+            <div class="tom-popover" id="tomPanel">
+                <div class="tom-popover-row">
+                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
+                    <button type="button" class="tom-btn" onclick="transposeStep(-1)">−1/2 tom</button>
+                    <button type="button" class="tom-btn" onclick="transposeStep(1)">+1/2 tom</button>
+                    <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
+                </div>
+                <div class="tom-grid" id="tomGrid">
+                    <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
+                    <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
+                    <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
+                    <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
+                    <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
+                    <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
+                    <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
+                    <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
+                    <button type="button" class="tom-key-btn" data-key="F" onclick="jumpToKey('F')">F</button>
+                    <button type="button" class="tom-key-btn" data-key="F#" onclick="jumpToKey('F#')">F#</button>
+                    <button type="button" class="tom-key-btn" data-key="G" onclick="jumpToKey('G')">G</button>
+                    <button type="button" class="tom-key-btn" data-key="Ab" onclick="jumpToKey('Ab')">Ab</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Card único para toda a música -->
         <div class="song-content-card">
         {% if song.sections %}
@@ -960,17 +1108,48 @@ window.onload = () => {
   // era uma heurística por percentual (linha de cifra se ≥60% dos
   // tokens pareciam acorde) — mais frouxa que as outras implementações
   // do projeto, maior risco de falso positivo numa linha de letra curta.
-  function highlightChords() {
+  //
+  // Widget "Tom: X" estilo Cifra Club: transpõe só a exibição no
+  // navegador (esta página é pública/somente leitura, não salva no
+  // servidor). O tom escolhido persiste em localStorage por música, pra
+  // não perder ao recarregar a página.
+  const SONG_ID = {{ song.id }};
+  const TRANSPOSE_STORAGE_KEY = 'ucontrol_transpose_' + SONG_ID;
+  let transposeOffset = parseInt(localStorage.getItem(TRANSPOSE_STORAGE_KEY), 10) || 0;
+
+  function saveTransposeOffset() {
+    try {
+      if (transposeOffset === 0) {
+        localStorage.removeItem(TRANSPOSE_STORAGE_KEY);
+      } else {
+        localStorage.setItem(TRANSPOSE_STORAGE_KEY, String(transposeOffset));
+      }
+    } catch (e) {
+      // localStorage indisponível (modo privado, cookies bloqueados...) —
+      // a transposição ainda funciona nesta visita, só não persiste.
+    }
+  }
+
+  // Re-renderiza todo <pre> a partir do texto original (guardado em
+  // dataset.rawText na primeira passada), aplicando a transposição
+  // acumulada e depois o destaque de acordes — sempre recalculado do
+  // zero, nunca transpõe em cima de HTML já transposto, então não há
+  // risco de acumular erro nem de precisar desfazer manualmente.
+  function renderChords() {
     const preElements = document.querySelectorAll('pre');
+    const currentContents = [];
 
     preElements.forEach(pre => {
-      // Evita processar se já foi processado
-      if (pre.dataset.chordsHighlighted) return;
-      pre.dataset.chordsHighlighted = 'true';
+      if (pre.dataset.rawText === undefined) {
+        pre.dataset.rawText = pre.innerHTML;
+      }
+      const raw = pre.dataset.rawText;
+      const content = transposeOffset !== 0
+        ? ChordLines.transposeBlockContent(raw, transposeOffset)
+        : raw;
+      currentContents.push(content);
 
-      const originalContent = pre.innerHTML;
-      const lines = originalContent.split('\n');
-
+      const lines = content.split('\n');
       const processedLines = lines.map((line) => {
         const plain = line.replace(/<[^>]*>/g, '');
 
@@ -994,11 +1173,67 @@ window.onload = () => {
 
       pre.innerHTML = processedLines.join('\n');
     });
+
+    const tomEl = document.getElementById('tomAtual');
+    if (tomEl) {
+      const firstChord = ChordLines.detectFirstChordToken(currentContents);
+      const key = firstChord ? ChordLines.describeKey(firstChord) : null;
+      tomEl.textContent = key || '—';
+      const root = key ? key.replace(/m$/, '') : null;
+      document.querySelectorAll('#tomGrid button[data-key]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.key === root);
+      });
+    }
   }
 
-  // Executa após carregar a página
-  highlightChords();
-  
+  window.transposeStep = function(semitones) {
+    transposeOffset += semitones;
+    renderChords();
+    saveTransposeOffset();
+  };
+
+  window.undoTranspose = function() {
+    if (transposeOffset === 0) return;
+    transposeOffset = 0;
+    renderChords();
+    saveTransposeOffset();
+  };
+
+  window.jumpToKey = function(targetRoot) {
+    const tomEl = document.getElementById('tomAtual');
+    const current = tomEl ? tomEl.textContent : null;
+    if (!current || current === '—') return;
+    const currentRoot = current.replace(/m$/, '');
+    const currentIndex = ChordLines.chordMap[currentRoot];
+    const targetIndex = ChordLines.chordMap[targetRoot];
+    if (currentIndex === undefined || targetIndex === undefined) return;
+    let delta = (targetIndex - currentIndex + 12) % 12;
+    if (delta > 6) delta -= 12; // caminho mais curto, só estética
+    if (delta === 0) return;
+    window.transposeStep(delta);
+  };
+
+  window.toggleKeyGrid = function() {
+    const panel = document.getElementById('tomPanel');
+    if (!panel) return;
+    const isHidden = getComputedStyle(panel).display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+  };
+
+  document.addEventListener('click', function(e) {
+    const widget = document.querySelector('.tom-widget');
+    const panel = document.getElementById('tomPanel');
+    if (!widget || !panel) return;
+    if (getComputedStyle(panel).display === 'none') return;
+    if (!widget.contains(e.target)) {
+      panel.style.display = 'none';
+    }
+  });
+
+  // Executa após carregar a página — já aplica o tom salvo em
+  // localStorage (transposeOffset acima), se houver.
+  renderChords();
+
   // Habilita teclas de seta para scroll da página
   document.addEventListener('keydown', function(e) {
     const scrollAmount = 100; // pixels por tecla
