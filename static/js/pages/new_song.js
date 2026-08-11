@@ -182,9 +182,10 @@
                 $(this).closest('.section').remove();
             });
 
-            $('#songForm').submit(function(event) {
+            $('#songForm').submit(async function(event) {
                 event.preventDefault();
-                
+                const { normalizeSheetData } = await import('/static/js/sheet_render.js');
+
                 console.log('📤 Enviando formulário...');
                 console.log('🎼 Dados da partitura disponíveis:', window.currentSheetData);
                 
@@ -272,47 +273,22 @@
                             console.log(`🎼 Marcação de partitura adicionada em nova seção sem título`);
                         }
                         
-                        // Extrai os dados da partitura do bloco
+                        // Extrai os dados da partitura do bloco — mantém o
+                        // formato canônico (measures aninhado) em vez de
+                        // achatar pra "notes" com perda de pausas/pontos/
+                        // acidentes/ligaduras. normalizeSheetData entende
+                        // tanto esse formato quanto o antigo, caso algum
+                        // bloco ainda esteja no formato legado. Ver Fase 7
+                        // em .claude/plans/harmonic-mixing-breeze.md.
                         if (block.sheetData) {
                             try {
                                 const parsedData = JSON.parse(block.sheetData);
-                                
-                                // Converte para o formato esperado pelo backend
-                                const convertedNotes = [];
-                                if (parsedData.measures && Array.isArray(parsedData.measures)) {
-                                    parsedData.measures.forEach(measure => {
-                                        if (Array.isArray(measure)) {
-                                            measure.forEach(note => {
-                                                if (note.pitch && note.duration) {
-                                                    convertedNotes.push({
-                                                        keys: [note.pitch],
-                                                        duration: note.duration,
-                                                        accidental: null
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                                
-                                const sheetEntry = {
-                                    id: sheetId,
-                                    notes: convertedNotes,
-                                    time_signature: parsedData.timeSig || "4/4",
-                                    clef: parsedData.clef || "treble",
-                                    // Salva também a armadura de clave (se existir)
-                                    keySig: parsedData.keySig || parsedData.key_signature || parsedData.key || null
-                                };
-                                
-                                // Inclui cifras se existirem
-                                if (parsedData.chords && parsedData.chords.length > 0) {
-                                    sheetEntry.chords = parsedData.chords;
-                                    console.log(`🎵 Incluindo ${parsedData.chords.length} cifras na partitura`);
-                                }
-                                
+                                const normalized = normalizeSheetData(parsedData);
+                                const sheetEntry = { id: sheetId, ...normalized };
                                 sheetDataArray.push(sheetEntry);
-                                
-                                console.log(`🎼 Partitura ${sheetId} adicionada com ${convertedNotes.length} notas`);
+
+                                const noteCount = normalized.measures.reduce((n, m) => n + m.length, 0);
+                                console.log(`🎼 Partitura ${sheetId} adicionada com ${noteCount} notas`);
                             } catch (e) {
                                 console.error('❌ Erro ao processar dados da partitura:', e);
                             }
@@ -377,7 +353,8 @@
                     console.log(`✅ ${sheetDataArray.length} partitura(s) adicionada(s) ao formulário`);
                     console.log('📊 Sheet data completo:', sheetDataString);
                     sheetDataArray.forEach((sheet, idx) => {
-                        console.log(`  📊 Partitura ${idx + 1} (ID: ${sheet.id}): ${sheet.notes.length} notas`);
+                        const noteCount = (sheet.measures || []).reduce((n, m) => n + m.length, 0);
+                        console.log(`  📊 Partitura ${idx + 1} (ID: ${sheet.id}): ${noteCount} notas`);
                     });
                 } else {
                     console.log('⚠️ Nenhum dado de partitura para enviar');
@@ -1722,54 +1699,28 @@
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
                 
                 // Monitora fechamento
-                const checkClosed = setInterval(() => {
+                const checkClosed = setInterval(async () => {
                     if (vexWindow.closed) {
                         clearInterval(checkClosed);
-                        
+
                         console.log('🎼 Editor VexFlow fechado, capturando dados...');
-                        
-                        // Captura dados da partitura para persistência
+
+                        // Captura dados da partitura para persistência — mantém
+                        // o formato canônico (measures) em vez de achatar pra
+                        // "notes" com perda de dados. Ver Fase 7 em
+                        // .claude/plans/harmonic-mixing-breeze.md.
                         const sheetDataFromStorage = localStorage.getItem('vexflow_sheet_data');
                         if (sheetDataFromStorage) {
                             try {
                                 const parsedData = JSON.parse(sheetDataFromStorage);
                                 console.log('📊 Dados capturados do localStorage:', parsedData);
-                                
-                                // Converte para formato compatível com nosso sistema
-                                const convertedNotes = [];
-                                if (parsedData.measures && parsedData.measures.length > 0) {
-                                    parsedData.measures.forEach(measure => {
-                                        if (Array.isArray(measure)) {
-                                            measure.forEach(note => {
-                                                if (note.pitch && note.duration) {
-                                                    convertedNotes.push({
-                                                        keys: [note.pitch],
-                                                        duration: note.duration,
-                                                        accidental: null
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                                
-                                // Salva os dados globalmente para envio posterior
-                                window.currentSheetData = {
-                                    notes: convertedNotes,
-                                    time_signature: parsedData.timeSig || "4/4",
-                                    clef: parsedData.clef || "treble"
-                                };
-                                
-                                // Inclui cifras se existirem
-                                if (parsedData.chords && parsedData.chords.length > 0) {
-                                    window.currentSheetData.chords = parsedData.chords;
-                                    console.log(`🎵 Incluindo ${parsedData.chords.length} cifras na partitura`);
-                                }
-                                
-                                console.log('💾 Dados convertidos e salvos globalmente:', window.currentSheetData);
-                                
-                                // Adiciona marcador no texto se há notas
-                                if (convertedNotes.length > 0) {
+
+                                const { normalizeSheetData } = await import('/static/js/sheet_render.js');
+                                window.currentSheetData = normalizeSheetData(parsedData);
+                                console.log('💾 Dados salvos globalmente:', window.currentSheetData);
+
+                                const noteCount = window.currentSheetData.measures.reduce((n, m) => n + m.length, 0);
+                                if (noteCount > 0) {
                                     const textareas = document.querySelectorAll('textarea[name="texts[]"]');
                                     const textarea = textareas[textareas.length - 1]; // Pega o último textarea
                                     if (textarea && !textarea.value.includes('[🎼 PARTITURA_INTEGRADA]')) {
@@ -1777,7 +1728,7 @@
                                         console.log('📝 Marcador adicionado ao texto');
                                     }
                                 }
-                                
+
                             } catch (error) {
                                 console.error('❌ Erro ao processar dados da partitura:', error);
                             }

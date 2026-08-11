@@ -15,6 +15,16 @@ logger = logging.getLogger('ucontrol')
 songs_bp = Blueprint('songs', __name__)
 
 
+def _count_notes(sheet):
+    """Conta notas de um dict de partitura, só pra log de debug — aceita
+    o formato canônico (measures aninhado) e o antigo (notes achatado,
+    de antes da Fase 1 da unificação de renderização VexFlow)."""
+    measures = sheet.get('measures')
+    if isinstance(measures, list):
+        return sum(len(m) if isinstance(m, list) else 1 for m in measures)
+    return len(sheet.get('notes') or [])
+
+
 # --- Rotas principais editor---
 
 @songs_bp.route('/songs')
@@ -141,10 +151,10 @@ def add_song():
 
             # Verifica se é array (múltiplas partituras) ou objeto (partitura única)
             if isinstance(sheet_data, list):
-                total_notes = sum(len(s.get('notes', [])) for s in sheet_data)
+                total_notes = sum(_count_notes(s) for s in sheet_data)
                 logger.debug(f"✅ [DEBUG] {len(sheet_data)} partitura(s) adicionada(s) com {total_notes} notas no total")
             else:
-                logger.debug(f"✅ [DEBUG] Sheet data adicionado com {len(sheet_data.get('notes', []))} notas")
+                logger.debug(f"✅ [DEBUG] Sheet data adicionado com {_count_notes(sheet_data)} notas")
         except (json.JSONDecodeError, ValueError) as e:
             logger.debug(f"❌ [DEBUG] Erro ao fazer parse do JSON: {e}")
 
@@ -172,10 +182,10 @@ def add_song():
     if new_song.get('sheet_data'):
         sheet_data = new_song['sheet_data']
         if isinstance(sheet_data, list):
-            total_notes = sum(len(s.get('notes', [])) for s in sheet_data)
+            total_notes = sum(_count_notes(s) for s in sheet_data)
             logger.debug(f"📊 [DEBUG] {len(sheet_data)} partitura(s) na música final com {total_notes} notas no total")
         else:
-            logger.debug(f"📊 [DEBUG] Notas na música final: {len(sheet_data.get('notes', []))}")
+            logger.debug(f"📊 [DEBUG] Notas na música final: {_count_notes(sheet_data)}")
 
     songs.append(new_song)
     save_songs(songs)
@@ -241,10 +251,10 @@ def edit_song(song_id):
 
                 # Verifica se é array (múltiplas partituras) ou objeto (partitura única)
                 if isinstance(sheet_data, list):
-                    total_notes = sum(len(s.get('notes', [])) for s in sheet_data)
+                    total_notes = sum(_count_notes(s) for s in sheet_data)
                     logger.debug(f"✅ [DEBUG] {len(sheet_data)} partitura(s) atualizada(s) com {total_notes} notas no total")
                 else:
-                    logger.debug(f"✅ [DEBUG] Partitura atualizada com {len(sheet_data.get('notes', []))} notas")
+                    logger.debug(f"✅ [DEBUG] Partitura atualizada com {_count_notes(sheet_data)} notas")
             except (json.JSONDecodeError, ValueError) as e:
                 logger.debug(f"❌ [DEBUG] Erro ao fazer parse do JSON: {e}")
 
