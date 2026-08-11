@@ -2459,7 +2459,13 @@ Com mais conteúdo musical`;
                 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
             };
             
-            const chordNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            // Grafia por nota (mistura sustenido/bemol) em vez de sempre
+            // sustenido — mesma convenção usada pelo Quelea
+            // (ChordTransposer.TRANSPOSE_STEPS), o resultado padrão de
+            // notação musical mais comum quando não se sabe a tonalidade
+            // de destino (ex: transpor pra 3 semitons acima de C vira
+            // "Eb", não "D#").
+            const chordNames = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
             
             // Função para transpor um acorde individual (incluindo baixo após a barra)
             function transposeChord(chord, semitones) {
