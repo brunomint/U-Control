@@ -382,26 +382,6 @@
                     });
                 });
 
-            const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        
-            function transposeChords() {
-                const chordsTextareas = document.querySelectorAll('textarea[name="texts[]"]');
-                const transposeValue = parseInt(document.getElementById("transpose").value);
-
-                chordsTextareas.forEach(textarea => {
-                    const inputText = textarea.value;
-
-                    const transposedText = inputText.replace(/([A-G]#?)(m|7|sus|dim|aug|\+|-|\d+)?/g, (match, root, suffix) => {
-                        const index = notes.indexOf(root);
-                        if (index === -1) return match;
-                        const newIndex = (index + transposeValue + notes.length) % notes.length;
-                        return notes[newIndex] + (suffix || "");
-                    });
-
-                    textarea.value = transposedText;
-                });
-            }
-
             // Funcionalidade de colar texto no campo entrada
             $('#entrada').on('paste', function (e) {
                 e.preventDefault();
@@ -1116,6 +1096,10 @@
             let selectionMode = false;
             let selectedBlocks = new Set();
             let currentSheetData = null;
+            // Semitons acumulados desde o carregamento — só serve pro
+            // botão "desfazer" (undoTranspose) voltar exatamente ao tom
+            // original aplicando o delta inverso.
+            let transposeOffset = 0;
             
             // Expõe o array blocks globalmente para o formulário poder acessá-lo
             window.editorBlocks = blocks;
@@ -1161,7 +1145,8 @@
                 
                 // Atualiza campo oculto
                 updateHiddenField();
-                
+                updateTomDisplay();
+
                 // Foca no primeiro input de seção após renderizar (apenas se não for skipFocus)
                 if (firstSectionInput && !skipFocus) {
                     setTimeout(() => {
@@ -1170,7 +1155,29 @@
                     }, 300);
                 }
             }
-            
+
+            // Atualiza o rótulo "Tom: X" com base no primeiro acorde
+            // encontrado nos blocos de texto, na ordem em que aparecem
+            // (ChordLines.detectFirstChordToken/describeKey, static/js/
+            // chord_lines.js) — não é infalível (uma música pode não
+            // começar no acorde de tônica), mas funciona sem precisar de
+            // nenhum dado extra cadastrado sobre a música.
+            function updateTomDisplay() {
+                const tomEl = document.getElementById('tomAtual');
+                if (!tomEl) return;
+                const contents = blocks.filter(b => b.type === 'text').map(b => b.content);
+                const firstChord = ChordLines.detectFirstChordToken(contents);
+                const key = firstChord ? ChordLines.describeKey(firstChord) : null;
+                tomEl.textContent = key || '—';
+
+                // Destaca o botão da grade que corresponde ao tom atual
+                // (ignora o "m" de menor — a grade escolhe só a nota base).
+                const root = key ? key.replace(/m$/, '') : null;
+                document.querySelectorAll('#tomGrid button[data-key]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.key === root);
+                });
+            }
+
             // Cria botão de inserção entre blocos
             function createInsertButton(position) {
                 const container = document.createElement('div');
@@ -1343,6 +1350,7 @@
                 div.addEventListener('input', () => {
                     blocks[index].content = div.value;
                     updateHiddenField();
+                    updateTomDisplay();
                     adjustHeight();
                 });
                 
@@ -2405,22 +2413,21 @@ Com mais conteúdo musical`;
             });
             
             // ===== FUNÇÃO DE TRANSPOSIÇÃO DE ACORDES =====
-            // Lógica de transposição em si (chordMap/chordNames/
-            // transposeChord/isChordLine/transposeLine) mora em
-            // static/js/chord_transpose.js, compartilhada com edit_song.js
-            // (as duas eram cópias idênticas). Aqui só sobra o que é
-            // específico desta página: percorrer os blocos e re-renderizar.
-            window.transposeChords = function() {
-                const transposeSelect = document.getElementById('transpose');
-                const semitones = parseInt(transposeSelect.value);
-
-                if (semitones === 0) {
-                    alert('ℹ️ Selecione um valor diferente de 0 para transpor.');
-                    return;
-                }
-
-                console.log(`🎵 Iniciando transposição de ${semitones > 0 ? '+' : ''}${semitones} semitons...`);
-
+            // Lógica em si (chordMap/chordNames/transposeChord/
+            // isChordLine/transposeLine/describeKey/detectFirstChordToken)
+            // mora em static/js/chord_lines.js, compartilhada com
+            // edit_song.js (as duas eram cópias idênticas). Aqui só sobra o
+            // que é específico desta página: percorrer os blocos,
+            // re-renderizar, e manter o rótulo "Tom" sincronizado.
+            //
+            // UI tipo Cifra Club: em vez de escolher quantos semitons de
+            // uma vez (select -5..+5) e confirmar num botão "Transpor",
+            // +/- aplica meio tom por clique, o rótulo "Tom: X" mostra o
+            // tom atual (detectado a partir do primeiro acorde do texto,
+            // igual o site já faz), um botão "desfazer" volta ao tom
+            // original e uma grade de 12 notas pula direto pro tom
+            // escolhido (como o seletor de tom do Cifra Club).
+            window.transposeStep = function(semitones) {
                 const countRef = { count: 0 };
 
                 blocks.forEach((block, index) => {
@@ -2429,22 +2436,62 @@ Com mais conteúdo musical`;
                     }
                 });
 
-                // Re-renderiza os blocos
-                renderBlocks();
-
-                // Feedback para o usuário
-                if (countRef.count > 0) {
-                    alert(`✅ Transposição concluída!\n\n🎵 ${countRef.count} acordes foram transpostos ${semitones > 0 ? '+' : ''}${semitones} semitons.`);
-                    console.log(`✅ ${countRef.count} acordes transpostos com sucesso!`);
-                } else {
-                    alert('ℹ️ Nenhum acorde foi encontrado para transpor.\n\nCertifique-se de que há acordes nos blocos de texto (ex: C, Am, F#, etc.)');
-                    console.log('ℹ️ Nenhum acorde encontrado para transposição');
-                }
-
-                // Reseta o seletor para 0
-                transposeSelect.value = '0';
+                transposeOffset += semitones;
+                renderBlocks(); // já atualiza o rótulo "Tom" (updateTomDisplay no fim de renderBlocks)
             };
-            
+
+            // Volta exatamente ao tom em que a música estava ao carregar a
+            // página, aplicando o delta inverso acumulado — não precisa
+            // guardar uma cópia do texto original porque a transposição é
+            // uma operação reversível (soma módulo 12).
+            window.undoTranspose = function() {
+                if (transposeOffset === 0) return;
+                window.transposeStep(-transposeOffset);
+            };
+
+            // Pula direto pro tom escolhido na grade, calculando o delta
+            // de semitons entre o tom atual e a nota clicada.
+            window.jumpToKey = function(targetRoot) {
+                const tomEl = document.getElementById('tomAtual');
+                const current = tomEl ? tomEl.textContent : null;
+                if (!current || current === '—') return;
+                const currentRoot = current.replace(/m$/, '');
+                const currentIndex = ChordLines.chordMap[currentRoot];
+                const targetIndex = ChordLines.chordMap[targetRoot];
+                if (currentIndex === undefined || targetIndex === undefined) return;
+                let delta = (targetIndex - currentIndex + 12) % 12;
+                if (delta > 6) delta -= 12; // caminho mais curto, só estética
+                if (delta === 0) return;
+                window.transposeStep(delta);
+            };
+
+            // Mostra/esconde a grade de tons (botão com seta ao lado do Tom).
+            // Abre/fecha a janelinha flutuante (like Cifra Club) com
+            // desfazer/±meio-tom/grade de notas — chamada tanto pelo clique
+            // no rótulo "Tom: X" quanto pelo ⌄ de fechar dentro do painel.
+            window.toggleKeyGrid = function() {
+                const panel = document.getElementById('tomPanel');
+                if (!panel) return;
+                // O estado escondido inicial vem da classe CSS (.tom-popover
+                // { display:none }), não de style inline — por isso lê o
+                // computado em vez de comparar panel.style.display direto.
+                const isHidden = getComputedStyle(panel).display === 'none';
+                panel.style.display = isHidden ? 'block' : 'none';
+            };
+
+            // Fecha a janelinha ao clicar fora dela (comportamento padrão
+            // de popover) — ignora cliques dentro do próprio widget, já
+            // tratados pelos onclick dos botões internos.
+            document.addEventListener('click', function(e) {
+                const widget = document.querySelector('.tom-widget');
+                const panel = document.getElementById('tomPanel');
+                if (!widget || !panel) return;
+                if (getComputedStyle(panel).display === 'none') return;
+                if (!widget.contains(e.target)) {
+                    panel.style.display = 'none';
+                }
+            });
+
             console.log('✅ Editor de blocos integrado inicializado!');
         });
 

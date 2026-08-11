@@ -84,21 +84,31 @@
             </div>
 
             <div class="toolbar">
-                <label for="transpose">Transposição (em semitons):</label>
-                <select id="transpose">
-                    <option value="-5">-5</option>
-                    <option value="-4">-4</option>
-                    <option value="-3">-3</option>
-                    <option value="-2">-2</option>
-                    <option value="-1">-1</option>
-                    <option value="0" selected>0</option>
-                    <option value="1">+1</option>
-                    <option value="2">+2</option>
-                    <option value="3">+3</option>
-                    <option value="4">+4</option>
-                    <option value="5">+5</option>
-                </select>
-                <button type="button"  class="bto-transpor" onclick="transposeChords()">Transpor</button>
+                <div class="tom-widget">
+                    <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
+                    <div class="tom-popover" id="tomPanel">
+                        <div class="tom-popover-row">
+                            <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
+                            <button type="button" class="bto-transpor" onclick="transposeStep(-1)">−1/2 tom</button>
+                            <button type="button" class="bto-transpor" onclick="transposeStep(1)">+1/2 tom</button>
+                            <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
+                        </div>
+                        <div class="tom-grid" id="tomGrid">
+                            <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
+                            <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
+                            <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
+                            <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
+                            <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
+                            <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
+                            <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
+                            <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
+                            <button type="button" class="tom-key-btn" data-key="F" onclick="jumpToKey('F')">F</button>
+                            <button type="button" class="tom-key-btn" data-key="F#" onclick="jumpToKey('F#')">F#</button>
+                            <button type="button" class="tom-key-btn" data-key="G" onclick="jumpToKey('G')">G</button>
+                            <button type="button" class="tom-key-btn" data-key="Ab" onclick="jumpToKey('Ab')">Ab</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="scrollable-div">
@@ -150,8 +160,8 @@
 
 
 
-    <script src="{{ url_for('static', filename='js/chord_lines.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/pages/new_song.js') }}"></script>
+    <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+    <script src="{{ versioned_static('js/pages/new_song.js') }}"></script>
 
     <!-- Editor VexFlow Modal -->
     <div id="vexEditor" class="vex-editor-container" style="display: none;">

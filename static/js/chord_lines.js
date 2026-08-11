@@ -136,6 +136,37 @@
     return leading + html;
   }
 
+  // Nome de tom pra exibir (ex: "G", "Am") a partir de um token de
+  // acorde — reduz sufixos de extensão (7, sus4, 9...) à indicação
+  // maior/menor só, que é o que "tom" quer dizer (Cmaj7 e C7 são os
+  // dois "tom de C", só a nota base + maior/menor importam aqui).
+  function describeKey(chordToken) {
+    const match = /^([A-G][#b]?)(.*)$/.exec(chordToken || '');
+    if (!match) return null;
+    const [, root, rest] = match;
+    const isMinor = /^m(?!aj)/.test(rest); // "m", "m7"... mas não "maj7"
+    return root + (isMinor ? 'm' : '');
+  }
+
+  // Acha o primeiro acorde de uma lista de blocos de texto (na ordem em
+  // que aparecem) — usado como palpite do "tom" da música, mesma
+  // convenção simples que ferramentas de cifra costumam usar (não é
+  // infalível: uma música pode não começar no acorde de tônica, mas
+  // funciona sem precisar de nenhum dado extra cadastrado).
+  function detectFirstChordToken(blockContents) {
+    for (const content of blockContents) {
+      if (!content) continue;
+      const lines = content.split('\n');
+      for (const line of lines) {
+        if (isChordLine(line)) {
+          const tokens = line.trim().split(/\s+/).filter(Boolean);
+          if (tokens.length) return tokens[0];
+        }
+      }
+    }
+    return null;
+  }
+
   global.ChordLines = {
     chordMap: CHORD_MAP,
     chordNames: CHORD_NAMES,
@@ -145,5 +176,7 @@
     transposeBlockContent,
     stripChordLines,
     highlightChordTokensHtml,
+    describeKey,
+    detectFirstChordToken,
   };
 })(window);

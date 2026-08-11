@@ -163,6 +163,20 @@ def create_app(config=None):
     app.register_blueprint(lyrics_bp)
     app.register_blueprint(display_bp)
 
+    def _versioned_static(filename):
+        # ?v=<mtime> força o navegador a buscar a versão nova sempre que o
+        # arquivo muda, sem precisar de hard-refresh manual — esses scripts
+        # são JS clássico (sem hash de build) e o Cache-Control:no-cache
+        # padrão do Flask nem sempre é revalidado numa aba já aberta.
+        path = os.path.join(app.static_folder, filename)
+        try:
+            v = int(os.path.getmtime(path))
+        except OSError:
+            v = 0
+        return url_for('static', filename=filename) + f'?v={v}'
+
+    app.jinja_env.globals['versioned_static'] = _versioned_static
+
     return app
 
 
