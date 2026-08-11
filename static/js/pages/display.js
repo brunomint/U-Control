@@ -368,133 +368,35 @@
         }
     });
     
-    // Função para renderizar partitura com VexFlow
+    // Função para renderizar partitura — desenho delegado a
+    // static/js/sheet_render.js, compartilhado com o editor e as outras
+    // telas de exibição (ver .claude/plans/harmonic-mixing-breeze.md).
     function renderSheet(title, sheetData) {
         console.log('🎼 Renderizando partitura:', title, sheetData);
-        
-        // Esconde texto, mostra container de partitura
+
         $('#section-text').hide();
         $('#sheet-container').show().empty();
         $('#section-title').text(title);
-        
-        // Verifica se há notas
-        if (!sheetData.notes || sheetData.notes.length === 0) {
+
+        const hasContent = sheetData && (
+            (Array.isArray(sheetData.measures) && sheetData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
+            (Array.isArray(sheetData.notes) && sheetData.notes.length > 0)
+        );
+        if (!hasContent) {
             console.warn('⚠️ Partitura sem notas!');
             $('#sheet-container').html('<p style="color:orange; text-align:center; padding:40px;">Partitura vazia - sem notas para exibir</p>');
             return;
         }
-        
-        try {
-            const VF = Vex.Flow;
-            const container = document.getElementById('sheet-container');
-            const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-            const context = renderer.getContext();
-            
-            console.log('📝 Processando notas:', sheetData.notes);
-            
-            // Converte todas as notas primeiro
-            const allNotes = sheetData.notes.map((noteData, idx) => {
-                console.log(`  Nota ${idx}:`, noteData);
-                
-                // Converte formato de nota (ex: "G4" -> "g/4")
-                let keys = noteData.keys || [noteData.key];
-                keys = keys.map(k => {
-                    if (typeof k === 'string' && /^[A-G][#b]?\d$/.test(k)) {
-                        return k.charAt(0).toLowerCase() + (k.charAt(1).match(/[#b]/) ? k.charAt(1) : '') + '/' + k.slice(-1);
-                    }
-                    return k;
-                });
-                
-                const note = new VF.StaveNote({
-                    clef: sheetData.clef || 'treble',
-                    keys: keys,
-                    duration: noteData.duration || 'q'
-                });
-                
-                if (noteData.accidentals) {
-                    noteData.accidentals.forEach((acc, i) => {
-                        if (acc) note.addModifier(new VF.Accidental(acc), i);
-                    });
-                }
-                
-                return note;
-            });
-            
-            console.log('✅ Notas criadas:', allNotes.length);
-            
-            // Divide em compassos de 4 tempos
-            const durationToBeats = {
-                'w': 4, 'h': 2, 'q': 1, '8': 0.5, '16': 0.25
-            };
-            
-            const measures = [];
-            const beatsPerMeasure = 4;
-            let currentMeasure = [];
-            let currentBeats = 0;
-            
-            allNotes.forEach((note, idx) => {
-                const duration = note.duration.replace(/[dr]/g, '');
-                const noteBeats = durationToBeats[duration] || 1;
-                
-                if (currentBeats + noteBeats > beatsPerMeasure && currentMeasure.length > 0) {
-                    measures.push(currentMeasure);
-                    currentMeasure = [];
-                    currentBeats = 0;
-                }
-                
-                currentMeasure.push(note);
-                currentBeats += noteBeats;
-                
-                if (currentBeats === beatsPerMeasure) {
-                    measures.push(currentMeasure);
-                    currentMeasure = [];
-                    currentBeats = 0;
-                }
-            });
-            
-            if (currentMeasure.length > 0) {
-                measures.push(currentMeasure);
-            }
-            
-            console.log(`📏 ${measures.length} compassos criados`);
-            
-            // Renderiza cada compasso
-            const staveWidth = 300;
-            const totalWidth = measures.length * staveWidth + 20;
-            renderer.resize(totalWidth, 300);
-            
-            measures.forEach((measureNotes, i) => {
-                const x = 10 + (i * staveWidth);
-                const measureStave = new VF.Stave(x, 40, staveWidth);
-                
-                if (i === 0) {
-                    measureStave.addClef(sheetData.clef || 'treble');
-                    if (sheetData.time_signature) {
-                        measureStave.addTimeSignature(sheetData.time_signature);
-                    }
-                }
-                
-                if (i < measures.length - 1) {
-                    measureStave.setEndBarType(VF.Barline.type.SINGLE);
-                } else {
-                    measureStave.setEndBarType(VF.Barline.type.END);
-                }
-                
-                measureStave.setContext(context).draw();
-                
-                const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-                voice.setStrict(false);
-                voice.addTickables(measureNotes);
-                new VF.Formatter().joinVoices([voice]).format([voice], staveWidth - 40);
-                voice.draw(context, measureStave);
-            });
-            
+
+        const container = document.getElementById('sheet-container');
+        import('/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+            renderSheetMusic(container, sheetData, { maxWidth: 900 })
+        ).then(() => {
             console.log('✅ Partitura renderizada com sucesso!');
-        } catch (error) {
+        }).catch(error => {
             console.error('❌ Erro ao renderizar partitura:', error);
-            console.error('Stack:', error.stack);
             $('#sheet-container').html(`<p style="color:red; text-align:center; padding:40px;">Erro ao renderizar partitura:<br>${error.message}</p>`);
-        }
+        });
     }
     
     // Função para renderizar seção mista com ordem preservada
@@ -546,112 +448,30 @@
     }
     
     // Função auxiliar para renderizar partitura em um div específico
+    // Função auxiliar para renderizar partitura em um div específico —
+    // mesmo módulo compartilhado usado em renderSheet() acima.
     function renderSheetInDiv(divId, sheetData) {
-        if (!sheetData.notes || sheetData.notes.length === 0) {
+        const hasContent = sheetData && (
+            (Array.isArray(sheetData.measures) && sheetData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
+            (Array.isArray(sheetData.notes) && sheetData.notes.length > 0)
+        );
+        if (!hasContent) {
             $(`#${divId}`).html('<p style="color:orange; text-align:center; padding:10px;">Partitura vazia</p>');
+            shrink();
             return;
         }
-        
-        try {
-            const VF = Vex.Flow;
-            const container = document.getElementById(divId);
-            const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-            const context = renderer.getContext();
-            
-            // Converte todas as notas
-            const allNotes = sheetData.notes.map((noteData) => {
-                let keys = noteData.keys || [noteData.key];
-                keys = keys.map(k => {
-                    if (typeof k === 'string' && /^[A-G][#b]?\d$/.test(k)) {
-                        return k.charAt(0).toLowerCase() + (k.charAt(1).match(/[#b]/) ? k.charAt(1) : '') + '/' + k.slice(-1);
-                    }
-                    return k;
-                });
-                
-                const note = new VF.StaveNote({
-                    clef: sheetData.clef || 'treble',
-                    keys: keys,
-                    duration: noteData.duration || 'q'
-                });
-                
-                if (noteData.accidentals) {
-                    noteData.accidentals.forEach((acc, i) => {
-                        if (acc) note.addModifier(new VF.Accidental(acc), i);
-                    });
-                }
-                
-                return note;
-            });
-            
-            // Divide em compassos
-            const durationToBeats = { 'w': 4, 'h': 2, 'q': 1, '8': 0.5, '16': 0.25 };
-            const measures = [];
-            let currentMeasure = [];
-            let currentBeats = 0;
-            
-            allNotes.forEach((note) => {
-                const duration = note.duration.replace(/[dr]/g, '');
-                const noteBeats = durationToBeats[duration] || 1;
-                
-                if (currentBeats + noteBeats > 4 && currentMeasure.length > 0) {
-                    measures.push(currentMeasure);
-                    currentMeasure = [];
-                    currentBeats = 0;
-                }
-                
-                currentMeasure.push(note);
-                currentBeats += noteBeats;
-                
-                if (currentBeats === 4) {
-                    measures.push(currentMeasure);
-                    currentMeasure = [];
-                    currentBeats = 0;
-                }
-            });
-            
-            if (currentMeasure.length > 0) {
-                measures.push(currentMeasure);
-            }
-            
-            // Renderiza compassos
-            const staveWidth = 300;
-            const totalWidth = measures.length * staveWidth + 20;
-            renderer.resize(totalWidth, 200);
-            
-            measures.forEach((measureNotes, i) => {
-                const x = 10 + (i * staveWidth);
-                const measureStave = new VF.Stave(x, 20, staveWidth);
-                
-                if (i === 0) {
-                    measureStave.addClef(sheetData.clef || 'treble');
-                    if (sheetData.time_signature) {
-                        measureStave.addTimeSignature(sheetData.time_signature);
-                    }
-                }
-                
-                if (i < measures.length - 1) {
-                    measureStave.setEndBarType(VF.Barline.type.SINGLE);
-                } else {
-                    measureStave.setEndBarType(VF.Barline.type.END);
-                }
-                
-                measureStave.setContext(context).draw();
-                
-                const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-                voice.setStrict(false);
-                voice.addTickables(measureNotes);
-                new VF.Formatter().joinVoices([voice]).format([voice], staveWidth - 40);
-                voice.draw(context, measureStave);
-            });
-            
+
+        const container = document.getElementById(divId);
+        import('/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+            renderSheetMusic(container, sheetData, { maxWidth: 900 })
+        ).then(() => {
             console.log('✅ Seção mista renderizada com sucesso!');
-        } catch (error) {
+            shrink();
+        }).catch(error => {
             console.error('❌ Erro ao renderizar seção mista:', error);
             $('#sheet-container').html(`<p style="color:red; text-align:center; padding:20px;">Erro: ${error.message}</p>`);
-        }
-        
-        // Ajusta o tamanho do texto
-        shrink();
+            shrink();
+        });
     }
 
 // Chama a função shrink ao carregar a página
