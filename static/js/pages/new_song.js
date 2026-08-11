@@ -2456,102 +2456,87 @@ Com mais conteúdo musical`;
                 return transposedBase + transposedModifiers;
             }
             
+            // ===== Detecção de linha de cifra (evita mexer na letra) =====
+            // Mesma estratégia do Quelea (LineTypeChecker.checkChords): em
+            // vez de tentar adivinhar palavra por palavra se um token
+            // isolado "parece" acorde (o que exige uma lista de exceção pra
+            // palavras curtas tipo "Em"/"Se"/"Fé" que colidem com forma de
+            // acorde), classifica a LINHA inteira — só mexe nela se TODOS
+            // os tokens baterem com o padrão de acorde. Uma linha de letra
+            // real quase sempre tem pelo menos uma palavra que não bate
+            // (multissílaba, acentuada, etc.), então cai inteira como letra
+            // e nenhuma palavra dela é tocada — sem precisar de lista de
+            // exceção. Suporta os sufixos //chords e //lyrics no fim da
+            // linha pra forçar a classificação nos casos raros em que o
+            // palpite automático erraria.
+            const CHORD_TOKEN_REGEX = /^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([0-9]+\))?(?:\/[A-G][#b]?)?$/;
+
+            function isChordLine(line) {
+                const trimmed = line.trim();
+                if (!trimmed) return false;
+                if (/\/\/chords$/i.test(trimmed)) return true;
+                if (/\/\/lyrics$/i.test(trimmed)) return false;
+                // remove marcadores de repetição (x2, 2x) e parênteses/hífen soltos
+                const cleaned = trimmed
+                    .replace(/[xX][0-9]+/g, '')
+                    .replace(/[0-9]+[xX]/g, '')
+                    .replace(/[()\-]/g, ' ');
+                const tokens = cleaned.split(/\s+/).filter(Boolean);
+                if (tokens.length === 0) return false;
+                return tokens.every(tok => CHORD_TOKEN_REGEX.test(tok));
+            }
+
+            // Transpõe só os tokens de uma linha já confirmada como cifra,
+            // preservando os espaços originais entre eles (mantém o
+            // alinhamento da cifra em cima da sílaba certa da letra).
+            function transposeLine(line, semitones, countRef) {
+                const leading = line.match(/^\s*/)[0];
+                const rest = line.slice(leading.length);
+                const parts = rest.split(/(\s+)/);
+                const transposedParts = parts.map(part => {
+                    if (part === '' || /^\s+$/.test(part)) return part;
+                    const transposed = transposeChord(part, semitones);
+                    if (transposed !== part) countRef.count++;
+                    return transposed;
+                });
+                return leading + transposedParts.join('');
+            }
+
             // Função principal de transposição (disponível globalmente)
             window.transposeChords = function() {
                 const transposeSelect = document.getElementById('transpose');
                 const semitones = parseInt(transposeSelect.value);
-                
+
                 if (semitones === 0) {
                     alert('ℹ️ Selecione um valor diferente de 0 para transpor.');
                     return;
                 }
-                
+
                 console.log(`🎵 Iniciando transposição de ${semitones > 0 ? '+' : ''}${semitones} semitons...`);
-                
-                let transposedCount = 0;
-                
-                // Transpõe acordes em todos os blocos de texto
+
+                const countRef = { count: 0 };
+
+                // Transpõe acordes em todos os blocos de texto, linha por
+                // linha — só linhas de cifra (isChordLine) são tocadas.
                 blocks.forEach((block, index) => {
                     if (block.type === 'text' && block.content) {
-                        const originalContent = block.content;
-                        
-                        // Regex mais inteligente para detectar apenas acordes musicais
-                        // Aceita sufixos musicais comuns (m, maj, M, sus, dim, aug, add, 7M, º, etc.) e acordes com parênteses/baixo
-                        // Evita engolir palavras comuns (ex: "Deus")
-                        const chordRegex = /(^|[\s\[(]+)([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([0-9]+\))?(?:\/[A-G][#b]?)?)(?=\s+|$|\n|[\])])/gm;
-                        
-                        console.log('🔍 Conteúdo original:', originalContent);
-                        console.log('🎯 Procurando acordes...');
-                        
-                        const newContent = originalContent.replace(chordRegex, (match, prefix, chord, offset, fullString) => {
-                            // Lista de palavras comuns que não devem ser transpostas
-                            const commonWords = ['DA', 'DE', 'DO', 'EU', 'ELA', 'ELE', 'SE', 'ME', 'TE', 'LA', 'SO', 'SI'];
-
-                            // Se for uma palavra comum curta (ex: "DE", "DO"), não transpor
-                            if (commonWords.includes(chord.toUpperCase()) && chord.length <= 3) {
-                                console.log(`⚠️ Ignorando palavra comum: "${chord}"`);
-                                return match; // Retorna sem alterar
-                            }
-
-                            // Tratamento especial para acordes de uma letra (A-G) que podem ser palavras (ex: D em "Deus")
-                            if (chord.length === 1 && /[A-G]/.test(chord.toUpperCase())) {
-                                const chordStart = offset + prefix.length;
-                                let i = chordStart + chord.length;
-
-                                // Avança pelos espaços após o acorde
-                                while (i < fullString.length && fullString[i] === ' ') {
-                                    i++;
-                                }
-
-                                const nextChar = fullString[i];
-
-                                // Se o próximo caractere não vazio for uma letra minúscula, provavelmente é palavra da letra
-                                if (nextChar && nextChar.toLowerCase() === nextChar && nextChar.toUpperCase() !== nextChar) {
-                                    console.log(`⚠️ Ignorando "${chord}" - identificado como palavra (próximo caractere: '${nextChar}')`);
-                                    return match;
-                                }
-                            }
-
-                            // Tratamento especial para "Em" como preposição no português (ex: "Em toda minha vida")
-                            if (chord.toUpperCase() === 'EM') {
-                                const chordStart2 = offset + prefix.length;
-                                let j = chordStart2 + chord.length;
-
-                                // Avança pelos espaços após "Em"
-                                while (j < fullString.length && fullString[j] === ' ') {
-                                    j++;
-                                }
-
-                                const nextChar2 = fullString[j];
-
-                                // Se depois de "Em" vier letra minúscula, consideramos preposição, não acorde
-                                if (nextChar2 && nextChar2.toLowerCase() === nextChar2 && nextChar2.toUpperCase() !== nextChar2) {
-                                    console.log(`⚠️ Ignorando "${chord}" - identificado como preposição (próximo caractere: '${nextChar2}')`);
-                                    return match;
-                                }
-                            }
-
-                            console.log(`🎵 Transpondo acorde: "${chord}"`);
-                            const transposed = transposeChord(chord, semitones);
-                            if (transposed !== chord) {
-                                transposedCount++;
-                                console.log(`✅ ${chord} → ${transposed}`);
-                            }
-                            return prefix + transposed;
+                        const lines = block.content.split('\n');
+                        const newLines = lines.map(line => {
+                            if (!isChordLine(line)) return line;
+                            console.log(`🎯 Linha de cifra: "${line}"`);
+                            return transposeLine(line, semitones, countRef);
                         });
-                        
-                        // Atualiza o bloco
-                        blocks[index].content = newContent;
+                        blocks[index].content = newLines.join('\n');
                     }
                 });
-                
+
                 // Re-renderiza os blocos
                 renderBlocks();
-                
+
                 // Feedback para o usuário
-                if (transposedCount > 0) {
-                    alert(`✅ Transposição concluída!\n\n🎵 ${transposedCount} acordes foram transpostos ${semitones > 0 ? '+' : ''}${semitones} semitons.`);
-                    console.log(`✅ ${transposedCount} acordes transpostos com sucesso!`);
+                if (countRef.count > 0) {
+                    alert(`✅ Transposição concluída!\n\n🎵 ${countRef.count} acordes foram transpostos ${semitones > 0 ? '+' : ''}${semitones} semitons.`);
+                    console.log(`✅ ${countRef.count} acordes transpostos com sucesso!`);
                 } else {
                     alert('ℹ️ Nenhum acorde foi encontrado para transpor.\n\nCertifique-se de que há acordes nos blocos de texto (ex: C, Am, F#, etc.)');
                     console.log('ℹ️ Nenhum acorde encontrado para transposição');
