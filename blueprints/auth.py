@@ -84,6 +84,22 @@ def remover_usuario(id):
     return redirect(url_for('auth.visualizar_usuarios'))
 
 
+@auth_bp.route('/alterar_senha/<int:id>', methods=['POST'])
+@login_required
+def alterar_senha(id):
+    usuario = User.query.get(id)
+    password = request.form.get('password', '')
+    if not usuario:
+        flash('Usuário não encontrado.')
+    elif not password:
+        flash('A senha não pode estar em branco.')
+    else:
+        usuario.password = generate_password_hash(password, method='pbkdf2:sha256')
+        db.session.commit()
+        flash(f'Senha de "{usuario.username}" alterada com sucesso!')
+    return redirect(url_for('auth.visualizar_usuarios'))
+
+
 @auth_bp.route('/adicionar_usuario', methods=['POST'])
 @login_required
 def adicionar_usuario():

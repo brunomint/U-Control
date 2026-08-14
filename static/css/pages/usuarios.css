@@ -36,6 +36,34 @@ th {
 .btn-remover:hover {
     color: #e04e45;
 }
+.btn-senha {
+    color: #00838f;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    margin-right: 10px;
+}
+.btn-senha:hover {
+    color: #005f66;
+}
+.senha-form {
+    margin-top: 8px;
+    vertical-align: middle;
+}
+.senha-form input {
+    padding: 6px;
+    width: 140px;
+}
+.senha-form .btn-senha-confirmar {
+    padding: 6px 10px;
+    background-color: #00bcd4;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.senha-form .btn-senha-confirmar:hover {
+    background-color: #008c99;
+}
 .form-cadastro {
     margin-bottom: 20px;
 }

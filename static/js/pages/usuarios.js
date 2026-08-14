@@ -10,3 +10,9 @@ togglePassword.addEventListener('click', function () {
     // Alterna o ícone
     this.classList.toggle('fa-eye-slash');
 });
+
+// Mostra/esconde o formulário inline de troca de senha de cada usuário
+function toggleSenhaForm(id) {
+    const form = document.getElementById(`senha-form-${id}`);
+    form.style.display = form.style.display === 'none' ? 'inline-block' : 'none';
+}

@@ -39,10 +39,18 @@
                 <td>{{ usuario.id }}</td>
                 <td>{{ usuario.username }}</td>
                 <td>
+                    <button type="button" class="btn-senha" onclick="toggleSenhaForm({{ usuario.id }})">
+                        <i class="fas fa-key"></i> Trocar Senha
+                    </button>
                     <form action="{{ url_for('auth.remover_usuario', id=usuario.id) }}" method="post" style="display: inline;">
                         <button type="submit" class="btn-remover">
                             <i class="fas fa-trash-alt"></i> Remover
                         </button>
+                    </form>
+                    <form id="senha-form-{{ usuario.id }}" class="senha-form"
+                          action="{{ url_for('auth.alterar_senha', id=usuario.id) }}" method="post" style="display: none;">
+                        <input type="password" name="password" placeholder="Nova senha" required>
+                        <button type="submit" class="btn-senha-confirmar"><i class="fas fa-check"></i></button>
                     </form>
                 </td>
             </tr>
