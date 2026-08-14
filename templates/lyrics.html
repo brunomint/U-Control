@@ -7,10 +7,145 @@
     <title>{{ song.title }}</title>
     <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
     <script src="/static/vendor/socketio/socket.io.min.js"></script>
+    <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
     <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/lyrics.css') }}">
-        
+
+    <style>
+        /* Widget "Tom: X" estilo Cifra Club — mesmo padrão de new_song/
+           edit_song/view_song (ver .claude/plans/harmonic-mixing-breeze.md),
+           cores seguem o mesmo tema escuro dos outros botões fixos desta
+           página (#btn-bg/#btn-tema: fundo #1e1e2e, borda #475569). */
+        .tom-widget {
+            position: fixed;
+            top: 15px;
+            right: 460px;
+            z-index: 1100;
+        }
+
+        .tom-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 50px;
+            background: #1e1e2e;
+            color: #fff;
+            border: 2px solid #475569;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+        }
+
+        .tom-trigger:hover {
+            background: #2a2a3e;
+        }
+
+        .tom-trigger strong {
+            color: #a78bfa;
+        }
+
+        .tom-popover {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 1101;
+            width: 260px;
+            background: #1e1e2e;
+            border: 1px solid #475569;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+            padding: 10px;
+        }
+
+        .tom-popover-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .tom-btn {
+            flex: 1;
+            background: rgba(124, 58, 237, .18);
+            color: #e2e8f0;
+            border: 1px solid rgba(124, 58, 237, .35);
+            border-radius: 6px;
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tom-btn:hover {
+            background: rgba(124, 58, 237, .32);
+        }
+
+        .tom-icon-btn {
+            background: rgba(255, 255, 255, .08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tom-icon-btn:hover {
+            background: rgba(255, 255, 255, .18);
+        }
+
+        .tom-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+
+        .tom-key-btn {
+            padding: 8px 4px;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #e2e8f0;
+            cursor: pointer;
+        }
+
+        .tom-key-btn:hover {
+            background: rgba(124, 58, 237, .3);
+        }
+
+        .tom-key-btn.active {
+            background: #7c3aed;
+            color: white;
+            border-color: #7c3aed;
+        }
+
+        @media (max-width: 900px) {
+            .tom-widget {
+                position: static;
+                display: flex;
+                justify-content: center;
+                margin: 8px 0;
+            }
+
+            .tom-popover {
+                right: auto;
+                left: 0;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -42,6 +177,38 @@
     <div class="main-content"></div>
     <button id="toggle-button" onclick="openMenu()">☰ Menu</button>
         <h1>{{ song.title }} - {{ song.author }}</h1>
+
+        <!-- Widget de transposição estilo Cifra Club — transpõe a letra/
+             cifra exibida aqui E o que é enviado ao vivo pro monitor do
+             músico (/lyrics/display) via socket.io, pra nunca ficar
+             dessincronizado durante o culto. Não salva no servidor; tom
+             escolhido persiste em localStorage por música. -->
+        <div class="tom-widget">
+            <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
+            <div class="tom-popover" id="tomPanel">
+                <div class="tom-popover-row">
+                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
+                    <button type="button" class="tom-btn" onclick="transposeStep(-1)">−1/2 tom</button>
+                    <button type="button" class="tom-btn" onclick="transposeStep(1)">+1/2 tom</button>
+                    <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
+                </div>
+                <div class="tom-grid" id="tomGrid">
+                    <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
+                    <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
+                    <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
+                    <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
+                    <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
+                    <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
+                    <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
+                    <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
+                    <button type="button" class="tom-key-btn" data-key="F" onclick="jumpToKey('F')">F</button>
+                    <button type="button" class="tom-key-btn" data-key="F#" onclick="jumpToKey('F#')">F#</button>
+                    <button type="button" class="tom-key-btn" data-key="G" onclick="jumpToKey('G')">G</button>
+                    <button type="button" class="tom-key-btn" data-key="Ab" onclick="jumpToKey('Ab')">Ab</button>
+                </div>
+            </div>
+        </div>
+
         <button id="btn-bg" onclick="alternarFundoDisplay()" title="Alternar fundo preto/branco do monitor"
             style="position:fixed;top:15px;right:310px;z-index:1100;padding:10px 18px;
                    font-size:14px;font-weight:600;cursor:pointer;border:none;border-radius:50px;
@@ -134,7 +301,12 @@
 
 
 <script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or "")} | tojson }}</script>
-    <script src="{{ url_for('static', filename='js/pages/lyrics_2.js') }}"></script>
+    <script>
+        // Lido por lyrics_2.js pra buscar sheet_render.js (ES module,
+        // import() dinâmico) já com cache-busting.
+        window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
+    </script>
+    <script src="{{ versioned_static('js/pages/lyrics_2.js') }}"></script>
 
 <script src="{{ url_for('static', filename='js/pages/lyrics_3.js') }}"></script>
 

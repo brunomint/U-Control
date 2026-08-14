@@ -187,7 +187,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
 
             $('#songForm').submit(async function(event) {
                 event.preventDefault();
-                const { normalizeSheetData } = await import('/static/js/sheet_render.js');
+                const { normalizeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
 
                 console.log('📤 Enviando formulário...');
                 console.log('🎼 Dados da partitura disponíveis:', window.currentSheetData);
@@ -1497,7 +1497,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     (Array.isArray(originalData.notes) && originalData.notes.length > 0)
                 );
                 if (hasContent) {
-                    import('/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+                    import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
                         renderSheetMusic(sheetContainer, originalData, { maxWidth: 600 })
                     ).then(() => {
                         const svg = sheetContainer.querySelector('svg');
@@ -1701,7 +1701,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         return;
                     }
 
-                    import('/static/js/sheet_render.js').then(({ normalizeSheetData }) => {
+                    import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ normalizeSheetData }) => {
                         const convertedData = normalizeSheetData(originalData);
                         const dataToSave = JSON.stringify(convertedData);
                         localStorage.setItem('vexflow_sheet_data', dataToSave);
@@ -1749,7 +1749,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                                 const parsedData = JSON.parse(sheetDataFromStorage);
                                 console.log('📊 Dados capturados do localStorage:', parsedData);
 
-                                const { normalizeSheetData } = await import('/static/js/sheet_render.js');
+                                const { normalizeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
                                 window.currentSheetData = normalizeSheetData(parsedData);
                                 console.log('💾 Dados salvos globalmente:', window.currentSheetData);
 
@@ -2474,12 +2474,23 @@ Com mais conteúdo musical`;
             // igual o site já faz), um botão "desfazer" volta ao tom
             // original e uma grade de 12 notas pula direto pro tom
             // escolhido (como o seletor de tom do Cifra Club).
-            window.transposeStep = function(semitones) {
+            window.transposeStep = async function(semitones) {
                 const countRef = { count: 0 };
+                // sheet_render.js é ES module (import/export) — edit_song.js
+                // é script clássico, então só dá pra acessar via import()
+                // dinâmico, mesmo padrão já usado em createSheetBlock/
+                // processCifraClubManual nesta página.
+                const { transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
 
                 blocks.forEach((block, index) => {
                     if (block.type === 'text' && block.content) {
                         blocks[index].content = ChordLines.transposeBlockContent(block.content, semitones, countRef);
+                    } else if (block.type === 'sheet' && block.originalData) {
+                        // Muta block.originalData em memória, igual o bloco de
+                        // texto já faz — é exatamente esse campo que Salvar
+                        // envia (ver updateHiddenField), então transpor aqui
+                        // muda o que fica salvo, não é só uma prévia.
+                        blocks[index].originalData = transposeSheetData(block.originalData, semitones);
                     }
                 });
 

@@ -11,7 +11,6 @@
 </head>
 <body>
     <div id="private-notes-box"></div>
-    <div id="next-section-box"></div>
     <div id="media-layer">
         <img id="media-img" alt="">
         <video id="media-video" autoplay playsinline muted loop></video>
@@ -21,9 +20,23 @@
         <pre id="section-text"></pre>
         <div id="sheet-container" style="display:none; text-align:center; padding:20px;"></div>
     </div>
+    <!-- next-section-box e song-map ficam no fluxo normal, DEPOIS de
+         #lyrics (não mais position:fixed sobrepondo) — assim a área
+         rolável de #lyrics (flex:1 no CSS) encolhe automaticamente pra
+         abrir espaço pras duas barras, em vez de ficar por baixo delas.
+         Achado ao vivo: o cálculo de padding via JS não bastava numa
+         tela bem larga/baixa (proporção de monitor de palco). -->
+    <div id="next-section-box"></div>
 
-<script src="{{ url_for('static', filename='js/chord_lines.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pages/display.js') }}"></script>
+<script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+<script>
+    // Lido por display.js pra buscar sheet_render.js (ES module, import()
+    // dinâmico) já com cache-busting — sem isso, uma aba aberta antes de
+    // uma edição no módulo continua rodando a versão velha mesmo depois
+    // de display.js/chord_lines.js recarregarem.
+    window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
+</script>
+<script src="{{ versioned_static('js/pages/display.js') }}"></script>
 
 <div id="song-map"></div>
 </body>

@@ -161,6 +161,11 @@
 
 
     <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+    <script>
+        // Lido por new_song.js pra buscar sheet_render.js (ES module,
+        // import() dinâmico) já com cache-busting.
+        window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
+    </script>
     <script src="{{ versioned_static('js/pages/new_song.js') }}"></script>
 
     <!-- Editor VexFlow Modal -->

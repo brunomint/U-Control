@@ -340,6 +340,19 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
   const vf = new Factory({ renderer: { elementId: container.id, width: totalW, height: totalH } });
   const ctx = vf.getContext();
 
+  // Cor da notação — default preto (todo lugar com fundo claro: editor,
+  // view_song, etc.). Telas com fundo escuro (ex.: /lyrics/display com o
+  // fundo preto ativado) passam options.color:'#fff', senão a partitura
+  // fica preta sobre preto, invisível. ctx.setFillStyle/setStrokeStyle
+  // sozinhos NÃO bastam — Stave/StaveNote têm cor própria embutida que
+  // ignora o estilo ambiente do contexto (achado testando: a pauta
+  // continuava cinza #999999 mesmo com o contexto setado pra branco) —
+  // precisa de .setStyle({fillStyle, strokeStyle}) em cada elemento.
+  const notationColor = options.color || '#000';
+  const notationStyle = { fillStyle: notationColor, strokeStyle: notationColor };
+  ctx.setFillStyle(notationColor);
+  ctx.setStrokeStyle(notationColor);
+
   const vfNotesByMI = Array(data.measures.length).fill(null).map(() => []);
 
   systemsIdx.forEach((row, s) => {
@@ -351,6 +364,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
       const w = widths[mIndex];
 
       const stave = vf.Stave({ x, y, width: w });
+      stave.setStyle(notationStyle);
       if (j === 0) { stave.addClef(data.clef).addKeySignature(data.keySig).addTimeSignature(data.timeSig); }
       stave.setContext(ctx).draw();
 
@@ -358,6 +372,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
         const dur = m.duration + (m.rest ? 'r' : '');
         const key = m.rest ? 'b/4' : pitchToKey(m.pitch);
         const sn = new StaveNote({ clef: data.clef, keys: [key], duration: dur, dots: m.dotted ? 1 : 0 });
+        sn.setStyle(notationStyle);
 
         if (!m.rest && m.accidental && m.accidental !== '') {
           const type = (m.accidental === 'n') ? 'n' : m.accidental;
@@ -396,7 +411,10 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
         voice.draw(ctx, stave);
 
         beams.forEach(beam => {
-          try { beam.setContext(ctx).draw(); } catch (e) { console.warn('Erro ao desenhar beam:', e); }
+          try {
+            beam.setStyle(notationStyle);
+            beam.setContext(ctx).draw();
+          } catch (e) { console.warn('Erro ao desenhar beam:', e); }
         });
       }
 
@@ -407,7 +425,11 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
   data.ties.forEach(t => {
     const first = vfNotesByMI[t.from.m]?.[t.from.i];
     const last = vfNotesByMI[t.to.m]?.[t.to.i];
-    if (first && last) new StaveTie({ first_note: first, last_note: last }).setContext(ctx).draw();
+    if (first && last) {
+      const tie = new StaveTie({ first_note: first, last_note: last });
+      tie.setStyle(notationStyle);
+      tie.setContext(ctx).draw();
+    }
   });
 
   data.chords.forEach(chord => {
@@ -420,7 +442,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
         const staveY = TOP + systemIndex * (STAVE_H + SYSTEM_GAP);
         ctx.save();
         ctx.font = '14px Arial, sans-serif';
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = notationColor;
         ctx.textAlign = 'center';
         ctx.fillText(chord.symbol, bbox.x + bbox.w / 2, staveY + 2);
         ctx.restore();

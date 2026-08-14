@@ -12,6 +12,7 @@
         // Mostra texto, esconde partitura
         $('#sheet-container').hide();
         $('#section-text').show();
+        _lastSheetCall = null; // sem partitura na tela, nada pra redesenhar num toggle de fundo
         
         $('#section-title').text(title);
         const _el = document.getElementById('section-text');
@@ -70,6 +71,50 @@
 
     if (fontSize <= minFontSize) {
         console.warn("Texto muito grande para caber na tela.");
+    }
+};
+
+// Encolhe a(s) partitura(s) renderizada(s) pra caber sem precisar de
+// barra de rolagem — igual `shrink()` já faz pro texto, mas partitura
+// não é redimensionável por font-size, então reduz width/height do SVG
+// diretamente (o viewBox do VexFlow escala o desenho por dentro
+// proporcionalmente). Usa width/height (não transform:scale) de
+// propósito: transform não muda o tamanho de layout/scrollHeight, só o
+// visual — não eliminaria a rolagem de verdade.
+const fitSheetsToScreen = () => {
+    const lyrics = document.getElementById('lyrics');
+    const svgs = lyrics ? lyrics.querySelectorAll('#sheet-container svg') : [];
+    if (!lyrics || !svgs.length) return;
+
+    svgs.forEach(svg => {
+        if (!svg.dataset.naturalWidth) {
+            svg.dataset.naturalWidth = svg.getAttribute('width');
+            svg.dataset.naturalHeight = svg.getAttribute('height');
+        }
+    });
+
+    const apply = (scale) => {
+        svgs.forEach(svg => {
+            svg.style.width = (parseFloat(svg.dataset.naturalWidth) * scale) + 'px';
+            svg.style.height = (parseFloat(svg.dataset.naturalHeight) * scale) + 'px';
+        });
+    };
+
+    // Reduz em passos, medindo scrollHeight/clientHeight de verdade a
+    // cada volta — mais robusto que calcular a proporção necessária de
+    // uma vez só (uma fórmula de proporção única erra fácil quando tem
+    // outro conteúdo, tipo texto/título, misturado com a partitura).
+    // Numa tela de exibição ao vivo ninguém vai rolar durante o culto,
+    // então caber sem barra de rolagem importa mais que manter um
+    // tamanho mínimo de legibilidade num caso extremo (música muito
+    // longa numa tela muito baixa).
+    const minScale = 0.02; // só evita tamanho zero/negativo, não limita legibilidade — caber é a prioridade
+    let scale = 1;
+    apply(scale);
+    let guard = 60;
+    while (lyrics.scrollHeight > lyrics.clientHeight && scale > minScale && guard-- > 0) {
+        scale = Math.max(minScale, scale - 0.03);
+        apply(scale);
     }
 };
 
@@ -251,6 +296,11 @@
     }
 
     let _bgDark = true; // espelha o estado atual de applyDisplayBg
+    // Guarda a última chamada de renderSheet/renderMixedSectionOrdered
+    // pra poder redesenhar com a cor certa quando o fundo alterna — a
+    // partitura não é CSS-estilizável (VexFlow desenha a cor no SVG),
+    // então precisa reprocessar com renderSheetMusic de novo.
+    let _lastSheetCall = null;
 
     // Alterna fundo preto/branco
     function applyDisplayBg(dark) {
@@ -265,6 +315,14 @@
             dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)';
         document.documentElement.style.setProperty('--chip-active-bg', dark ? '#fbbf24' : '#1d4ed8');
         document.documentElement.style.setProperty('--chip-active-fg', dark ? '#000' : '#fff');
+
+        // Redesenha a partitura (se houver) com a cor certa pro novo
+        // fundo — precisa reprocessar porque a cor é desenhada dentro do
+        // SVG pelo VexFlow, não vem de CSS.
+        if (_lastSheetCall) {
+            if (_lastSheetCall.type === 'single') renderSheet(_lastSheetCall.title, _lastSheetCall.sheetData);
+            else renderMixedSectionOrdered(_lastSheetCall.title, _lastSheetCall.elements);
+        }
     }
 
     // Mapa da música
@@ -277,11 +335,12 @@
         el.innerHTML = _mapTitles.map((t, i) =>
             `<span class="map-chip${i === _mapCurrent ? ' active' : ''}">${t}</span>`
         ).join('');
-        // Posiciona o next-section-box logo acima do song-map (altura variável por flex-wrap)
-        requestAnimationFrame(() => {
-            const nextBox = document.getElementById('next-section-box');
-            if (nextBox) nextBox.style.bottom = el.offsetHeight + 'px';
-        });
+        // next-section-box e song-map ficam no fluxo normal (não fixed)
+        // e nessa ordem no HTML — não precisa mais calcular/posicionar
+        // via JS, o flex do body (#lyrics: flex:1) já abre espaço
+        // automaticamente pras duas barras, em qualquer proporção de
+        // tela (achado ao vivo: o cálculo de padding via JS que existia
+        // antes não bastava numa tela bem larga/baixa).
     }
 
     function escapeHtml(s) {
@@ -381,6 +440,7 @@
     // telas de exibição (ver .claude/plans/harmonic-mixing-breeze.md).
     function renderSheet(title, sheetData) {
         console.log('🎼 Renderizando partitura:', title, sheetData);
+        _lastSheetCall = { type: 'single', title, sheetData };
 
         $('#section-text').hide();
         $('#sheet-container').show().empty();
@@ -397,10 +457,17 @@
         }
 
         const container = document.getElementById('sheet-container');
-        import('/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
-            renderSheetMusic(container, sheetData, { maxWidth: 900 })
+        // Usa a largura real disponível (não um valor fixo) — telas de
+        // exibição costumam ser bem largas/baixas (proporção de monitor
+        // de palco), então limitar a 900px força quebra de linha em
+        // sistemas demais, deixando a partitura mais alta do que
+        // precisava, o que dificulta caber na tela sem encolher demais.
+        const availW = document.getElementById('lyrics').clientWidth - 20 || 900;
+        import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+            renderSheetMusic(container, sheetData, { maxWidth: availW, color: _bgDark ? '#fff' : '#000' })
         ).then(() => {
             console.log('✅ Partitura renderizada com sucesso!');
+            fitSheetsToScreen();
         }).catch(error => {
             console.error('❌ Erro ao renderizar partitura:', error);
             $('#sheet-container').html(`<p style="color:red; text-align:center; padding:40px;">Erro ao renderizar partitura:<br>${error.message}</p>`);
@@ -410,7 +477,8 @@
     // Função para renderizar seção mista com ordem preservada
     function renderMixedSectionOrdered(title, elements) {
         console.log('🎭 Renderizando seção mista ordenada:', title, elements);
-        
+        _lastSheetCall = { type: 'mixed', title, elements };
+
         $('#section-title').text(title);
         $('#section-text').hide();
         $('#sheet-container').show().empty();
@@ -470,11 +538,16 @@
         }
 
         const container = document.getElementById(divId);
-        import('/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
-            renderSheetMusic(container, sheetData, { maxWidth: 900 })
+        // Mesmo motivo de renderSheet(): usa a largura real disponível
+        // em vez de um valor fixo, pra minimizar quantos sistemas
+        // (linhas) a partitura precisa, facilitando caber na tela.
+        const availW = document.getElementById('lyrics').clientWidth - 20 || 900;
+        import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+            renderSheetMusic(container, sheetData, { maxWidth: availW, color: _bgDark ? '#fff' : '#000' })
         ).then(() => {
             console.log('✅ Seção mista renderizada com sucesso!');
             shrink();
+            fitSheetsToScreen();
         }).catch(error => {
             console.error('❌ Erro ao renderizar seção mista:', error);
             $('#sheet-container').html(`<p style="color:red; text-align:center; padding:20px;">Erro: ${error.message}</p>`);
@@ -487,6 +560,7 @@ window.addEventListener('load', shrink);
 
 // Chama a função shrink ao redimensionar a janela
 window.addEventListener('resize', shrink);
+window.addEventListener('resize', fitSheetsToScreen);
 
     // Inicializa a aplicação ao carregar a página
     $(document).ready(initializeApp);

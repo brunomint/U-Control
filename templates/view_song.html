@@ -1353,7 +1353,7 @@ window.onload = () => {
          aparecer diferente daqui pro editor. -->
     {% if song.sheet_data %}
     <script type="module">
-        import { renderSheetMusic, transposeSheetData } from '/static/js/sheet_render.js';
+        import { renderSheetMusic, transposeSheetData } from '{{ versioned_static("js/sheet_render.js") }}';
 
         const allSheetData = {{ song.sheet_data | tojson | safe }};
         const sheetDataArray = Array.isArray(allSheetData) ? allSheetData : [allSheetData];

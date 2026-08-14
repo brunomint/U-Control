@@ -26,9 +26,10 @@
 
         #lyrics {
             text-align: left;
-            padding: 10px 10px 48px 10px;
+            padding: 10px;
             box-sizing: border-box;
-            height: calc(100vh - 40px);
+            flex: 1 1 auto;
+            min-height: 0; /* deixa o overflow-y:auto funcionar dentro de um item flex */
             overflow-y: auto;
             position: relative;
             z-index: 1;
@@ -51,11 +52,17 @@
         }
 
         #song-map {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            /* Fica no fluxo normal (não fixed) — flex-shrink:0 garante
+               que sempre mantém sua altura natural mesmo se o conteúdo
+               quebrar em várias linhas; #lyrics (flex:1) que encolhe pra
+               abrir espaço, nunca o contrário. Ainda precisa de
+               position:relative pra ficar acima de #media-layer
+               (fixed, z-index:0) na pilha de empilhamento — elemento
+               posicionado sempre pinta por cima de fluxo normal, senão
+               a ordem no DOM não bastaria. */
+            position: relative;
             z-index: 10;
+            flex-shrink: 0;
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
@@ -100,10 +107,9 @@
 
         #next-section-box {
             display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0; right: 0;
+            position: relative; /* mesmo motivo de #song-map: fluxo normal + pilha de empilhamento acima de #media-layer */
             z-index: 9;
+            flex-shrink: 0;
             background: rgba(255,255,255,0.07);
             color: #94a3b8;
             font-size: 1.6vw;

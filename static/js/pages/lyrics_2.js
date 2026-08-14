@@ -284,7 +284,108 @@ let currentTheme = CONFIG.theme;
         });
         
         let currentSectionIndex = 0; // Índice da seção atual
-    
+
+        // ── Widget "Tom: X" estilo Cifra Club ────────────────────────
+        // Transpõe tanto a prévia local (createSectionLinks/
+        // renderSheetInSection) quanto o que é enviado ao vivo pro
+        // monitor do músico via socket.io (loadSection) — as duas
+        // sempre a partir do dado ORIGINAL em `sections`/`sheetData`
+        // (nunca em cima de um resultado já transposto), mesma
+        // estratégia "recalcula do zero" de view_song.html. Não salva no
+        // servidor; tom persiste em localStorage por música.
+        const TRANSPOSE_STORAGE_KEY = 'ucontrol_transpose_' + songId;
+        let transposeOffset = parseInt(localStorage.getItem(TRANSPOSE_STORAGE_KEY), 10) || 0;
+
+        function saveTransposeOffset() {
+            try {
+                if (transposeOffset === 0) localStorage.removeItem(TRANSPOSE_STORAGE_KEY);
+                else localStorage.setItem(TRANSPOSE_STORAGE_KEY, String(transposeOffset));
+            } catch (e) {
+                // localStorage indisponível — transposição ainda funciona
+                // nesta visita, só não persiste.
+            }
+        }
+
+        // Texto bruto (não transposto) de uma seção, pra detectar o tom
+        // original e servir de base fixa pra recalcular a cada clique.
+        function rawSectionText(section) {
+            return section.text ? section.text.join('\n\n') : '';
+        }
+
+        function transposedSectionText(section) {
+            const raw = rawSectionText(section);
+            return transposeOffset !== 0 ? ChordLines.transposeBlockContent(raw, transposeOffset) : raw;
+        }
+
+        const firstChordTokenRaw = ChordLines.detectFirstChordToken(sections.map(rawSectionText));
+
+        function updateTomDisplay() {
+            const tomEl = document.getElementById('tomAtual');
+            if (!tomEl) return;
+            if (!firstChordTokenRaw) { tomEl.textContent = '—'; return; }
+            const token = transposeOffset !== 0
+                ? ChordLines.transposeChord(firstChordTokenRaw, transposeOffset)
+                : firstChordTokenRaw;
+            const key = ChordLines.describeKey(token);
+            tomEl.textContent = key || '—';
+            const root = key ? key.replace(/m$/, '') : null;
+            document.querySelectorAll('#tomGrid button[data-key]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.key === root);
+            });
+        }
+
+        // Reconstrói a lista de seções (texto + partituras) com o tom
+        // atual e reenvia a seção ativa ao vivo, mantendo operador e
+        // monitor do músico sincronizados.
+        function refreshAfterTranspose() {
+            $('#sections-list').empty();
+            createSectionLinks();
+            highlightActiveSection(currentSectionIndex);
+            updateTomDisplay();
+            saveTransposeOffset();
+            loadSection(currentSectionIndex, true); // fromRemote=true: reenvia sem re-emitir section_changed
+        }
+
+        window.transposeStep = function(semitones) {
+            transposeOffset += semitones;
+            refreshAfterTranspose();
+        };
+
+        window.undoTranspose = function() {
+            if (transposeOffset === 0) return;
+            transposeOffset = 0;
+            refreshAfterTranspose();
+        };
+
+        window.jumpToKey = function(targetRoot) {
+            const tomEl = document.getElementById('tomAtual');
+            const current = tomEl ? tomEl.textContent : null;
+            if (!current || current === '—') return;
+            const currentRoot = current.replace(/m$/, '');
+            const currentIndex = ChordLines.chordMap[currentRoot];
+            const targetIndex = ChordLines.chordMap[targetRoot];
+            if (currentIndex === undefined || targetIndex === undefined) return;
+            let delta = (targetIndex - currentIndex + 12) % 12;
+            if (delta > 6) delta -= 12; // caminho mais curto, só estética
+            if (delta === 0) return;
+            window.transposeStep(delta);
+        };
+
+        window.toggleKeyGrid = function() {
+            const panel = document.getElementById('tomPanel');
+            if (!panel) return;
+            const isHidden = getComputedStyle(panel).display === 'none';
+            panel.style.display = isHidden ? 'block' : 'none';
+        };
+
+        document.addEventListener('click', function(e) {
+            const widget = document.querySelector('.tom-widget');
+            const panel = document.getElementById('tomPanel');
+            if (!widget || !panel) return;
+            if (getComputedStyle(panel).display === 'none') return;
+            if (!widget.contains(e.target)) panel.style.display = 'none';
+        });
+
         const socket = io();
 
         
@@ -314,7 +415,7 @@ let currentTheme = CONFIG.theme;
                 let content = '';
                 if (section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) {
                     // Seção mista: renderiza partitura + texto
-                    const sectionText = styleComment(section.text ? section.text.join('\n\n') : '');
+                    const sectionText = styleComment(transposedSectionText(section));
                     content = `
                         <div id="sheet-render-${i}" style="padding:5px; background:#fff; margin:5px 0;"></div>
                         <pre class="section-preview" style="display:block; white-space:pre; overflow-x:auto; font-size:12px; margin:5px 0; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;">${sectionText}</pre>
@@ -324,7 +425,7 @@ let currentTheme = CONFIG.theme;
                     content = `<div id="sheet-render-${i}" style="padding:10px; background:#fff;"></div>`;
                 } else {
                     // É texto normal
-                    const sectionText = styleComment(section.text ? section.text.join('\n\n') : '');
+                    const sectionText = styleComment(transposedSectionText(section));
                     content = `<pre class="section-preview" style="white-space:pre; overflow-x:auto; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:12px;">${sectionText}</pre>`;
                 }
                 
@@ -372,8 +473,9 @@ let currentTheme = CONFIG.theme;
             try {
                 renderDiv.empty();
                 const container = document.getElementById(`sheet-render-${index}`);
-                const { renderSheetMusic } = await import('/static/js/sheet_render.js');
-                await renderSheetMusic(container, sheet, { maxWidth: 900 });
+                const { renderSheetMusic, transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
+                const toRender = transposeOffset !== 0 ? transposeSheetData(sheet, transposeOffset) : sheet;
+                await renderSheetMusic(container, toRender, { maxWidth: 900 });
             } catch (error) {
                 console.error('❌ Erro ao renderizar partitura:', error);
                 renderDiv.html(`<p style="color:red;">Erro: ${error.message}</p>`);
@@ -404,21 +506,33 @@ $('#clear-lyrics').click(function() {
             return { texto: texto.join('\n'), notas: notas.join(' · ') };
         }
 
-        function loadSection(index, fromRemote = false) {
+        async function loadSection(index, fromRemote = false) {
             if (index < 0 || index >= sections.length) {
                 alert("Seção inválida.");
                 return;
             }
-            
+
             // Usa os dados locais das seções processadas (não precisa chamar o backend)
             const section = sections[index];
-            
+
+            // Precisa de transposeSheetData só quando a seção tem
+            // partitura — import() dinâmico porque sheet_render.js é ES
+            // module e esta página é script clássico (mesmo padrão já
+            // usado em renderSheetInSection).
+            const needsSheetTranspose = transposeOffset !== 0 &&
+                ((section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) ||
+                 (section.type === 'sheet' && section.sheetId));
+            const transposeSheetData = needsSheetTranspose
+                ? (await import(window.__sheetRenderURL || '/static/js/sheet_render.js')).transposeSheetData
+                : null;
+
             // Verifica o tipo de seção
             if (section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) {
                 // Seção mista: tem texto e partituras
-                const sectionText = section.text ? section.text.join('\n\n') : '';
-                const sheets = section.sheetIds.map(id => sheetData.find(s => s.id === id)).filter(s => s);
-                
+                const sectionText = transposedSectionText(section);
+                let sheets = section.sheetIds.map(id => sheetData.find(s => s.id === id)).filter(s => s);
+                if (transposeSheetData) sheets = sheets.map(s => transposeSheetData(s, transposeOffset));
+
                 const dataToSend = {
                     title: section.title || `Seção ${index + 1}`,
                     type: 'mixed',
@@ -426,16 +540,17 @@ $('#clear-lyrics').click(function() {
                     sheets: sheets,
                     theme: null
                 };
-                
+
                 console.log(`📤 Enviando seção mista ${index}:`, dataToSend);
-                
+
                 // Emite para o display via WebSocket com texto e partituras
                 socket.emit('update_lyrics', dataToSend);
                 console.log(`✅ Seção mista ${index} carregada:`, section.title, `${sheets.length} partitura(s)`);
             } else if (section.type === 'sheet' && section.sheetId) {
                 // Apenas partitura
-                const sheet = sheetData.find(s => s.id === section.sheetId);
-                
+                let sheet = sheetData.find(s => s.id === section.sheetId);
+                if (sheet && transposeSheetData) sheet = transposeSheetData(sheet, transposeOffset);
+
                 if (sheet) {
                     // Emite partitura para o display via WebSocket
                     socket.emit('update_lyrics', {
@@ -450,7 +565,7 @@ $('#clear-lyrics').click(function() {
                 }
             } else {
                 // É uma seção de texto normal
-                const sectionText = section.text ? section.text.join('\n\n') : '';
+                const sectionText = transposedSectionText(section);
 
                 // Emite para o display via WebSocket (texto completo, incluindo linhas //)
                 socket.emit('update_lyrics', {
@@ -485,7 +600,8 @@ $('#clear-lyrics').click(function() {
             if (!fromRemote) {
                 const nextSec  = sections[currentSectionIndex + 1] || null;
                 const nextRaw  = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
-                const nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
+                let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
+                if (nextClean && transposeOffset !== 0) nextClean = ChordLines.transposeBlockContent(nextClean, transposeOffset);
                 const currRaw  = sections[currentSectionIndex]?.text?.[0] || '';
                 const currObs  = separarNotas(currRaw).notas;
                 socket.emit('section_changed', {
@@ -517,6 +633,7 @@ $('#clear-lyrics').click(function() {
         $(document).ready(function() {
             loadFullLyrics();
             createSectionLinks();
+            updateTomDisplay();
             loadLyricsState(); // Carrega estado salvo (música + seção)
     
             $('#next').click(function() {

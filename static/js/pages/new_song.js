@@ -184,7 +184,7 @@
 
             $('#songForm').submit(async function(event) {
                 event.preventDefault();
-                const { normalizeSheetData } = await import('/static/js/sheet_render.js');
+                const { normalizeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
 
                 console.log('📤 Enviando formulário...');
                 console.log('🎼 Dados da partitura disponíveis:', window.currentSheetData);
@@ -1455,20 +1455,43 @@
                 const div = document.createElement('div');
                 div.className = 'sheet-block';
                 div.style.cssText = 'padding: 15px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; margin: 10px 0; position: relative; text-align: center;';
-                
-                // SVG da partitura
-                if (block.svgData) {
-                    div.innerHTML = block.svgData;
-                    
-                    // Ajusta SVG
-                    const svg = div.querySelector('svg');
-                    if (svg) {
-                        svg.style.cssText = 'max-width: 100%; height: auto; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
-                    }
+
+                // Container para a partitura — desenho delegado a
+                // static/js/sheet_render.js, compartilhado com o editor e as
+                // telas de exibição (ver .claude/plans/harmonic-mixing-breeze.md).
+                // Antes disso este bloco só reexibia um SVG congelado
+                // (block.svgData) gerado uma vez no momento da inserção —
+                // impedia qualquer atualização depois (inclusive
+                // transposição, que precisa redesenhar com dado novo a cada
+                // clique). Mesmo padrão de import() dinâmico já usado em
+                // edit_song.js (sheet_render.js é ES module, esta página é
+                // script clássico).
+                const sheetContainer = document.createElement('div');
+                sheetContainer.id = `sheet-preview-${block.id}`;
+                sheetContainer.style.cssText = 'min-height: 120px; display: flex; align-items: center; justify-content: center;';
+
+                const originalData = block.originalData;
+                const hasContent = originalData && (
+                    (Array.isArray(originalData.measures) && originalData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
+                    (Array.isArray(originalData.notes) && originalData.notes.length > 0)
+                );
+                if (hasContent) {
+                    import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
+                        renderSheetMusic(sheetContainer, originalData, { maxWidth: 600 })
+                    ).then(() => {
+                        const svg = sheetContainer.querySelector('svg');
+                        if (svg) {
+                            svg.style.cssText = 'max-width: 100%; height: auto; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+                        }
+                    }).catch(error => {
+                        console.error('Erro ao renderizar partitura:', error);
+                        sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Erro ao renderizar partitura</p>';
+                    });
                 } else {
-                    div.innerHTML = '<p style="color: #999; font-style: italic;">Partitura não encontrada</p>';
+                    sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Partitura sem dados</p>';
                 }
-                
+                div.appendChild(sheetContainer);
+
                 // Controles
                 const controls = document.createElement('div');
                 controls.className = 'sheet-controls';
@@ -1723,7 +1746,7 @@
                                 const parsedData = JSON.parse(sheetDataFromStorage);
                                 console.log('📊 Dados capturados do localStorage:', parsedData);
 
-                                const { normalizeSheetData } = await import('/static/js/sheet_render.js');
+                                const { normalizeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
                                 window.currentSheetData = normalizeSheetData(parsedData);
                                 console.log('💾 Dados salvos globalmente:', window.currentSheetData);
 
@@ -2427,12 +2450,22 @@ Com mais conteúdo musical`;
             // igual o site já faz), um botão "desfazer" volta ao tom
             // original e uma grade de 12 notas pula direto pro tom
             // escolhido (como o seletor de tom do Cifra Club).
-            window.transposeStep = function(semitones) {
+            window.transposeStep = async function(semitones) {
                 const countRef = { count: 0 };
+                // sheet_render.js é ES module (import/export) — new_song.js
+                // é script clássico, então só dá pra acessar via import()
+                // dinâmico, mesmo padrão já usado em createSheetBlock.
+                const { transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
 
                 blocks.forEach((block, index) => {
                     if (block.type === 'text' && block.content) {
                         blocks[index].content = ChordLines.transposeBlockContent(block.content, semitones, countRef);
+                    } else if (block.type === 'sheet' && block.originalData) {
+                        // Muta block.originalData em memória, igual o bloco de
+                        // texto já faz — é exatamente esse campo que Salvar
+                        // envia (ver updateHiddenField), então transpor aqui
+                        // muda o que fica salvo, não é só uma prévia.
+                        blocks[index].originalData = transposeSheetData(block.originalData, semitones);
                     }
                 });
 

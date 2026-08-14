@@ -238,7 +238,7 @@
 </script>
 
 <script type="module">
-  import { renderSheetMusic, normalizeSheetData } from '/static/js/sheet_render.js';
+  import { renderSheetMusic, normalizeSheetData } from '{{ versioned_static("js/sheet_render.js") }}';
 
   // ===== Dados da música (se editando uma existente) =====
   const songDataElement = document.getElementById('song-data');
