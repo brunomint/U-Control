@@ -10,6 +10,8 @@ from werkzeug.utils import safe_join, secure_filename
 from PIL import Image
 import fitz  # PyMuPDF
 
+from extensions import csrf
+
 gallery_bp = Blueprint('gallery', __name__)
 
 # Diretório onde as imagens estão armazenadas
@@ -114,11 +116,14 @@ def lista_fotos():
 
 
 @gallery_bp.route('/upload', methods=['POST'])
+@csrf.exempt
 def upload_files():
     # Sem @login_required de propósito: /presenter é acessado sem login (via
     # QR code, pra qualquer pessoa da igreja enviar fotos durante o culto) e
     # chama esta rota diretamente. A proteção aqui é a validação de caminho
-    # abaixo (_safe_folder_path + secure_filename), não autenticação.
+    # abaixo (_safe_folder_path + secure_filename), não autenticação. Também
+    # isenta de CSRF: exigir token quebraria o caso de alguém abrir o link
+    # direto num celular sem ter carregado a página com o meta tag antes.
     if 'images' not in request.files:
         return jsonify({'status': 'error', 'message': 'Nenhum arquivo enviado'}), 400
 

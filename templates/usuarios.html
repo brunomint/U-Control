@@ -17,6 +17,7 @@
 
     <!-- Formulário para adicionar um novo usuário -->
     <form class="form-cadastro" action="{{ url_for('auth.adicionar_usuario') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="username" placeholder="Nome de usuário" required>
         <div class="input-container">
             <input type="password" name="password" placeholder="Senha" id="password" required>
@@ -43,12 +44,14 @@
                         <i class="fas fa-key"></i> Trocar Senha
                     </button>
                     <form action="{{ url_for('auth.remover_usuario', id=usuario.id) }}" method="post" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn-remover">
                             <i class="fas fa-trash-alt"></i> Remover
                         </button>
                     </form>
                     <form id="senha-form-{{ usuario.id }}" class="senha-form"
                           action="{{ url_for('auth.alterar_senha', id=usuario.id) }}" method="post" style="display: none;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="password" name="password" placeholder="Nova senha" required>
                         <button type="submit" class="btn-senha-confirmar"><i class="fas fa-check"></i></button>
                     </form>

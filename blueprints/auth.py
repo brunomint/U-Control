@@ -2,6 +2,9 @@
 piloto cujos endpoints são referenciados por nome em outros lugares
 (main.py, extensions.py e templates) — todos atualizados pro prefixo
 `auth.` nesta mesma leva."""
+from collections import defaultdict
+from datetime import datetime, timedelta
+
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -18,19 +21,57 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
+# Rate limiting de tentativas de login (em memória, reinicia a cada boot —
+# suficiente para o modelo de ameaça doméstico/rede local, não precisa
+# persistir). Mesmo padrão usado no projeto fileswift.
+tentativas_login_por_ip = defaultdict(list)
+LOGIN_MAX_TENTATIVAS = 5
+LOGIN_JANELA = timedelta(minutes=10)
+
+
+def _obter_ip_cliente(req):
+    ip_cliente = req.environ.get('HTTP_X_FORWARDED_FOR', req.environ.get('REMOTE_ADDR', 'unknown'))
+    if ',' in ip_cliente:
+        ip_cliente = ip_cliente.split(',')[0].strip()
+    return ip_cliente
+
+
+def _ip_esta_bloqueado(ip):
+    agora = datetime.now()
+    tentativas = [t for t in tentativas_login_por_ip.get(ip, []) if agora - t < LOGIN_JANELA]
+    tentativas_login_por_ip[ip] = tentativas
+    return len(tentativas) >= LOGIN_MAX_TENTATIVAS
+
+
+def _registrar_tentativa_falha(ip):
+    tentativas_login_por_ip[ip].append(datetime.now())
+
+
+def _limpar_tentativas(ip):
+    tentativas_login_por_ip.pop(ip, None)
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        ip_cliente = _obter_ip_cliente(request)
+
+        if _ip_esta_bloqueado(ip_cliente):
+            flash('Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.')
+            return redirect(url_for('auth.login'))
+
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
+            _limpar_tentativas(ip_cliente)
             login_user(user)
             next_url = request.args.get('next') or request.form.get('next')
             if next_url and next_url.startswith('/') and not next_url.startswith('//'):
                 return redirect(next_url)
             return redirect(url_for('auth.dashboard'))
         else:
+            _registrar_tentativa_falha(ip_cliente)
             flash('Usuário ou senha incorretos.')
     return render_template('login.html')
 

@@ -19,6 +19,7 @@
     </div>
     <h2 class="text-center mb-4">Login</h2>
     <form method="POST" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
         <div class="mb-3">
             <label for="username" class="form-label">Usuário</label>

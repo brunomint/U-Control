@@ -18,7 +18,7 @@ from zeroconf import ServiceInfo, Zeroconf
 import logging
 from logging.handlers import RotatingFileHandler
 
-from extensions import db, migrate, login_manager, socketio
+from extensions import db, migrate, login_manager, socketio, csrf
 import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
 import models_orders  # noqa: F401 — idem
 from blueprints.countdown import countdown_bp, init_countdown_state
@@ -118,13 +118,18 @@ def create_app(config=None):
     app.config['SESSION_PERMANENT'] = False
 
     if config is None and os.getenv('UCONTROL_TESTING') == '1':
-        config = {'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:', 'TESTING': True}
+        # WTF_CSRF_ENABLED=False só nos testes: o test client do Flask não é
+        # um navegador de verdade, então não tem como carregar um token da
+        # página antes de cada POST — exigir CSRF ali só quebraria a suíte
+        # sem testar nada de real. Em produção/dev normal fica sempre True.
+        config = {'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:', 'TESTING': True, 'WTF_CSRF_ENABLED': False}
     if config:
         app.config.update(config)
 
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    csrf.init_app(app)
     socketio.init_app(
         app,
         cors_allowed_origins="*",

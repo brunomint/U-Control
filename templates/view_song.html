@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script src="{{ versioned_static('js/csrf.js') }}"></script>
     <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
     <!-- Adicione no <head> -->
         <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -798,7 +800,7 @@
                         {% if loop.index0 == 0 %}
                             {# Primeira parte: texto antes da partitura #}
                             {% if part.strip() %}
-                                <pre>{{ part | safe }}</pre>
+                                <pre>{{ part }}</pre>
                             {% endif %}
                         {% else %}
                             {# Extrai o ID da partitura (primeiros caracteres até encontrar não-dígito) #}
@@ -825,7 +827,7 @@
                                 {# Renderiza o texto após o ID da partitura (remove os dígitos do início) #}
                                 {% set remaining_text = part[ns.sheet_id_str|length:] | trim %}
                                 {% if remaining_text %}
-                                    <pre>{{ remaining_text | safe }}</pre>
+                                    <pre>{{ remaining_text }}</pre>
                                 {% endif %}
                             {% endif %}
                         {% endif %}
@@ -846,7 +848,7 @@
                                 {% endif %}
                             {% endfor %}
                             {% if clean_block %}
-                                <pre>{{ clean_block | join('\n') | safe }}</pre>
+                                <pre>{{ clean_block | join('\n') }}</pre>
                             {% endif %}
                             {% set current_block = [] %}
                         {% endif %}
@@ -872,7 +874,7 @@
                     {% endfor %}
                     {% if clean_block %}
                         {% set block_text = clean_block | join('\n') %}
-                        <pre>{{ block_text | safe }}</pre>
+                        <pre>{{ block_text }}</pre>
                     {% endif %}
                 {% endif %}
                 {% endif %}

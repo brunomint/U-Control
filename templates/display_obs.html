@@ -2,6 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script src="{{ versioned_static('js/csrf.js') }}"></script>
     <title>OBS Overlay — U-Control</title>
     <script src="/static/vendor/socketio/socket.io.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/display_obs.css') }}">

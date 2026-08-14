@@ -6,6 +6,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import CSRFProtect
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -16,6 +17,8 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 
 socketio = SocketIO()
+
+csrf = CSRFProtect()
 
 
 # gunicorn.conf.py roda workers=1/threads=16 — até 16 threads reais podem
