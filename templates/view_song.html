@@ -1116,6 +1116,18 @@ window.onload = () => {
   const SONG_ID = {{ song.id }};
   const TRANSPOSE_STORAGE_KEY = 'ucontrol_transpose_' + SONG_ID;
   let transposeOffset = parseInt(localStorage.getItem(TRANSPOSE_STORAGE_KEY), 10) || 0;
+  // Aplica o tom salvo na partitura assim que a página carrega. Não dá
+  // pra confiar em document.addEventListener('DOMContentLoaded', ...)
+  // dentro do script `type="module"` (mais abaixo) pra isso sozinho:
+  // este bloco todo roda em window.onload, que dispara DEPOIS de
+  // DOMContentLoaded — se o module lesse esse valor no próprio
+  // DOMContentLoaded, ainda seria 0 (bug real, encontrado testando com
+  // um tom já salvo em localStorage). Script module sempre termina seu
+  // código de topo (inclusive `window.__rerenderPartituras = ...`) antes
+  // de DOMContentLoaded/load disparar, então nesse ponto ele já existe.
+  if (transposeOffset !== 0 && window.__rerenderPartituras) {
+    window.__rerenderPartituras(transposeOffset);
+  }
 
   function saveTransposeOffset() {
     try {
@@ -1189,6 +1201,7 @@ window.onload = () => {
   window.transposeStep = function(semitones) {
     transposeOffset += semitones;
     renderChords();
+    if (window.__rerenderPartituras) window.__rerenderPartituras(transposeOffset);
     saveTransposeOffset();
   };
 
@@ -1196,6 +1209,7 @@ window.onload = () => {
     if (transposeOffset === 0) return;
     transposeOffset = 0;
     renderChords();
+    if (window.__rerenderPartituras) window.__rerenderPartituras(transposeOffset);
     saveTransposeOffset();
   };
 
@@ -1339,13 +1353,20 @@ window.onload = () => {
          aparecer diferente daqui pro editor. -->
     {% if song.sheet_data %}
     <script type="module">
-        import { renderSheetMusic } from '/static/js/sheet_render.js';
+        import { renderSheetMusic, transposeSheetData } from '/static/js/sheet_render.js';
 
-        async function renderPartituras() {
-            const allSheetData = {{ song.sheet_data | tojson | safe }};
-            const sheetDataArray = Array.isArray(allSheetData) ? allSheetData : [allSheetData];
+        const allSheetData = {{ song.sheet_data | tojson | safe }};
+        const sheetDataArray = Array.isArray(allSheetData) ? allSheetData : [allSheetData];
 
-            for (const sheetData of sheetDataArray) {
+        // Recebe semitons do widget "Tom: X" (script clássico acima,
+        // window.transposeStep/undoTranspose) — sempre transpõe a partir
+        // do dado ORIGINAL salvo em sheetDataArray, nunca em cima de uma
+        // versão já transposta, pra não acumular erro em cliques
+        // repetidos (mesma estratégia que renderChords() já usa pra
+        // letra).
+        async function renderPartituras(semitones = 0) {
+            for (const original of sheetDataArray) {
+                const sheetData = semitones ? transposeSheetData(original, semitones) : original;
                 const sheetId = sheetData.id;
                 const sheetElement = document.getElementById('sheet-display-' + sheetId);
                 if (!sheetElement) {
@@ -1371,7 +1392,12 @@ window.onload = () => {
             }
         }
 
-        document.addEventListener('DOMContentLoaded', renderPartituras);
+        // Hook chamado pelo script clássico (window.transposeStep/
+        // undoTranspose) sempre que o "Tom" muda, pra manter letra e
+        // partitura sincronizadas sob o mesmo controle.
+        window.__rerenderPartituras = renderPartituras;
+
+        document.addEventListener('DOMContentLoaded', () => renderPartituras(0));
     </script>
     {% endif %}
 </body>

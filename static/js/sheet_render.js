@@ -137,6 +137,177 @@ export function normalizeSheetData(raw) {
   return { clef, keySig, timeSig, measures, ties: [], chords: remappedChords };
 }
 
+// Tabelas próprias (não importa de chord_lines.js) — sheet_editor.html
+// usa este módulo sem carregar chord_lines.js, uma dependência dura
+// quebraria esse consumidor. Também precisa lidar com acidente duplo
+// (##/bb, estados reais alcançáveis no editor), que a tabela de cifra
+// não cobre.
+const NOTE_BASE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const ACC_OFFSET = { '': 0, n: 0, '#': 1, '##': 2, b: -1, bb: -2 };
+// Mesma grafia (mista sustenido/bemol) que ChordLines.chordNames em
+// chord_lines.js — cópia literal e independente de propósito (ver nota
+// acima); se uma mudar, a outra precisa mudar junto.
+const PITCH_SPELLING = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+function parsePitch(pitch) {
+  const m = /^([A-Ga-g])(#{1,2}|b{1,2}|n)?[/]?(\d)$/.exec(pitch || '');
+  if (!m) return null;
+  return { letter: m[1].toUpperCase(), acc: m[2] || '', octave: parseInt(m[3], 10) };
+}
+
+// Pra pitch class "tecla preta" (1,3,6,8,10) existem duas grafias
+// enarmônicas válidas — ex. classe 8 é "G#" ou "Ab", mesmo som. Sem
+// contexto de armadura, cai na tabela fixa de sempre (PITCH_SPELLING);
+// com armadura, prefere a grafia cuja letra já é alterada por ela (ex.:
+// numa armadura de 3 sustenidos — Fá#,Dó#,Sol# — a classe 8 vira "G#",
+// não "Ab", porque a letra Sol já é sustenida ali, e assim a nota nem
+// precisa de acidente explícito desenhado).
+const SHARP_SPELL = { 1: 'C#', 3: 'D#', 6: 'F#', 8: 'G#', 10: 'A#' };
+const FLAT_SPELL = { 1: 'Db', 3: 'Eb', 6: 'Gb', 8: 'Ab', 10: 'Bb' };
+
+function spellPitchClass(pitchClass, keyAccidentals) {
+  if (!(pitchClass in SHARP_SPELL)) {
+    // classe natural (0,2,4,5,7,9,11) — sempre a letra pura, sem acidente.
+    return { letter: PITCH_SPELLING[pitchClass], acc: '' };
+  }
+  const sharpName = SHARP_SPELL[pitchClass];
+  const flatName = FLAT_SPELL[pitchClass];
+  let chosen;
+  if (keyAccidentals?.sharps.has(sharpName[0])) chosen = sharpName;
+  else if (keyAccidentals?.flats.has(flatName[0])) chosen = flatName;
+  else if (keyAccidentals) chosen = keyAccidentals.sharps.size >= keyAccidentals.flats.size ? sharpName : flatName;
+  else chosen = PITCH_SPELLING[pitchClass]; // sem armadura de contexto (chamada avulsa) — tabela fixa de sempre
+  return { letter: chosen[0], acc: chosen.length > 1 ? chosen[1] : '' };
+}
+
+/**
+ * Transpõe uma altura de nota (ex: "C#4") por `semitones`, com rollover
+ * de oitava correto (B4 +1 -> C5). `pitch` e `accidental` voltam juntos
+ * e em sincronia — StaveNote usa a oitava/letra embutida em `pitch` pra
+ * posição na pauta, mas o desenho do sustenido/bemol/natural vem do
+ * campo `accidental` separado (ver sheet_editor.html:256,291-302), então
+ * os dois precisam ser atualizados como uma unidade só. `keyAccidentals`
+ * (opcional, de keySignatureAccidentals) escolhe a grafia enarmônica
+ * certa pra armadura de destino — sem ele, cai na tabela fixa de sempre
+ * (mesmo resultado que antes, usado pelos testes unitários diretos).
+ */
+export function transposePitch(pitch, semitones, keyAccidentals) {
+  const p = parsePitch(pitch);
+  if (!p || !semitones) return { pitch, accidental: undefined };
+  const abs = p.octave * 12 + NOTE_BASE[p.letter] + (ACC_OFFSET[p.acc] ?? 0) + semitones;
+  const newOctave = Math.floor(abs / 12);
+  const pitchClass = ((abs % 12) + 12) % 12;
+  const { letter, acc } = spellPitchClass(pitchClass, keyAccidentals);
+  return { pitch: `${letter}${acc}${newOctave}`, accidental: acc };
+}
+
+function transposeKeySig(keySig, semitones) {
+  const m = /^([A-Ga-g])(#|b)?(m)?$/.exec(keySig || '');
+  if (!m || !semitones) return keySig || 'C';
+  const idx = NOTE_BASE[m[1].toUpperCase()] + (ACC_OFFSET[m[2] || ''] ?? 0);
+  const newIdx = ((idx + semitones) % 12 + 12) % 12;
+  return PITCH_SPELLING[newIdx] + (m[3] || '');
+}
+
+// Ordem padrão em que sustenidos/bemóis entram numa armadura de clave
+// (círculo de quintas). Quantidade de cada uma das 12 armaduras maiores
+// que transposeKeySig pode produzir — mesmo índice de PITCH_SPELLING
+// (nunca Db/Gb/Cb, mesma limitação já aceita pro nome da armadura).
+const SHARP_ORDER = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
+const FLAT_ORDER = ['B', 'E', 'A', 'D', 'G', 'C', 'F'];
+const MAJOR_KEY_SHARPS = [0, 7, 2, 0, 4, 0, 6, 1, 0, 3, 0, 5]; // C C# D Eb E F F# G Ab A Bb B
+const MAJOR_KEY_FLATS = [0, 0, 0, 3, 0, 1, 0, 0, 4, 0, 2, 0];
+
+// Letras já alteradas pela armadura de clave — pra tom menor usa a
+// armadura do relativo maior (tônica + 3 semitons), que é a mesma
+// (mesma quantidade de sustenido/bemol de qualquer tom menor real).
+function keySignatureAccidentals(keySig) {
+  const m = /^([A-Ga-g])(#|b)?(m)?$/.exec(keySig || 'C');
+  if (!m) return { sharps: new Set(), flats: new Set() };
+  let idx = NOTE_BASE[m[1].toUpperCase()] + (ACC_OFFSET[m[2] || ''] ?? 0);
+  idx = ((idx % 12) + 12) % 12;
+  if (m[3]) idx = (idx + 3) % 12;
+  return {
+    sharps: new Set(SHARP_ORDER.slice(0, MAJOR_KEY_SHARPS[idx])),
+    flats: new Set(FLAT_ORDER.slice(0, MAJOR_KEY_FLATS[idx])),
+  };
+}
+
+/**
+ * Decide se uma nota precisa de marca explícita de acidente desenhada,
+ * ou se a armadura de clave já cobre sozinha. Ex.: em Dm (1 bemol, Bb),
+ * uma nota "Bb" não precisa de bemol explícito — a armadura já altera
+ * todo Si pra bemol. Sem isso, toda nota transposta ganharia acidente
+ * redundante mesmo quando a armadura já resolve, poluindo a partitura.
+ */
+function accidentalForKey(letter, rawAccidental, keyAccidentals) {
+  const implied = keyAccidentals.sharps.has(letter) ? '#' : keyAccidentals.flats.has(letter) ? 'b' : '';
+  if (rawAccidental === implied) return '';
+  if (rawAccidental === '') return 'n'; // armadura alteraria a nota, mas ela deve soar natural
+  return rawAccidental;
+}
+
+/**
+ * Resolve a altura REAL de uma nota salva, considerando a armadura de
+ * clave original: `sheet_editor.html` só embute o acidente na própria
+ * string de `pitch` quando ele é EXPLÍCITO (mantém `pitch` e
+ * `accidental` em sincronia ao salvar) — uma nota que soa alterada só
+ * pela armadura (ex.: "F4"/accidental:"" no tom de Sol maior, que já
+ * altera todo Fá pra sustenido) fica salva com a letra pura, sem o
+ * sustenido embutido. Ler isso litéralmente (como se fosse F natural)
+ * daria o semitom de partida errado pra transposição — bug real
+ * encontrado testando com dado de produção (música 342, nota "F4" em
+ * tom de Sol virou "Eb" ao transpor um tom abaixo, quando deveria virar
+ * "E" natural).
+ */
+function resolvePitchWithKey(pitch, storedAccidental, keyAccidentals) {
+  if (storedAccidental) return pitch; // acidente explícito, já embutido na string
+  const p = parsePitch(pitch);
+  if (!p) return pitch;
+  const implied = keyAccidentals.sharps.has(p.letter) ? '#' : keyAccidentals.flats.has(p.letter) ? 'b' : '';
+  return implied ? `${p.letter}${implied}${p.octave}` : pitch;
+}
+
+/**
+ * Transpõe uma partitura inteira (notas + cifra sobreposta + armadura de
+ * clave) por `semitones`, sempre recalculando a partir do dado ORIGINAL
+ * (nunca transpõe em cima de um resultado já transposto) — mesma
+ * estratégia "recalcula do zero" que view_song.html já usa pra letra,
+ * evitando erro acumulado em cliques repetidos de +/-.
+ */
+export function transposeSheetData(canonicalData, semitones) {
+  const data = normalizeSheetData(canonicalData);
+  // normalizeSheetData() só devolve os campos de desenho — não carrega
+  // `id` (não precisa dele pra desenhar), mas quem chama esta função
+  // precisa pra achar o elemento "sheet-display-<id>" certo no DOM.
+  const id = canonicalData?.id;
+  if (!semitones) return { ...data, id };
+  const newKeySig = transposeKeySig(data.keySig, semitones);
+  const newKeyAccidentals = keySignatureAccidentals(newKeySig);
+  const origKeyAccidentals = keySignatureAccidentals(data.keySig);
+  return {
+    ...data,
+    id,
+    keySig: newKeySig,
+    measures: data.measures.map(measure => measure.map(note => {
+      if (note.rest) return note;
+      const effectivePitch = resolvePitchWithKey(note.pitch, note.accidental, origKeyAccidentals);
+      const { pitch, accidental: rawAccidental } = transposePitch(effectivePitch, semitones, newKeyAccidentals);
+      const accidental = accidentalForKey(pitch[0], rawAccidental, newKeyAccidentals);
+      return { ...note, pitch, accidental };
+    })),
+    chords: data.chords.map(c => ({
+      ...c,
+      // Cifra sobreposta só existe junto com chord_lines.js nas páginas
+      // que já o carregam hoje — sheet_editor.html nunca chama esta
+      // função, então o guard nunca precisa disparar ali.
+      symbol: (typeof window !== 'undefined' && window.ChordLines?.transposeChord)
+        ? window.ChordLines.transposeChord(c.symbol, semitones)
+        : c.symbol,
+    })),
+  };
+}
+
 /**
  * Desenha a partitura em `container` (elemento DOM). Não sabe de
  * seleção/edição — devolve `vfNotesByMI` (mapa [measure][note] -> objeto
