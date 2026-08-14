@@ -1,0 +1,29 @@
+# Ambiente virtual local — a imagem instala as próprias dependências.
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Controle de versão e config local — nada disso é usado em runtime.
+.git/
+.github/
+.claude/
+.vscode/
+
+# Dados de instância/banco — voltam via volume no docker-compose.yml, não
+# fazem sentido dentro da imagem (evita também assar mídia/dado real numa
+# camada da imagem à toa).
+instance/
+*.db
+static/imagens/
+static/audio/
+# Diretório dos volumes locais do docker-compose.yml (docker-data/) — dado
+# real de um `docker compose up` anterior, nunca faz parte do build.
+docker-data/
+
+# Backups antigos, arquivo de atualização manual, app Android — nada disso
+# faz parte do servidor Flask que a imagem precisa rodar.
+backups/
+data_backup_pre_sql/
+Android/
+*.zip

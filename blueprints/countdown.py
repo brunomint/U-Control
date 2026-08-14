@@ -10,6 +10,7 @@ import time
 
 from flask import Blueprint, jsonify, render_template
 from flask_socketio import emit
+from sqlalchemy.exc import OperationalError
 
 from extensions import db, socketio
 from models import CountdownConfig
@@ -48,8 +49,14 @@ _countdown_state = {
 
 def init_countdown_state():
     """Chamado uma vez por create_app(), dentro de app_context — carrega o
-    rótulo salvo do banco pro estado em memória."""
-    _countdown_state['label'] = _load_countdown_config().get('label', '')
+    rótulo salvo do banco pro estado em memória. Tolera tabela ainda
+    inexistente (banco recém-criado, antes do primeiro `flask db upgrade`
+    rodar de verdade — `flask --app main db upgrade` importa main.py, e
+    isso já chama create_app() antes do upgrade em si acontecer)."""
+    try:
+        _countdown_state['label'] = _load_countdown_config().get('label', '')
+    except OperationalError:
+        db.session.rollback()
 
 
 @countdown_bp.route('/countdown')

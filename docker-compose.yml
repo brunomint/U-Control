@@ -1,0 +1,47 @@
+services:
+  ucontrol:
+    container_name: ucontrol
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    # mDNS (zeroconf, "ucontrol.local") não atravessa a rede bridge padrão
+    # do Docker — só funciona em host. Com isso, a porta já sai direto em
+    # 0.0.0.0:8585 do host, igual ao gunicorn rodando direto no Pi hoje —
+    # não precisa mexer no Cloudflare Tunnel nem no Tailscale, os dois
+    # continuam apontando pra mesma porta de sempre.
+    network_mode: host
+
+    environment:
+      TZ: America/Sao_Paulo
+
+    volumes:
+      # instance/ carrega TANTO secret_key (sem isso, cada `docker compose up`
+      # geraria uma SECRET_KEY nova e derrubaria a sessão de todo mundo
+      # logado) QUANTO o próprio users.db — SQLALCHEMY_DATABASE_URI é
+      # 'sqlite:///users.db' (caminho relativo), e o Flask-SQLAlchemy
+      # resolve caminho relativo de SQLite contra app.instance_path, não
+      # contra a raiz do projeto (confirmado testando: vira
+      # instance/users.db, não users.db solto). Monta o diretório inteiro,
+      # não um arquivo único, pra os *-wal/*-shm do modo WAL do SQLite
+      # também ficarem persistidos junto.
+      - ./docker-data/instance:/app/instance
+      # Mídia enviada pelos usuários (galeria e download de áudio) — mesmos
+      # caminhos que já ficam fora do git hoje (ver .gitignore).
+      - ./docker-data/imagens:/app/static/imagens
+      - ./docker-data/audio:/app/static/audio
+
+    restart: unless-stopped
+
+  # Roda a suíte dentro do container: docker compose run --rm test
+  # Fica num profile pra não subir junto com o app no `docker compose up`.
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    profiles:
+      - test
+    environment:
+      UCONTROL_TESTING: "1"
+      UCONTROL_NO_BROWSER: "1"

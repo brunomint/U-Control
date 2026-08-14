@@ -30,6 +30,10 @@ data_backup_pre_sql/urls.json
 static/imagens/
 static/audio/
 
+# Volumes locais do docker-compose.yml (instance/, users.db, mídia) — dado
+# real de quem rodou `docker compose up`, não conteúdo do projeto.
+docker-data/
+
 # Backups manuais antigos — substituídos pelo histórico do git a partir de agora
 backups/
 *.zip

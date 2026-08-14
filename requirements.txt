@@ -26,6 +26,13 @@ Mako==1.4.1
 Flask-WTF==1.3.0
 WTForms==3.2.2
 
+# yt-dlp: usado por blueprints/cifras.py (download_audio, via
+# `python3 -m yt_dlp`) — faltava neste arquivo mesmo já sendo usado em
+# produção; descoberto testando a imagem Docker (2026-08-14), onde o
+# comando falhava com "No module named yt_dlp". Precisa de ffmpeg
+# instalado no sistema também (não é pacote pip) pra converter pra mp3.
+yt-dlp==2026.7.4
+
 beautifulsoup4==4.14.3
 bidict==0.23.1
 blinker==1.9.0

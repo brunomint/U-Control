@@ -9,6 +9,7 @@ import do módulo como antes, porque isso rodava antes de
 db.init_app()/app_context existirem."""
 from flask import Blueprint, jsonify
 from flask_socketio import emit
+from sqlalchemy.exc import OperationalError
 
 from display_log import append_display_log
 from extensions import db, socketio
@@ -42,9 +43,15 @@ _ticker_active = False  # nunca ativo no boot; exige comando explícito
 
 def init_ticker_state():
     """Chamado uma vez por create_app(), dentro de app_context — carrega o
-    texto salvo do banco pro estado em memória."""
+    texto salvo do banco pro estado em memória. Tolera tabela ainda
+    inexistente (banco recém-criado, antes do primeiro `flask db upgrade`
+    rodar de verdade — `flask --app main db upgrade` importa main.py, e
+    isso já chama create_app() antes do upgrade em si acontecer)."""
     global _ticker_text
-    _ticker_text = _load_ticker_config().get('text', '')
+    try:
+        _ticker_text = _load_ticker_config().get('text', '')
+    except OperationalError:
+        db.session.rollback()
 
 
 @ticker_bp.route('/api/ticker')
