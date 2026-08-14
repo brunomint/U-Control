@@ -35,24 +35,6 @@ def login():
     return render_template('login.html')
 
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if User.query.filter_by(username=username).first():
-            flash('Usuário já existe.')
-        else:
-            # Use pbkdf2:sha256 como método de hash
-            hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-            new_user = User(username=username, password=hashed_password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Cadastro realizado com sucesso!')
-            return redirect(url_for('auth.login'))
-    return render_template('register.html')
-
-
 @auth_bp.route('/dashboard')
 @login_required
 def dashboard():
