@@ -2,12 +2,17 @@
 
 {% block title %}Histórico do Culto{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-noturno.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/historico.css') }}">
 {% endblock %}
 
 {% block content %}
+{% include "_nav.html" %}
 <div class="container">
     <div class="page-header">
         <h1>📜 Histórico do Culto</h1>

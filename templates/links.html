@@ -12,13 +12,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="tabs">
-    <div class="tab"><a href="/dashboard"><i class="fas fa-home"></i> Início</a></div>
-    <div class="tab"><a href="/songs"><i class="fas fa-music"></i> Músicas</a></div>
-    <div class="tab"><a href="/bible"><i class="fas fa-book-bible"></i> Bíblia</a></div>
-    <div class="tab"><a href="/order"><i class="fas fa-list-ol"></i> Ordem</a></div>
-    <div class="tab active"><a href="/links"><i class="fas fa-qrcode"></i> Links</a></div>
-</div>
+{% include "_nav.html" %}
 
 <div class="container">
     <div class="header">

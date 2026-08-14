@@ -2,11 +2,16 @@
 
 {% block title %}Ajuda - Como Usar o U-Control{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/help.css') }}">
 {% endblock %}
 
 {% block content %}
+{% include "_nav.html" %}
 <div class="menu">
     <h3>Menu de Ajuda</h3>
     <a onclick="loadContent('funcionalidades')">1. Principais Funcionalidades</a>

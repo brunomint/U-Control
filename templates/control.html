@@ -237,67 +237,17 @@
 
                         <h1>Links</h1>
                     <ul>
+                        <!-- Itens vêm de nav_config.NAV_ITEMS (contexto
+                             "launcher"), injetado via launcher_items no
+                             context processor de main.py — fonte única,
+                             ver .claude/plans/harmonic-mixing-breeze.md -->
+                        {% for item in launcher_items %}
                         <li>
-                            <!-- Links da aplicação -->
-                            <a href='/songs' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Biblioteca de Músicas
+                            <a href='{{ url_for(item.endpoint) }}' target="_blank" class="help-link">
+                                <i class="fas {{ item.icon }}"></i> {{ item.label }}
                             </a>
                         </li>
-
-                        <li>
-                            <a href='/order' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Ordem do Culto
-                            </a>
-                        </li>
-                            
-                        <li>
-                            <a href='/lyrics/display' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Visualização das Canções
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/monitor' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Retorno de Palco
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/img' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Visualização de Imagens
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/presenter' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Controle de Imagens
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/lyrics/display/public' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Texto para o Público
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/lyrics/display/obs' target="_blank" class="help-link">
-                                <i class="fas fa-video"></i> Overlay OBS (fundo transparente)
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/dashboard' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Dashboard
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href='/usuarios' target="_blank" class="help-link">
-                                <i class="fas fa-link"></i> Novo Usuário
-                            </a>
-                        </li>
-                        
+                        {% endfor %}
                     </ul>
                     </li>
                 </ul>

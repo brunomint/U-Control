@@ -2,17 +2,17 @@
 
 {% block title %}Ordens de Culto{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-noturno.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/order_list.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="tabs">
-    <div class="tab"><a href="/new_song">Nova Música</a></div>
-    <div class="tab"><a href="/songs">Biblioteca de Música</a></div>
-    <div class="tab"><a href="/">Home</a></div>
-</div>
+{% include "_nav.html" %}
 
 <div class="container">
     <div class="header">

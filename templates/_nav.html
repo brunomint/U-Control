@@ -1,0 +1,88 @@
+<!-- Barra de navegação compartilhada — ver .claude/plans/harmonic-mixing-breeze.md.
+     Consome nav_groups (injetado em toda página via context processor
+     inject_nav() em main.py), que por sua vez vem de nav_config.py —
+     fonte única, substitui as 6 variações de .tabs que existiam antes.
+     Estilo minimalista de propósito (mesmo gradiente roxo que as
+     barras .tabs antigas já usavam) — o redesign visual das páginas
+     fica pra uma rodada futura, à parte desta reorganização de
+     navegação. -->
+<nav class="site-nav">
+    {% for group in nav_groups %}
+    <div class="site-nav-group">
+        <span class="site-nav-group-label">{{ group.label }}</span>
+        {% for item in group.links %}
+        <a href="{{ url_for(item.endpoint) }}"
+           class="site-nav-link{% if request.endpoint == item.endpoint %} active{% endif %}">
+            <i class="fas {{ item.icon }}"></i> {{ item.label }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</nav>
+<style>
+    .site-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        background: linear-gradient(135deg, #5a4fcf, #7c3aed);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px 18px;
+        padding: 8px 16px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        font-family: 'Roboto', sans-serif;
+        font-size: 13px;
+        box-sizing: border-box;
+    }
+
+    .site-nav-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .site-nav-group + .site-nav-group {
+        border-left: 1px solid rgba(255, 255, 255, 0.25);
+        padding-left: 18px;
+    }
+
+    .site-nav-group-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.55);
+        margin-right: 2px;
+    }
+
+    .site-nav-link {
+        color: #fff;
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+    }
+
+    .site-nav-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .site-nav-link.active {
+        background: rgba(255, 255, 255, 0.22);
+        font-weight: bold;
+    }
+
+    .site-nav-link i {
+        margin-right: 4px;
+    }
+
+    @media (max-width: 900px) {
+        .site-nav {
+            position: static;
+        }
+    }
+</style>

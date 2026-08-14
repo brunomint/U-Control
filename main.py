@@ -6,7 +6,7 @@ from flask import (
     url_for,
 )
 from werkzeug.routing import BaseConverter
-from flask_login import login_required
+from flask_login import current_user, login_required
 import os
 import json
 import threading
@@ -37,6 +37,7 @@ from blueprints.agenda import agenda_bp
 import blueprints.screen_share  # noqa: F401 — importado só pelo efeito colateral de registrar os handlers de socket
 from blueprints.lyrics import lyrics_bp
 from blueprints.display import display_bp
+from nav_config import grouped_nav_items, items_for_context, qr_endpoints
 
 logger = logging.getLogger('ucontrol')
 
@@ -177,6 +178,21 @@ def create_app(config=None):
 
     app.jinja_env.globals['versioned_static'] = _versioned_static
 
+    @app.context_processor
+    def inject_nav():
+        # Disponível em todo template sem precisar passar manualmente em
+        # cada render_template — ver .claude/plans/harmonic-mixing-breeze.md.
+        # current_user.is_authenticated funciona também fora de rota
+        # @login_required (visitante deslogado só não vê os itens com
+        # login_required=True). launcher_items alimenta o submenu
+        # "Links" do sidebar de control.html (telas que o operador abre
+        # em nova aba mantendo o painel aberto).
+        logged_in = current_user.is_authenticated
+        return {
+            'nav_groups': grouped_nav_items(logged_in),
+            'launcher_items': items_for_context('launcher', logged_in),
+        }
+
     return app
 
 
@@ -203,9 +219,6 @@ def gerar_qrcodes(rotas):
         qr_code.save(caminho_arquivo)
         logger.info(f"QR Code para '{url_completa}' salvo em: {caminho_arquivo}")
 
-# Lista de rotas para as quais você quer gerar QR Codes
-rotas = ["control", "songs", "lyrics/display", "monitor", "img", "presenter", "help", "order", "view", "bible", "bible/display"]
-
 def gerar_links(rotas):
     ip_local = obter_endereco_ip()
     links = []
@@ -219,8 +232,10 @@ def gerar_links(rotas):
 
     return links
 
-# Gerar os QR Codes
-gerar_qrcodes(rotas)
+# Geração de QR Codes fica pro fim do arquivo (depois de "/view" e "/"
+# serem registradas) — nav_config.qr_endpoints() inclui view_song_order,
+# que só existe no url_map depois dessas rotas serem definidas mais
+# abaixo neste mesmo arquivo.
 
 
 @app.route('/view')
@@ -307,6 +322,17 @@ def view_song(song_id):
 @login_required
 def index():
     return redirect(url_for('auth.dashboard'))
+
+# Gerar os QR Codes — aqui, não antes, porque nav_config.qr_endpoints()
+# inclui rotas definidas neste mesmo arquivo (ex. view_song_order) que só
+# existem no url_map depois de todas as rotas acima serem registradas.
+with app.test_request_context():
+    # url_for precisa de um contexto de requisição pra montar caminhos
+    # relativos fora de uma requisição de verdade — app_context sozinho
+    # não basta (RuntimeError: "Unable to build URLs outside an active
+    # request without 'SERVER_NAME' configured").
+    _qr_rotas = [url_for(_endpoint).lstrip('/') for _endpoint in qr_endpoints()]
+gerar_qrcodes(_qr_rotas)
 
 # === Registro mDNS ===
 def registrar_mdns():

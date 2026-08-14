@@ -4,6 +4,7 @@
 
 {% block head_extra %}
 <script src="/static/vendor/jspdf/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
@@ -11,11 +12,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="tabs">
-    <div class="tab"><a href="/order">📋 Ordens</a></div>
-    <div class="tab"><a href="/songs">Biblioteca</a></div>
-    <div class="tab"><a href="/">Home</a></div>
-</div>
+{% include "_nav.html" %}
 
 <div class="container">
     <div class="page-header">

@@ -1,12 +1,13 @@
 """Rotas utilitárias soltas: links/QR codes, relógio, ajuda, histórico,
 status do sistema e download do launcher do monitor. api_culto_status
 fica de fora — depende de dados de agenda, ainda não modularizados."""
-from flask import Blueprint, current_app, jsonify, make_response, render_template, request
+from flask import Blueprint, current_app, jsonify, make_response, render_template, request, url_for
 
 import connections
 from connections import socketio_clients_by_sid
 from display_log import clear_display_log, load_display_log
 from flask_login import login_required
+from nav_config import items_for_context
 from network_utils import PORTA, obter_endereco_ip
 
 utils_bp = Blueprint('utils', __name__)
@@ -14,30 +15,25 @@ utils_bp = Blueprint('utils', __name__)
 
 @utils_bp.route("/links")
 def exibir_links():
-    rotas = [
-        ("/", "Controle"),
-        ("monitor", "Monitor"),
-        ("presenter", "Controle de Imagem"),
-        ("order", "Ordem do Culto"),
-        ("lyrics/display", "Monitor de Letra"),
-        ("img", "Monitor de Imagem"),
-        ("songs", "Biblioteca de Músicas"),
-        ("bible", "Bíblia"),
-        ("bible/display", "Bíblia - Display"),
-        ("help", "Ajuda")
-    ]
+    # Antes era uma lista própria (parcialmente sobreposta com o grid do
+    # dashboard.html e o gerador de QR code em main.py) — agora vem de
+    # nav_config.NAV_ITEMS, a fonte única (ver
+    # .claude/plans/harmonic-mixing-breeze.md). /links não exige login,
+    # então só lista o que um visitante deslogado consegue abrir de
+    # verdade — item que exige login só devolveria ele pro /login.
     ip_local = obter_endereco_ip()
     porta_url = f"http://{ip_local}:{PORTA}"
 
     dados = []
-    for rota, nome in rotas:
+    for item in items_for_context("qr", logged_in=False):
+        rota = url_for(item["endpoint"]).lstrip("/")
         url = f"{porta_url}/{rota}"
         nome_arquivo = rota.replace("/", "_") + "_qr_code"
         dados.append({
             "url": url,
-            "nome": nome,
+            "nome": item["label"],
             "img": f"/static/qrcodes/{nome_arquivo}.png",
-            "img_id": nome_arquivo
+            "img_id": nome_arquivo,
         })
 
     return render_template("links.html", dados=dados)
