@@ -10,6 +10,7 @@ resolve sozinho — por isso capturam `current_app._get_current_object()`
 (o app de verdade) antes de disparar a thread, e usam esse objeto
 capturado dentro dela. Onde o app_context é usado só dentro do próprio
 handler (sem thread), current_app.app_context() direto já basta."""
+import json
 import re
 import threading
 import time
@@ -250,20 +251,25 @@ def handle_show_image(data):
     emit('display_image', {'image_url': image_url}, broadcast=True, skip_sid=_skip_sids(data))
     append_display_log({'type': 'image', 'title': image_url})
 
-    # Só persiste no banco se for arquivo estático real (não rotas como /img, /lyrics/display)
     is_static_file = image_url.startswith('/static/') or \
         bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', image_url, re.I))
-    if not is_static_file:
-        return
-
-    # Mantém cache da última mídia estática
-    display_state._last_static_media_url = image_url
+    if is_static_file:
+        # Mantém cache da última mídia estática — usado como fallback de
+        # 'video' em api_current_display, então só faz sentido pra
+        # arquivo estático de verdade, não pra rota como /clock.
+        display_state._last_static_media_url = image_url
 
     # Atualiza cache
     display_state._display_state_cache['data'] = {'url1': image_url, 'url2': ''}
     display_state._display_state_cache['timestamp'] = time.time()
 
-    # Salva no banco de forma assíncrona
+    # Persiste no banco pra sobreviver a um restart do servidor —
+    # antes só persistia arquivo estático real; qualquer rota (/clock,
+    # /img, /bible/display, qualquer botão do /control que chama
+    # sendUrl()) nunca era salva, então reiniciar o servidor depois de
+    # trocar pra uma dessas voltava a mostrar o que estava salvo antes
+    # (achado ao vivo: clicar Relógio e reiniciar o servidor voltava
+    # pra música exibida anteriormente).
     def save_async():
         with real_app.app_context():
             state = DisplayState.query.first()
@@ -388,18 +394,20 @@ def handle_show_monitor_content(data):
     # iframe. Essa página, ao carregar do zero, busca /api/current-display pra
     # saber o que mostrar — e sem isto aqui, ela mostra o que foi exibido por
     # último de verdade ao público (ex: relógio), não a letra atual.
-    # display_state._last_lyrics_payload some a cada restart do servidor, então reconstrói a
-    # partir do banco (song_id + section_index), igual ao fallback que
-    # /api/current-display já usa quando não há payload em memória.
+    # display_state._last_lyrics_payload some a cada restart do servidor,
+    # então reconstrói a partir do payload exato persistido em
+    # LyricsState.last_payload (mesmo fallback que /api/current-display
+    # usa) — preserva tipo mixed/sheet e partitura, ao contrário da
+    # reconstrução antiga (só title+text, sempre virava texto puro).
     if url == '/lyrics/display/public':
         with current_app.app_context():
             state = LyricsState.query.first()
-            if state and state.song_id:
-                song = next((s for s in load_songs() if s['id'] == state.song_id), None)
-                if song and 0 <= state.section_index < len(song['sections']):
-                    section = song['sections'][state.section_index]
-                    display_state._last_lyrics_payload = {'title': section['title'], 'text': section['text'][0]}
+            if state and state.last_payload:
+                try:
+                    display_state._last_lyrics_payload = json.loads(state.last_payload)
                     display_state._current_display_mode = 'lyrics'
+                except (ValueError, TypeError):
+                    pass
     for sid in _get_monitor_sids():
         emit('display_monitor_content', {'url': url}, to=sid)
 
@@ -539,19 +547,56 @@ def api_current_display():
         return jsonify({'mode': 'video', 'video_url': display_state._last_static_media_url})
     if display_state._current_display_mode == 'lyrics' and display_state._last_lyrics_payload:
         return jsonify({'mode': 'lyrics', **display_state._last_lyrics_payload})
-    # Fallback: busca do banco (song_id + section_index salvos pelo operador)
-    state = LyricsState.query.first()
-    if state and state.song_id:
-        song = next((s for s in load_songs() if s['id'] == state.song_id), None)
-        if song and state.section_index < len(song['sections']):
-            section = song['sections'][state.section_index]
-            return jsonify({
-                'mode': 'lyrics',
-                'title': section['title'],
-                'text': section['text'][0],
-                'type': 'text',
-                'theme': None
-            })
+
+    # Estado em memória (display_state.*) é volátil e some a cada
+    # restart do servidor — daqui pra baixo é reconstrução a partir do
+    # banco. DisplayState.url1 é a fonte da verdade de "o que foi
+    # exibido por último" através de TODOS os modos: rotas genéricas
+    # (handle_show_image — /clock, /img, /bible/display, qualquer botão
+    # do /control que manda uma única URL) e letra/partitura (lyrics_2.js
+    # chama /save_display_state a cada seção carregada). Usa ela pra
+    # decidir QUAL reconstrução fazer, em vez de sempre cair na de letra
+    # — bug real encontrado nesta sessão: trocar pro Relógio e reiniciar
+    # o servidor voltava a mostrar a música, porque a reconstrução de
+    # letra "vencia" incondicionalmente qualquer outro modo.
+    display = DisplayState.query.first()
+    url1 = (display.url1 if display else '') or ''
+
+    if url1.startswith('/lyrics/display') and 'song_id=' in url1:
+        # LyricsState.last_payload guarda o payload exato do último
+        # update_lyrics (JSON), reconstrução fiel (inclusive
+        # partitura/tipo mixed) — a reconstrução antiga a partir só de
+        # song_id+section_index sempre virava 'type':'text' mesmo pra
+        # seção mista/partitura, e deixava o marcador
+        # 🎼 PARTITURA_INTEGRADA_... cru no texto.
+        state = LyricsState.query.first()
+        if state and state.last_payload:
+            try:
+                payload = json.loads(state.last_payload)
+                return jsonify({'mode': 'lyrics', **payload})
+            except (ValueError, TypeError):
+                pass
+        # Último recurso: reconstrói só o texto a partir de song_id/
+        # section_index (não recupera partitura/tipo mixed) — só pra
+        # dado salvo antes desta persistência existir.
+        if state and state.song_id:
+            song = next((s for s in load_songs() if s['id'] == state.song_id), None)
+            if song and state.section_index < len(song['sections']):
+                section = song['sections'][state.section_index]
+                return jsonify({
+                    'mode': 'lyrics',
+                    'title': section['title'],
+                    'text': section['text'][0],
+                    'type': 'text',
+                    'theme': None
+                })
+    elif url1:
+        if display.media_type == 'video':
+            return jsonify({'mode': 'video', 'video_url': url1})
+        is_static = url1.startswith('/static/') or \
+            bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', url1, re.I))
+        return jsonify({'mode': 'image', 'image_url': url1, 'is_static': is_static})
+
     return jsonify({'mode': 'blank'})
 
 @socketio.on('set_display_bg')

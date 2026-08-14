@@ -24,6 +24,15 @@ class LyricsState(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     song_id = db.Column(db.Integer, nullable=True)  # ID da música atual
     section_index = db.Column(db.Integer, default=0)  # Índice da seção atual
+    # JSON exato do último payload update_lyrics (title/type/text/sheets/
+    # sheetData/theme) — display_state._last_lyrics_payload é só em
+    # memória e some a cada restart do servidor; api_current_display usa
+    # isto como fallback pra reconstruir a EXATA última tela (inclusive
+    # partitura) em vez de tentar remontar a partir de song_id+
+    # section_index (perdia o tipo mixed/sheet, sempre virava texto puro
+    # com o marcador 🎼 PARTITURA_INTEGRADA_... cru — bug real encontrado
+    # nesta sessão).
+    last_payload = db.Column(db.Text, nullable=True)
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
 

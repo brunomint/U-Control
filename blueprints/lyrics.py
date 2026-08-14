@@ -5,15 +5,17 @@ display (display_state.py) — escreve _last_lyrics_payload/
 _current_display_mode, lidos por api_current_display (que fica em
 blueprints/display.py, Fase 3.23, por lidar com os 3 modos de exibição,
 não só letras)."""
+import json
 import logging
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 from flask_login import login_required
 from flask_socketio import emit
 
 import display_state
 from display_log import append_display_log
-from extensions import socketio
+from extensions import db, socketio
+from models import LyricsState
 from orders_store import load_orders
 from songs_store import load_songs, save_songs
 
@@ -150,6 +152,21 @@ def handle_update_lyrics(data):
     logger.debug(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
     display_state._last_lyrics_payload = data
     display_state._current_display_mode = 'lyrics'
+    # Persiste o payload exato (não só em memória) — display_state
+    # some a cada restart do servidor; sem isto, api_current_display cai
+    # num fallback que reconstrói a partir de song_id+section_index e
+    # perde o tipo mixed/sheet (sempre virava texto puro, com o
+    # marcador 🎼 PARTITURA_INTEGRADA_... cru aparecendo na tela).
+    try:
+        with current_app.app_context():
+            state = LyricsState.query.first()
+            if state is None:
+                state = LyricsState()
+                db.session.add(state)
+            state.last_payload = json.dumps(data)
+            db.session.commit()
+    except Exception:
+        logger.exception('Falha ao persistir last_payload de update_lyrics')
     emit('update_lyrics', data, broadcast=True)
 
 # Evento WebSocket para mudança de seção
