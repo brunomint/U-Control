@@ -17,6 +17,8 @@ na Fase 5.6 — /save e /load (blueprints/orders.py) e o fallback de
 view_song (main.py) miram a ordem de hoje (tabela Order) desde então."""
 import logging
 
+from sqlalchemy.orm import selectinload
+
 from extensions import db
 from models_orders import EventoItem, Order, OrderItem, OrderTemplate, SectionTemplate
 
@@ -94,7 +96,13 @@ def _order_to_dict(order):
 
 def load_orders():
     """Carrega todas as ordens."""
-    orders = Order.query.order_by(Order.date.asc()).all()
+    # selectinload evita N+1: sem isso, cada acesso a order.itens/order.eventos
+    # em _order_to_dict dispara uma query por ordem — 176 ordens reais viravam
+    # 353 queries (1 + 176 + 176), ~1s só pra carregar (mesmo bug e mesma
+    # causa raiz do achado em load_songs(), ver songs_store.py — 2026-08-15).
+    orders = Order.query.options(
+        selectinload(Order.itens), selectinload(Order.eventos)
+    ).order_by(Order.date.asc()).all()
     return {o.date: _order_to_dict(o) for o in orders}
 
 
@@ -126,7 +134,13 @@ def save_orders(orders):
     docstring do módulo). Retorna True/False, igual antes."""
     try:
         incoming_dates = set(orders.keys())
-        existing = {o.date: o for o in Order.query.all()}
+        # Mesmo motivo do selectinload em load_orders() acima —
+        # _apply_order_fields também compara order.itens/order.eventos.
+        existing = {
+            o.date: o for o in Order.query.options(
+                selectinload(Order.itens), selectinload(Order.eventos)
+            ).all()
+        }
 
         for existing_date, order in existing.items():
             if existing_date not in incoming_dates:

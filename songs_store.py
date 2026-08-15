@@ -26,6 +26,8 @@ só são recriadas quando o conteúdo comparado realmente difere do que já
 está no banco."""
 from datetime import datetime
 
+from sqlalchemy.orm import selectinload
+
 from extensions import db
 from models_songs import SheetData, Song, SongSection
 
@@ -94,7 +96,17 @@ def _song_to_dict(song):
 
 def load_songs():
     """Carrega as músicas."""
-    songs = Song.query.order_by(Song.id.asc()).all()
+    # selectinload em vez do lazy-load padrão: sem isso, cada acesso a
+    # song.sections/song.sheet_data dentro de _song_to_dict dispara uma
+    # query SEPARADA por música — 371 músicas reais viravam 743 queries
+    # (1 + 371 + 371), ~3.4s só pra carregar. selectinload busca todas as
+    # seções e todas as partituras em 2 queries únicas (WHERE song_id IN
+    # (...)), independente de quantas músicas existam. Achado ao investigar
+    # por que salvar uma música editada no Pi demorava ~7s no total (achado
+    # real, não latência de rede — 2026-08-15).
+    songs = Song.query.options(
+        selectinload(Song.sections), selectinload(Song.sheet_data)
+    ).order_by(Song.id.asc()).all()
     return [_song_to_dict(s) for s in songs]
 
 
@@ -134,7 +146,14 @@ def save_songs(songs):
     """Salva as músicas (sync completo por id, com diff — ver docstring do
     módulo)."""
     incoming_ids = {s['id'] for s in songs}
-    existing = {s.id: s for s in Song.query.all()}
+    # Mesmo motivo do selectinload em load_songs() acima — _apply_song_fields
+    # também compara song.sections/song.sheet_data pra decidir se recria as
+    # listas-filhas, e sem eager loading isso é outra rodada de N+1 queries.
+    existing = {
+        s.id: s for s in Song.query.options(
+            selectinload(Song.sections), selectinload(Song.sheet_data)
+        ).all()
+    }
 
     for song_id, song in existing.items():
         if song_id not in incoming_ids:
