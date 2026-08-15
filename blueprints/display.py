@@ -26,7 +26,7 @@ from display_log import append_display_log
 from extensions import db, socketio
 from models import DisplayState, ImagePath, LyricsState, SavedUrls
 from settings_store import load_settings, save_settings
-from songs_store import load_songs
+from songs_store import get_song
 
 display_bp = Blueprint('display', __name__)
 
@@ -580,7 +580,7 @@ def api_current_display():
         # section_index (não recupera partitura/tipo mixed) — só pra
         # dado salvo antes desta persistência existir.
         if state and state.song_id:
-            song = next((s for s in load_songs() if s['id'] == state.song_id), None)
+            song = get_song(state.song_id)
             if song and state.section_index < len(song['sections']):
                 section = song['sections'][state.section_index]
                 return jsonify({

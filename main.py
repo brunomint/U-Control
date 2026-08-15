@@ -26,7 +26,7 @@ from blueprints.ticker import ticker_bp, init_ticker_state
 from blueprints.auth import auth_bp
 from blueprints.bible import bible_bp, generate_bible_url
 from blueprints.cifras import cifras_bp
-from songs_store import load_songs
+from songs_store import get_song
 from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
@@ -268,7 +268,7 @@ def view_order_by_date(date):
 @app.route('/view/<int:song_id>')
 def view_song(song_id):
     """Exibe os detalhes de uma música."""
-    song = next((s for s in load_songs() if s['id'] == song_id), None)
+    song = get_song(song_id)
     if not song:
         return "Música não encontrada!", 404
 

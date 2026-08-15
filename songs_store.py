@@ -110,6 +110,50 @@ def load_songs():
     return [_song_to_dict(s) for s in songs]
 
 
+def get_song(song_id):
+    """Carrega UMA música só, com as mesmas relações eager-loaded acima —
+    usado por /lyrics/<id>, que antes chamava load_songs() (as 371) só
+    pra achar 1 pelo id. Retorna None se não existir.
+
+    db.session.get(..., options=[...]) em vez de Query.get() encadeado
+    com .options(): Session.get() confere primeiro o identity map, e só
+    o parâmetro options garante que o eager load seja aplicado mesmo se
+    o objeto já estiver na sessão (e portanto os selectinload de um
+    .options() encadeado seriam ignorados nesse caso)."""
+    song = db.session.get(
+        Song, song_id,
+        options=[selectinload(Song.sections), selectinload(Song.sheet_data)],
+    )
+    return _song_to_dict(song) if song else None
+
+
+def touch_last_played(song_id):
+    """Atualiza só o last_played de uma música — 1 UPDATE, sem tocar nas
+    outras 370. /lyrics/<id> chamava load_songs()+save_songs() com a
+    LISTA INTEIRA (371 músicas) a cada visita só pra isso: mesmo já
+    reduzido de 743 pra 3 queries (ver load_songs()), ainda era ~2.3s de
+    trabalho proporcional ao total de músicas — pra atualizar 1 coluna
+    de 1 linha. Achado a partir do relato real "cifras ficam lentas
+    quando troca de música" (2026-08-15)."""
+    song = db.session.get(Song, song_id)
+    if song:
+        song.last_played = datetime.now()
+        db.session.commit()
+
+
+def set_theme(song_id, theme):
+    """Atualiza só o theme de uma música — mesma ideia de
+    touch_last_played(), pro endpoint /api/lyrics/<id>/theme que também
+    fazia load_songs()+save_songs() da lista inteira. Retorna False se a
+    música não existir."""
+    song = db.session.get(Song, song_id)
+    if not song:
+        return False
+    song.theme = theme
+    db.session.commit()
+    return True
+
+
 def _apply_song_fields(song, data, is_new):
     song.title = data.get('title')
     song.author = data.get('author')

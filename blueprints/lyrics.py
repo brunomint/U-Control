@@ -17,7 +17,7 @@ from display_log import append_display_log
 from extensions import db, socketio
 from models import LyricsState
 from orders_store import load_orders
-from songs_store import load_songs, save_songs
+from songs_store import get_song, set_theme, touch_last_played
 
 logger = logging.getLogger('ucontrol')
 
@@ -28,15 +28,17 @@ lyrics_bp = Blueprint('lyrics', __name__)
 @login_required
 def lyrics(song_id):
     """Exibe as letras de uma música."""
-    songs = load_songs()
-    song = next((s for s in songs if s['id'] == song_id), None)
+    # get_song()+touch_last_played() em vez de load_songs()+save_songs()
+    # com a lista inteira: essa rota é visitada a cada troca de música, e
+    # carregar/resalvar as 371 músicas só pra atualizar o last_played de 1
+    # era proporcional ao total de músicas (~2.3s), não ao trabalho real
+    # (1 linha). Achado a partir do relato "cifras ficam lentas trocando
+    # de música" (2026-08-15).
+    song = get_song(song_id)
     if not song:
         return "Música não encontrada", 404
 
-    # Atualiza o timestamp de last_played
-    from datetime import datetime
-    song['last_played'] = datetime.now().isoformat()
-    save_songs(songs)
+    touch_last_played(song_id)
 
     # Detecta automaticamente a ordem que contém esta música
     order_date = request.args.get('order')
@@ -66,7 +68,7 @@ def lyrics(song_id):
 @lyrics_bp.route('/api/lyrics/<int:song_id>')
 def api_lyrics(song_id):
     """Retorna os dados completos da música em JSON (para API)."""
-    song = next((s for s in load_songs() if s['id'] == song_id), None)
+    song = get_song(song_id)
     if not song:
         return jsonify({'error': 'Música não encontrada'}), 404
 
@@ -75,19 +77,15 @@ def api_lyrics(song_id):
 @lyrics_bp.route('/api/lyrics/<int:song_id>/theme', methods=['POST'])
 @login_required
 def set_song_theme(song_id):
-    songs = load_songs()
-    song = next((s for s in songs if s['id'] == song_id), None)
-    if not song:
-        return jsonify({'error': 'not found'}), 404
     data = request.get_json()
-    song['theme'] = data.get('theme')  # None limpa o tema
-    save_songs(songs)
+    if not set_theme(song_id, data.get('theme')):  # None limpa o tema
+        return jsonify({'error': 'not found'}), 404
     return jsonify({'ok': True})
 
 @lyrics_bp.route('/section/<int:song_id>/<int:section_index>')
 def section(song_id, section_index):
     """Exibe uma seção específica da música."""
-    song = next((s for s in load_songs() if s['id'] == song_id), None)
+    song = get_song(song_id)
     if not song or section_index < 0 or section_index >= len(song['sections']):
         return jsonify({'error': 'Seção inválida'}), 404
 
@@ -105,7 +103,7 @@ def section(song_id, section_index):
 @lyrics_bp.route('/lyrics_data/<int:song_id>')
 def lyrics_data(song_id):
     """Retorna os dados da primeira seção da música."""
-    song = next((s for s in load_songs() if s['id'] == song_id), None)
+    song = get_song(song_id)
     if not song:
         return jsonify({'error': 'Música não encontrada'}), 404
 
@@ -118,7 +116,7 @@ def lyrics_data(song_id):
 @lyrics_bp.route('/full-lyrics/<int:song_id>')
 def full_lyrics(song_id):
     """Retorna as letras completas da música."""
-    song = next((s for s in load_songs() if s['id'] == song_id), None)
+    song = get_song(song_id)
     if not song:
         return jsonify({'error': 'Música não encontrada'}), 404
 
@@ -178,7 +176,7 @@ def handle_update_lyrics(data):
 def handle_section_changed(data):
     song_id = data.get('songId')
     logger.debug(f'📨 Recebido section_changed: Song {song_id}, Section {data.get("sectionIndex")}')
-    song = next((s for s in load_songs() if s.get('id') == song_id), None)
+    song = get_song(song_id)
     song_title = song['title'] if song else str(song_id)
     append_display_log({'type': 'song', 'title': song_title, 'url': f'/lyrics/{song_id}'})
     emit('section_changed', data, broadcast=True)
