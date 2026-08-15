@@ -609,6 +609,20 @@ h2 + #songListTitle {
   color: #93c5fd;
 }
 
+/* Linha "adicionar tudo de uma vez" quando a busca é um intervalo com
+   mais de um verso (ex: "Salmos 2:1-7") — fica destacada em cima dos
+   versos individuais pra chamar atenção como atalho. */
+.autocomplete-item-range {
+  font-weight: bold;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.autocomplete-item-range:hover {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fcd34d;
+}
+
 /* MÚSICA ATUAL NA LISTA */
 .song-item.current-song {
   background: rgba(99, 102, 241, 0.2);

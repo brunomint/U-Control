@@ -80,6 +80,12 @@ html, body {
 #lyrics {
   display: flex;
   flex-direction: column;
+  /* Sem isso, herda flex-wrap:wrap da regra "#section-title, #lyrics"
+     acima — com flex-direction:column, um texto alto o bastante pra
+     estourar a altura da tela "quebrava" pra uma SEGUNDA COLUNA em vez
+     de rolar/cortar dentro da mesma, jogando #bible-version pro canto
+     direito da tela, cortado (bug real, achado com Salmos 1:1). */
+  flex-wrap: nowrap;
   justify-content: center;
   align-items: center;
   text-align: center;

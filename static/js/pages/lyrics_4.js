@@ -245,6 +245,20 @@ async function searchBibleQuick(query) {
             return;
         }
 
+        // Busca reconhecida como referência (intervalo tipo "Salmos 2:1-7"
+        // ou capítulo inteiro) com mais de um verso — oferece adicionar
+        // tudo de uma vez como UM item na lista, em vez de obrigar a
+        // clicar verso por verso (cada clique fechava a lista de
+        // resultados, tinha que buscar de novo pra pegar o próximo).
+        if (data.type === 'reference' && data.results.length > 1) {
+            const first = data.results[0], last = data.results[data.results.length - 1];
+            const addAll = document.createElement("div");
+            addAll.className = "autocomplete-item autocomplete-item-range";
+            addAll.textContent = `➕ Adicionar ${first.book_name} ${first.chapter}:${first.verse}-${last.verse} inteiro (${data.results.length} versos)`;
+            addAll.onclick = () => addBibleRangeToList(data.results);
+            list.appendChild(addAll);
+        }
+
         data.results.forEach(verse => {
             const item = document.createElement("div");
             item.className = "autocomplete-item";
@@ -271,6 +285,32 @@ function addBibleVerseToList(verse) {
     // Feedback rápido de que adicionou — some sozinho depois de 1.5s
     const originalPlaceholder = input.placeholder;
     input.placeholder = `✅ ${verse.reference} adicionado à lista!`;
+    setTimeout(() => { input.placeholder = originalPlaceholder; }, 1500);
+}
+
+// Adiciona TODOS os versos de uma referência de uma vez, como um item
+// único na lista — pedido do usuário: buscar "Salmos 2:1-7" e só
+// conseguir adicionar um verso por vez (o clique fechava a lista de
+// resultados, tinha que buscar de novo pra pegar o próximo). Ao clicar
+// nesse item depois, sendBibleListItem já sabe abrir o modal de leitura
+// verso-a-verso normalmente — mesmo caminho de sempre, só a entrada na
+// lista que passa a ser uma só.
+function addBibleRangeToList(results) {
+    if (!results || !results.length) return;
+    const first = results[0];
+    const last = results[results.length - 1];
+    const reference = results.length === 1
+        ? `${first.book_name} ${first.chapter}:${first.verse}`
+        : `${first.book_name} ${first.chapter}:${first.verse}-${last.verse}`;
+    const bibleUrl = `/bible/control/${first.book_abbrev}/${first.chapter}/${first.verse}-${last.verse}`;
+    updateSongList({ title: `📖 ${reference}`, url: bibleUrl, isBible: true, bibleReference: reference });
+
+    const input = document.getElementById("bibleSearchInput");
+    input.value = "";
+    document.getElementById("bibleAutocompleteList").innerHTML = "";
+
+    const originalPlaceholder = input.placeholder;
+    input.placeholder = `✅ ${reference} adicionado à lista!`;
     setTimeout(() => { input.placeholder = originalPlaceholder; }, 1500);
 }
 
