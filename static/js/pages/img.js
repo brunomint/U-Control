@@ -163,6 +163,12 @@ function loadImage(imageUrl) {
 // Executa a função assim que a página for carregada
 document.addEventListener("DOMContentLoaded", loadLastImage);
 
+// Pré-carrega a próxima foto do slideshow em cache do navegador, antes da
+// troca de verdade — ver preload_image em control.js/blueprints/display.py.
+socket.on('preload_image', function(data) {
+    if (data.url) { new Image().src = data.url; }
+});
+
 // WebSocket para receber imagens em tempo real
 socket.on('display_image', function(data) {
     // Ignora URLs que não são arquivos (ex: '/img', '/clock', '/lyrics/display').

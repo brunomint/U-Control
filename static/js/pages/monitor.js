@@ -178,6 +178,13 @@
         // Carrega estado ao iniciar
         loadDisplayState();
 
+        // Pré-carrega a próxima foto do slideshow em cache do navegador,
+        // antes da troca de verdade — ver preload_image em control.js/
+        // blueprints/display.py.
+        socket.on('preload_image', function(data) {
+            if (data.url) { new Image().src = data.url; }
+        });
+
         // Escuta o evento 'display_image' do servidor e exibe a imagem se for válida
         socket.on('display_image', function(data) {
             const imageUrl = data.image_url;

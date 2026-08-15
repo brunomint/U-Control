@@ -557,6 +557,16 @@ function _slideshowEmit(item) {
 function _slideshowScheduleNext() {
     const item = _galleryItems[slideshowIndex];
     _slideshowEmit(item);
+
+    // Pré-carrega a PRÓXIMA foto nas telas (não a atual, que acabou de ser
+    // mandada) — quando a troca de verdade acontecer, o navegador já tem o
+    // arquivo em cache, sem esperar o download. Só pra foto, não vídeo (não
+    // faz sentido pré-carregar vídeo do mesmo jeito, e costuma ser maior).
+    const nextItem = _galleryItems[(slideshowIndex + 1) % _galleryItems.length];
+    if (nextItem && nextItem.type !== 'video') {
+        socket.emit('preload_image', { url: nextItem.url });
+    }
+
     if (item.type === 'video') {
         // Aguarda video_ended; fallback de 5 min caso o evento não chegue
         _slideshowVideoWaiting = true;

@@ -284,6 +284,18 @@ def handle_show_image(data):
 
     threading.Thread(target=save_async, daemon=True).start()
 
+@socketio.on('preload_image')
+def handle_preload_image(data):
+    """Repassa um aviso de 'próxima foto do slideshow' pras telas —
+    puro broadcast, sem tocar no banco nem no display_state (não é uma
+    troca de verdade, só um hint pra elas baixarem a imagem em segundo
+    plano ANTES da troca real acontecer). Pedido do usuário: a tela
+    pública só começava a baixar a foto no instante exato da troca, sem
+    nenhum tempo de adiantamento — servir arquivo estático é leve, então
+    adiantar esse download não pesa no servidor de forma nenhuma, só
+    tira o atraso perceptível na hora de exibir de verdade."""
+    emit('preload_image', {'url': data.get('url', '')}, broadcast=True)
+
 @socketio.on('show_video')
 def handle_show_video(data):
     video_url = data.get('video_url')

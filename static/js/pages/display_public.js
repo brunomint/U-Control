@@ -196,6 +196,14 @@
             socket.emit('video_ended', {});
         });
 
+        // Baixa a próxima foto do slideshow em segundo plano, antes da troca
+        // de verdade acontecer — new Image() só põe no cache do navegador,
+        // não mostra nada na tela. Quando o display_image real chegar com
+        // essa mesma URL, o navegador já tem o arquivo, sem esperar rede.
+        socket.on('preload_image', (data) => {
+            if (data.url) { new Image().src = data.url; }
+        });
+
         socket.on('display_image', (data) => {
             const url = data.image_url || '';
             const isStaticFile = url.startsWith('/static/') || /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(url);
