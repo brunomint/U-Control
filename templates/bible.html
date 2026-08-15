@@ -96,5 +96,5 @@
 
 {% block scripts %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
-<script src="{{ url_for('static', filename='js/pages/bible.js') }}"></script>
+<script src="{{ versioned_static('js/pages/bible.js') }}"></script>
 {% endblock %}
