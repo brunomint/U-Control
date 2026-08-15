@@ -68,11 +68,17 @@
     if (!trimmed) return false;
     if (/\/\/chords$/i.test(trimmed)) return true;
     if (/\/\/lyrics$/i.test(trimmed)) return false;
-    // remove marcadores de repetição (x2, 2x) e parênteses/hífen soltos
+    // remove marcadores de repetição (x2, 2x), parênteses/hífen soltos e
+    // barras de compasso (| ou ||, ex: "| G | G7M | Em D |") — sem isso,
+    // "|" vira um token que não bate com CHORD_TOKEN_REGEX (não começa
+    // com A-G), e a linha inteira de intro/solo em notação de compasso
+    // era classificada como letra em vez de cifra: não era removida na
+    // tela pública nem transposta (bug real, achado com música real que
+    // tinha intro em "| G | G7M | C7M | Em D4 D ||").
     const cleaned = trimmed
       .replace(/[xX][0-9]+/g, '')
       .replace(/[0-9]+[xX]/g, '')
-      .replace(/[()\-]/g, ' ');
+      .replace(/[()\-|]/g, ' ');
     const tokens = cleaned.split(/\s+/).filter(Boolean);
     if (tokens.length === 0) return false;
     return tokens.every(tok => CHORD_TOKEN_REGEX.test(tok));

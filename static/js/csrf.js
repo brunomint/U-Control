@@ -22,4 +22,29 @@
         }
         return originalFetch.call(this, input, init);
     };
+
+    // Várias páginas ainda usam $.ajax()/$.post() do jQuery pra POST em vez
+    // de fetch() (ex: edit_song.js, new_song.js, list_songs.js) — o patch
+    // acima não pega isso, jQuery usa XMLHttpRequest por baixo, não
+    // window.fetch. Achado só depois de um "não consigo salvar" real:
+    // /edit_song/<id> vinha rejeitando com CSRF ausente. jQuery carrega
+    // DEPOIS deste script (csrf.js fica cedo no <head> de propósito), então
+    // a configuração espera o DOMContentLoaded, quando os <script src>
+    // síncronos já rodaram.
+    function setupJQuery() {
+        if (!window.jQuery) return;
+        window.jQuery.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                const method = (settings.type || settings.method || 'GET').toUpperCase();
+                if (!safeMethods.has(method)) {
+                    xhr.setRequestHeader('X-CSRFToken', token);
+                }
+            }
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupJQuery);
+    } else {
+        setupJQuery();
+    }
 })();

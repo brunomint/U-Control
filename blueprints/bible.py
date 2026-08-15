@@ -20,6 +20,7 @@ from flask_socketio import emit
 
 from display_log import append_display_log
 from extensions import socketio
+from models import LyricsState
 from orders_store import load_orders, save_orders
 from settings_store import load_settings, save_settings
 
@@ -652,6 +653,13 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
                 item['url'] = generate_bible_url(item.get('reference', ''))
             bible_items.append(item)
 
+    # Estado real de visibilidade — mesma fonte única de verdade que
+    # /lyrics/<id> usa (LyricsState.visible), não assume True. As duas
+    # páginas mandam pro mesmo lugar (tela pública), então precisam
+    # concordar sobre o estado, não cada uma assumir o seu.
+    lyrics_state = LyricsState.query.first()
+    lyrics_visible = lyrics_state.visible if lyrics_state else True
+
     return render_template('bible_control.html',
         book_abbrev=book_abbrev,
         book_name=book_name,
@@ -664,5 +672,6 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
         current_translation=translation,
         initial_verse=verse_start,
         verse_end=verse_end,
-        bible_items=bible_items
+        bible_items=bible_items,
+        lyrics_visible=lyrics_visible
     )

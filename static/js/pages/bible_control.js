@@ -5,7 +5,10 @@ const bookAbbrev = CONFIG.bookAbbrev;
 const chapter = CONFIG.chapter;
 const totalVerses = CONFIG.verses.length;
 let currentVerse = 1;
-let isVisible = true;
+// Estado real (LyricsState.visible), não mais assumido true a cada
+// carregamento — mesma fonte única de verdade que /lyrics/<id> usa,
+// já que as duas páginas mandam pro mesmo lugar (tela pública).
+let isVisible = CONFIG.lyricsVisible !== false;
 
 // Dados dos versículos
 const versesData = CONFIG.verses.map((text, i) => ({ num: i + 1, text: text }));
@@ -56,8 +59,19 @@ function nextVerse() {
     }
 }
 
+// Usa o mesmo evento toggle_lyrics_visibility que /lyrics/<id> usa (ver
+// lyrics_2.js/toggleLyricsVisibility) — antes esta função "escondia"
+// mandando update_bible com texto vazio, um mecanismo próprio e
+// desconectado do resto do app: não persistia nada (recarregar a página
+// sempre assumia visível de novo, mesmo bug já corrigido em /lyrics), e
+// não sabia nada sobre o botão da outra página — cada um podia mostrar
+// um estado diferente do que a tela pública realmente tinha. Escondida,
+// o conteúdo continua ali por baixo (só a exibição CSS muda no
+// display_public.js), não precisa reenviar nada ao mostrar de novo.
 function toggleVisibility() {
     isVisible = !isVisible;
+    socket.emit('toggle_lyrics_visibility', { visible: isVisible });
+
     const btn = document.getElementById('toggle-bible');
     const text = document.getElementById('toggle-text');
     const icon = btn.querySelector('i');
@@ -66,18 +80,10 @@ function toggleVisibility() {
         btn.classList.remove('show-mode');
         text.textContent = 'Esconder';
         icon.className = 'fas fa-eye';
-        sendToDisplay();
     } else {
         btn.classList.add('show-mode');
         text.textContent = 'Mostrar';
         icon.className = 'fas fa-eye-slash';
-
-        // Envia texto vazio para esconder
-        socket.emit('update_bible', {
-            reference: '',
-            text: '',
-            verses: []
-        });
     }
 }
 

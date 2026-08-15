@@ -36,16 +36,27 @@
         // Mostra texto, esconde partitura
         $('#sheet-container').hide();
         $('#section-text').show();
-        
+
         $('#section-title').text(reference);
         $('#section-text').text(text);
-        
+
         // Bíblia: com quebra de linha (white-space: pre-wrap)
         $('#section-text').css('white-space', 'pre-wrap');
-        
+
         localStorage.setItem('currentTitle', reference);
         localStorage.setItem('currentText', text);
         localStorage.setItem('currentSongId', 'bible');
+
+        // Limpa o mapa de seções e a prévia da próxima seção — os dois só
+        // são preenchidos pelo evento section_changed (música), e sem
+        // isso ficavam mostrando a estrutura da última música mesmo com
+        // um versículo bíblico na tela (bug real: rodapé "preso" na
+        // música anterior).
+        _mapTitles = [];
+        _mapCurrent = -1;
+        renderSongMap();
+        document.getElementById('next-section-box').innerHTML = '';
+
         shrink(); // Ajusta o tamanho do texto
     };
 

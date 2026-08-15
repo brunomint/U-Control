@@ -116,12 +116,12 @@
 </div>
 
 <!-- Toggle button -->
-<button id="toggle-bible" onclick="toggleVisibility()">
-    <i class="fas fa-eye"></i>
-    <span id="toggle-text">Esconder</span>
+<button id="toggle-bible" class="{{ 'show-mode' if not lyrics_visible else '' }}" onclick="toggleVisibility()">
+    <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
+    <span id="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
 </button>
 
-<script id="bible-control-data" type="application/json">{{ {"bookName": book_name, "bookAbbrev": book_abbrev, "chapter": chapter, "verses": verses, "initialVerse": (initial_verse if initial_verse else 1)} | tojson }}</script>
+<script id="bible-control-data" type="application/json">{{ {"bookName": book_name, "bookAbbrev": book_abbrev, "chapter": chapter, "verses": verses, "initialVerse": (initial_verse if initial_verse else 1), "lyricsVisible": lyrics_visible} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
