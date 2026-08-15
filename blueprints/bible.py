@@ -21,7 +21,7 @@ from flask_socketio import emit
 from display_log import append_display_log
 from extensions import socketio
 from models import LyricsState
-from orders_store import load_orders, save_orders
+from orders_store import get_order, save_order
 from settings_store import load_settings, save_settings
 
 logger = logging.getLogger('ucontrol')
@@ -580,8 +580,7 @@ def api_bible_add_to_order():
         return jsonify({'success': False, 'error': 'Referência vazia'})
 
     today = date.today().isoformat()
-    orders = load_orders()
-    order = orders.get(today, {})
+    order = get_order(today)
     itens = list(order.get('itens') or [])
 
     itens.append({
@@ -590,8 +589,7 @@ def api_bible_add_to_order():
         'title': f'📖 {reference}'
     })
     order['itens'] = itens
-    orders[today] = order
-    save_orders(orders)
+    save_order(today, order)
 
     return jsonify({
         'success': True,
@@ -611,8 +609,7 @@ def api_bible_remove_from_order():
         return jsonify({'success': False, 'error': 'Referência vazia'})
 
     today = date.today().isoformat()
-    orders = load_orders()
-    order = orders.get(today, {})
+    order = get_order(today)
     itens = list(order.get('itens') or [])
 
     original_len = len(itens)
@@ -625,8 +622,7 @@ def api_bible_remove_from_order():
         order['itens'] = itens
     else:
         order.pop('itens', None)
-    orders[today] = order
-    save_orders(orders)
+    save_order(today, order)
 
     return jsonify({'success': True})
 
@@ -635,7 +631,7 @@ def api_bible_remove_from_order():
 def bible_control_list():
     """Lista de passagens bíblicas da ordem do culto de hoje."""
     today = date.today().isoformat()
-    order = load_orders().get(today, {})
+    order = get_order(today)
     bible_items = [item for item in (order.get('itens') or []) if item.get('isBible')]
 
     return render_template('bible_control_list.html', bible_items=bible_items)
@@ -675,7 +671,7 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
 
     # Carrega passagens bíblicas da ordem do culto de hoje
     today = date.today().isoformat()
-    order = load_orders().get(today, {})
+    order = get_order(today)
     bible_items = []
     for item in (order.get('itens') or []):
         if item.get('isBible'):

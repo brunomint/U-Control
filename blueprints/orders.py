@@ -10,7 +10,9 @@ from flask import Blueprint, jsonify, render_template, request
 from flask_login import login_required
 
 from orders_store import (
+    get_order,
     load_orders,
+    save_order,
     save_orders,
     load_templates,
     save_templates_file,
@@ -25,8 +27,7 @@ orders_bp = Blueprint('orders', __name__)
 @login_required
 def api_culto_status():
     today = date.today().isoformat()
-    orders = load_orders()
-    order = orders.get(today)
+    order = get_order(today)
 
     if not order:
         return jsonify({
@@ -91,9 +92,13 @@ def api_save_order(date):
     """Salva ou atualiza uma ordem específica"""
     try:
         data = request.get_json(force=True) or {}
-        orders = load_orders()
-
-        order = orders.get(date, {})
+        # get_order()/save_order() em vez de load_orders()/save_orders() com
+        # o dict inteiro: essa rota é o salvamento real de escala/ordem do
+        # culto — carregar/resalvar as 176 ordens só pra mudar 1 data era
+        # proporcional ao total de ordens, não à mudança real (mesma causa
+        # raiz do achado em touch_last_played(), ver songs_store.py —
+        # 2026-08-15).
+        order = get_order(date)
 
         # ---------- EVENTOS -----------
         eventos = data.get('eventos', [])
@@ -180,19 +185,9 @@ def api_save_order(date):
         else:
             order.pop('midia', None)
 
-        # ---------- LIMPEZA AUTOMÁTICA ----------
-        def is_empty_order(o):
-            return len(o) == 0
-
-        if is_empty_order(order):
-            # remove do banco se estiver vazio
-            if date in orders:
-                del orders[date]
-        else:
-            # salva normalmente
-            orders[date] = order
-
-        if save_orders(orders):
+        # save_order(date, {}) já remove a ordem do banco se estiver vazia
+        # (mesma "limpeza automática" que o dict inteiro tinha antes).
+        if save_order(date, order):
             return jsonify({"message": "Ordem salva com sucesso!"}), 200
 
         return jsonify({"error": "Erro ao salvar ordem"}), 500
@@ -206,10 +201,8 @@ def api_save_order(date):
 def api_delete_order(date):
     """Deleta uma ordem específica"""
     try:
-        orders = load_orders()
-        if date in orders:
-            del orders[date]
-            if save_orders(orders):
+        if get_order(date):
+            if save_order(date, {}):
                 return jsonify({"message": "Ordem deletada com sucesso!"}), 200
         return jsonify({"error": "Ordem não encontrada"}), 404
     except Exception as e:
@@ -298,14 +291,12 @@ def save_list():
     try:
         data = request.json
         today = date.today().isoformat()
-        orders = load_orders()
-        order = orders.get(today, {})
+        order = get_order(today)
         if data:
             order['itens'] = data
         else:
             order.pop('itens', None)
-        orders[today] = order
-        save_orders(orders)
+        save_order(today, order)
         return jsonify({"message": "Lista salva com sucesso!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -317,17 +308,13 @@ def load_list():
     try:
         # Verifica se há parâmetro de data explícito
         date_param = request.args.get('date')
-        orders = load_orders()
         if date_param:
-            if date_param in orders:
-                return jsonify(orders[date_param].get('itens', [])), 200
-            return jsonify([]), 200
+            return jsonify(get_order(date_param).get('itens', [])), 200
 
         # Sem data no parâmetro: usa a ordem de hoje (antes lia
         # order_of_service.json, um bucket solto sem data — Fase 5.6)
         today = date.today().isoformat()
-        order = orders.get(today, {})
-        return jsonify(order.get('itens', [])), 200
+        return jsonify(get_order(today).get('itens', [])), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -353,6 +340,5 @@ def order_new():
 @login_required
 def order_edit(date):
     """Página para editar ordem de culto existente"""
-    orders = load_orders()
-    order = orders.get(date)
+    order = get_order(date)
     return render_template("order_edit.html", date=date, order=order, is_new=False)

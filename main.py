@@ -31,7 +31,7 @@ from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
 from blueprints.gallery import gallery_bp
-from orders_store import load_orders
+from orders_store import get_order, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
 import blueprints.screen_share  # noqa: F401 — importado só pelo efeito colateral de registrar os handlers de socket
@@ -252,8 +252,7 @@ def view_song_order():
 @app.route('/view/order/<date>')
 def view_order_by_date(date):
     """Visualiza uma ordem de culto específica por data"""
-    orders = load_orders()
-    order = orders.get(date)
+    order = get_order(date)
     if not order:
         return render_template('view_order.html', date=date, order=None, not_found=True)
     
@@ -275,15 +274,19 @@ def view_song(song_id):
     # Verifica se há parâmetro de data na URL
     order_date = request.args.get('order')
     bible_items = []
-    orders = load_orders()
     order_data = []
-    
+
     if order_date:
-        # Carrega ordem específica por data
-        order = orders.get(order_date, {})
-        order_data = order.get('itens', [])
+        # Carrega ordem específica por data — get_order() em vez de
+        # load_orders().get(...): esse é o caso mais comum (a URL já vem
+        # com ?order=<data> na maioria das navegações reais), não precisa
+        # carregar as 176 ordens só pra achar 1 (mesma causa raiz do
+        # achado em touch_last_played(), ver songs_store.py — 2026-08-15).
+        order_data = get_order(order_date).get('itens', [])
     else:
-        # Busca a ordem que contém esta música
+        # Busca a ordem que contém esta música — aqui sim precisa das 176
+        # (não dá pra saber qual data tem a música sem olhar todas).
+        orders = load_orders()
         song_url = f'/lyrics/{song_id}'
         for date, order in orders.items():
             for item in order.get('itens', []):

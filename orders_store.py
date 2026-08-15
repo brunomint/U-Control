@@ -106,6 +106,41 @@ def load_orders():
     return {o.date: _order_to_dict(o) for o in orders}
 
 
+def get_order(date):
+    """Carrega UMA ordem só, com as mesmas relações eager-loaded de
+    load_orders() — usado por /api/orders/<date> POST, que antes chamava
+    load_orders() (as 176) só pra achar 1 pela data. Retorna {} se não
+    existir (mesmo formato que orders.get(date, {}) que o chamador já
+    espera)."""
+    order = db.session.get(
+        Order, date,
+        options=[selectinload(Order.itens), selectinload(Order.eventos)],
+    )
+    return _order_to_dict(order) if order else {}
+
+
+def save_order(date, data):
+    """Salva/atualiza/remove UMA ordem só — poucas queries, sem tocar nas
+    outras 175. /api/orders/<date> chamava load_orders()+save_orders()
+    com o DICT INTEIRO a cada salvamento só pra mudar 1 data — mesma
+    causa raiz do achado em touch_last_played()/set_theme()
+    (songs_store.py, 2026-08-15), agora pra ordens. `data` vazio ({})
+    remove a ordem, igual save_orders() já fazia pra ordem vazia."""
+    order = db.session.get(Order, date)
+    if not data:
+        if order:
+            db.session.delete(order)
+            db.session.commit()
+        return True
+    is_new = order is None
+    if is_new:
+        order = Order(date=date)
+        db.session.add(order)
+    _apply_order_fields(order, data, is_new)
+    db.session.commit()
+    return True
+
+
 def _apply_order_fields(order, data, is_new):
     order.tipo = data.get('tipo')
     order.dirigente = data.get('dirigente')
