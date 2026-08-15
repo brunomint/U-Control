@@ -630,6 +630,40 @@ $('#clear-lyrics').click(function() {
             }
         }
     
+        // Botão para mostrar/esconder letras no monitor e public — parte do
+        // estado real persistido no servidor (LyricsState.visible), não mais
+        // assumido como true a cada carregamento da página; o HTML do botão
+        // já nasce com o ícone/texto certos (ver templates/lyrics.html).
+        //
+        // Função de nível superior (fora do $(document).ready) de propósito:
+        // o modal de leitura da Bíblia (lyrics_4.js) fica por cima de tudo
+        // (z-index maior) e cobre o botão original — em vez de duplicar a
+        // lógica, o botão de dentro do modal chama esta mesma função.
+        // Atualiza TODO botão com a classe .lyrics-toggle-btn (pode ter mais
+        // de um na página), pra os dois ficarem sempre em sincronia.
+        let lyricsVisible = CONFIG.lyricsVisible !== false;
+
+        function toggleLyricsVisibility() {
+            lyricsVisible = !lyricsVisible;
+            socket.emit('toggle_lyrics_visibility', { visible: lyricsVisible });
+
+            document.querySelectorAll('.lyrics-toggle-btn').forEach(btn => {
+                const icon = btn.querySelector('i');
+                const text = btn.querySelector('.toggle-text');
+                if (lyricsVisible) {
+                    btn.classList.remove('show-mode');
+                    if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+                    if (text) text.textContent = 'Esconder';
+                } else {
+                    btn.classList.add('show-mode');
+                    if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+                    if (text) text.textContent = 'Mostrar';
+                }
+            });
+
+            console.log(`👁️ Letras ${lyricsVisible ? 'mostradas' : 'escondidas'}`);
+        }
+
         $(document).ready(function() {
             loadFullLyrics();
             createSectionLinks();
@@ -652,25 +686,8 @@ $('#clear-lyrics').click(function() {
                 }
             });
             
-            // Botão para mostrar/esconder letras no monitor e public
-            let lyricsVisible = true;
-            $('#toggle-lyrics').click(function() {
-                lyricsVisible = !lyricsVisible;
-                socket.emit('toggle_lyrics_visibility', { visible: lyricsVisible });
-                
-                // Atualiza texto, ícone e classe do botão
-                if (lyricsVisible) {
-                    $('#toggle-text').text('Esconder');
-                    $(this).removeClass('show-mode');
-                    $(this).find('i').removeClass('fa-eye-slash').addClass('fa-eye');
-                } else {
-                    $('#toggle-text').text('Mostrar');
-                    $(this).addClass('show-mode');
-                    $(this).find('i').removeClass('fa-eye').addClass('fa-eye-slash');
-                }
-                console.log(`👁️ Letras ${lyricsVisible ? 'mostradas' : 'escondidas'}`);
-            });
-    
+            $('#toggle-lyrics').click(toggleLyricsVisibility);
+
             // Adicionando a funcionalidade de navegação com as teclas "up" e "down"
             // Também suporta pedais Bluetooth (PageUp/PageDown, Space, Enter, etc.)
             $(document).keydown(function(event) {

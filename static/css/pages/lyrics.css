@@ -668,6 +668,12 @@ h2 + #songListTitle {
   border-bottom: 1px solid rgba(34, 197, 94, 0.25);
 }
 
+.bible-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .bible-modal-close {
   background: rgba(255, 255, 255, 0.08);
   border: none;
@@ -683,6 +689,37 @@ h2 + #songListTitle {
 .bible-modal-close:hover {
   background: rgba(239, 68, 68, 0.25);
   color: #fca5a5;
+}
+
+/* Botão Esconder/Mostrar de dentro do modal — mesma função/estado do
+   #toggle-lyrics da barra lateral (ver .lyrics-toggle-btn em lyrics_2.js),
+   só menor pra caber no cabeçalho. Mesma semântica de cor: vermelho =
+   visível agora (ação "Esconder"), verde = escondido (ação "Mostrar"). */
+.bible-modal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  transition: all 0.2s ease;
+}
+
+.bible-modal-toggle:hover {
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+.bible-modal-toggle.show-mode {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+.bible-modal-toggle.show-mode:hover {
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
 }
 
 .bible-read-along-ref {

@@ -33,6 +33,13 @@ class LyricsState(db.Model):
     # com o marcador 🎼 PARTITURA_INTEGRADA_... cru — bug real encontrado
     # nesta sessão).
     last_payload = db.Column(db.Text, nullable=True)
+    # Estado do botão "Esconder"/"Mostrar" (toggle_lyrics_visibility) — antes
+    # só existia como variável local no JS do operador, sempre assumindo
+    # `true` a cada carregamento de /lyrics/<id>, sem relação com o que a
+    # tela pública estava mostrando de verdade. Persistido aqui pra virar
+    # fonte única de verdade (main.py/blueprints/lyrics.py lê isto pra
+    # inicializar o botão com o estado real).
+    visible = db.Column(db.Boolean, default=True, nullable=False)
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
 

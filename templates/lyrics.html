@@ -192,7 +192,20 @@
         <div class="bible-modal-content">
             <div class="bible-modal-header">
                 <span class="bible-read-along-ref" id="bibleReadAlongRef"></span>
-                <button type="button" class="bible-modal-close" onclick="closeBibleReadAlong()">✕</button>
+                <div class="bible-modal-header-actions">
+                    <!-- Mesma função/estado do botão Esconder/Mostrar da barra
+                         lateral (toggleLyricsVisibility em lyrics_2.js) — o
+                         modal fica por cima de tudo (z-index maior) e cobre
+                         aquele botão, então precisa de um aqui dentro
+                         também. Os dois ficam sincronizados via a classe
+                         compartilhada .lyrics-toggle-btn. -->
+                    <button type="button" class="lyrics-toggle-btn bible-modal-toggle {{ 'show-mode' if not lyrics_visible else '' }}"
+                            onclick="toggleLyricsVisibility()" title="Mostrar/Esconder na tela">
+                        <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
+                        <span class="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
+                    </button>
+                    <button type="button" class="bible-modal-close" onclick="closeBibleReadAlong()">✕</button>
+                </div>
             </div>
             <div class="bible-read-along-text" id="bibleReadAlongText"></div>
         </div>
@@ -312,9 +325,9 @@
         <div id="sections-list"></div>
         <button id="prev"><i class="fas fa-arrow-up"></i></button>
 <button id="next"><i class="fas fa-arrow-down"></i></button>
-<button id="toggle-lyrics">
-    <i class="fas fa-eye"></i>
-    <span id="toggle-text">Esconder</span>
+<button id="toggle-lyrics" class="lyrics-toggle-btn {{ 'show-mode' if not lyrics_visible else '' }}">
+    <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
+    <span class="toggle-text" id="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
 </button>
 
     
@@ -324,7 +337,7 @@
         
 
 
-<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or "")} | tojson }}</script>
+<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible} | tojson }}</script>
     <script>
         // Lido por lyrics_2.js pra buscar sheet_render.js (ES module,
         // import() dinâmico) já com cache-busting.

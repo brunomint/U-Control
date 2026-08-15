@@ -20,6 +20,12 @@
             const withoutChords = ChordLines.stripChordLines(text);
             return withoutChords.split('\n')
                 .filter(line => !line.trim().startsWith('//')) // remove notas privadas de palco
+                // Remove "____" usado pra alinhar a letra embaixo do acorde
+                // (ex: "____Junto ao poço estava eu") — só faz sentido com a
+                // linha de cifra visível, que a tela pública já removeu
+                // acima; sem isso, sobrava o underscore cru na tela (mesmo
+                // fix que display_obs.js já tinha, faltava aqui).
+                .map(line => line.replace(/_+/g, ''))
                 .filter(line => line.trim() !== '')
                 .join('<br>');
         };
@@ -127,6 +133,13 @@
         const lyricsLayer = document.getElementById('lyrics');
         const routeLayer  = document.getElementById('route-layer');
 
+        // Estado do botão "Esconder" (toggle-lyrics em /lyrics/<id>) — sem
+        // isso, showLyricsView() (chamado por update_lyrics/update_bible
+        // toda vez que chega letra/versículo novo) forçava a tela de volta
+        // pra visível mesmo com o operador tendo escondido, ignorando o
+        // toggle. Mesmo padrão já usado em display_obs.js (lyricsHidden).
+        let lyricsHidden = false;
+
         function showImage(url) {
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
@@ -147,7 +160,7 @@
             mediaImg.style.display = 'none';
             routeLayer.src = 'about:blank';
             routeLayer.style.display = 'none';
-            lyricsLayer.style.display = 'flex';
+            lyricsLayer.style.display = lyricsHidden ? 'none' : 'flex';
         }
 
         function showVideo(url) {
@@ -285,13 +298,16 @@
         socket.on('lyrics_visibility_changed', (data) => {
             const visible = data.visible;
             console.log(`👁️ Public: Letras ${visible ? 'mostradas' : 'escondidas'}`);
-            
-            const lyrics = document.getElementById('lyrics');
-            if (visible) {
-                lyrics.style.display = 'flex';
-            } else {
-                lyrics.style.display = 'none';
-            }
+
+            lyricsHidden = !visible;
+            lyricsLayer.style.display = lyricsHidden ? 'none' : 'flex';
+
+            // Se algum conteúdo foi mandado ENQUANTO escondido, adjustFontSize()
+            // rodou com o container em display:none — clientHeight/scrollHeight
+            // são sempre 0 nesse estado, então o loop de encolher a fonte nunca
+            // executa e ela fica travada no tamanho inicial (15vw, enorme).
+            // Recalcula agora que o container tem altura de verdade de novo.
+            if (visible) adjustFontSize();
         });
     
         window.addEventListener('load', adjustFontSize); // Corrigido: Removido espaço

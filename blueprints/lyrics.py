@@ -57,7 +57,11 @@ def lyrics(song_id):
             past   = sorted([d for d in matching_dates if d < today], reverse=True)
             order_date = (future + past)[0]
 
-    return render_template('lyrics.html', song=song, order_date=order_date)
+    # Estado real de visibilidade (não assume True) — ver LyricsState.visible.
+    lyrics_state = LyricsState.query.first()
+    lyrics_visible = lyrics_state.visible if lyrics_state else True
+
+    return render_template('lyrics.html', song=song, order_date=order_date, lyrics_visible=lyrics_visible)
 
 @lyrics_bp.route('/api/lyrics/<int:song_id>')
 def api_lyrics(song_id):
@@ -184,4 +188,16 @@ def handle_section_changed(data):
 def handle_toggle_lyrics_visibility(data):
     visible = data.get('visible', True)
     logger.debug(f'👁️ Toggle letras: {"Mostrar" if visible else "Esconder"}')
+    # Persiste — sem isto, recarregar /lyrics/<id> sempre assumia visible=True,
+    # dessincronizando o botão do que a tela pública estava mostrando de fato.
+    try:
+        with current_app.app_context():
+            state = LyricsState.query.first()
+            if state is None:
+                state = LyricsState()
+                db.session.add(state)
+            state.visible = visible
+            db.session.commit()
+    except Exception:
+        logger.exception('Falha ao persistir visible de toggle_lyrics_visibility')
     emit('lyrics_visibility_changed', {'visible': visible}, broadcast=True)
