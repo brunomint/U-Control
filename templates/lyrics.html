@@ -159,6 +159,10 @@
             <input type="text" id="searchInput" placeholder="Buscar música...">
             <div id="autocompleteList" class="autocomplete-list"></div>
         </div>
+        <div class="search-box">
+            <input type="text" id="bibleSearchInput" placeholder="Buscar na Bíblia (ex: João 3:16)...">
+            <div id="bibleAutocompleteList" class="autocomplete-list"></div>
+        </div>
         <div class="anyText">
             <input type="text" id="freeTextInput" placeholder="Digite qualquer texto...">
             <button onclick="addToList()">Adicionar Texto</button>
@@ -175,6 +179,24 @@
         <a href="/order">Voltar</a>
         <a href="/">Início</a>
       </div>
+
+    <!-- Modal de leitura da passagem ao vivo (sendBibleListItem em
+         lyrics_4.js) — um verso por linha, clicável: clicar manda só
+         aquele verso ao telão (sendSingleBibleVerse), nunca todos juntos.
+         Fica FORA de #menu de propósito: #menu tem transform (usado pra
+         abrir/fechar a barra lateral), e transform num ancestral cria um
+         novo bloco de referência pra position:fixed dos filhos — o modal
+         ficava preso dentro da largura do menu em vez de cobrir a tela. -->
+    <div id="bibleReadAlongModal" class="bible-modal-backdrop" style="display:none;"
+         onclick="if (event.target === this) closeBibleReadAlong();">
+        <div class="bible-modal-content">
+            <div class="bible-modal-header">
+                <span class="bible-read-along-ref" id="bibleReadAlongRef"></span>
+                <button type="button" class="bible-modal-close" onclick="closeBibleReadAlong()">✕</button>
+            </div>
+            <div class="bible-read-along-text" id="bibleReadAlongText"></div>
+        </div>
+    </div>
 
     <div class="main-content"></div>
     <button id="toggle-button" onclick="openMenu()">☰ Menu</button>

@@ -67,6 +67,17 @@ function updateSongList(song) {
     }
     songLink.textContent = song.author ? `${song.title} | ${song.author}` : song.title || "Título Desconhecido";
 
+    // Item bíblico: clicar manda ao vivo (sendBibleListItem) em vez de
+    // navegar pra /bible/control/... — busca e edição continuam por lá,
+    // mas usar a passagem durante o culto acontece sem sair do /lyrics.
+    if (song.isBible) {
+        const reference = song.bibleReference || song.title.replace(/^📖\s*/, '');
+        songLink.onclick = (event) => {
+            event.preventDefault();
+            sendBibleListItem(reference, songItem);
+        };
+    }
+
    
    
    
@@ -209,6 +220,148 @@ async function saveList() {
     }
 }
 
+// ── Busca rápida de Bíblia — busca e envia pro display sem sair da página,
+// reusando a mesma API (/api/bible/search) e o mesmo evento socket
+// (update_bible) que a página /bible já usa pra mandar versículo. ──
+let bibleSearchTimeout = null;
+
+async function searchBibleQuick(query) {
+    const list = document.getElementById("bibleAutocompleteList");
+    if (!query || query.trim().length < 3) {
+        list.innerHTML = "";
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/bible/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        list.innerHTML = "";
+
+        if (data.error || !data.results || data.results.length === 0) {
+            const noResult = document.createElement("div");
+            noResult.className = "autocomplete-item";
+            noResult.textContent = data.error || "Nenhum resultado encontrado";
+            list.appendChild(noResult);
+            return;
+        }
+
+        data.results.forEach(verse => {
+            const item = document.createElement("div");
+            item.className = "autocomplete-item";
+            item.textContent = `${verse.reference} — ${verse.text}`;
+            item.onclick = () => addBibleVerseToList(verse);
+            list.appendChild(item);
+        });
+    } catch (error) {
+        console.error("Erro ao buscar na Bíblia:", error);
+    }
+}
+
+// Busca só ADICIONA à Ordem do Culto — não manda ao vivo ainda. Ir ao ar
+// acontece depois, clicando no item já na lista (sendBibleListItem), igual
+// música: buscar prepara, clicar no item da lista é que "usa" de fato.
+function addBibleVerseToList(verse) {
+    const bibleUrl = `/bible/control/${verse.book_abbrev}/${verse.chapter}/${verse.verse}`;
+    updateSongList({ title: `📖 ${verse.reference}`, url: bibleUrl, isBible: true, bibleReference: verse.reference });
+
+    const input = document.getElementById("bibleSearchInput");
+    input.value = "";
+    document.getElementById("bibleAutocompleteList").innerHTML = "";
+
+    // Feedback rápido de que adicionou — some sozinho depois de 1.5s
+    const originalPlaceholder = input.placeholder;
+    input.placeholder = `✅ ${verse.reference} adicionado à lista!`;
+    setTimeout(() => { input.placeholder = originalPlaceholder; }, 1500);
+}
+
+// Versos da passagem bíblica atualmente aberta no painel de leitura — cada
+// um vira uma linha clicável (ver renderBibleReadAlong/sendSingleBibleVerse),
+// pra mandar um verso de cada vez ao telão em vez de todos juntos.
+let currentBibleVerses = [];
+let currentBibleReference = '';
+
+// Manda um item bíblico da Ordem do Culto ao vivo. Busca o texto de novo em
+// vez de guardar no momento de adicionar (um item pode ter vindo de uma
+// ordem salva de outro dia — loadList() só reconstrói a referência, não o
+// texto) — os dois casos passam pelo mesmo caminho, sem duplicar lógica.
+//
+// Reusa /api/bible/search (a mesma API da busca) em vez de tentar recompor
+// a URL /bible/control/<livro>/<cap>/<verso>: essa URL depende de
+// generateBibleUrl() no cliente, que só reconhece um punhado de livros e
+// não sabe montar link pra referência sem verso específico (ex: "Salmo 93",
+// um capítulo inteiro) — /api/bible/search já faz esse parse direito.
+async function sendBibleListItem(reference, songItemEl) {
+    if (!reference) {
+        console.error("Item bíblico sem referência pra buscar.");
+        return;
+    }
+    try {
+        const response = await fetch(`/api/bible/search?q=${encodeURIComponent(reference)}`);
+        const data = await response.json();
+        if (data.error || !data.results || data.results.length === 0) {
+            console.error("Erro ao buscar versículo:", data.error || "sem resultados");
+            return;
+        }
+
+        currentBibleVerses = data.results;
+        currentBibleReference = reference;
+        renderBibleReadAlong();
+
+        document.querySelectorAll('#songList .current-live').forEach(el => el.classList.remove('current-live'));
+        if (songItemEl) songItemEl.classList.add('current-live');
+
+        // Manda o primeiro verso ao vivo — nunca junta vários versos na
+        // mesma tela; os demais ficam disponíveis pra clicar no painel.
+        sendSingleBibleVerse(0);
+    } catch (error) {
+        console.error("Erro ao mandar versículo ao vivo:", error);
+    }
+}
+
+// Desenha o modal de leitura com um verso por linha, cada um clicável —
+// clicar manda só aquele verso ao telão (sendSingleBibleVerse). Modal (não
+// caixinha na barra lateral) pra ter espaço de sobra pra ler o texto.
+function renderBibleReadAlong() {
+    document.getElementById('bibleReadAlongRef').textContent = `📖 ${currentBibleReference}`;
+
+    const textEl = document.getElementById('bibleReadAlongText');
+    textEl.innerHTML = '';
+    currentBibleVerses.forEach((v, index) => {
+        const line = document.createElement('div');
+        line.className = 'bible-read-along-verse';
+        line.dataset.index = index;
+        line.textContent = `${v.verse} ${v.text}`;
+        line.onclick = () => sendSingleBibleVerse(index);
+        textEl.appendChild(line);
+    });
+
+    document.getElementById('bibleReadAlongModal').style.display = 'flex';
+}
+
+function closeBibleReadAlong() {
+    document.getElementById('bibleReadAlongModal').style.display = 'none';
+}
+
+// Manda só UM verso (por índice em currentBibleVerses) ao vivo, e destaca
+// qual está no ar dentro do próprio painel de leitura.
+function sendSingleBibleVerse(index) {
+    const v = currentBibleVerses[index];
+    if (!v) return;
+
+    const reference = `${v.book_name} ${v.chapter}:${v.verse}`;
+    socket.emit('update_bible', {
+        reference: reference,
+        text: `${v.verse} ${v.text}`,
+        book: v.book_name,
+        chapter: v.chapter,
+        verses: [{ num: v.verse, text: v.text }]
+    });
+
+    document.querySelectorAll('#bibleReadAlongText .bible-read-along-verse.active').forEach(el => el.classList.remove('active'));
+    const lineEl = document.querySelector(`#bibleReadAlongText .bible-read-along-verse[data-index="${index}"]`);
+    if (lineEl) lineEl.classList.add('active');
+}
+
 // Função para gerar URL de controle bíblico
 function generateBibleUrl(reference) {
     const bookMap = {
@@ -268,7 +421,7 @@ async function loadList() {
         data.forEach(item => {
             if (item.isBible) {
                 const bibleUrl = generateBibleUrl(item.reference);
-                updateSongList({ title: `📖 ${item.reference}`, url: bibleUrl, isBible: true, orderDate });
+                updateSongList({ title: `📖 ${item.reference}`, url: bibleUrl, isBible: true, orderDate, bibleReference: item.reference });
             } else if (item.url && item.title) {
                 updateSongList({ title: item.title, url: item.url, orderDate });
             } else if (item.anyText) {
@@ -286,6 +439,14 @@ document.addEventListener("DOMContentLoaded", loadList);
 // Adicionar evento de input para busca de músicas
 document.getElementById("searchInput").addEventListener("input", (event) => {
     searchSongs(event.target.value);
+});
+
+// Busca de Bíblia com debounce — busca por texto varre a tradução inteira
+// no servidor a cada chamada, não faz sentido disparar a cada tecla.
+document.getElementById("bibleSearchInput").addEventListener("input", (event) => {
+    clearTimeout(bibleSearchTimeout);
+    const query = event.target.value;
+    bibleSearchTimeout = setTimeout(() => searchBibleQuick(query), 300);
 });
 
 // Fechar a lista de autocomplete ao clicar fora
