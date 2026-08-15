@@ -14,6 +14,7 @@ function displayVerse(data) {
     const content = document.getElementById('content');
     const reference = document.getElementById('reference');
     const verseText = document.getElementById('verseText');
+    const version = document.getElementById('verseVersion');
 
     // Fade out
     content.classList.add('fade-out');
@@ -21,6 +22,7 @@ function displayVerse(data) {
     setTimeout(() => {
         // Atualiza conteúdo
         reference.textContent = data.reference || '';
+        version.textContent = data.version || '';
 
         // Formata versículos
         let html = '';

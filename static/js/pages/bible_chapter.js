@@ -67,7 +67,8 @@ function sendToDisplay() {
         text: text,
         book: bookName,
         chapter: chapter,
-        verses: selectedVerses
+        verses: selectedVerses,
+        version: CONFIG.translationName
     });
 
     showToast('Versículos enviados para o display!');
@@ -81,7 +82,8 @@ function sendSingleVerse(verseNum, text) {
         text: `${verseNum} ${text}`,
         book: bookName,
         chapter: chapter,
-        verses: [{ num: verseNum, text: text }]
+        verses: [{ num: verseNum, text: text }],
+        version: CONFIG.translationName
     });
 
     showToast(`${reference} enviado para o display!`);

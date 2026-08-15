@@ -121,9 +121,9 @@
     <span id="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
 </button>
 
-<script id="bible-control-data" type="application/json">{{ {"bookName": book_name, "bookAbbrev": book_abbrev, "chapter": chapter, "verses": verses, "initialVerse": (initial_verse if initial_verse else 1), "lyricsVisible": lyrics_visible} | tojson }}</script>
+<script id="bible-control-data" type="application/json">{{ {"bookName": book_name, "bookAbbrev": book_abbrev, "chapter": chapter, "verses": verses, "initialVerse": (initial_verse if initial_verse else 1), "lyricsVisible": lyrics_visible, "translationAbbrev": translation_abbrev, "translationName": translation_name} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/pages/bible_control.js') }}"></script>
+<script src="{{ versioned_static('js/pages/bible_control.js') }}"></script>
 {% endblock %}

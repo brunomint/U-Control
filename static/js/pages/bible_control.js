@@ -41,7 +41,8 @@ function sendToDisplay() {
         text: `${verse.num} ${verse.text}`,
         book: bookName,
         chapter: chapter,
-        verses: [verse]
+        verses: [verse],
+        version: CONFIG.translationName
     });
 
     console.log(`📖 Enviado: ${reference}`);

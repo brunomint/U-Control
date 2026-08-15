@@ -10,10 +10,12 @@
 </head>
 <body>
     <div id="overlay">
+        <div id="bible-reference" style="display:none;"></div>
         <div id="section-text"></div>
+        <div id="bible-version" style="display:none;"></div>
     </div>
     <div id="ticker-bar"><span id="ticker-text"></span></div>
 
-    <script src="{{ url_for('static', filename='js/pages/display_obs.js') }}"></script>
+    <script src="{{ versioned_static('js/pages/display_obs.js') }}"></script>
 </body>
 </html>

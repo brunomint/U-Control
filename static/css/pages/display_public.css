@@ -79,6 +79,7 @@ html, body {
 
 #lyrics {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
@@ -86,6 +87,30 @@ html, body {
   width: 100vw;
   max-width: 100vw;
   overflow: hidden;
+}
+
+#bible-reference {
+  font-family: Arial, sans-serif;
+  font-size: 2.2vw;
+  font-weight: bold;
+  color: #FFD600;
+  text-shadow:
+    -1px -1px 0 #000, 1px -1px 0 #000,
+    -1px  1px 0 #000, 1px  1px 0 #000;
+  margin-bottom: 1.5vh;
+  letter-spacing: 0.04em;
+}
+
+#bible-version {
+  font-family: Arial, sans-serif;
+  font-size: 1.3vw;
+  font-weight: bold;
+  color: rgba(255,255,255,0.75);
+  text-shadow:
+    -1px -1px 0 #000, 1px -1px 0 #000,
+    -1px  1px 0 #000, 1px  1px 0 #000;
+  margin-top: 1.5vh;
+  letter-spacing: 0.08em;
 }
 
 

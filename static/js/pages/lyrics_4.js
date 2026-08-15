@@ -279,6 +279,7 @@ function addBibleVerseToList(verse) {
 // pra mandar um verso de cada vez ao telão em vez de todos juntos.
 let currentBibleVerses = [];
 let currentBibleReference = '';
+let currentBibleVersion = '';
 
 // Manda um item bíblico da Ordem do Culto ao vivo. Busca o texto de novo em
 // vez de guardar no momento de adicionar (um item pode ter vindo de uma
@@ -305,6 +306,7 @@ async function sendBibleListItem(reference, songItemEl) {
 
         currentBibleVerses = data.results;
         currentBibleReference = reference;
+        currentBibleVersion = data.translation_name || '';
         renderBibleReadAlong();
 
         document.querySelectorAll('#songList .current-live').forEach(el => el.classList.remove('current-live'));
@@ -354,7 +356,8 @@ function sendSingleBibleVerse(index) {
         text: `${v.verse} ${v.text}`,
         book: v.book_name,
         chapter: v.chapter,
-        verses: [{ num: v.verse, text: v.text }]
+        verses: [{ num: v.verse, text: v.text }],
+        version: currentBibleVersion
     });
 
     document.querySelectorAll('#bibleReadAlongText .bible-read-along-verse.active').forEach(el => el.classList.remove('active'));

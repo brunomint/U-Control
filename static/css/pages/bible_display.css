@@ -69,6 +69,15 @@ body {
     margin-right: 5px;
 }
 
+.version {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1em;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    margin-top: 30px;
+    letter-spacing: 3px;
+}
+
 .waiting {
     text-align: center;
     color: rgba(255,255,255,0.5);

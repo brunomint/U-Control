@@ -23,11 +23,12 @@
         <div class="verse-container">
             <div class="verse-text" id="verseText"></div>
         </div>
+        <div class="version" id="verseVersion"></div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
-<script src="{{ url_for('static', filename='js/pages/bible_display.js') }}"></script>
+<script src="{{ versioned_static('js/pages/bible_display.js') }}"></script>
 {% endblock %}

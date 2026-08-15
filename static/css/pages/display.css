@@ -41,6 +41,28 @@
             margin-bottom: 5px;
         }
 
+        /* Só na Bíblia (ver updateBibleDisplay) — título de música
+           continua alinhado à esquerda, junto com a letra. */
+        #section-title.bible-title {
+            text-align: center;
+        }
+
+        /* Só aplicada em texto bíblico (ver updateBibleDisplay em display.js)
+           — música mantém a fonte monoespaçada herdada do <pre>, necessária
+           pra alinhar cifra embaixo da sílaba certa. */
+        #section-text.bible-text {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        #bible-version {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            font-family: 'Roboto', sans-serif;
+        }
+
         #section-text .chord {
             color: var(--chord-color, #fbbf24);
         }

@@ -95,7 +95,25 @@ function formatLyrics(text) {
 const socket = io();
 socket.on('connect', () => socket.emit('identify', { role: 'obs_overlay' }));
 
+function setBibleLabels(reference, version) {
+    const refEl = document.getElementById('bible-reference');
+    const versionEl = document.getElementById('bible-version');
+    if (reference) {
+        refEl.textContent = reference;
+        refEl.style.display = 'block';
+    } else {
+        refEl.style.display = 'none';
+    }
+    if (version) {
+        versionEl.textContent = version;
+        versionEl.style.display = 'block';
+    } else {
+        versionEl.style.display = 'none';
+    }
+}
+
 socket.on('update_lyrics', (data) => {
+    setBibleLabels(null, null); // referência/versão são só de Bíblia
     setContent(formatLyrics(data.text || ''));
 });
 
@@ -106,6 +124,7 @@ socket.on('update_bible', (data) => {
     } else if (data.text) {
         text = data.text.replace(/\n/g, '<br>');
     }
+    setBibleLabels(data.reference, data.version);
     setContent(text);
 });
 

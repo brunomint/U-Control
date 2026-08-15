@@ -5,6 +5,9 @@
             $('#section-title').text(title);
             $('#section-text').html(formatLyrics(text));
             saveToLocalStorage(title, text, songId);
+            // Referência/versão são só de Bíblia — some ao voltar pra música.
+            document.getElementById('bible-reference').style.display = 'none';
+            document.getElementById('bible-version').style.display = 'none';
             adjustFontSize();
         };
     
@@ -291,6 +294,23 @@
             
             // Exibe o texto bíblico (sem remover cifras, usa texto puro)
             $('#section-text').html(verseText.replace(/\n/g, '<br>'));
+
+            // Referência em cima, versão embaixo — mesmo padrão do Holyrics.
+            const refEl = document.getElementById('bible-reference');
+            if (data.reference) {
+                refEl.textContent = data.reference;
+                refEl.style.display = 'block';
+            } else {
+                refEl.style.display = 'none';
+            }
+            const versionEl = document.getElementById('bible-version');
+            if (data.version) {
+                versionEl.textContent = data.version;
+                versionEl.style.display = 'block';
+            } else {
+                versionEl.style.display = 'none';
+            }
+
             adjustFontSize();
         });
         

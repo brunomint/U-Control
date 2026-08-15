@@ -165,7 +165,16 @@
       const lines = content.split('\n');
       for (const line of lines) {
         if (isChordLine(line)) {
-          const tokens = line.trim().split(/\s+/).filter(Boolean);
+          // Mesma limpeza de isChordLine (repetição, parênteses/hífen/barra
+          // de compasso) — sem isso, uma intro em notação "| G | G7M | ..."
+          // devolvia o "|" cru como "primeiro acorde", e o widget "Tom: X"
+          // ficava travado em "—" pra sempre (bug real, achado com a
+          // música 296 — intro começa exatamente nesse formato).
+          const cleaned = line.trim()
+            .replace(/[xX][0-9]+/g, '')
+            .replace(/[0-9]+[xX]/g, '')
+            .replace(/[()\-|]/g, ' ');
+          const tokens = cleaned.split(/\s+/).filter(Boolean);
           if (tokens.length) return tokens[0];
         }
       }

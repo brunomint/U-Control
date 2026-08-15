@@ -14,13 +14,19 @@
         $('#section-text').show();
         _lastSheetCall = null; // sem partitura na tela, nada pra redesenhar num toggle de fundo
         
-        $('#section-title').text(title);
+        $('#section-title').text(title).removeClass('bible-title');
         const _el = document.getElementById('section-text');
         applyChordColors(_el, text);
 
-        // Música: sem quebra de linha (white-space: pre)
-        $('#section-text').css('white-space', 'pre');
-        
+        // Música: sem quebra de linha (white-space: pre), fonte monoespaçada
+        // (herdada do <pre>) — necessária pra alinhar cifra embaixo da
+        // sílaba certa da letra. Bíblia não tem cifra, por isso troca pra
+        // uma fonte normal só nesse modo (ver updateBibleDisplay).
+        $('#section-text').css('white-space', 'pre').removeClass('bible-text');
+
+        // Rodapé de versão (só faz sentido pra Bíblia — some ao voltar pra música)
+        document.getElementById('bible-version').style.display = 'none';
+
         localStorage.setItem('currentTitle', title);
         localStorage.setItem('currentText', text);
         localStorage.setItem('currentSongId', songId);
@@ -32,16 +38,29 @@
      * @param {string} reference - A referência bíblica.
      * @param {string} text - O texto dos versículos.
      */
-    const updateBibleDisplay = (reference, text) => {
+    const updateBibleDisplay = (reference, text, version) => {
         // Mostra texto, esconde partitura
         $('#sheet-container').hide();
         $('#section-text').show();
 
-        $('#section-title').text(reference);
+        $('#section-title').text(reference).addClass('bible-title');
         $('#section-text').text(text);
 
-        // Bíblia: com quebra de linha (white-space: pre-wrap)
-        $('#section-text').css('white-space', 'pre-wrap');
+        // Bíblia: com quebra de linha (white-space: pre-wrap) e fonte normal
+        // (não monoespaçada) — sem cifra pra alinhar, o <pre> herdado de
+        // monospace só deixava o texto com cara de "código".
+        $('#section-text').css('white-space', 'pre-wrap').addClass('bible-text');
+
+        // Referência já vai no #section-title (igual Holyrics); versão
+        // (ex: "ACF") no rodapé — só aparece se o remetente mandou essa
+        // informação (telas antigas/sem tradução selecionada não mandam).
+        const versionEl = document.getElementById('bible-version');
+        if (version) {
+            versionEl.textContent = version;
+            versionEl.style.display = 'block';
+        } else {
+            versionEl.style.display = 'none';
+        }
 
         localStorage.setItem('currentTitle', reference);
         localStorage.setItem('currentText', text);
@@ -270,7 +289,7 @@ const fitSheetsToScreen = () => {
         }
         
         // Exibe com quebra de linha para Bíblia
-        updateBibleDisplay(data.reference || 'Bíblia', verseText);
+        updateBibleDisplay(data.reference || 'Bíblia', verseText, data.version);
     });
 
     // Detecção de linha de cifra via ChordLines.isChordLine

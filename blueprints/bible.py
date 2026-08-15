@@ -81,6 +81,22 @@ def get_book_name(abbrev):
     return abbrev.upper()
 
 
+def get_translation_abbrev(translation):
+    """Sigla de exibição da tradução (ex: 'nvi' -> 'NVI')."""
+    metadata = load_bible_metadata()
+    info = metadata.get('translations', {}).get(translation)
+    return info['abbrev'] if info else translation.upper()
+
+
+def get_translation_name(translation):
+    """Nome completo da tradução (ex: 'nvi' -> 'Nova Versão Internacional'),
+    pro rodapé do telão — mesmo padrão do Holyrics de mostrar a versão
+    usada por extenso, não só a sigla."""
+    metadata = load_bible_metadata()
+    info = metadata.get('translations', {}).get(translation)
+    return info['name'] if info else translation.upper()
+
+
 def generate_bible_url(reference):
     """Gera URL de controle a partir de uma referência bíblica."""
     # Mapeamento de nomes para abreviações
@@ -423,14 +439,22 @@ def bible_chapter(book_abbrev, chapter):
                          prev_chapter=prev_chapter,
                          next_chapter=next_chapter,
                          translations=metadata.get('translations', {}),
-                         current_translation=translation)
+                         current_translation=translation,
+                         translation_abbrev=get_translation_abbrev(translation),
+                         translation_name=get_translation_name(translation))
 
 @bible_bp.route('/api/bible/search')
 @login_required
 def api_bible_search():
     """API para busca de versículos."""
     query = request.args.get('q', '')
-    translation = request.args.get('translation', 'acf')
+    # Sem translation na URL, usa a preferida salva (não trava em 'acf') —
+    # é o mesmo default que /bible, /bible/<livro> e /bible/<livro>/<cap>
+    # já usam; sem isso a busca do /lyrics ignorava a tradução escolhida
+    # pelo operador em outra página.
+    translation = request.args.get('translation') or get_preferred_translation()
+    translation_abbrev = get_translation_abbrev(translation)
+    translation_name = get_translation_name(translation)
 
     if len(query) < 3:
         return jsonify({'error': 'Busca deve ter pelo menos 3 caracteres', 'results': []})
@@ -472,17 +496,21 @@ def api_bible_search():
                             'reference': f'{book_name} {ref["chapter"]}:{i + 1}'
                         })
 
-                return jsonify({'results': results, 'type': 'reference'})
+                return jsonify({'results': results, 'type': 'reference',
+                                 'translation': translation, 'translation_abbrev': translation_abbrev,
+                                 'translation_name': translation_name})
 
     # Busca por texto
     results = search_bible(translation, query)
-    return jsonify({'results': results, 'type': 'text'})
+    return jsonify({'results': results, 'type': 'text',
+                     'translation': translation, 'translation_abbrev': translation_abbrev,
+                     'translation_name': translation_name})
 
 @bible_bp.route('/api/bible/verse')
 @login_required
 def api_bible_verse():
     """API para obter versículos específicos."""
-    translation = request.args.get('translation', 'acf')
+    translation = request.args.get('translation') or get_preferred_translation()
     book_abbrev = request.args.get('book')
     chapter = request.args.get('chapter', type=int)
     verse_start = request.args.get('verse_start', type=int)
@@ -521,7 +549,10 @@ def api_bible_verse():
         'book_name': book_name,
         'chapter': chapter,
         'verses': result_verses,
-        'reference': reference
+        'reference': reference,
+        'translation': translation,
+        'translation_abbrev': get_translation_abbrev(translation),
+        'translation_name': get_translation_name(translation)
     })
 
 # Evento WebSocket para transmitir versículos da Bíblia
@@ -670,6 +701,8 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
         next_chapter=next_chapter,
         translations=metadata.get('translations', {}),
         current_translation=translation,
+        translation_abbrev=get_translation_abbrev(translation),
+        translation_name=get_translation_name(translation),
         initial_verse=verse_start,
         verse_end=verse_end,
         bible_items=bible_items,

@@ -46,6 +46,29 @@ html, body {
          0    3px 8px rgba(0,0,0,0.7);
 }
 
+#bible-reference {
+    color: #FFD600;
+    font-size: calc(var(--txt-size, 8vw) * 0.4);
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1vh;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px  2px 0 #000, 2px  2px 0 #000;
+}
+
+#bible-version {
+    color: rgba(255,255,255,0.75);
+    font-size: calc(var(--txt-size, 8vw) * 0.25);
+    font-weight: bold;
+    text-align: center;
+    margin-top: 1vh;
+    letter-spacing: 0.08em;
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px  1px 0 #000, 1px  1px 0 #000;
+}
+
 #ticker-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;

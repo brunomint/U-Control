@@ -114,10 +114,10 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev} | tojson }}</script>
+<script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev, "translationAbbrev": translation_abbrev, "translationName": translation_name} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
-<script src="{{ url_for('static', filename='js/pages/bible_chapter.js') }}"></script>
+<script src="{{ versioned_static('js/pages/bible_chapter.js') }}"></script>
 {% endblock %}
