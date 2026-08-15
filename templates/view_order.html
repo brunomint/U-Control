@@ -106,10 +106,10 @@
 <div class="toast" id="toast">Link copiado!</div>
 
 {% set item_labels = [] %}
-{% for item in (order.itens if order else []) %}
+{% for item in (order.get('itens', []) if order else []) %}
 {% set _ = item_labels.append(item.title or item.anyText or item.reference or "") %}
 {% endfor %}
-<script id="view-order-data" type="application/json">{{ {"date": date, "order": {"tipo": (order.tipo if order else none), "dirigente": (order.dirigente if order else none), "pregador": (order.pregador if order else none), "horario": ((order.horario or order.horario_culto) if order else none), "tema": (order.tema if order else none), "itemLabels": item_labels}} | tojson }}</script>
+<script id="view-order-data" type="application/json">{{ {"date": date, "order": {"tipo": (order.get('tipo') if order else none), "dirigente": (order.get('dirigente') if order else none), "pregador": (order.get('pregador') if order else none), "horario": ((order.get('horario') or order.get('horario_culto')) if order else none), "tema": (order.get('tema') if order else none), "itemLabels": item_labels}} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
