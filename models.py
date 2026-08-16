@@ -43,6 +43,24 @@ class LyricsState(db.Model):
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
 
+# Conteúdo "preparado" mas ainda não liberado pro ar — um registro por
+# TIPO (kind), não um slot único: preparar uma foto no /presenter não
+# deve apagar silenciosamente uma letra que outro operador preparou em
+# /lyrics/<id> segundos antes (são papéis/pessoas diferentes na
+# prática). Nunca representa o que está no ar de verdade — isso
+# continua sendo DisplayState/LyricsState, escritos só no momento da
+# liberação (release_staged_content reusa os handlers reais de
+# update_lyrics/update_bible/show_image, não duplica a lógica deles).
+# Ver plano "preparar vs. liberar" — achado num incidente ao vivo
+# (2026-08-16) onde clicar em /lyrics/<id> ou /bible/control mudava a
+# tela pública sem passar pelo /control.
+class StagedContent(db.Model):
+    kind = db.Column(db.String(20), primary_key=True)  # 'lyrics' | 'bible' | 'image'
+    payload = db.Column(db.JSON, nullable=False)  # mesmo formato que update_lyrics/update_bible/show_image já esperam
+    label = db.Column(db.String(300), nullable=True)  # preview curto pro painel do /control
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+
+
 # Histórico do que foi exibido (bíblia, imagem, vídeo, música, ticker) —
 # substitui display_log.json. INSERT-only: era leitura+append+reescrita do
 # arquivo inteiro a cada evento, agora é um INSERT real por evento.
