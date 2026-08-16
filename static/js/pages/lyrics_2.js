@@ -163,15 +163,15 @@ let currentTheme = CONFIG.theme;
                         } else {
                             console.log(`🎯 Restaurando seção ${state.section_index}`);
                         }
-                        loadSection(validIndex);
+                        loadSection(validIndex, false, true);
                     } else {
                         // Carrega primeira seção por padrão
-                        loadSection(0);
+                        loadSection(0, false, true);
                     }
                 })
                 .catch(err => {
                     console.error('❌ Erro ao carregar estado:', err);
-                    loadSection(0); // Fallback para primeira seção
+                    loadSection(0, false, true); // Fallback para primeira seção
                 });
         }
         
@@ -506,7 +506,13 @@ $('#clear-lyrics').click(function() {
             return { texto: texto.join('\n'), notas: notas.join(' · ') };
         }
 
-        async function loadSection(index, fromRemote = false) {
+        // silent=true: só atualiza a visualização LOCAL do operador (preview,
+        // seção destacada) sem mandar nada pras telas — usado só pelo
+        // restauro automático ao abrir/recarregar a página (loadLyricsState),
+        // que antes reusava este mesmo caminho e acabava mandando ao vivo
+        // sem nenhuma ação do operador (bug real reportado ao vivo,
+        // 2026-08-16: abrir /lyrics/<id> mudava a tela pública sozinho).
+        async function loadSection(index, fromRemote = false, silent = false) {
             if (index < 0 || index >= sections.length) {
                 alert("Seção inválida.");
                 return;
@@ -544,7 +550,8 @@ $('#clear-lyrics').click(function() {
                 console.log(`📤 Enviando seção mista ${index}:`, dataToSend);
 
                 // Emite para o display via WebSocket com texto e partituras
-                socket.emit('update_lyrics', dataToSend);
+                // (silent: só restaurando a visualização local, não manda ao vivo)
+                if (!silent) socket.emit('update_lyrics', dataToSend);
                 console.log(`✅ Seção mista ${index} carregada:`, section.title, `${sheets.length} partitura(s)`);
             } else if (section.type === 'sheet' && section.sheetId) {
                 // Apenas partitura
@@ -553,7 +560,7 @@ $('#clear-lyrics').click(function() {
 
                 if (sheet) {
                     // Emite partitura para o display via WebSocket
-                    socket.emit('update_lyrics', {
+                    if (!silent) socket.emit('update_lyrics', {
                         title: section.title || '🎼 Partitura',
                         type: 'sheet',
                         sheetData: sheet,
@@ -568,7 +575,7 @@ $('#clear-lyrics').click(function() {
                 const sectionText = transposedSectionText(section);
 
                 // Emite para o display via WebSocket (texto completo, incluindo linhas //)
-                socket.emit('update_lyrics', {
+                if (!silent) socket.emit('update_lyrics', {
                     title: section.title || `Seção ${index + 1}`,
                     type: 'text',
                     text: sectionText,
@@ -585,19 +592,25 @@ $('#clear-lyrics').click(function() {
                 ajustarFonteParaCabimento('.main-content');
             }, 100);
             
-            // Salva estado das letras no banco de dados
+            // Salva estado das letras no banco de dados (bookmark do operador —
+            // sempre roda, mesmo em silent, não afeta nenhuma tela sozinho)
             saveLyricsState(songId, currentSectionIndex);
-            
+
             // Atualiza também o DisplayState para que o monitor siga
-            const displayUrl = `/lyrics/display?song_id=${songId}&section=${currentSectionIndex}`;
-            fetch('/save_display_state', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url1: displayUrl, url2: '' })
-            }).catch(err => console.error('❌ Erro ao salvar display state:', err));
-            
+            // (silent: não é uma mudança de verdade, não deve mexer no que
+            // está no ar)
+            if (!silent) {
+                const displayUrl = `/lyrics/display?song_id=${songId}&section=${currentSectionIndex}`;
+                fetch('/save_display_state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url1: displayUrl, url2: '' })
+                }).catch(err => console.error('❌ Erro ao salvar display state:', err));
+            }
+
             // Só emite section_changed se não veio de um evento remoto (evita loop)
-            if (!fromRemote) {
+            // nem for uma restauração silenciosa
+            if (!fromRemote && !silent) {
                 const nextSec  = sections[currentSectionIndex + 1] || null;
                 const nextRaw  = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
                 let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
