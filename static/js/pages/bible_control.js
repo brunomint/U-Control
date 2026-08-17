@@ -13,7 +13,15 @@ let isVisible = CONFIG.lyricsVisible !== false;
 // Dados dos versículos
 const versesData = CONFIG.verses.map((text, i) => ({ num: i + 1, text: text }));
 
-function selectVerse(verseNum) {
+// silent=true: só atualiza a visualização LOCAL (verso ativo destacado,
+// scroll) sem preparar nada — usado só pelo restauro do verso inicial ao
+// carregar a página (window.addEventListener('load', ...) mais abaixo).
+// Antes disso mandava update_bible direto toda vez que a página abria,
+// mesmo sem clique nenhum (mesma classe de bug já corrigida em
+// lyrics_2.js/loadLyricsState — 2026-08-16): abrir a página sozinha
+// (ex: adiantando a leitura da semana seguinte) sobrescrevia
+// silenciosamente o que outro operador tivesse preparado em outra tela.
+function selectVerse(verseNum, silent = false) {
     currentVerse = verseNum;
 
     // Remove active de todos
@@ -28,24 +36,30 @@ function selectVerse(verseNum) {
         verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // Envia para o display
-    sendToDisplay();
+    if (!silent) sendToDisplay();
 }
 
+// "Preparar vs. liberar": stage_content em vez de update_bible direto —
+// a mudança de verdade só acontece quando o /control liberar (ver
+// blueprints/display.py: stage_content/release_staged_content).
 function sendToDisplay() {
     const verse = versesData[currentVerse - 1];
     const reference = `${bookName} ${chapter}:${currentVerse}`;
 
-    socket.emit('update_bible', {
-        reference: reference,
-        text: `${verse.num} ${verse.text}`,
-        book: bookName,
-        chapter: chapter,
-        verses: [verse],
-        version: CONFIG.translationName
+    socket.emit('stage_content', {
+        kind: 'bible',
+        payload: {
+            reference: reference,
+            text: `${verse.num} ${verse.text}`,
+            book: bookName,
+            chapter: chapter,
+            verses: [verse],
+            version: CONFIG.translationName
+        },
+        label: reference
     });
 
-    console.log(`📖 Enviado: ${reference}`);
+    console.log(`📖 Preparado: ${reference}`);
 }
 
 function prevVerse() {
@@ -201,7 +215,8 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Seleciona o versículo inicial ao carregar
+// Seleciona o versículo inicial ao carregar — silent=true, só restaura a
+// visualização local, não prepara/manda nada (ver comentário em selectVerse).
 window.addEventListener('load', function() {
-    selectVerse(CONFIG.initialVerse);
+    selectVerse(CONFIG.initialVerse, true);
 });
