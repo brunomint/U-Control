@@ -157,20 +157,21 @@ def get_display_state():
 
     return jsonify(result)
 
+def _persist_display_state(url1, url2=''):
+    state = DisplayState.query.first()
+    if not state:
+        state = DisplayState(url1=url1, url2=url2)
+        db.session.add(state)
+    else:
+        state.url1 = url1
+        state.url2 = url2
+    db.session.commit()
+
 # Rota para salvar o estado do display
 @display_bp.route('/save_display_state', methods=['POST'])
 def save_display_state():
     data = request.json
-    state = DisplayState.query.first()
-
-    if not state:
-        state = DisplayState(url1=data.get('url1', ''), url2=data.get('url2', ''))
-        db.session.add(state)
-    else:
-        state.url1 = data.get('url1', '')
-        state.url2 = data.get('url2', '')
-
-    db.session.commit()
+    _persist_display_state(data.get('url1', ''), data.get('url2', ''))
     return jsonify({'status': 'success'})
 
 # Rota para obter o estado atual das letras (música + seção)
@@ -550,6 +551,17 @@ def handle_release_staged_content(data):
 
     if kind == 'lyrics':
         handle_update_lyrics(payload)
+        # monitor.js não escuta update_lyrics — ele mostra a letra via
+        # iframe pra /lyrics/display, restaurado a partir do DisplayState
+        # ao recarregar (ver loadDisplayState()/loadLyricsState() em
+        # monitor.js). Isso é o que /save_display_state fazia antes, direto
+        # do clique; agora só faz sentido gravar quando o conteúdo REALMENTE
+        # for ao ar (aqui), não quando é só preparado.
+        song_id = payload.get('songId')
+        section_index = payload.get('sectionIndex')
+        if song_id is not None and section_index is not None:
+            with current_app.app_context():
+                _persist_display_state(f'/lyrics/display?song_id={song_id}&section={section_index}', '')
     elif kind == 'bible':
         handle_update_bible(payload)
     elif kind == 'image':

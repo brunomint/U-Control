@@ -335,15 +335,20 @@ let currentTheme = CONFIG.theme;
         }
 
         // Reconstrói a lista de seções (texto + partituras) com o tom
-        // atual e reenvia a seção ativa ao vivo, mantendo operador e
-        // monitor do músico sincronizados.
+        // atual e reprepara a seção ativa, mantendo o preview do operador
+        // sincronizado com a transposição.
         function refreshAfterTranspose() {
             $('#sections-list').empty();
             createSectionLinks();
             highlightActiveSection(currentSectionIndex);
             updateTomDisplay();
             saveTransposeOffset();
-            loadSection(currentSectionIndex, true); // fromRemote=true: reenvia sem re-emitir section_changed
+            // fromRemote=true: reenvia sem re-emitir section_changed (a seção
+            // em si não mudou, só o tom). isRemoteSync fica no default
+            // (false) DE PROPÓSITO — isto é uma ação real do operador (mudou
+            // o tom), precisa preparar de novo, diferente do resync de
+            // section_changed de outra aba (ver loadSection/socket.on acima).
+            loadSection(currentSectionIndex, true);
         }
 
         window.transposeStep = function(semitones) {
@@ -512,7 +517,18 @@ $('#clear-lyrics').click(function() {
         // que antes reusava este mesmo caminho e acabava mandando ao vivo
         // sem nenhuma ação do operador (bug real reportado ao vivo,
         // 2026-08-16: abrir /lyrics/<id> mudava a tela pública sozinho).
-        async function loadSection(index, fromRemote = false, silent = false) {
+        //
+        // isRemoteSync=true: veio de section_changed de OUTRO navegador —
+        // é só ressincronização visual (o conteúdo já está preparado/no ar
+        // por quem clicou de verdade), não deve preparar nada de novo, senão
+        // uma aba só se realinhando visualmente atropelaria o que outra
+        // pessoa tivesse preparado nesse meio-tempo ("preparar vs. liberar",
+        // 2026-08-16). Note que isso é DIFERENTE de fromRemote=true sozinho:
+        // refreshAfterTranspose() também usa fromRemote=true, mas ali é uma
+        // reemissão local de verdade (o tom mudou, precisa preparar de novo),
+        // só evitando reemitir section_changed (a seção em si não mudou) —
+        // por isso os dois flags são independentes.
+        async function loadSection(index, fromRemote = false, silent = false, isRemoteSync = false) {
             if (index < 0 || index >= sections.length) {
                 alert("Seção inválida.");
                 return;
@@ -544,14 +560,25 @@ $('#clear-lyrics').click(function() {
                     type: 'mixed',
                     text: sectionText,
                     sheets: sheets,
-                    theme: null
+                    theme: null,
+                    songId: songId,
+                    sectionIndex: index
                 };
 
-                console.log(`📤 Enviando seção mista ${index}:`, dataToSend);
+                console.log(`📤 Preparando seção mista ${index}:`, dataToSend);
 
-                // Emite para o display via WebSocket com texto e partituras
-                // (silent: só restaurando a visualização local, não manda ao vivo)
-                if (!silent) socket.emit('update_lyrics', dataToSend);
+                // "Preparar vs. liberar": stage_content em vez de update_lyrics
+                // direto — a mudança de verdade só acontece quando o /control
+                // liberar (ver blueprints/display.py: stage_content/
+                // release_staged_content). Não prepara em silent nem numa
+                // ressincronização remota (ver comentário de isRemoteSync acima).
+                if (!silent && !isRemoteSync) {
+                    socket.emit('stage_content', {
+                        kind: 'lyrics',
+                        payload: dataToSend,
+                        label: `${document.title} — ${dataToSend.title}`
+                    });
+                }
                 console.log(`✅ Seção mista ${index} carregada:`, section.title, `${sheets.length} partitura(s)`);
             } else if (section.type === 'sheet' && section.sheetId) {
                 // Apenas partitura
@@ -559,13 +586,23 @@ $('#clear-lyrics').click(function() {
                 if (sheet && transposeSheetData) sheet = transposeSheetData(sheet, transposeOffset);
 
                 if (sheet) {
-                    // Emite partitura para o display via WebSocket
-                    if (!silent) socket.emit('update_lyrics', {
-                        title: section.title || '🎼 Partitura',
-                        type: 'sheet',
-                        sheetData: sheet,
-                        theme: null
-                    });
+                    // "Preparar vs. liberar": stage_content em vez de
+                    // update_lyrics direto (ver comentário acima).
+                    if (!silent && !isRemoteSync) {
+                        const sheetTitle = section.title || '🎼 Partitura';
+                        socket.emit('stage_content', {
+                            kind: 'lyrics',
+                            payload: {
+                                title: sheetTitle,
+                                type: 'sheet',
+                                sheetData: sheet,
+                                theme: null,
+                                songId: songId,
+                                sectionIndex: index
+                            },
+                            label: `${document.title} — ${sheetTitle}`
+                        });
+                    }
                     console.log(`✅ Partitura ${index} carregada:`, section.title, sheet);
                 } else {
                     console.warn(`⚠️ Dados da partitura ${section.sheetId} não encontrados`);
@@ -574,13 +611,23 @@ $('#clear-lyrics').click(function() {
                 // É uma seção de texto normal
                 const sectionText = transposedSectionText(section);
 
-                // Emite para o display via WebSocket (texto completo, incluindo linhas //)
-                if (!silent) socket.emit('update_lyrics', {
-                    title: section.title || `Seção ${index + 1}`,
-                    type: 'text',
-                    text: sectionText,
-                    theme: currentTheme || null
-                });
+                // "Preparar vs. liberar": stage_content em vez de
+                // update_lyrics direto (ver comentário acima).
+                if (!silent && !isRemoteSync) {
+                    const textTitle = section.title || `Seção ${index + 1}`;
+                    socket.emit('stage_content', {
+                        kind: 'lyrics',
+                        payload: {
+                            title: textTitle,
+                            type: 'text',
+                            text: sectionText,
+                            theme: currentTheme || null,
+                            songId: songId,
+                            sectionIndex: index
+                        },
+                        label: `${document.title} — ${textTitle}`
+                    });
+                }
                 console.log(`✅ Seção ${index} carregada:`, section.title);
             }
             
@@ -596,17 +643,12 @@ $('#clear-lyrics').click(function() {
             // sempre roda, mesmo em silent, não afeta nenhuma tela sozinho)
             saveLyricsState(songId, currentSectionIndex);
 
-            // Atualiza também o DisplayState para que o monitor siga
-            // (silent: não é uma mudança de verdade, não deve mexer no que
-            // está no ar)
-            if (!silent) {
-                const displayUrl = `/lyrics/display?song_id=${songId}&section=${currentSectionIndex}`;
-                fetch('/save_display_state', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url1: displayUrl, url2: '' })
-                }).catch(err => console.error('❌ Erro ao salvar display state:', err));
-            }
+            // OBS: o DisplayState (usado pelo monitor pra restaurar a URL da
+            // letra ao recarregar) não é mais salvo daqui — agora é
+            // responsabilidade do release_staged_content no servidor (ver
+            // blueprints/display.py), já que só faz sentido gravar isso
+            // quando o conteúdo REALMENTE for ao ar, não quando é só
+            // preparado.
 
             // Só emite section_changed se não veio de um evento remoto (evita loop)
             // nem for uma restauração silenciosa
@@ -729,7 +771,11 @@ $('#clear-lyrics').click(function() {
             // Ouvir o evento de mudança de seção (de outros clientes)
             socket.on('section_changed', function(data) {
                 if (data.songId === songId) { // Verifica se é a mesma música
-                    loadSection(data.sectionIndex, true); // fromRemote=true para evitar loop
+                    // fromRemote=true evita loop de section_changed;
+                    // isRemoteSync=true evita re-preparar (ver comentário
+                    // de loadSection) — isto é só ressincronização visual,
+                    // não uma ação real do operador desta aba.
+                    loadSection(data.sectionIndex, true, false, true);
                 }
             });
         });
