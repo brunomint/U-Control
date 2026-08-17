@@ -779,4 +779,68 @@
             margin-top: 20px; /* Espaço acima da imagem */
         }
 
+/* Painel "Preparado" (preparar vs. liberar) — cards de conteúdo staged
+   em /lyrics, /bible/control, /bible/<book>/<chapter> ou /presenter,
+   aguardando liberação daqui. Vazio (sem cards) não ocupa espaço. */
+.staged-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.staged-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--status-warning);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.staged-card .staged-icon {
+    color: var(--status-warning);
+    font-size: 1.1em;
+}
+
+.staged-card .staged-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.staged-card .staged-kind {
+    color: var(--text-muted);
+    font-size: 0.68em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.staged-card .staged-label {
+    color: var(--text-primary);
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.staged-card button {
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 0.78em;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.staged-card .btn-release {
+    background: var(--status-warning);
+    color: #1a1a1a;
+}
+
+.staged-card .btn-discard {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+}
+
         

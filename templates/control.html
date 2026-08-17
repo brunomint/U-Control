@@ -331,6 +331,13 @@
             <i class="fas fa-sync-alt"></i> Sincronizar Monitor
         </button>
     </div>
+    <!-- "Preparar vs. liberar" — conteúdo preparado em /lyrics/<id>,
+         /bible/control, /bible/<book>/<chapter> ou /presenter fica
+         esperando aqui até ser liberado; nenhuma dessas páginas muda a
+         tela sozinha mais. Um card por kind (lyrics/bible/image), só
+         aparece quando tem algo preparado. Ver blueprints/display.py:
+         stage_content/release_staged_content/discard_staged_content. -->
+    <div class="staged-panel" id="staged-panel"></div>
     <div class="iframe-container" id="iframe-container-wrap">
         <!-- Indicador de Modo Monitor -->
         <div id="monitor-mode-indicator" style="

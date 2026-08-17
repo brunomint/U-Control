@@ -5,6 +5,7 @@
     loadUrls();
     loadFolders();
     loadDisplayState(); // Carrega estado salvo ao iniciar
+    loadStagedContent(); // Carrega o que já estiver preparado, se algo estiver
     fetch('/api/countdown/config')
         .then(function(r) { return r.json(); })
         .then(function(cfg) {
@@ -1107,3 +1108,80 @@ showTwoUrls = function(urlNum1, urlNum2) {
     }
     _origShowTwoUrls(urlNum1, urlNum2);
 };
+
+// ── "Preparar vs. liberar" ──────────────────────────────────────────────
+// /lyrics/<id>, /bible/control, /bible/<book>/<chapter> e /presenter (fotos)
+// não mudam mais a tela sozinhos — só preparam (stage_content). Aqui é onde
+// aparece o que está preparado, e onde libera (release_staged_content) ou
+// descarta (discard_staged_content). Ver blueprints/display.py.
+const _KIND_ICONS = { lyrics: 'fa-music', bible: 'fa-book-bible', image: 'fa-image' };
+const _KIND_LABELS_PT = { lyrics: 'Letra', bible: 'Bíblia', image: 'Foto' };
+let _stagedItems = {}; // kind -> { label }
+
+function renderStagedPanel() {
+    const panel = document.getElementById('staged-panel');
+    if (!panel) return;
+    const kinds = Object.keys(_stagedItems);
+    if (kinds.length === 0) {
+        panel.innerHTML = '';
+        return;
+    }
+    panel.innerHTML = kinds.map(kind => {
+        const item = _stagedItems[kind];
+        const icon = _KIND_ICONS[kind] || 'fa-clone';
+        const kindLabel = _KIND_LABELS_PT[kind] || kind;
+        return `
+            <div class="staged-card" data-kind="${kind}">
+                <i class="fas ${icon} staged-icon"></i>
+                <div class="staged-text">
+                    <span class="staged-kind">${kindLabel} preparado</span>
+                    <span class="staged-label"></span>
+                </div>
+                <button class="btn-release" onclick="releaseStagedContent('${kind}')">Liberar</button>
+                <button class="btn-discard" onclick="discardStagedContent('${kind}')">Descartar</button>
+            </div>
+        `;
+    }).join('');
+    // Texto via textContent, não montado na string acima — evita que um
+    // título/referência com caractere de HTML (ex: "&") quebre o markup.
+    kinds.forEach(kind => {
+        const card = panel.querySelector(`.staged-card[data-kind="${kind}"] .staged-label`);
+        if (card) card.textContent = _stagedItems[kind].label;
+    });
+}
+
+function loadStagedContent() {
+    fetch('/api/staged-content')
+        .then(res => res.json())
+        .then(data => {
+            _stagedItems = {};
+            Object.keys(data).forEach(kind => {
+                _stagedItems[kind] = { label: data[kind].label };
+            });
+            renderStagedPanel();
+        })
+        .catch(err => console.error('❌ Erro ao carregar conteúdo preparado:', err));
+}
+
+function releaseStagedContent(kind) {
+    socket.emit('release_staged_content', { kind });
+}
+
+function discardStagedContent(kind) {
+    socket.emit('discard_staged_content', { kind });
+}
+
+socket.on('content_staged', function(data) {
+    _stagedItems[data.kind] = { label: data.label };
+    renderStagedPanel();
+});
+
+socket.on('content_released', function(data) {
+    delete _stagedItems[data.kind];
+    renderStagedPanel();
+});
+
+socket.on('content_discarded', function(data) {
+    delete _stagedItems[data.kind];
+    renderStagedPanel();
+});
