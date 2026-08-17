@@ -20,11 +20,13 @@ from flask_login import login_required
 from flask_socketio import emit
 
 import display_state
+from blueprints.bible import handle_update_bible
 from blueprints.gallery import get_current_image_path
+from blueprints.lyrics import handle_update_lyrics
 from connections import _get_monitor_sids, _skip_sids
 from display_log import append_display_log
 from extensions import db, socketio
-from models import DisplayState, ImagePath, LyricsState, SavedUrls
+from models import DisplayState, ImagePath, LyricsState, SavedUrls, StagedContent
 from settings_store import load_settings, save_settings
 from songs_store import get_song
 
@@ -231,10 +233,21 @@ def load_urls_route():
     urls = load_urls()
     return jsonify(urls)
 
+# BLOQUEIO TEMPORÁRIO — pedido do usuário em pleno culto (2026-08-16):
+# um slideshow ficou preso em algum dispositivo não localizado,
+# repetindo essa foto a cada 60s por cima de qualquer outra coisa (ex:
+# relógio). Isso só estanca o sintoma visível na tela; o slideshow
+# continua tentando mandar, só que o servidor ignora essa URL
+# específica. REMOVER assim que o usuário confirmar que já achou/parou
+# o slideshow de verdade — ele vai precisar dessa foto de novo depois.
+_TEMP_BLOCKED_IMAGE = '/static/imagens/dddf4b2f-3a3f-4b48-98b0-7b2daddbe18b.jpeg'
+
 # Evento WebSocket para transmitir a URL da imagem
 @socketio.on('show_image')
 def handle_show_image(data):
     image_url = data['image_url']
+    if image_url == _TEMP_BLOCKED_IMAGE:
+        return
     real_app = current_app._get_current_object()
 
     # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
@@ -483,6 +496,91 @@ def handle_show_image_zoom(data):
     if not image_url:
         return
     emit('display_image_zoom', {'image_url': image_url, 'zoom': zoom, 'origin': origin, 'pan': pan}, broadcast=True)
+
+
+# ── "Preparar vs. liberar" ────────────────────────────────────────────────
+# Nenhuma das 4 páginas que mudavam a tela diretamente (letra, os dois
+# fluxos de Bíblia, foto do /presenter) deve mais fazer isso sozinha —
+# elas só "preparam" (stage_content); a mudança de verdade só acontece
+# quando o /control libera (release_staged_content). Achado num incidente
+# ao vivo (2026-08-16): um slideshow esquecido sobrescrevia a tela
+# pública sozinha, e investigando isso o usuário percebeu que várias
+# páginas tinham esse mesmo poder sem passar pelo /control. Um
+# StagedContent por `kind` (não um slot único) — preparar uma foto não
+# deve apagar uma letra que outra pessoa preparou em paralelo.
+#
+# release_staged_content chama direto os handlers reais de
+# update_lyrics/update_bible/show_image (funções Python normais, o
+# decorator @socketio.on não impede chamar diretamente) em vez de
+# duplicar a lógica de emitir+persistir — assim qualquer correção
+# futura neles (ex: _TEMP_BLOCKED_IMAGE acima) também vale pro conteúdo
+# liberado, e os testes de handler existentes continuam passando sem
+# alteração nenhuma.
+_KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
+
+
+@socketio.on('stage_content')
+def handle_stage_content(data):
+    kind = data.get('kind')
+    payload = data.get('payload')
+    if kind not in _KIND_LABELS or not payload:
+        return
+    label = data.get('label') or _KIND_LABELS[kind]
+    with current_app.app_context():
+        staged = db.session.get(StagedContent, kind)
+        if staged is None:
+            staged = StagedContent(kind=kind)
+            db.session.add(staged)
+        staged.payload = payload
+        staged.label = label
+        db.session.commit()
+    emit('content_staged', {'kind': kind, 'label': label}, broadcast=True)
+
+
+@socketio.on('release_staged_content')
+def handle_release_staged_content(data):
+    kind = data.get('kind')
+    with current_app.app_context():
+        staged = db.session.get(StagedContent, kind)
+        if not staged:
+            return
+        payload = staged.payload
+        db.session.delete(staged)
+        db.session.commit()
+
+    if kind == 'lyrics':
+        handle_update_lyrics(payload)
+    elif kind == 'bible':
+        handle_update_bible(payload)
+    elif kind == 'image':
+        handle_show_image(payload)
+
+    emit('content_released', {'kind': kind}, broadcast=True)
+
+
+@socketio.on('discard_staged_content')
+def handle_discard_staged_content(data):
+    kind = data.get('kind')
+    with current_app.app_context():
+        staged = db.session.get(StagedContent, kind)
+        if staged:
+            db.session.delete(staged)
+            db.session.commit()
+    emit('content_discarded', {'kind': kind}, broadcast=True)
+
+
+# Pro /control buscar o que já estiver preparado ao carregar a página —
+# não dá pra confiar só no broadcast ao vivo de content_staged, o
+# /control pode ser aberto DEPOIS de algo já ter sido preparado (caso
+# real: operador prepara antes de ir até o notebook do /control).
+@display_bp.route('/api/staged-content')
+def api_staged_content():
+    items = StagedContent.query.all()
+    return jsonify({
+        s.kind: {'label': s.label, 'updated_at': s.updated_at.isoformat() if s.updated_at else None}
+        for s in items
+    })
+
 
 # Evento WebSocket para transmitir duas URLs de imagem
 @socketio.on('show_two_urls')

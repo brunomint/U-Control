@@ -745,3 +745,117 @@ def test_api_lyrics_returns_song_data(client, tmp_path, monkeypatch):
     response = client.get(f"/api/lyrics/{song_id}")
     assert response.status_code == 200
     assert response.get_json()["title"] == "Música de Letras"
+
+
+# ── "Preparar vs. liberar" (StagedContent) ─────────────────────────────
+
+def test_stage_content_persists_and_broadcasts(app):
+    from extensions import db
+    from models import StagedContent
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("stage_content", {
+        "kind": "image",
+        "payload": {"image_url": "/static/imagens/preparada.jpg"},
+        "label": "foto de teste",
+    })
+
+    received = socket_client.get_received()
+    events = [msg["name"] for msg in received]
+    assert "content_staged" in events
+
+    with app.app_context():
+        staged = db.session.get(StagedContent, "image")
+        assert staged is not None
+        assert staged.payload == {"image_url": "/static/imagens/preparada.jpg"}
+        assert staged.label == "foto de teste"
+
+    socket_client.disconnect()
+
+
+def test_release_staged_content_dispatches_to_real_handler_and_clears_staging(app):
+    import display_state
+    from extensions import db
+    from models import StagedContent
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("stage_content", {
+        "kind": "image",
+        "payload": {"image_url": "/static/imagens/liberar.jpg"},
+        "label": "foto",
+    })
+    socket_client.get_received()
+
+    socket_client.emit("release_staged_content", {"kind": "image"})
+    received = socket_client.get_received()
+    events = [msg["name"] for msg in received]
+    # "display_image" só existe se release chamou o handle_show_image de
+    # verdade (não uma reimplementação) — é o mesmo evento que o teste de
+    # show_image direto (test_show_image_updates_display_state_module_live)
+    # verifica indiretamente via display_state.
+    assert "content_released" in events
+    assert display_state._last_image_url == "/static/imagens/liberar.jpg"
+    assert display_state._current_display_mode == "image"
+
+    with app.app_context():
+        assert db.session.get(StagedContent, "image") is None
+
+    socket_client.disconnect()
+
+
+def test_discard_staged_content_clears_without_going_live(app):
+    import display_state
+    from extensions import db
+    from models import StagedContent
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("stage_content", {
+        "kind": "lyrics",
+        "payload": {"title": "Nunca vai ao ar", "text": "..."},
+        "label": "letra",
+    })
+    socket_client.get_received()
+
+    socket_client.emit("discard_staged_content", {"kind": "lyrics"})
+    received = socket_client.get_received()
+    events = [msg["name"] for msg in received]
+    assert "content_discarded" in events
+    assert "update_lyrics" not in events  # não foi ao ar
+    assert display_state._current_display_mode != "lyrics"
+
+    with app.app_context():
+        assert db.session.get(StagedContent, "lyrics") is None
+
+    socket_client.disconnect()
+
+
+def test_staged_content_kinds_do_not_clobber_each_other(app):
+    from extensions import db
+    from models import StagedContent
+
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("stage_content", {"kind": "image", "payload": {"image_url": "/foto.jpg"}, "label": "foto"})
+    socket_client.emit("stage_content", {"kind": "lyrics", "payload": {"title": "Refrão"}, "label": "letra"})
+    socket_client.get_received()
+
+    with app.app_context():
+        assert db.session.get(StagedContent, "image") is not None
+        assert db.session.get(StagedContent, "lyrics") is not None
+
+    socket_client.disconnect()
+
+
+def test_api_staged_content_reflects_current_state(app, client):
+    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client.emit("stage_content", {
+        "kind": "bible",
+        "payload": {"reference": "João 3:16", "text": "..."},
+        "label": "João 3:16",
+    })
+    socket_client.disconnect()
+
+    response = client.get("/api/staged-content")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert "bible" in data
+    assert data["bible"]["label"] == "João 3:16"
