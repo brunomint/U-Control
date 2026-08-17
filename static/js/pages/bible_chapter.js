@@ -56,37 +56,48 @@ function getReference() {
     }
 }
 
+// "Preparar vs. liberar": stage_content em vez de update_bible direto —
+// a mudança de verdade só acontece quando o /control liberar (ver
+// blueprints/display.py: stage_content/release_staged_content).
 function sendToDisplay() {
     if (selectedVerses.length === 0) return;
 
     const reference = getReference();
     const text = selectedVerses.map(v => `${v.num} ${v.text}`).join('\n');
 
-    socket.emit('update_bible', {
-        reference: reference,
-        text: text,
-        book: bookName,
-        chapter: chapter,
-        verses: selectedVerses,
-        version: CONFIG.translationName
+    socket.emit('stage_content', {
+        kind: 'bible',
+        payload: {
+            reference: reference,
+            text: text,
+            book: bookName,
+            chapter: chapter,
+            verses: selectedVerses,
+            version: CONFIG.translationName
+        },
+        label: reference
     });
 
-    showToast('Versículos enviados para o display!');
+    showToast('Preparado — libere no /control pra ir ao ar!');
 }
 
 function sendSingleVerse(verseNum, text) {
     const reference = `${bookName} ${chapter}:${verseNum}`;
 
-    socket.emit('update_bible', {
-        reference: reference,
-        text: `${verseNum} ${text}`,
-        book: bookName,
-        chapter: chapter,
-        verses: [{ num: verseNum, text: text }],
-        version: CONFIG.translationName
+    socket.emit('stage_content', {
+        kind: 'bible',
+        payload: {
+            reference: reference,
+            text: `${verseNum} ${text}`,
+            book: bookName,
+            chapter: chapter,
+            verses: [{ num: verseNum, text: text }],
+            version: CONFIG.translationName
+        },
+        label: reference
     });
 
-    showToast(`${reference} enviado para o display!`);
+    showToast(`${reference} preparado — libere no /control!`);
 }
 
 function copyVerses() {
