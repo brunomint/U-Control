@@ -424,6 +424,17 @@
             }
         }).catch(() => {});
 
+        // Extrai um nome legível da URL da foto pro card de "preparado" no
+        // /control (ex: "/static/imagens/festa.jpg" -> "festa.jpg").
+        function _photoLabel(imageUrl) {
+            try {
+                const decoded = decodeURIComponent(imageUrl);
+                return decoded.split('/').pop() || decoded;
+            } catch (e) {
+                return imageUrl;
+            }
+        }
+
         function showImageInMonitor(imageUrl) {
             const allImages = document.querySelectorAll('.foto-lista img');
             allImages.forEach(img => img.classList.remove('selected'));
@@ -435,18 +446,32 @@
             currentVideoUrl = null;
             currentVideoPaused = false;
             updateVideoOverlayIcons();
-            socket.emit('show_image', { image_url: imageUrl });
+            // Preparar, não mandar ao ar direto — a mudança de verdade só
+            // acontece quando o /control liberar (ver blueprints/display.py:
+            // stage_content/release_staged_content). Vídeo continua
+            // instantâneo de propósito (showVideoInMonitor, sem alteração).
+            socket.emit('stage_content', {
+                kind: 'image',
+                payload: { image_url: imageUrl },
+                label: _photoLabel(imageUrl),
+            });
         }
 
         function resetView(imageUrl) {
-            // Seleciona a imagem e zera zoom/pan tanto local quanto no /img
+            // Seleciona a imagem (preparar) e zera zoom/pan só localmente
+            // aqui no presenter. NÃO emite show_image_zoom aqui: o handler
+            // display_image_zoom no /img troca a imagem exibida sozinho
+            // quando a URL muda (loadImage()), o que ia ao ar a foto na
+            // hora — exatamente o que preparar deveria evitar. Zoom/pan
+            // via slider continua instantâneo (ver zoomSlider abaixo),
+            // mas só faz sentido ajustar depois que a foto já estiver no
+            // ar de verdade (liberada pelo /control).
             showImageInMonitor(imageUrl);
             panOffset = { x: 0, y: 0 };
             zoomOrigin = { x: 50, y: 50 };
             zoomSlider.value = 1;
             zoomValueLabel.textContent = '1.0x';
             applyLocalTransform(1, panOffset);
-            socket.emit('show_image_zoom', { image_url: imageUrl, zoom: 1, origin: { x: 50, y: 50 }, pan: { x: 0, y: 0 } });
         }
 
         // ===== Modal de Zoom =====
