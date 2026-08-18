@@ -1021,13 +1021,12 @@ function toggleMonitorMode() {
         btn.innerHTML = '<i class="fas fa-tv"></i> Modo Monitor';
         indicator.style.display = 'none';
     }
-    // Trocar de modo é uma troca de contexto igual trocar de tipo — se não
-    // resetar, um live-follow em andamento continuaria usando o modo
-    // ANTIGO (lembrado da última liberação explícita), silenciosamente
-    // ignorando o modo que acabou de ser ativado (achado ao vivo: mudar
-    // pra Modo Público no meio de um live-follow de letra continuava
-    // mandando só pro monitor).
-    socket.emit('reset_live_follow');
+    // Manda o modo pro servidor — fonte única de verdade que _release_kind
+    // usa pra QUALQUER liberação (card do /control ou banner nas próprias
+    // páginas, ver display_state._active_mode). Também reseta o
+    // live-follow, senão um live-follow em andamento continuaria usando o
+    // modo ANTIGO até a próxima liberação explícita.
+    socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
 }
 
 // ── Modo Público ────────────────────────────────────────────────────────
@@ -1050,7 +1049,7 @@ function togglePublicMode() {
         indicator.style.display = 'none';
     }
     // Ver comentário equivalente em toggleMonitorMode().
-    socket.emit('reset_live_follow');
+    socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
 }
 
 function syncMonitor() {
@@ -1173,15 +1172,11 @@ function loadStagedContent() {
 }
 
 function releaseStagedContent(kind) {
-    const data = { kind };
-    // Modo Público/Monitor valem pra foto e letra — bíblia ainda não,
-    // o monitor nunca teve nenhum jeito de mostrar bíblia (ver
-    // _release_kind em blueprints/display.py).
-    if (kind === 'image' || kind === 'lyrics') {
-        if (publicOnlyMode) data.exclude_monitor = true;
-        if (monitorOnlyMode) data.monitor_only = true;
-    }
-    socket.emit('release_staged_content', data);
+    // Modo Público/Monitor não precisa ser mandado aqui — o servidor já
+    // sabe (display_state._active_mode, atualizado por set_display_mode
+    // em toggleMonitorMode/togglePublicMode) e aplica pra qualquer
+    // liberação, venha daqui ou do banner nas próprias páginas.
+    socket.emit('release_staged_content', { kind });
 }
 
 function discardStagedContent(kind) {

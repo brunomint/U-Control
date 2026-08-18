@@ -527,20 +527,27 @@ def handle_show_image_zoom(data):
 _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
 
 
-def _release_kind(kind, payload, exclude_monitor=False, monitor_only=False):
+def _release_kind(kind, payload):
     """Faz o kind ir ao ar de verdade (chamando o handler real) e marca
     esse kind como o "live-follow" atual — ver display_state._live_follow_kind.
-    Compartilhada entre o release explícito (clique em Liberar) e o
-    auto-release do live-follow em handle_stage_content, pra não duplicar
-    a lógica de qual handler chamar pra cada kind.
+    Compartilhada entre o release explícito (clique em Liberar, seja pelo
+    card do /control ou pelo banner nas próprias páginas — ver
+    release_banner.js) e o auto-release do live-follow em
+    handle_stage_content, pra não duplicar a lógica de qual handler
+    chamar pra cada kind.
 
-    exclude_monitor/monitor_only espelham o Modo Público/Modo Monitor do
-    /control (publicOnlyMode/monitorOnlyMode em control.js) — valem pra
-    kind='image' (mecanismo original, também usado pelas ações nativas do
-    /control: URL, galeria) e kind='lyrics'. Bíblia ainda não tem esse
-    suporte — o monitor nunca teve nenhum jeito de mostrar bíblia, nem
-    antes da existência de preparar/liberar, então precisaria ser
-    construído do zero antes de sequer cogitar os modos."""
+    Lê display_state._active_mode (Modo Público/Monitor) direto — não
+    recebe isso como parâmetro de propósito, já que o modo é uma decisão
+    do /control que precisa valer igual não importa de onde a liberação
+    partiu (ver comentário de _active_mode em display_state.py). Vale
+    pra kind='image' (mecanismo original, também usado pelas ações
+    nativas do /control: URL, galeria) e kind='lyrics'. Bíblia ainda não
+    tem esse suporte — o monitor nunca teve nenhum jeito de mostrar
+    bíblia, nem antes da existência de preparar/liberar, então
+    precisaria ser construído do zero antes de sequer cogitar os modos."""
+    exclude_monitor = display_state._active_mode['exclude_monitor']
+    monitor_only = display_state._active_mode['monitor_only']
+
     if kind == 'lyrics':
         song_id = payload.get('songId')
         section_index = payload.get('sectionIndex')
@@ -586,7 +593,6 @@ def _release_kind(kind, payload, exclude_monitor=False, monitor_only=False):
             handle_show_image(payload)
 
     display_state._live_follow_kind = kind
-    display_state._live_follow_mode = {'exclude_monitor': exclude_monitor, 'monitor_only': monitor_only}
     emit('content_released', {'kind': kind}, broadcast=True)
 
 
@@ -614,11 +620,7 @@ def handle_stage_content(data):
             if staged:
                 db.session.delete(staged)
                 db.session.commit()
-        # Reusa o Modo Público/Monitor da última liberação explícita deste
-        # kind — quem dispara este auto-release (ex: /presenter clicando
-        # noutra foto) não sabe qual modo o /control tem ativo agora.
-        mode = display_state._live_follow_mode
-        _release_kind(kind, payload, exclude_monitor=mode['exclude_monitor'], monitor_only=mode['monitor_only'])
+        _release_kind(kind, payload)
         return
 
     with current_app.app_context():
@@ -644,18 +646,25 @@ def handle_release_staged_content(data):
         db.session.delete(staged)
         db.session.commit()
 
-    _release_kind(kind, payload,
-                  exclude_monitor=bool(data.get('exclude_monitor')),
-                  monitor_only=bool(data.get('monitor_only')))
+    _release_kind(kind, payload)
 
 
-@socketio.on('reset_live_follow')
-def handle_reset_live_follow(data=None):
-    """Emitido pelo /control ao trocar Modo Público/Monitor (ver
-    toggleMonitorMode/togglePublicMode em control.js). Trocar de modo é
-    uma troca de contexto igual trocar de tipo — sem isto, um live-follow
-    em andamento continuaria usando o modo ANTIGO (lembrado da última
-    liberação explícita), ignorando silenciosamente o modo recém-ativado."""
+@socketio.on('set_display_mode')
+def handle_set_display_mode(data):
+    """Emitido pelo /control ao ligar/desligar Modo Público/Monitor (ver
+    toggleMonitorMode/togglePublicMode em control.js) — grava em
+    display_state._active_mode, a fonte única de verdade que _release_kind
+    lê pra QUALQUER liberação, não importa se veio do card do /control ou
+    do banner nas próprias páginas (release_banner.js não tem acesso às
+    variáveis JS do /control, que fica numa aba/página diferente).
+
+    Também reseta o live-follow — trocar de modo é uma troca de contexto
+    igual trocar de tipo: sem isto, um live-follow em andamento continuaria
+    aplicando o modo ANTIGO até a próxima liberação explícita."""
+    display_state._active_mode = {
+        'exclude_monitor': bool(data.get('exclude_monitor')),
+        'monitor_only': bool(data.get('monitor_only')),
+    }
     display_state._live_follow_kind = None
 
 

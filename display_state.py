@@ -39,14 +39,17 @@ _last_image_url = None
 # o tipo imagem.
 _live_follow_kind = None
 
-# Modo Público/Monitor (control.js: publicOnlyMode/monitorOnlyMode) da
-# última liberação de imagem — guardado junto com _live_follow_kind pra
-# um auto-release de live-follow (foto seguinte, sem passar pelo /control
-# de novo) manter o mesmo modo da liberação explícita anterior, já que
-# quem dispara o auto-release (ex: /presenter) não sabe qual modo o
-# /control tem ativo. Só usado pra kind='image' — letra/bíblia sempre vão
-# pra todas as telas, ainda não têm suporte a Modo Público/Monitor.
-_live_follow_mode = {'exclude_monitor': False, 'monitor_only': False}
+# Modo Público/Monitor atual (control.js: publicOnlyMode/monitorOnlyMode)
+# — fonte única de verdade no SERVIDOR, não só no JS do /control.
+# _release_kind (blueprints/display.py) lê daqui pra QUALQUER liberação,
+# não importa de onde ela vem: pelo card do /control ou pelo banner
+# embutido nas próprias páginas (release_banner.js) — esse banner é uma
+# aba/página diferente do /control, sem acesso às variáveis JS de lá, e
+# achado ao vivo: sem isto, liberar pelo banner sempre ignorava o modo
+# ativo (agia como se nenhum modo estivesse ligado), inconsistente com
+# liberar pelo card. Atualizado via evento set_display_mode, emitido
+# sempre que toggleMonitorMode()/togglePublicMode() mudam de estado.
+_active_mode = {'exclude_monitor': False, 'monitor_only': False}
 
 # Estado de reprodução de vídeo para sincronização entre clientes /img.
 # Quando uma nova janela /img conecta, ela consulta este estado para começar
