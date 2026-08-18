@@ -1,6 +1,15 @@
     const socket = io();
 
-    socket.emit('identify', { role: 'lyrics_display' });
+    // host=monitor: esta página foi carregada dentro do iframe do /monitor
+    // (ver monitor.js/blueprints/display.py, _release_kind) — identifica
+    // como 'monitor' pra Modo Público/Monitor conseguir excluir/direcionar
+    // esta aba junto com o /monitor em si (_get_monitor_sids em
+    // connections.py). Sem o parâmetro (aberta direto, ou dentro do
+    // preview do próprio /control), mantém o papel neutro de sempre —
+    // excluir o /control do seu próprio preview quebraria a visualização
+    // do operador.
+    const _isMonitorHost = new URLSearchParams(window.location.search).get('host') === 'monitor';
+    socket.emit('identify', { role: _isMonitorHost ? 'monitor' : 'lyrics_display' });
 
     /**
      * Atualiza o título e texto no DOM e no localStorage.

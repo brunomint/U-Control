@@ -160,8 +160,11 @@
                     console.log('💾 Monitor: Estado das letras carregado:', state);
                     
                     if (state.song_id) {
-                        // Monta URL para a música/seção específica
-                        const lyricsUrl = `/lyrics/display?song_id=${state.song_id}&section=${state.section_index || 0}`;
+                        // Monta URL para a música/seção específica — host=monitor
+                        // faz essa página se identificar como 'monitor' no socket,
+                        // pra Modo Público/Monitor conseguir excluir/direcionar
+                        // ela junto com o /monitor (ver display.js).
+                        const lyricsUrl = `/lyrics/display?song_id=${state.song_id}&section=${state.section_index || 0}&host=monitor`;
                         console.log(`🎵 Monitor: Carregando iframe com URL: ${lyricsUrl}`);
                         console.log(`🎵 Monitor: iframe1 atual:`, iframe1);
                         iframe1.src = lyricsUrl;

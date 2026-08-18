@@ -13,6 +13,7 @@ from flask_login import login_required
 from flask_socketio import emit
 
 import display_state
+from connections import _skip_sids
 from display_log import append_display_log
 from extensions import db, socketio
 from models import LyricsState
@@ -169,7 +170,7 @@ def handle_update_lyrics(data):
             db.session.commit()
     except Exception:
         logger.exception('Falha ao persistir last_payload de update_lyrics')
-    emit('update_lyrics', data, broadcast=True)
+    emit('update_lyrics', data, broadcast=True, skip_sid=_skip_sids(data))
 
 # Evento WebSocket para mudança de seção
 @socketio.on('section_changed')

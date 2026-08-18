@@ -1021,6 +1021,13 @@ function toggleMonitorMode() {
         btn.innerHTML = '<i class="fas fa-tv"></i> Modo Monitor';
         indicator.style.display = 'none';
     }
+    // Trocar de modo é uma troca de contexto igual trocar de tipo — se não
+    // resetar, um live-follow em andamento continuaria usando o modo
+    // ANTIGO (lembrado da última liberação explícita), silenciosamente
+    // ignorando o modo que acabou de ser ativado (achado ao vivo: mudar
+    // pra Modo Público no meio de um live-follow de letra continuava
+    // mandando só pro monitor).
+    socket.emit('reset_live_follow');
 }
 
 // ── Modo Público ────────────────────────────────────────────────────────
@@ -1042,6 +1049,8 @@ function togglePublicMode() {
         btn.innerHTML = '<i class="fas fa-users"></i> Modo Público';
         indicator.style.display = 'none';
     }
+    // Ver comentário equivalente em toggleMonitorMode().
+    socket.emit('reset_live_follow');
 }
 
 function syncMonitor() {
@@ -1165,10 +1174,10 @@ function loadStagedContent() {
 
 function releaseStagedContent(kind) {
     const data = { kind };
-    // Modo Público/Monitor só valem pra foto por enquanto (mesmo
-    // mecanismo que URL/galeria do próprio /control já usam) — letra e
-    // bíblia sempre liberam pra todas as telas.
-    if (kind === 'image') {
+    // Modo Público/Monitor valem pra foto e letra — bíblia ainda não,
+    // o monitor nunca teve nenhum jeito de mostrar bíblia (ver
+    // _release_kind em blueprints/display.py).
+    if (kind === 'image' || kind === 'lyrics') {
         if (publicOnlyMode) data.exclude_monitor = true;
         if (monitorOnlyMode) data.monitor_only = true;
     }

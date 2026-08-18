@@ -535,23 +535,46 @@ def _release_kind(kind, payload, exclude_monitor=False, monitor_only=False):
     a lógica de qual handler chamar pra cada kind.
 
     exclude_monitor/monitor_only espelham o Modo Público/Modo Monitor do
-    /control (publicOnlyMode/monitorOnlyMode em control.js) — só valem pra
-    kind='image', que já tem o mecanismo pronto (mesmo usado pelas ações
-    nativas do /control: URL, galeria). Letra/bíblia ainda não têm esse
-    suporte, sempre vão pra todas as telas."""
+    /control (publicOnlyMode/monitorOnlyMode em control.js) — valem pra
+    kind='image' (mecanismo original, também usado pelas ações nativas do
+    /control: URL, galeria) e kind='lyrics'. Bíblia ainda não tem esse
+    suporte — o monitor nunca teve nenhum jeito de mostrar bíblia, nem
+    antes da existência de preparar/liberar, então precisaria ser
+    construído do zero antes de sequer cogitar os modos."""
     if kind == 'lyrics':
-        handle_update_lyrics(payload)
-        # monitor.js não escuta update_lyrics — ele mostra a letra via
-        # iframe pra /lyrics/display, restaurado a partir do DisplayState
-        # ao recarregar (ver loadDisplayState()/loadLyricsState() em
-        # monitor.js). Isso é o que /save_display_state fazia antes, direto
-        # do clique; agora só faz sentido gravar quando o conteúdo REALMENTE
-        # for ao ar (aqui), não quando é só preparado.
         song_id = payload.get('songId')
         section_index = payload.get('sectionIndex')
+        # URL do iframe do monitor pra esta letra — host=monitor faz
+        # display.js (a página /lyrics/display) se identificar como
+        # 'monitor' no socket (ver display.js), pra _get_monitor_sids()
+        # conseguir excluir/direcionar ela junto com o /monitor de
+        # verdade nos dois branches abaixo.
+        lyrics_url = None
         if song_id is not None and section_index is not None:
-            with current_app.app_context():
-                _persist_display_state(f'/lyrics/display?song_id={song_id}&section={section_index}', '')
+            lyrics_url = f'/lyrics/display?song_id={song_id}&section={section_index}&host=monitor'
+
+        if monitor_only:
+            # Só empurra pro iframe do monitor via show_monitor_content
+            # (mesmo mecanismo que o botão de URL fixa "Letra" já usa em
+            # Modo Monitor) — nunca chama handle_update_lyrics, então
+            # público/OBS nem ficam sabendo que isso aconteceu.
+            if lyrics_url:
+                handle_show_monitor_content({'url': lyrics_url})
+        else:
+            emit_data = dict(payload)
+            if exclude_monitor:
+                emit_data['exclude_monitor'] = True
+            handle_update_lyrics(emit_data)
+            # Persiste o DisplayState (restauro do monitor ao recarregar —
+            # ver loadDisplayState()/loadLyricsState() em monitor.js) só
+            # quando o monitor de fato deveria saber desta mudança. Com
+            # Modo Público (exclude_monitor), o monitor não recebeu a
+            # atualização ao vivo — gravar aqui faria ele "pular" pra essa
+            # letra na próxima vez que recarregar, o que quebraria o
+            # "congela" que o modo promete.
+            if lyrics_url and not exclude_monitor:
+                with current_app.app_context():
+                    _persist_display_state(lyrics_url, '')
     elif kind == 'bible':
         handle_update_bible(payload)
     elif kind == 'image':
@@ -624,6 +647,16 @@ def handle_release_staged_content(data):
     _release_kind(kind, payload,
                   exclude_monitor=bool(data.get('exclude_monitor')),
                   monitor_only=bool(data.get('monitor_only')))
+
+
+@socketio.on('reset_live_follow')
+def handle_reset_live_follow(data=None):
+    """Emitido pelo /control ao trocar Modo Público/Monitor (ver
+    toggleMonitorMode/togglePublicMode em control.js). Trocar de modo é
+    uma troca de contexto igual trocar de tipo — sem isto, um live-follow
+    em andamento continuaria usando o modo ANTIGO (lembrado da última
+    liberação explícita), ignorando silenciosamente o modo recém-ativado."""
+    display_state._live_follow_kind = None
 
 
 @socketio.on('discard_staged_content')
