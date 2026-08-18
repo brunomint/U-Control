@@ -524,6 +524,7 @@ _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
 def handle_stage_content(data):
     kind = data.get('kind')
     payload = data.get('payload')
+    current_app.logger.debug(f'📋 Recebido stage_content: kind={kind}')
     if kind not in _KIND_LABELS or not payload:
         return
     label = data.get('label') or _KIND_LABELS[kind]
@@ -541,6 +542,7 @@ def handle_stage_content(data):
 @socketio.on('release_staged_content')
 def handle_release_staged_content(data):
     kind = data.get('kind')
+    current_app.logger.debug(f'🚀 Recebido release_staged_content: kind={kind}')
     with current_app.app_context():
         staged = db.session.get(StagedContent, kind)
         if not staged:
