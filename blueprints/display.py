@@ -166,6 +166,13 @@ def _persist_display_state(url1, url2=''):
         state.url1 = url1
         state.url2 = url2
     db.session.commit()
+    # Atualiza também o cache em memória — api_monitor_sync() (botão
+    # "Sincronizar Monitor" do /control) lê só daqui, sem cair pro banco;
+    # sem isto, sincronizar o monitor não fazia nada na primeira letra
+    # liberada numa sessão nova (cache ainda vazio), só funcionava pra
+    # foto (handle_show_image já atualiza esse mesmo cache).
+    display_state._display_state_cache['data'] = {'url1': url1, 'url2': url2}
+    display_state._display_state_cache['timestamp'] = time.time()
 
 # Rota para salvar o estado do display
 @display_bp.route('/save_display_state', methods=['POST'])
