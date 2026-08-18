@@ -1363,7 +1363,9 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 div.addEventListener('paste', function(e) {
                     console.log('🎵 Evento de paste detectado!');
                     setTimeout(async () => {
-                        const text = div.value || '';
+                        const original = div.value || '';
+                        const text = limparColagemCifraClub(original);
+                        if (text !== original) div.value = text;
                         console.log('📝 Texto colado:', text);
                         console.log('📏 Tamanho do texto:', text.length);
                         
