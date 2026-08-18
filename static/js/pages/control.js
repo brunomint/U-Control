@@ -1164,7 +1164,15 @@ function loadStagedContent() {
 }
 
 function releaseStagedContent(kind) {
-    socket.emit('release_staged_content', { kind });
+    const data = { kind };
+    // Modo Público/Monitor só valem pra foto por enquanto (mesmo
+    // mecanismo que URL/galeria do próprio /control já usam) — letra e
+    // bíblia sempre liberam pra todas as telas.
+    if (kind === 'image') {
+        if (publicOnlyMode) data.exclude_monitor = true;
+        if (monitorOnlyMode) data.monitor_only = true;
+    }
+    socket.emit('release_staged_content', data);
 }
 
 function discardStagedContent(kind) {

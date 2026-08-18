@@ -830,8 +830,17 @@ def test_discard_staged_content_clears_without_going_live(app):
 
 
 def test_staged_content_kinds_do_not_clobber_each_other(app):
+    import display_state
     from extensions import db
     from models import StagedContent
+
+    # Reseta o live-follow (ver blueprints/display.py, _release_kind) —
+    # sem isto, um teste anterior que liberou "image" deixaria esse kind
+    # marcado como já confirmado, e o stage_content("image") abaixo iria
+    # direto ao ar em vez de só preparar, quebrando a premissa deste teste
+    # (que é justamente checar que PREPARAR dois kinds ao mesmo tempo não
+    # atropela um ao outro).
+    display_state._live_follow_kind = None
 
     socket_client = ucontrol_main.socketio.test_client(app)
     socket_client.emit("stage_content", {"kind": "image", "payload": {"image_url": "/foto.jpg"}, "label": "foto"})

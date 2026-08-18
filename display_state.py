@@ -20,6 +20,34 @@ _last_lyrics_payload = None
 _current_display_mode = 'blank'
 _last_image_url = None
 
+# "Live-follow" do preparar/liberar (ver blueprints/display.py,
+# handle_stage_content/_release_kind): qual StagedContent.kind foi
+# CONFIRMADO ao vivo por último através do próprio sistema de
+# preparar/liberar — 'lyrics' | 'bible' | 'image' | None. Enquanto um
+# stage_content chegar com esse MESMO kind, vai direto ao ar sem pedir
+# Liberar de novo (navegar dentro do que já está confirmado não deveria
+# exigir confirmação a cada clique). Um kind DIFERENTE ainda exige
+# Liberar explícito, o que reseta este valor pro novo kind.
+#
+# Só é atualizado por liberações que passam pelo preparar/liberar —
+# ações nativas do /control (relógio, galeria do próprio /control, URL)
+# NÃO tocam nisto de propósito: relógio também é kind='image' por baixo
+# (show_image), e se contasse como confirmação, o incidente que motivou
+# essa funcionalidade (slideshow esquecido sobrescrevendo o relógio)
+# voltaria a ser possível — uma aba de foto esquecida rodando depois do
+# relógio ainda precisa de confirmação, porque o relógio não "confirma"
+# o tipo imagem.
+_live_follow_kind = None
+
+# Modo Público/Monitor (control.js: publicOnlyMode/monitorOnlyMode) da
+# última liberação de imagem — guardado junto com _live_follow_kind pra
+# um auto-release de live-follow (foto seguinte, sem passar pelo /control
+# de novo) manter o mesmo modo da liberação explícita anterior, já que
+# quem dispara o auto-release (ex: /presenter) não sabe qual modo o
+# /control tem ativo. Só usado pra kind='image' — letra/bíblia sempre vão
+# pra todas as telas, ainda não têm suporte a Modo Público/Monitor.
+_live_follow_mode = {'exclude_monitor': False, 'monitor_only': False}
+
 # Estado de reprodução de vídeo para sincronização entre clientes /img.
 # Quando uma nova janela /img conecta, ela consulta este estado para começar
 # o vídeo na mesma posição em que ele está tocando nas outras janelas.

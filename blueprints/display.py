@@ -527,6 +527,46 @@ def handle_show_image_zoom(data):
 _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
 
 
+def _release_kind(kind, payload, exclude_monitor=False, monitor_only=False):
+    """Faz o kind ir ao ar de verdade (chamando o handler real) e marca
+    esse kind como o "live-follow" atual — ver display_state._live_follow_kind.
+    Compartilhada entre o release explícito (clique em Liberar) e o
+    auto-release do live-follow em handle_stage_content, pra não duplicar
+    a lógica de qual handler chamar pra cada kind.
+
+    exclude_monitor/monitor_only espelham o Modo Público/Modo Monitor do
+    /control (publicOnlyMode/monitorOnlyMode em control.js) — só valem pra
+    kind='image', que já tem o mecanismo pronto (mesmo usado pelas ações
+    nativas do /control: URL, galeria). Letra/bíblia ainda não têm esse
+    suporte, sempre vão pra todas as telas."""
+    if kind == 'lyrics':
+        handle_update_lyrics(payload)
+        # monitor.js não escuta update_lyrics — ele mostra a letra via
+        # iframe pra /lyrics/display, restaurado a partir do DisplayState
+        # ao recarregar (ver loadDisplayState()/loadLyricsState() em
+        # monitor.js). Isso é o que /save_display_state fazia antes, direto
+        # do clique; agora só faz sentido gravar quando o conteúdo REALMENTE
+        # for ao ar (aqui), não quando é só preparado.
+        song_id = payload.get('songId')
+        section_index = payload.get('sectionIndex')
+        if song_id is not None and section_index is not None:
+            with current_app.app_context():
+                _persist_display_state(f'/lyrics/display?song_id={song_id}&section={section_index}', '')
+    elif kind == 'bible':
+        handle_update_bible(payload)
+    elif kind == 'image':
+        if monitor_only:
+            handle_show_monitor_content({'url': payload.get('image_url', '')})
+        elif exclude_monitor:
+            handle_show_image({**payload, 'exclude_monitor': True})
+        else:
+            handle_show_image(payload)
+
+    display_state._live_follow_kind = kind
+    display_state._live_follow_mode = {'exclude_monitor': exclude_monitor, 'monitor_only': monitor_only}
+    emit('content_released', {'kind': kind}, broadcast=True)
+
+
 @socketio.on('stage_content')
 def handle_stage_content(data):
     kind = data.get('kind')
@@ -535,6 +575,29 @@ def handle_stage_content(data):
     if kind not in _KIND_LABELS or not payload:
         return
     label = data.get('label') or _KIND_LABELS[kind]
+
+    # Live-follow: esse kind já foi confirmado ao vivo antes (por um
+    # Liberar explícito, nesta mesma sessão) — navegar dentro dele (outra
+    # seção da mesma letra, outro verso, outra foto) vai direto ao ar, sem
+    # pedir confirmação a cada clique. Só reseta ao liberar um kind
+    # DIFERENTE (ver _release_kind) — trocar de tipo continua pedindo
+    # confirmação explícita, o que preserva a proteção original pra quem
+    # ainda não tiver confirmado aquele tipo nesta sessão (ex: uma foto
+    # nunca precisa ser "a mesma coisa" que o relógio, já que ações
+    # nativas do /control não tocam o live-follow — ver display_state.py).
+    if display_state._live_follow_kind == kind:
+        with current_app.app_context():
+            staged = db.session.get(StagedContent, kind)
+            if staged:
+                db.session.delete(staged)
+                db.session.commit()
+        # Reusa o Modo Público/Monitor da última liberação explícita deste
+        # kind — quem dispara este auto-release (ex: /presenter clicando
+        # noutra foto) não sabe qual modo o /control tem ativo agora.
+        mode = display_state._live_follow_mode
+        _release_kind(kind, payload, exclude_monitor=mode['exclude_monitor'], monitor_only=mode['monitor_only'])
+        return
+
     with current_app.app_context():
         staged = db.session.get(StagedContent, kind)
         if staged is None:
@@ -558,25 +621,9 @@ def handle_release_staged_content(data):
         db.session.delete(staged)
         db.session.commit()
 
-    if kind == 'lyrics':
-        handle_update_lyrics(payload)
-        # monitor.js não escuta update_lyrics — ele mostra a letra via
-        # iframe pra /lyrics/display, restaurado a partir do DisplayState
-        # ao recarregar (ver loadDisplayState()/loadLyricsState() em
-        # monitor.js). Isso é o que /save_display_state fazia antes, direto
-        # do clique; agora só faz sentido gravar quando o conteúdo REALMENTE
-        # for ao ar (aqui), não quando é só preparado.
-        song_id = payload.get('songId')
-        section_index = payload.get('sectionIndex')
-        if song_id is not None and section_index is not None:
-            with current_app.app_context():
-                _persist_display_state(f'/lyrics/display?song_id={song_id}&section={section_index}', '')
-    elif kind == 'bible':
-        handle_update_bible(payload)
-    elif kind == 'image':
-        handle_show_image(payload)
-
-    emit('content_released', {'kind': kind}, broadcast=True)
+    _release_kind(kind, payload,
+                  exclude_monitor=bool(data.get('exclude_monitor')),
+                  monitor_only=bool(data.get('monitor_only')))
 
 
 @socketio.on('discard_staged_content')
