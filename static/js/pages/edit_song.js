@@ -868,8 +868,10 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             
             // Separa a letra em seções automaticamente
             function separateLyricsIntoSections(text) {
-                // Remove espaços extras no início e fim
-                const cleanText = text.trim();
+                // Remove só linhas em branco do início/fim — trim() sozinho
+                // cortaria o espaço de indentação do primeiro acorde (ver
+                // apararPreservandoIndentacao acima).
+                const cleanText = apararPreservandoIndentacao(text);
                 
                 console.log('🔄 Iniciando separação de seções...');
                 console.log('📄 Texto original:', cleanText);
@@ -882,7 +884,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 if (sections.length > 1) {
                     console.log('✅ Separação por linhas em branco bem-sucedida!');
                     sections = sections
-                        .map(section => section.trim())
+                        .map(section => apararPreservandoIndentacao(section))
                         .filter(section => section.length > 0);
                     return sections;
                 }
@@ -893,7 +895,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     console.log('✅ Separação por seções em colchetes!');
                     sections = cleanText.split(bracketSections);
                     sections = sections
-                        .map(section => section.trim())
+                        .map(section => apararPreservandoIndentacao(section))
                         .filter(section => section.length > 0);
                     return sections;
                 }
@@ -904,7 +906,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     console.log('✅ Separação por marcadores explícitos!');
                     sections = cleanText.split(sectionMarkers);
                     sections = sections
-                        .map(section => section.trim())
+                        .map(section => apararPreservandoIndentacao(section))
                         .filter(section => section.length > 0);
                     return sections;
                 }
@@ -959,7 +961,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 
                 // Limpa e filtra seções vazias
                 sections = sections
-                    .map(section => section.trim())
+                    .map(section => apararPreservandoIndentacao(section))
                     .filter(section => section.length > 0);
                 
                 console.log('🎯 Seções finais:', sections.length);
@@ -1047,19 +1049,23 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                             id: Date.now() + index * 1000
                         });
                         
-                        // Remove título explícito do conteúdo se existir
+                        // Remove título explícito do conteúdo se existir — só
+                        // engole espaços/tabs na MESMA linha do marcador antes
+                        // da quebra (não \s* genérico), senão come também o
+                        // espaço que posiciona o primeiro acorde da linha
+                        // seguinte.
                         let cleanContent = sectionContent;
-                        
+
                         // Remove seções entre colchetes do início
-                        cleanContent = cleanContent.replace(/^\s*\[[^\]]+\]\s*\n?/i, '');
-                        
+                        cleanContent = cleanContent.replace(/^\s*\[[^\]]+\][ \t]*\n?/i, '');
+
                         // Remove títulos explícitos do início
-                        cleanContent = cleanContent.replace(/^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)\s*:?\s*\n?/i, '');
-                        
+                        cleanContent = cleanContent.replace(/^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)[ \t]*:?[ \t]*\n?/i, '');
+
                         // Remove indicação de tom se estiver no início
-                        cleanContent = cleanContent.replace(/^\s*Tom:\s*[A-G][#b]?\s*\n?/i, '');
-                        
-                        cleanContent = cleanContent.trim();
+                        cleanContent = cleanContent.replace(/^\s*Tom:[ \t]*[A-G][#b]?[ \t]*\n?/i, '');
+
+                        cleanContent = apararPreservandoIndentacao(cleanContent);
                         
                         // Adiciona bloco de texto
                         blocks.push({
@@ -2017,6 +2023,17 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 return semDuplicatas.join('\n');
             }
 
+            // trim() sozinho corta o espaço de indentação do primeiro acorde de
+            // uma seção — é o primeiro caractere do bloco, cai no que trim()
+            // considera "espaço à esquerda pra remover" (bug real: "primeira
+            // linha de cada verso vem com o acorde forçado no começo,
+            // ignorando o espaço"). Remove só linhas em branco no início/fim,
+            // preservando o espaçamento de posicionamento da primeira linha
+            // real de conteúdo.
+            function apararPreservandoIndentacao(texto) {
+                return texto.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, '');
+            }
+
             // Detecta links do Cifra Club
             function detectCifraClubLink(text) {
                 const cifraClubRegex = /https?:\/\/(www\.)?cifraclub\.com\.br\/[^\/\s]+\/[^\/\s]+\/?/g;
@@ -2074,11 +2091,18 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     line.includes('[') || line.match(/^[A-G]/) || line.trim().length > 50
                 ) || 3;
                 
-                const cleanLyrics = lines.slice(lyricsStart).join('\n');
-                
+                // Junta marcador [Nome] com o conteúdo seguinte quando tem
+                // linha em branco entre os dois (padrão comum do Cifra Club:
+                // "[Primeira Parte]\n\n G  G2...") — sem isto, o split por
+                // linha em branco logo abaixo separava o marcador do próprio
+                // conteúdo, virando uma seção fantasma vazia (só o título) e
+                // a seção seguinte com o conteúdo sem título nenhum.
+                const cleanLyrics = lines.slice(lyricsStart).join('\n')
+                    .replace(/(\[[^\]]+\])\n\s*\n/g, '$1\n');
+
                 // Divide por parágrafos (linhas vazias)
                 const paragraphs = cleanLyrics.split(/\n\s*\n/).filter(p => p.trim());
-                
+
                 const blocks = [];
                 let verseCount = 1;
                 
@@ -2100,7 +2124,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     }
                     
                     // Remove marcadores [Refrão], [Verso], etc.
-                    const cleanText = paragraph.replace(/\[.*?\]/g, '').trim();
+                    const cleanText = apararPreservandoIndentacao(paragraph.replace(/\[.*?\]/g, ''));
                     
                     blocks.push({
                         type: 'section',
