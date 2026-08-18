@@ -1,6 +1,7 @@
 """Cifras (Cifra Club) e download/gestão de áudio do YouTube. Bloco
 autocontido — nenhuma rota é referenciada por url_for() em lugar nenhum
 do projeto (chamadas via fetch() no JS dos templates)."""
+import json
 import logging
 import os
 import re
@@ -15,6 +16,47 @@ logger = logging.getLogger('ucontrol')
 cifras_bp = Blueprint('cifras', __name__)
 
 
+def _extrair_titulo_compositor_cifra(soup):
+    """Extrai título/compositor/cifra de uma página do Cifra Club.
+
+    Achado ao vivo (2026-08-18, "Tantos Mares" de Pedro Valença): o Cifra
+    Club reescreveu o HTML pra classes com hash que mudam a cada build —
+    os seletores antigos (h1.t1, h2.t3, .cifra_cnt) não existem mais na
+    página, e a cifra vinha sempre vazia ("Cifra não encontrada"), sem
+    nenhum log avisando. Título/compositor vêm agora do JSON-LD padrão
+    schema.org (MusicComposition) que o Cifra Club já inclui pra SEO —
+    isso não muda a cada redesign do jeito que classes CSS mudam. A cifra
+    em si vem do <pre data-chord-content="true">, o bloco que hoje
+    contém o texto com acordes (.cifra_cnt como fallback, caso o Cifra
+    Club volte pro layout antigo em alguma página)."""
+    titulo = compositor = None
+    for script in soup.find_all('script', type='application/ld+json'):
+        try:
+            data = json.loads(script.string or '')
+        except (ValueError, TypeError):
+            continue
+        if isinstance(data, dict) and data.get('@type') == 'MusicComposition':
+            titulo = data.get('name')
+            nomes = [c.get('name') for c in (data.get('composer') or []) if c.get('name')]
+            compositor = ', '.join(nomes) if nomes else None
+            break
+
+    if not titulo:
+        h1 = soup.find('h1')
+        titulo = h1.get_text().strip() if h1 else None
+    titulo = titulo or 'Título não encontrado'
+    compositor = compositor or 'Compositor não encontrado'
+
+    cifra_tag = soup.select_one('pre[data-chord-content="true"]') or soup.select_one('.cifra_cnt')
+    if cifra_tag:
+        cifra = cifra_tag.get_text().strip()
+    else:
+        cifra = 'Cifra não encontrada'
+        logger.warning('Cifra Club: bloco de cifra não encontrado — seletor desatualizado?')
+
+    return titulo, compositor, cifra
+
+
 #Extrair Cifras do Cifra-CLub
 @cifras_bp.route("/cifra")
 def pegar_cifra():
@@ -26,17 +68,7 @@ def pegar_cifra():
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # Título
-        titulo_tag = soup.find('h1', class_='t1')
-        titulo = titulo_tag.text.strip() if titulo_tag else 'Título não encontrado'
-
-        # Compositor
-        compositor_tag = soup.find('h2', class_='t3')
-        compositor = compositor_tag.text.strip() if compositor_tag else 'Compositor não encontrado'
-
-        # Cifra
-        cifra_tag = soup.select_one('.cifra_cnt')
-        cifra = cifra_tag.get_text().strip() if cifra_tag else 'Cifra não encontrada'
+        titulo, compositor, cifra = _extrair_titulo_compositor_cifra(soup)
 
         # Monta texto puro com título e compositor na frente, separados por linhas em branco
         texto_puro = f"{titulo}\n\n{compositor}\n\n{cifra}"
@@ -57,17 +89,7 @@ def pegar_cifra_com_video():
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # Título
-        titulo_tag = soup.find('h1', class_='t1')
-        titulo = titulo_tag.text.strip() if titulo_tag else 'Título não encontrado'
-
-        # Compositor
-        compositor_tag = soup.find('h2', class_='t3')
-        compositor = compositor_tag.text.strip() if compositor_tag else 'Compositor não encontrado'
-
-        # Cifra
-        cifra_tag = soup.select_one('.cifra_cnt')
-        cifra = cifra_tag.get_text().strip() if cifra_tag else 'Cifra não encontrada'
+        titulo, compositor, cifra = _extrair_titulo_compositor_cifra(soup)
 
         # Extrair URL do vídeo do YouTube
         video_url = None

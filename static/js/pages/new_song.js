@@ -1991,7 +1991,28 @@
             }
             
             // ===== FUNCIONALIDADE CIFRA CLUB =====
-            
+
+            // O Cifra Club duplica cada linha de acorde+letra quando o texto é
+            // copiado da página deles: uma vez normal, e de novo prefixada com
+            // um fragmento solto de atributo HTML (ex: '">') seguido de uma
+            // versão simplificada do acorde e a MESMA linha de letra repetida
+            // — achado ao vivo colando "Tantos Mares" (Pedro Valença). Não é
+            // nada que o nosso código gera (o paste sempre chega como texto
+            // puro, sem HTML pra gente processar errado) — é a própria página
+            // do Cifra Club que injeta isso no clipboard. Remove essas linhas
+            // fantasma e colapsa as duplicatas que sobram.
+            function limparColagemCifraClub(texto) {
+                const linhas = texto.split('\n');
+                const semFantasmas = linhas.filter(linha => !linha.trim().startsWith('">'));
+                const semDuplicatas = [];
+                for (const linha of semFantasmas) {
+                    const anterior = semDuplicatas[semDuplicatas.length - 1];
+                    if (linha.trim() !== '' && linha === anterior) continue;
+                    semDuplicatas.push(linha);
+                }
+                return semDuplicatas.join('\n');
+            }
+
             // Detecta links do Cifra Club
             function detectCifraClubLink(text) {
                 const cifraClubRegex = /https?:\/\/(www\.)?cifraclub\.com\.br\/[^\/\s]+\/[^\/\s]+\/?/g;
@@ -2221,8 +2242,9 @@
                 titleField.addEventListener('paste', function(e) {
                     const self = this;
                     setTimeout(async () => {
-                        const text = self.value;
-                        
+                        const text = limparColagemCifraClub(self.value);
+                        if (text !== self.value) self.value = text;
+
                         // Primeiro verifica se é um link do Cifra Club
                         const links = detectCifraClubLink(text);
                         
@@ -2252,8 +2274,9 @@
             document.addEventListener('paste', function(e) {
                 if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
                     setTimeout(async () => {
-                        const text = e.target.value;
-                        
+                        const text = limparColagemCifraClub(e.target.value);
+                        if (text !== e.target.value) e.target.value = text;
+
                         // Primeiro verifica se é um link do Cifra Club
                         const links = detectCifraClubLink(text);
                         
