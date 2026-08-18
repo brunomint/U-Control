@@ -241,21 +241,10 @@ def load_urls_route():
     urls = load_urls()
     return jsonify(urls)
 
-# BLOQUEIO TEMPORÁRIO — pedido do usuário em pleno culto (2026-08-16):
-# um slideshow ficou preso em algum dispositivo não localizado,
-# repetindo essa foto a cada 60s por cima de qualquer outra coisa (ex:
-# relógio). Isso só estanca o sintoma visível na tela; o slideshow
-# continua tentando mandar, só que o servidor ignora essa URL
-# específica. REMOVER assim que o usuário confirmar que já achou/parou
-# o slideshow de verdade — ele vai precisar dessa foto de novo depois.
-_TEMP_BLOCKED_IMAGE = '/static/imagens/dddf4b2f-3a3f-4b48-98b0-7b2daddbe18b.jpeg'
-
 # Evento WebSocket para transmitir a URL da imagem
 @socketio.on('show_image')
 def handle_show_image(data):
     image_url = data['image_url']
-    if image_url == _TEMP_BLOCKED_IMAGE:
-        return
     real_app = current_app._get_current_object()
 
     # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
@@ -521,9 +510,8 @@ def handle_show_image_zoom(data):
 # update_lyrics/update_bible/show_image (funções Python normais, o
 # decorator @socketio.on não impede chamar diretamente) em vez de
 # duplicar a lógica de emitir+persistir — assim qualquer correção
-# futura neles (ex: _TEMP_BLOCKED_IMAGE acima) também vale pro conteúdo
-# liberado, e os testes de handler existentes continuam passando sem
-# alteração nenhuma.
+# futura neles também vale pro conteúdo liberado, e os testes de
+# handler existentes continuam passando sem alteração nenhuma.
 _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
 
 
