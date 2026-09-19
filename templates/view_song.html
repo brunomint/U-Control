@@ -121,12 +121,34 @@
         .song-header {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 20px;
             padding: 25px;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             margin-bottom: 30px;
+        }
+
+        .print-btn {
+            margin-left: auto;
+            flex-shrink: 0;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .print-btn:hover {
+            background: rgba(74, 222, 128, 0.2);
         }
         
         .song-header-icon {
@@ -315,29 +337,121 @@
             }
         }
         
+        /* Impressão — pensado pra sair em preto no branco, sem gastar tinta
+           colorida à toa: esconde todo o "chrome" da página (menu, botão de
+           menu, controles de auto-scroll, botões flutuantes de scroll,
+           widget de transposição, player de vídeo flutuante, o próprio
+           botão Imprimir) e converte o tema escuro/verde-neon em texto
+           preto sobre fundo branco. A partitura (.sheet-display) já nasce
+           com fundo claro pra ser visível na tela, então não precisa de
+           ajuste — só perde a sombra/borda, que não fazem sentido no papel. */
         @media print {
+            @page {
+                margin: 1.5cm;
+            }
+
             a, a:visited {
                 display: none !important;
                 visibility: hidden;
             }
-        
-            #toggle-menu {
+
+            #toggle-menu,
+            .menu,
+            .menu a, .menu a:visited,
+            .controls,
+            .scroll-buttons,
+            .tom-widget,
+            .print-btn,
+            #yt-floating-player,
+            .footer {
                 display: none !important;
                 visibility: hidden;
             }
-        
-            .menu {
-                display: none !important;
-                visibility: hidden;
+
+            body {
+                background: #fff !important;
+                color: #000 !important;
+                display: block;
             }
-        
-            .menu a, .menu a:visited {
-                display: none !important;
-                visibility: hidden;
+
+            .content {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: auto !important;
+                min-width: 0 !important;
             }
-        
-            .controls {
-                visibility: hidden;
+
+            .song-header {
+                background: none !important;
+                box-shadow: none !important;
+                padding: 0 0 15px 0;
+                border-bottom: 2px solid #000;
+                border-radius: 0;
+                margin-bottom: 20px;
+            }
+
+            .song-header-icon {
+                display: none;
+            }
+
+            .song-header-title {
+                color: #000 !important;
+                text-shadow: none !important;
+            }
+
+            .song-header-author {
+                color: #333 !important;
+            }
+
+            .song-content-card {
+                background: none !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin-top: 0 !important;
+                min-width: 0 !important;
+            }
+
+            .section-card {
+                break-inside: avoid;
+            }
+
+            .section-card-header {
+                background: none !important;
+                border-left: 3px solid #000;
+                border-radius: 0;
+                box-shadow: none !important;
+                page-break-after: avoid;
+            }
+
+            .section-card-header h5,
+            h5, h3 {
+                color: #000 !important;
+                text-shadow: none !important;
+            }
+
+            pre,
+            .section-card-content pre,
+            .song-content-card pre {
+                color: #000 !important;
+                background: transparent !important;
+            }
+
+            .chord {
+                color: #000 !important;
+                text-shadow: none !important;
+                font-weight: 700;
+            }
+
+            .comment-line {
+                color: #555 !important;
+            }
+
+            .sheet-display {
+                box-shadow: none !important;
+                border-radius: 0;
+                padding: 0;
+                break-inside: avoid;
             }
         }
         
@@ -732,6 +846,9 @@
                 <h1 class="song-header-title">{{ song.title }}</h1>
                 <p class="song-header-author">{{ song.author }}</p>
             </div>
+            <button type="button" class="print-btn" onclick="window.print()" title="Imprimir cifra">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
         </div>
         
         <!-- Widget de transposição estilo Cifra Club — só ajusta a exibição
