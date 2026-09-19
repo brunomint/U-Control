@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>{{ song.title }}</title>
+<style>
+    /* Sem @media print — esta página inteira só existe pra virar PDF
+       (blueprints gera ela e manda pro WeasyPrint, nunca é servida pra
+       visualização normal), então o CSS "de tela" já É o CSS de
+       impressão. Mesma linguagem visual do @media print de
+       view_song.html (preto no branco, seção com borda esquerda), só
+       que aqui não precisa esconder nenhum chrome de UI — não tem
+       nenhum, é só o conteúdo. */
+    @page {
+        margin: 1.5cm;
+    }
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #000;
+        background: #fff;
+    }
+    h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+    }
+    .author {
+        font-size: 14px;
+        color: #333;
+        margin: 0 0 12px 0;
+    }
+    .divider {
+        border: none;
+        border-top: 2px solid #000;
+        margin: 0 0 20px 0;
+    }
+    .section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+    }
+    .section-title {
+        border-left: 3px solid #000;
+        padding: 4px 0 4px 10px;
+        margin: 0 0 10px 0;
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        break-after: avoid-page;
+        page-break-after: avoid;
+    }
+    pre {
+        font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+    }
+    .chord {
+        font-weight: 700;
+    }
+    .comment-line {
+        color: #555;
+        font-style: italic;
+    }
+    .sem-partitura {
+        color: #777;
+        font-style: italic;
+        font-size: 12px;
+        margin: 0 0 10px 0;
+    }
+</style>
+</head>
+<body>
+    <h1>{{ song.title }}</h1>
+    <p class="author">🎤 {{ song.author }}</p>
+    <hr class="divider">
+
+    {% for section in sections %}
+    <div class="section">
+        {% if section.title %}
+        <div class="section-title">{{ section.title }}</div>
+        {% endif %}
+        {% if section.sem_partitura %}
+        <p class="sem-partitura">(partitura disponível só na tela)</p>
+        {% endif %}
+        {% if section.html %}
+        <pre>{{ section.html | safe }}</pre>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>

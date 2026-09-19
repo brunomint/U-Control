@@ -4,6 +4,7 @@ from flask import (
     request,
     redirect,
     url_for,
+    Response,
 )
 from werkzeug.routing import BaseConverter
 from flask_login import current_user, login_required
@@ -323,7 +324,104 @@ def view_song(song_id):
                 'url': url
             })
 
-    return render_template('view_song.html', song=song, bible_items=bible_items, order_date=order_date)
+    # O botão Imprimir decide entre dois caminhos (ver imprimirCifra() em
+    # view_song.html): WeasyPrint (confiável, mas não roda JS — não
+    # desenha partitura VexFlow) pra música só com cifra/letra, ou
+    # window.print() do navegador (com reforço de quebra de página via
+    # JS) pra música que tem partitura integrada em alguma seção.
+    tem_partitura = any(
+        '🎼 PARTITURA_INTEGRADA' in (sec.get('title') or '') or
+        '🎼 PARTITURA_INTEGRADA' in '\n'.join(sec.get('text') or [])
+        for sec in song.get('sections', [])
+    )
+
+    return render_template('view_song.html', song=song, bible_items=bible_items, order_date=order_date, tem_partitura=tem_partitura)
+
+
+@app.route('/view/<int:song_id>/print')
+def view_song_print(song_id):
+    """Gera um PDF de impressão da letra/cifra via WeasyPrint — motor de
+    paginação dedicado (CSS Paged Media de verdade), bem mais confiável
+    que window.print() do navegador pra "não deixar uma seção quebrar
+    no meio da página" (achado ao vivo, 2026-09-19: break-inside: avoid
+    reforçado várias vezes ainda falhava em casos de borda no Chrome).
+
+    Só serve músicas SEM partitura VexFlow integrada — o WeasyPrint não
+    roda JavaScript, e é o JS que desenha a partitura (sheet_render.js).
+    O botão Imprimir em view_song.html decide isso e só manda pra cá
+    quando a música não tem nenhuma; music com partitura continua
+    usando window.print() (ver imprimirCifra() lá)."""
+    from chord_lines import render_cifra_html, split_bracket_subsections
+    from weasyprint import HTML as WeasyHTML
+    import re as _re
+
+    song = get_song(song_id)
+    if not song:
+        return "Música não encontrada!", 404
+
+    try:
+        transpose = int(request.args.get('transpose', 0))
+    except (TypeError, ValueError):
+        transpose = 0
+
+    PARTITURA_MARKER = '🎼 PARTITURA_INTEGRADA'
+    sections_out = []
+
+    for section in song.get('sections', []):
+        raw_title = (section.get('title') or '').strip()
+        clean_title = raw_title.replace('[', '').replace(']', '').strip()
+        section_text = '\n'.join(section.get('text') or [])
+        section_text = section_text.replace('\r\n', '\n').replace('\r', '\n')
+
+        if PARTITURA_MARKER in clean_title:
+            # Seção que É a partitura inteira, sem letra junto — não tem
+            # texto nenhum pra imprimir aqui.
+            sections_out.append({'title': clean_title.split('_')[0].strip() or None, 'sem_partitura': True, 'html': ''})
+            continue
+
+        if PARTITURA_MARKER in section_text:
+            # Seção mista (letra + partitura embutida no meio do texto)
+            # — imprime só os trechos de texto, com uma nota onde a
+            # partitura ficaria.
+            parts = section_text.split(PARTITURA_MARKER + '_')
+            html_chunks = []
+            for i, part in enumerate(parts):
+                if i == 0:
+                    if part.strip():
+                        html_chunks.append(render_cifra_html(part, transpose))
+                    continue
+                j = 0
+                while j < len(part) and part[j].isdigit():
+                    j += 1
+                remaining = part[j:].strip('\r\n')
+                html_chunks.append('<span class="sem-partitura">(partitura aqui — disponível só na tela)</span>')
+                if remaining.strip():
+                    html_chunks.append(render_cifra_html(remaining, transpose))
+            sections_out.append({'title': clean_title or None, 'sem_partitura': False, 'html': '\n\n'.join(html_chunks)})
+            continue
+
+        # Caminho normal — sem partitura em lugar nenhum desta seção.
+        # Ainda pode ter marcadores "[Sub-título]" dentro do texto.
+        subblocks = split_bracket_subsections(section_text)
+        if not subblocks:
+            sections_out.append({'title': clean_title or None, 'sem_partitura': False, 'html': ''})
+            continue
+        # Primeiro sub-bloco herda o título da seção (se não tiver
+        # marcador próprio); os demais viram seções próprias na
+        # impressão, cada um com seu marcador como título.
+        first = True
+        for block in subblocks:
+            title = block['heading'] or (clean_title if first else None)
+            sections_out.append({'title': title, 'sem_partitura': False, 'html': render_cifra_html(block['text'], transpose)})
+            first = False
+
+    html_str = render_template('view_song_print.html', song=song, sections=sections_out)
+    pdf_bytes = WeasyHTML(string=html_str).write_pdf()
+
+    safe_name = _re.sub(r'[^\w\- ]', '', song['title'])[:80].strip() or 'cifra'
+    return Response(pdf_bytes, mimetype='application/pdf', headers={
+        'Content-Disposition': f'inline; filename="{safe_name}.pdf"'
+    })
 
 
 @app.route('/')

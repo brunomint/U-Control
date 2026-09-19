@@ -26,6 +26,21 @@ Mako==1.4.1
 Flask-WTF==1.3.0
 WTForms==3.2.2
 
+# WeasyPrint: adicionado em 2026-09-19 pra gerar o PDF de impressão de
+# /view/<id> (blueprints/print_song.py) — window.print() do navegador não
+# respeita break-inside: avoid de forma confiável em todos os casos
+# (achado ao vivo: uma seção quebrava no meio mesmo com a regra aplicada
+# e reforçada). WeasyPrint tem um motor de paginação dedicado (CSS Paged
+# Media de verdade), não roda JavaScript — por isso só é usado pra
+# músicas sem partitura VexFlow integrada (que depende de JS pra
+# desenhar); música com partitura continua usando window.print().
+# Instala limpo tanto em x86_64 quanto no Raspberry Pi (aarch64) sem
+# dependência de sistema (Cairo/Pango) — versões recentes usam pydyf
+# (PDF puro-Python) por baixo. Confirmado nos dois antes de adicionar
+# aqui. Próximo deploy no Pi precisa de `pip install -r requirements.txt`
+# antes de reiniciar o serviço.
+weasyprint==70.0
+
 # yt-dlp: usado por blueprints/cifras.py (download_audio, via
 # `python3 -m yt_dlp`) — faltava neste arquivo mesmo já sendo usado em
 # produção; descoberto testando a imagem Docker (2026-08-14), onde o

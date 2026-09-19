@@ -368,13 +368,25 @@
                 visibility: hidden;
             }
 
+            /* overflow: auto no body (linha ~20, pra rolagem normal na
+               tela) é uma pegadinha conhecida de impressão no Chrome —
+               overflow diferente de "visible" no body/html faz o motor
+               de impressão tratar o conteúdo como "rolável" em vez de
+               paginar de verdade, e IGNORA break-before/break-inside em
+               qualquer descendente, mesmo forçado via JS (achado ao
+               vivo, 2026-09-19: um bloco com break-before: page direto
+               no inline style ainda assim não pulava de página —
+               confirmado com um teste isolado, sem essa regra, que
+               break-before funciona normalmente). */
             body {
                 background: #fff !important;
                 color: #000 !important;
-                display: block;
+                display: block !important;
+                overflow: visible !important;
             }
 
             .content {
+                display: block !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 width: auto !important;
@@ -868,7 +880,7 @@
                 <h1 class="song-header-title">{{ song.title }}</h1>
                 <p class="song-header-author">{{ song.author }}</p>
             </div>
-            <button type="button" class="print-btn" onclick="window.print()" title="Imprimir cifra">
+            <button type="button" class="print-btn" onclick="imprimirCifra()" title="Imprimir cifra">
                 <i class="fas fa-print"></i> Imprimir
             </button>
         </div>
@@ -1255,6 +1267,7 @@ window.onload = () => {
   // servidor). O tom escolhido persiste em localStorage por música, pra
   // não perder ao recarregar a página.
   const SONG_ID = {{ song.id }};
+  const TEM_PARTITURA = {{ 'true' if tem_partitura else 'false' }};
   const TRANSPOSE_STORAGE_KEY = 'ucontrol_transpose_' + SONG_ID;
   let transposeOffset = parseInt(localStorage.getItem(TRANSPOSE_STORAGE_KEY), 10) || 0;
   // Aplica o tom salvo na partitura assim que a página carrega. Não dá
@@ -1374,6 +1387,67 @@ window.onload = () => {
     const isHidden = getComputedStyle(panel).display === 'none';
     panel.style.display = isHidden ? 'block' : 'none';
   };
+
+  // Decide entre dois caminhos de impressão (ver comentário em
+  // /view/<id>/print, main.py): WeasyPrint — motor de paginação
+  // dedicado, bem mais confiável, mas não roda JavaScript, então não
+  // desenha partitura VexFlow — pra música só com cifra/letra; o
+  // window.print() do navegador, com reforço de quebra de página
+  // calculada em JS (ver ajustarQuebrasDePagina abaixo), pra música que
+  // tem partitura integrada em alguma seção.
+  window.imprimirCifra = function() {
+    if (TEM_PARTITURA) {
+      ajustarQuebrasDePagina();
+      window.print();
+    } else {
+      window.open(`/view/${SONG_ID}/print?transpose=${transposeOffset}`, '_blank');
+    }
+  };
+
+  // Reforço de quebra de página só pro caminho do Chrome (música com
+  // partitura, que o WeasyPrint não consegue desenhar) — break-inside:
+  // avoid sozinho não é confiável no motor de impressão do navegador
+  // (achado ao vivo, 2026-09-19: uma seção quebrava no meio mesmo com a
+  // regra reforçada várias vezes, em papel A4). Mede a altura real de
+  // cada .section-card/.sheet-display já renderizado e força quebra
+  // explícita ANTES de qualquer bloco que não caiba inteiro no que
+  // resta da página — mais determinístico que confiar no "avoid" do
+  // navegador. Limitação própria: assume papel A4 (padrão no Brasil)
+  // com a margem de 1.5cm do @page — se a pessoa imprimir com outro
+  // papel/margem, a conta erra de novo, mas ainda fica bem melhor que
+  // sem isto (que era o comportamento anterior).
+  function ajustarQuebrasDePagina() {
+    const A4_ALTURA_MM = 297;
+    const MARGEM_MM = 15; // @page margin: 1.5cm, os dois lados
+    const PX_POR_MM = 96 / 25.4; // 96dpi, conversão padrão do CSS
+    const alturaUtilPx = (A4_ALTURA_MM - MARGEM_MM * 2) * PX_POR_MM;
+
+    const blocos = document.querySelectorAll('.section-card, .sheet-display');
+    blocos.forEach(el => {
+      el.style.breakBefore = '';
+      el.style.pageBreakBefore = '';
+    });
+
+    const header = document.querySelector('.song-header');
+    let posicaoNaPagina = header ? header.getBoundingClientRect().height + 30 : 0;
+
+    blocos.forEach(el => {
+      const altura = el.getBoundingClientRect().height;
+      if (altura > alturaUtilPx) {
+        // Maior que a página inteira — não tem quebra que resolva,
+        // deixa fluir naturalmente e reinicia a contagem depois dele.
+        posicaoNaPagina = altura;
+        return;
+      }
+      if (posicaoNaPagina + altura > alturaUtilPx) {
+        el.style.breakBefore = 'page';
+        el.style.pageBreakBefore = 'always';
+        posicaoNaPagina = altura;
+      } else {
+        posicaoNaPagina += altura;
+      }
+    });
+  }
 
   document.addEventListener('click', function(e) {
     const widget = document.querySelector('.tom-widget');
