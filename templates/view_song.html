@@ -412,8 +412,29 @@
                 min-width: 0 !important;
             }
 
+            /* break-inside: avoid sozinho no .section-card não é confiável
+               (achado ao vivo, testando com papel A4 — padrão no Brasil,
+               diferente do Letter que eu tinha testado antes: uma seção
+               logo depois de uma partitura grande, quase no fim da página,
+               quebrava mesmo assim — o motor de impressão do Chrome às
+               vezes ignora a regra quando o bloco anterior tem altura
+               "estranha", como um SVG de partitura). Reforça repetindo a
+               regra (moderna + legada) tanto no card quanto no conteúdo e
+               no <pre> de dentro — nem sempre o navegador respeita a regra
+               só no container mais externo. */
             .section-card {
                 break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .section-card-content {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .section-card-content pre {
+                break-inside: avoid;
+                page-break-inside: avoid;
             }
 
             .section-card-header {
@@ -421,6 +442,7 @@
                 border-left: 3px solid #000;
                 border-radius: 0;
                 box-shadow: none !important;
+                break-after: avoid-page;
                 page-break-after: avoid;
             }
 
