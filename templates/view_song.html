@@ -1416,11 +1416,41 @@ window.onload = () => {
   // com a margem de 1.5cm do @page — se a pessoa imprimir com outro
   // papel/margem, a conta erra de novo, mas ainda fica bem melhor que
   // sem isto (que era o comportamento anterior).
+  // Ativa temporariamente as regras de @media print como se fossem
+  // regras de tela (adicionando 'screen' à lista de mídias de cada
+  // @media que menciona 'print'), pra medir a altura REAL que cada
+  // bloco vai ter impresso — várias regras só mudam padding/margin em
+  // impressão (.song-content-card perde padding:25px + margin-top:20px;
+  // .sheet-display perde padding:20px de cada lado), então medir sob o
+  // CSS de tela normal (que ainda tem esse espaçamento) inflava a altura
+  // calculada e ora deixava de forçar quebra onde era preciso, ora
+  // forçava onde não era (achado ao vivo, 2026-09-19: o cálculo dizia
+  // que a seção "INTRO" cabia junto do título, mas a impressão real do
+  // Chrome, com o padding/margin de tela ainda de pé, não cabia).
+  // Retorna uma função pra desfazer.
+  function ativarRegrasDeImpressaoTemporariamente() {
+    const alteradas = [];
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try { rules = sheet.cssRules; } catch (e) { continue; }
+      if (!rules) continue;
+      for (const rule of rules) {
+        if (rule instanceof CSSMediaRule && rule.media.mediaText.includes('print')) {
+          rule.media.appendMedium('screen');
+          alteradas.push(rule);
+        }
+      }
+    }
+    return () => alteradas.forEach(rule => rule.media.deleteMedium('screen'));
+  }
+
   function ajustarQuebrasDePagina() {
     const A4_ALTURA_MM = 297;
     const MARGEM_MM = 15; // @page margin: 1.5cm, os dois lados
     const PX_POR_MM = 96 / 25.4; // 96dpi, conversão padrão do CSS
     const alturaUtilPx = (A4_ALTURA_MM - MARGEM_MM * 2) * PX_POR_MM;
+
+    const desativarRegrasDeImpressao = ativarRegrasDeImpressaoTemporariamente();
 
     // Quando a marcação de partitura fica no MEIO do texto de uma seção
     // com título (ex.: seção "INTRO" cujo corpo começa com
@@ -1444,24 +1474,41 @@ window.onload = () => {
     });
 
     const header = document.querySelector('.song-header');
-    let posicaoNaPagina = header ? header.getBoundingClientRect().height + 30 : 0;
+    // Usa a posição REAL (top/bottom) de cada bloco, em vez de somar
+    // "altura + um espaçamento fixo chutado" — break-before/page-break
+    // não reflow o layout de TELA (só tem efeito na paginação de
+    // verdade, na hora de imprimir), então o gap entre um bloco e o
+    // próximo aqui é sempre o gap real renderizado, com toda margem
+    // (inclusive colapsada) já calculada pelo navegador — nenhuma conta
+    // manual de margin/padding por seletor, que é fácil de esquecer um
+    // caso e ficar sistematicamente errada (achado ao vivo, 2026-09-19:
+    // o "+30" fixo aqui não batia com o gap real entre o cabeçalho e a
+    // seção "INTRO", subestimando o quanto sobrava na primeira página).
+    let referenciaAnterior = header ? header.getBoundingClientRect().bottom : 0;
+    let posicaoNaPagina = 0;
 
     blocos.forEach(el => {
-      const altura = el.getBoundingClientRect().height;
+      const rect = el.getBoundingClientRect();
+      const gap = rect.top - referenciaAnterior;
+      const altura = rect.height;
+      referenciaAnterior = rect.bottom;
+
       if (altura > alturaUtilPx) {
         // Maior que a página inteira — não tem quebra que resolva,
         // deixa fluir naturalmente e reinicia a contagem depois dele.
         posicaoNaPagina = altura;
         return;
       }
-      if (posicaoNaPagina + altura > alturaUtilPx) {
+      if (posicaoNaPagina + gap + altura > alturaUtilPx) {
         el.style.breakBefore = 'page';
         el.style.pageBreakBefore = 'always';
         posicaoNaPagina = altura;
       } else {
-        posicaoNaPagina += altura;
+        posicaoNaPagina += gap + altura;
       }
     });
+
+    desativarRegrasDeImpressao();
   }
 
   document.addEventListener('click', function(e) {
