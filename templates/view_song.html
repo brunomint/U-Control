@@ -1422,7 +1422,22 @@ window.onload = () => {
     const PX_POR_MM = 96 / 25.4; // 96dpi, conversão padrão do CSS
     const alturaUtilPx = (A4_ALTURA_MM - MARGEM_MM * 2) * PX_POR_MM;
 
-    const blocos = document.querySelectorAll('.section-card, .sheet-display');
+    // Quando a marcação de partitura fica no MEIO do texto de uma seção
+    // com título (ex.: seção "INTRO" cujo corpo começa com
+    // "🎼 PARTITURA_INTEGRADA_..."), o .sheet-display nasce ANINHADO
+    // dentro do .section-card, não como irmão solto. Nesse caso ele NÃO
+    // entra na lista: sua altura já está incluída na altura do
+    // .section-card pai (que também tem break-inside: avoid cobrindo
+    // ele inteiro), então contá-lo de novo aqui soma a altura em
+    // dobro e força um break-before num descendente cujo ancestral diz
+    // "não quebre dentro de mim" — essa contradição é o que fazia o
+    // Chrome empurrar a seção inteira por duas páginas quase em branco
+    // antes de finalmente encaixar ela (achado ao vivo, 2026-09-19,
+    // música "Tantos Mares/Todo Azul do Mar"). Só entra aqui o
+    // .sheet-display "solto" (quando a marcação é o TÍTULO da seção,
+    // caso em que ele não fica dentro de nenhum .section-card).
+    const blocos = Array.from(document.querySelectorAll('.section-card, .sheet-display'))
+      .filter(el => !(el.classList.contains('sheet-display') && el.closest('.section-card')));
     blocos.forEach(el => {
       el.style.breakBefore = '';
       el.style.pageBreakBefore = '';
