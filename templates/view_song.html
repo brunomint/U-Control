@@ -424,27 +424,23 @@
                 min-width: 0 !important;
             }
 
-            /* break-inside: avoid sozinho no .section-card não é confiável
-               (achado ao vivo, testando com papel A4 — padrão no Brasil,
-               diferente do Letter que eu tinha testado antes: uma seção
-               logo depois de uma partitura grande, quase no fim da página,
-               quebrava mesmo assim — o motor de impressão do Chrome às
-               vezes ignora a regra quando o bloco anterior tem altura
-               "estranha", como um SVG de partitura). Reforça repetindo a
-               regra (moderna + legada) tanto no card quanto no conteúdo e
-               no <pre> de dentro — nem sempre o navegador respeita a regra
-               só no container mais externo. */
-            .section-card {
+            /* Seção de texto puro (sem partitura) pode cortar entre
+               páginas — só não pode cortar DENTRO de um par cifra+letra
+               (pedido explícito do usuário, com exemplo real, 2026-09-20:
+               prefere aproveitar o espaço da página a manter a seção
+               inteira igual ao WeasyPrint faz). Cada par vira um <div>
+               (ver prepararQuebraDePagina() no JS) com break-inside:avoid
+               próprio — a seção/card em si NÃO tem mais avoid, então o
+               Chrome corta livremente entre um par e o próximo. Seção
+               com partitura VexFlow integrada continua indivisível por
+               inteiro via :has() logo abaixo, porque não dá pra cortar
+               uma partitura no meio nem separá-la do seu cabeçalho. */
+            .section-card-content pre > div {
                 break-inside: avoid;
                 page-break-inside: avoid;
             }
 
-            .section-card-content {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-
-            .section-card-content pre {
+            .section-card:has(.sheet-display) {
                 break-inside: avoid;
                 page-break-inside: avoid;
             }
@@ -1398,11 +1394,60 @@ window.onload = () => {
   window.imprimirCifra = function() {
     if (TEM_PARTITURA) {
       ajustarQuebrasDePagina();
+      const desfazerPares = prepararParesDeLinha();
       window.print();
+      desfazerPares();
     } else {
       window.open(`/view/${SONG_ID}/print?transpose=${transposeOffset}`, '_blank');
     }
   };
+
+  // Reestrutura cada <pre> de seção (letra+cifra intercalada) em
+  // pequenos blocos — cada um com NO MÁXIMO uma linha de cifra + a
+  // linha de letra que vem logo em seguida — e marca cada bloco com
+  // break-inside:avoid (ver @media print, ".section-card-content pre >
+  // div"). Isso deixa o Chrome cortar a PÁGINA entre um par cifra/letra
+  // e o próximo, sem nunca separar uma cifra da letra dela (pedido
+  // explícito do usuário, com exemplo real, 2026-09-20) — troca a
+  // estratégia anterior, que tratava a seção de texto puro inteira como
+  // bloco indivisível e por isso desperdiçava bastante espaço quando
+  // ela não cabia por pouco na página. Seção com partitura VexFlow
+  // integrada continua indivisível por inteiro (ver
+  // ".section-card:has(.sheet-display)" no @media print).
+  // Retorna uma função pra desfazer — a página volta ao HTML original
+  // logo depois de imprimir, senão a próxima transposição ficaria em
+  // cima de uma estrutura já "picotada" em vez do texto plano.
+  function prepararParesDeLinha() {
+    const restauracoes = [];
+    document.querySelectorAll('.section-card-content > pre').forEach(pre => {
+      const htmlOriginal = pre.innerHTML;
+      const linhas = htmlOriginal.split('\n');
+      const grupos = [];
+      let i = 0;
+      while (i < linhas.length) {
+        const linha = linhas[i];
+        const textoLinha = linha.replace(/<[^>]*>/g, '');
+        const proxima = linhas[i + 1];
+        const textoProxima = proxima !== undefined ? proxima.replace(/<[^>]*>/g, '') : '';
+        const formaPar = window.ChordLines.isChordLine(textoLinha)
+          && proxima !== undefined
+          && textoProxima.trim() !== ''
+          && !window.ChordLines.isChordLine(textoProxima);
+        if (formaPar) {
+          grupos.push([linha, proxima]);
+          i += 2;
+        } else {
+          grupos.push([linha]);
+          i += 1;
+        }
+      }
+      pre.innerHTML = grupos
+        .map(g => `<div style="break-inside:avoid;page-break-inside:avoid;">${g.join('\n')}</div>`)
+        .join('\n');
+      restauracoes.push(() => { pre.innerHTML = htmlOriginal; });
+    });
+    return () => restauracoes.forEach(fn => fn());
+  }
 
   // Reforço de quebra de página só pro caminho do Chrome (música com
   // partitura, que o WeasyPrint não consegue desenhar) — break-inside:
@@ -1492,6 +1537,18 @@ window.onload = () => {
       const gap = rect.top - referenciaAnterior;
       const altura = rect.height;
       referenciaAnterior = rect.bottom;
+
+      // Seção de texto puro (sem partitura aninhada) agora pode cortar
+      // livremente entre pares cifra/letra (ver prepararParesDeLinha) —
+      // só os blocos que NÃO podem ser cortados no meio (partitura, ou
+      // seção com partitura aninhada) precisam de quebra forçada aqui.
+      // Ainda soma a altura dela na conta, só pra manter a posição em
+      // dia pro próximo bloco atômico da lista.
+      const ehAtomico = el.classList.contains('sheet-display') || !!el.querySelector('.sheet-display');
+      if (!ehAtomico) {
+        posicaoNaPagina += gap + altura;
+        return;
+      }
 
       if (altura > alturaUtilPx) {
         // Maior que a página inteira — não tem quebra que resolva,
