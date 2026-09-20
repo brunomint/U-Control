@@ -351,7 +351,7 @@ def view_song_print(song_id):
     O botão Imprimir em view_song.html decide isso e só manda pra cá
     quando a música não tem nenhuma; music com partitura continua
     usando window.print() (ver imprimirCifra() lá)."""
-    from chord_lines import render_cifra_html, split_bracket_subsections
+    from chord_lines import render_cifra_html_pares, split_bracket_subsections
     from weasyprint import HTML as WeasyHTML
     import re as _re
 
@@ -388,15 +388,15 @@ def view_song_print(song_id):
             for i, part in enumerate(parts):
                 if i == 0:
                     if part.strip():
-                        html_chunks.append(render_cifra_html(part, transpose))
+                        html_chunks.append(render_cifra_html_pares(part, transpose))
                     continue
                 j = 0
                 while j < len(part) and part[j].isdigit():
                     j += 1
                 remaining = part[j:].strip('\r\n')
-                html_chunks.append('<span class="sem-partitura">(partitura aqui — disponível só na tela)</span>')
+                html_chunks.append('<div class="par"><span class="sem-partitura">(partitura aqui — disponível só na tela)</span></div>')
                 if remaining.strip():
-                    html_chunks.append(render_cifra_html(remaining, transpose))
+                    html_chunks.append(render_cifra_html_pares(remaining, transpose))
             sections_out.append({'title': clean_title or None, 'sem_partitura': False, 'html': '\n\n'.join(html_chunks)})
             continue
 
@@ -412,7 +412,7 @@ def view_song_print(song_id):
         first = True
         for block in subblocks:
             title = block['heading'] or (clean_title if first else None)
-            sections_out.append({'title': title, 'sem_partitura': False, 'html': render_cifra_html(block['text'], transpose)})
+            sections_out.append({'title': title, 'sem_partitura': False, 'html': render_cifra_html_pares(block['text'], transpose)})
             first = False
 
     html_str = render_template('view_song_print.html', song=song, sections=sections_out)

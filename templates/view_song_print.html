@@ -36,9 +36,20 @@
         margin: 0 0 20px 0;
     }
     .section {
+        margin-bottom: 20px;
+    }
+    /* Cada par cifra+letra (ou linha solta, quando não forma par) vira
+       seu próprio bloco indivisível — o WeasyPrint pode cortar a
+       página entre um par e o próximo, mas nunca no meio de um par
+       (ver render_cifra_html_pares() em chord_lines.py; mesma lógica
+       de prepararParesDeLinha() em view_song.html, caminho do Chrome —
+       pedido explícito do usuário, 2026-09-20). A seção em si não tem
+       mais break-inside:avoid — sem isso o Chrome tratava a seção
+       inteira como bloco só, desperdiçando espaço quando ela não
+       cabia por pouco. */
+    .par {
         break-inside: avoid;
         page-break-inside: avoid;
-        margin-bottom: 20px;
     }
     .section-title {
         border-left: 3px solid #000;
@@ -76,7 +87,7 @@
 </head>
 <body>
     <h1>{{ song.title }}</h1>
-    <p class="author">🎤 {{ song.author }}</p>
+    <p class="author">♪ {{ song.author }}</p>
     <hr class="divider">
 
     {% for section in sections %}

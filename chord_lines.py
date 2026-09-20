@@ -155,21 +155,17 @@ def split_bracket_subsections(text):
     return blocks
 
 
-def render_cifra_html(content, semitones=0):
-    """Pega o texto puro de uma seção (letra+cifra intercalada) e
-    devolve HTML pronto pra ir dentro de um <pre> — mesma lógica de
-    renderChords() em view_song.html: transpõe se necessário, realça
-    linha de cifra inteira, linha de comentário ("//"), e acorde isolado
-    entre barras de compasso fora de linha de cifra."""
-    content = transpose_block_content(content, semitones)
-    lines = content.split('\n')
+def _process_lines(lines):
+    """Recebe linhas JÁ transpostas e devolve o HTML de cada uma
+    (comentário, cifra inteira realçada, ou texto normal com eventual
+    acorde isolado entre barras de compasso) — um item da lista por
+    linha de entrada, mesma ordem."""
     processed = []
     for line in lines:
-        plain = line
-        if plain.strip().startswith('//'):
+        if line.strip().startswith('//'):
             processed.append(f'<span class="comment-line">{html.escape(line)}</span>')
             continue
-        if is_chord_line(plain):
+        if is_chord_line(line):
             processed.append(highlight_chord_tokens_html(line))
             continue
         escaped = html.escape(line)
@@ -178,4 +174,47 @@ def render_cifra_html(content, semitones=0):
             escaped,
         )
         processed.append(escaped)
-    return '\n'.join(processed)
+    return processed
+
+
+def render_cifra_html(content, semitones=0):
+    """Pega o texto puro de uma seção (letra+cifra intercalada) e
+    devolve HTML pronto pra ir dentro de um <pre> — mesma lógica de
+    renderChords() em view_song.html: transpõe se necessário, realça
+    linha de cifra inteira, linha de comentário ("//"), e acorde isolado
+    entre barras de compasso fora de linha de cifra."""
+    lines = transpose_block_content(content, semitones).split('\n')
+    return '\n'.join(_process_lines(lines))
+
+
+def render_cifra_html_pares(content, semitones=0):
+    """Mesma renderização de render_cifra_html(), mas agrupada em pares
+    cifra+letra — cada par (uma linha de cifra inteira + a linha de
+    letra que vem logo em seguida) ou linha solta (quando não forma
+    par) vira um <div class="par"> com break-inside:avoid próprio (ver
+    .par no CSS de view_song_print.html). Permite ao WeasyPrint cortar
+    a PÁGINA entre um par e o próximo sem nunca separar uma cifra da
+    letra dela — mesma lógica de prepararParesDeLinha() em
+    view_song.html (caminho do Chrome), espelhada aqui pro caminho do
+    WeasyPrint (pedido explícito do usuário, com exemplo real,
+    2026-09-20: antes a seção inteira era um bloco indivisível e
+    desperdiçava espaço quando não cabia inteira na página)."""
+    lines = transpose_block_content(content, semitones).split('\n')
+    processed = _process_lines(lines)
+    grupos = []
+    i = 0
+    while i < len(lines):
+        proxima = lines[i + 1] if i + 1 < len(lines) else None
+        forma_par = (
+            is_chord_line(lines[i])
+            and proxima is not None
+            and proxima.strip() != ''
+            and not is_chord_line(proxima)
+        )
+        if forma_par:
+            grupos.append(processed[i] + '\n' + processed[i + 1])
+            i += 2
+        else:
+            grupos.append(processed[i])
+            i += 1
+    return '\n'.join(f'<div class="par">{g}</div>' for g in grupos)
