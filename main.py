@@ -5,6 +5,7 @@ from flask import (
     redirect,
     url_for,
     Response,
+    jsonify,
 )
 from werkzeug.routing import BaseConverter
 from flask_login import current_user, login_required
@@ -264,6 +265,43 @@ def view_order_by_date(date):
                 item['bible_url'] = generate_bible_url(item.get('reference', ''))
     
     return render_template('view_order.html', date=date, order=order, not_found=False)
+
+@app.route('/api/songs/search')
+def api_songs_search():
+    """Busca pública de músicas por título/autor/letra, usada pelo widget
+    de busca em /view/<id> — mesmo critério de blueprints/songs.py:search()
+    (que a área de montagem de ordem de culto usa), mas mais leve pro uso
+    público: só carrega song.sections (não sheet_data, inútil aqui) e
+    devolve só id/title/author (não a música inteira) — a página só monta
+    uma lista de links pra /view/<id>, não precisa do resto.
+
+    Busca em Python (não LIKE direto na coluna JSON de SongSection.text)
+    de propósito: o JSON é serializado com ensure_ascii=True por padrão,
+    então "música" vira "m\\u00fasica" no texto salvo — um LIKE '%música%'
+    não bateria com acento nenhum. Carregar e comparar em Python evita
+    esse problema."""
+    from sqlalchemy.orm import selectinload
+    from models_songs import Song
+
+    query = (request.args.get('q') or '').strip().lower()
+    if not query:
+        return jsonify([])
+
+    songs = Song.query.options(selectinload(Song.sections)).order_by(Song.title.asc()).all()
+    results = []
+    for song in songs:
+        if query in song.title.lower() or query in song.author.lower():
+            results.append({'id': song.id, 'title': song.title, 'author': song.author})
+            continue
+        for section in song.sections:
+            texto = '\n'.join(section.text or [])
+            if query in texto.lower():
+                results.append({'id': song.id, 'title': song.title, 'author': song.author})
+                break
+        if len(results) >= 30:
+            break
+
+    return jsonify(results)
 
 @app.route('/view/<int:song_id>')
 def view_song(song_id):

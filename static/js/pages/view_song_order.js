@@ -146,3 +146,74 @@ document.addEventListener('click', function(event) {
         menu.classList.remove('visible');
     }
 });
+
+// Busca de música na página de boas-vindas — mesma API pública e o
+// mesmo botão+popover de view_song.html (main.py:/api/songs/search),
+// sem login, busca por título/autor/trecho da letra. Pedido explícito
+// do usuário, 2026-09-22.
+window.toggleSearchSong = function() {
+    const popover = document.getElementById('searchSongPopover');
+    if (!popover) return;
+    const abrindo = getComputedStyle(popover).display === 'none';
+    popover.style.display = abrindo ? 'block' : 'none';
+    if (abrindo) {
+        document.getElementById('searchSongInput').focus();
+    }
+};
+
+let buscaSongTimeout = null;
+const searchSongInput = document.getElementById('searchSongInput');
+if (searchSongInput) {
+    searchSongInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        clearTimeout(buscaSongTimeout);
+        const resultsEl = document.getElementById('searchSongResults');
+        if (!query) {
+            resultsEl.innerHTML = '';
+            return;
+        }
+        buscaSongTimeout = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/api/songs/search?q=${encodeURIComponent(query)}`);
+                const songs = await resp.json();
+                resultsEl.innerHTML = '';
+                if (songs.length === 0) {
+                    const vazio = document.createElement('div');
+                    vazio.className = 'search-song-item';
+                    vazio.textContent = 'Nenhuma música encontrada';
+                    resultsEl.appendChild(vazio);
+                    return;
+                }
+                songs.forEach(song => {
+                    const item = document.createElement('div');
+                    item.className = 'search-song-item';
+                    // textContent + span separado (não innerHTML com o
+                    // título interpolado) — vem do banco, pode ter sido
+                    // digitado por qualquer admin, e essa busca é
+                    // pública, sem login.
+                    item.appendChild(document.createTextNode(song.title + ' '));
+                    const autorSpan = document.createElement('span');
+                    autorSpan.className = 'autor';
+                    autorSpan.textContent = '— ' + song.author;
+                    item.appendChild(autorSpan);
+                    item.onclick = () => {
+                        window.location.href = `/view/${song.id}`;
+                    };
+                    resultsEl.appendChild(item);
+                });
+            } catch (err) {
+                console.error('Erro ao buscar músicas:', err);
+            }
+        }, 300);
+    });
+
+    document.addEventListener('click', function(e) {
+        const widget = document.querySelector('.search-song-widget');
+        const popover = document.getElementById('searchSongPopover');
+        if (!widget || !popover) return;
+        if (getComputedStyle(popover).display === 'none') return;
+        if (!widget.contains(e.target)) {
+            popover.style.display = 'none';
+        }
+    });
+}

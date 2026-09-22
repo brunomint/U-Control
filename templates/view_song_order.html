@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/view_song_order.css') }}">
 {% endblock %}
 
@@ -28,6 +29,16 @@
             <h1>Bem-vindo ao <strong>U_Control</strong></h1>
             <p>O programa de mídia mais inovador da galáxia. E talvez do universo.<br></p>
             <p>Para exibir cifra, basta clicar no <strong>"Menu"</strong> e clicar na música que deseja exibir. </p>
+
+            <div class="search-song-widget">
+                <button type="button" class="search-song-btn" onclick="toggleSearchSong()" title="Buscar música">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                <div class="search-song-popover" id="searchSongPopover">
+                    <input type="text" id="searchSongInput" placeholder="Título, autor ou trecho da letra...">
+                    <div class="search-song-results" id="searchSongResults"></div>
+                </div>
+            </div>
         </div>
 
     </div>

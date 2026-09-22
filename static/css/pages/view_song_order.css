@@ -286,6 +286,106 @@ a:hover {
     color: #4ade80;
 }
 
+/* Busca de música na página de boas-vindas — mesma API pública
+   (/api/songs/search) E o mesmo padrão visual/interação do widget em
+   view_song.html (botão compacto + popover, mesmos nomes de classe de
+   propósito, pra ficar visualmente idêntico entre as duas páginas, não
+   só com cores parecidas — pedido explícito do usuário, 2026-09-22,
+   depois de uma primeira versão em caixa de texto sempre visível que
+   não bateu com o resto do app). */
+.search-song-widget {
+    position: relative;
+    display: inline-block;
+    margin-top: 15px;
+}
+
+.search-song-btn {
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.search-song-btn:hover {
+    background: rgba(74, 222, 128, 0.2);
+}
+
+.search-song-popover {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+    box-sizing: border-box;
+    text-align: left;
+    background: #16213e;
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    padding: 10px;
+}
+
+.search-song-popover input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    border-radius: 8px;
+    font-size: 14px;
+    color: #e2e8f0;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.search-song-popover input[type="text"]:focus {
+    outline: none;
+    border-color: #60a5fa;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.search-song-results {
+    margin-top: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 8px;
+}
+
+.search-song-results:not(:empty) {
+    border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.search-song-item {
+    padding: 9px 12px;
+    font-size: 13px;
+    color: #cbd5e1;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+}
+
+.search-song-item:last-child {
+    border-bottom: none;
+}
+
+.search-song-item:hover {
+    background: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.search-song-item .autor {
+    color: #64748b;
+    font-size: 12px;
+}
+
 .footer {
     position: fixed;
     font-size: 12px;

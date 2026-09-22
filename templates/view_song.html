@@ -130,8 +130,123 @@
             margin-bottom: 30px;
         }
 
-        .print-btn {
+        /* Agrupa Buscar+Imprimir num único item flex — sem isso, cada
+           botão decidia sozinho se cabia na linha do título (título
+           comprido, em 2 linhas, sobra pouco espaço) e um wrap
+           deixava "Buscar" grudado no título e "Imprimir" sozinho
+           numa linha própria, alinhado à esquerda (achado ao vivo,
+           2026-09-22, com screenshot real). Como UM bloco só, os dois
+           botões quebram juntos pra a linha de baixo quando não cabem,
+           sempre lado a lado. */
+        .song-header-actions {
+            position: relative;
             margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .search-song-widget {
+            flex-shrink: 0;
+        }
+
+        .search-song-btn {
+            flex-shrink: 0;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .search-song-btn:hover {
+            background: rgba(74, 222, 128, 0.2);
+        }
+
+        .search-song-popover {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 10000;
+            width: 320px;
+            /* calc já conta a borda/padding do próprio popover (box-sizing:
+               border-box logo abaixo) — sem isso, a largura real renderizada
+               ficava maior que o "width", estourando a tela em celular
+               (achado ao vivo, 2026-09-22: popover ancorado no botão
+               "Buscar", que não fica na borda direita de verdade — o botão
+               "Imprimir" vem depois dele — sobrava pouco espaço à
+               esquerda). Ancorado agora em .song-header-actions (grupo
+               Buscar+Imprimir inteiro), que aí sim termina na borda
+               direita de verdade. */
+            max-width: calc(100vw - 40px);
+            box-sizing: border-box;
+            background: #16213e;
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+        }
+
+        .search-song-popover input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #e2e8f0;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .search-song-popover input[type="text"]:focus {
+            outline: none;
+            border-color: #60a5fa;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-song-results {
+            margin-top: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+
+        .search-song-results:not(:empty) {
+            border: 1px solid rgba(96, 165, 250, 0.25);
+        }
+
+        .search-song-item {
+            padding: 9px 12px;
+            font-size: 13px;
+            color: #cbd5e1;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+        }
+
+        .search-song-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-song-item:hover {
+            background: rgba(96, 165, 250, 0.15);
+            color: #93c5fd;
+        }
+
+        .search-song-item .autor {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .print-btn {
             flex-shrink: 0;
             background: rgba(74, 222, 128, 0.1);
             border: 1px solid rgba(74, 222, 128, 0.3);
@@ -362,6 +477,7 @@
             .scroll-buttons,
             .tom-widget,
             .print-btn,
+            .search-song-widget,
             #yt-floating-player,
             .footer {
                 display: none !important;
@@ -731,10 +847,17 @@
            janelinha flutuante com desfazer/±meio-tom/grade de notas.
            Cores seguem o tema escuro/verde já usado nesta página (mesmo
            verde do .chord) em vez do roxo do editor. */
+        .song-toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
         .tom-widget {
             position: relative;
             display: inline-block;
-            margin-bottom: 15px;
         }
 
         .tom-trigger {
@@ -876,37 +999,57 @@
                 <h1 class="song-header-title">{{ song.title }}</h1>
                 <p class="song-header-author">{{ song.author }}</p>
             </div>
-            <button type="button" class="print-btn" onclick="imprimirCifra()" title="Imprimir cifra">
-                <i class="fas fa-print"></i> Imprimir
-            </button>
         </div>
-        
-        <!-- Widget de transposição estilo Cifra Club — só ajusta a exibição
-             no navegador (não salva no servidor); o tom escolhido fica
-             guardado em localStorage por música. -->
-        <div class="tom-widget">
-            <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
-            <div class="tom-popover" id="tomPanel">
-                <div class="tom-popover-row">
-                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
-                    <button type="button" class="tom-btn" onclick="transposeStep(-1)">−1/2 tom</button>
-                    <button type="button" class="tom-btn" onclick="transposeStep(1)">+1/2 tom</button>
-                    <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
-                </div>
-                <div class="tom-grid" id="tomGrid">
-                    <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
-                    <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
-                    <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
-                    <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
-                    <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
-                    <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
-                    <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
-                    <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
+
+        <!-- Barra de ferramentas: Tom (transposição) e Buscar/Imprimir
+             lado a lado — antes Buscar/Imprimir ficavam dentro do card
+             do cabeçalho, mas título comprido empurrava eles pra baixo
+             do título, meio deslocados; aqui embaixo do card, ao lado
+             do Tom, sobra bem mais espaço (pedido explícito do usuário,
+             com screenshot real, 2026-09-22). -->
+        <div class="song-toolbar">
+            <!-- Widget de transposição estilo Cifra Club — só ajusta a exibição
+                 no navegador (não salva no servidor); o tom escolhido fica
+                 guardado em localStorage por música. -->
+            <div class="tom-widget">
+                <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
+                <div class="tom-popover" id="tomPanel">
+                    <div class="tom-popover-row">
+                        <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(-1)">−1/2 tom</button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(1)">+1/2 tom</button>
+                        <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
+                    </div>
+                    <div class="tom-grid" id="tomGrid">
+                        <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
+                        <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
+                        <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
+                        <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
+                        <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
+                        <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
+                        <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
+                        <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
                     <button type="button" class="tom-key-btn" data-key="F" onclick="jumpToKey('F')">F</button>
                     <button type="button" class="tom-key-btn" data-key="F#" onclick="jumpToKey('F#')">F#</button>
                     <button type="button" class="tom-key-btn" data-key="G" onclick="jumpToKey('G')">G</button>
                     <button type="button" class="tom-key-btn" data-key="Ab" onclick="jumpToKey('Ab')">Ab</button>
                 </div>
+            </div>
+            </div>
+
+            <div class="song-header-actions">
+                <div class="search-song-widget">
+                    <button type="button" class="search-song-btn" onclick="toggleSearchSong()" title="Buscar outra música">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                    <div class="search-song-popover" id="searchSongPopover">
+                        <input type="text" id="searchSongInput" placeholder="Título, autor ou trecho da letra...">
+                        <div class="search-song-results" id="searchSongResults"></div>
+                    </div>
+                </div>
+                <button type="button" class="print-btn" onclick="imprimirCifra()" title="Imprimir cifra">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
             </div>
         </div>
 
@@ -1575,6 +1718,74 @@ window.onload = () => {
     if (getComputedStyle(panel).display === 'none') return;
     if (!widget.contains(e.target)) {
       panel.style.display = 'none';
+    }
+  });
+
+  // Busca de outra música, direto do cabeçalho — usa /api/songs/search
+  // (main.py), rota pública sem login (igual /view/<id> já é), pra achar
+  // por título/autor/trecho da letra e pular pra /view/<id> da música
+  // encontrada. Pedido explícito do usuário, 2026-09-22.
+  window.toggleSearchSong = function() {
+    const popover = document.getElementById('searchSongPopover');
+    const abrindo = getComputedStyle(popover).display === 'none';
+    popover.style.display = abrindo ? 'block' : 'none';
+    if (abrindo) {
+      document.getElementById('searchSongInput').focus();
+    }
+  };
+
+  let buscaSongTimeout = null;
+  document.getElementById('searchSongInput').addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    clearTimeout(buscaSongTimeout);
+    const resultsEl = document.getElementById('searchSongResults');
+    if (!query) {
+      resultsEl.innerHTML = '';
+      return;
+    }
+    buscaSongTimeout = setTimeout(async () => {
+      try {
+        const resp = await fetch(`/api/songs/search?q=${encodeURIComponent(query)}`);
+        const songs = await resp.json();
+        resultsEl.innerHTML = '';
+        if (songs.length === 0) {
+          const vazio = document.createElement('div');
+          vazio.className = 'search-song-item';
+          vazio.textContent = 'Nenhuma música encontrada';
+          resultsEl.appendChild(vazio);
+          return;
+        }
+        songs.forEach(song => {
+          const item = document.createElement('div');
+          item.className = 'search-song-item';
+          // textContent + span separado (não innerHTML com o título
+          // interpolado) — título/autor vêm do banco e podem ter sido
+          // digitados por qualquer admin; essa busca é pública, sem
+          // login, então não dá pra confiar que o texto é seguro pra
+          // injetar como HTML.
+          item.appendChild(document.createTextNode(song.title + ' '));
+          const autorSpan = document.createElement('span');
+          autorSpan.className = 'autor';
+          autorSpan.textContent = '— ' + song.author;
+          item.appendChild(autorSpan);
+          item.onclick = () => {
+            window.location.href = `/view/${song.id}`;
+          };
+          resultsEl.appendChild(item);
+        });
+      } catch (err) {
+        console.error('Erro ao buscar músicas:', err);
+      }
+    }, 300);
+  });
+
+  document.addEventListener('click', function(e) {
+    const widget = document.querySelector('.search-song-widget');
+    const popover = document.getElementById('searchSongPopover');
+    if (!widget || !popover) return;
+    if (getComputedStyle(popover).display === 'none') return;
+    if (!widget.contains(e.target)) {
+      popover.style.display = 'none';
     }
   });
 
