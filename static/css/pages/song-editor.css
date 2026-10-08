@@ -1,7 +1,6 @@
 /* Editor de música (new_song.html / edit_song.html → _song_editor.html).
-   Moldura no tema escuro; a área de edição (#blockEditor) é uma folha
-   clara, porque as partituras do VexFlow são desenhadas em preto sobre
-   branco. Blocos montados por new_song.js/edit_song.js. Base, card e
+   Tudo no tema escuro; só as partituras (VexFlow desenha em preto) ficam
+   num cartão branco. Blocos montados por new_song.js/edit_song.js. Base, card e
    botões vêm do app.css. */
 
 .editor-page { max-width: 1000px; }
@@ -108,9 +107,9 @@
   min-height: 360px;
   padding: 18px 22px;
   border-radius: var(--uc-r-lg);
-  background: #fbfbfd;
-  color: #1d2236;
-  box-shadow: 0 2px 0 rgba(255, 255, 255, .04) inset, 0 10px 30px rgba(0, 0, 0, .3);
+  background: var(--uc-surface);
+  border: 1px solid var(--uc-line);
+  color: var(--uc-text);
 }
 .block-container { padding: 0; }
 .text-block {
@@ -125,19 +124,19 @@
   white-space: pre !important;
   word-wrap: normal;
   overflow-x: auto;
-  color: #1d2236;
+  color: var(--uc-text);
 }
-.text-block:empty::before { content: attr(data-placeholder); color: #9aa0b4; font-style: italic; }
-.text-block:hover { border-color: #e4e6ef; }
-.text-block:focus { background: #f2f1fb; border-color: #c9bffa; }
+.text-block:empty::before { content: attr(data-placeholder); color: var(--uc-faint); font-style: italic; }
+.text-block:hover { border-color: var(--uc-line); }
+.text-block:focus { background: var(--uc-surface-2) !important; border-color: var(--uc-accent); }
 
 .section-block {
   position: relative;
   margin: 18px 0 8px;
   padding: 9px 14px;
   border-radius: 8px;
-  background: #1d2236;
-  color: #fff;
+  background: var(--uc-surface-3);
+  color: var(--uc-text);
   font-weight: 800;
 }
 .section-block input {
@@ -163,8 +162,8 @@
 .sheet-block:hover .sheet-controls { opacity: 1; }
 .sheet-controls button { background: rgba(29, 34, 54, .85); color: #fff; border: 0; border-radius: 4px; padding: 4px 8px; margin-left: 4px; cursor: pointer; font-size: 12px; }
 .sheet-controls button:hover { background: #1d2236; }
-.block-placeholder { padding: 20px; text-align: center; color: #9aa0b4; font-style: italic; border: 2px dashed #e4e6ef; border-radius: 8px; margin: 10px 0; }
-.insert-menu { color: #1d2236; }
+.block-placeholder { padding: 20px; text-align: center; color: var(--uc-faint); font-style: italic; border: 2px dashed var(--uc-line); border-radius: 8px; margin: 10px 0; }
+.insert-menu { color: var(--uc-text); }
 .block-add-buttons { display: none; position: absolute; left: -40px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 4px; }
 .text-block:hover + .block-add-buttons, .sheet-block:hover + .block-add-buttons { display: flex; }
 

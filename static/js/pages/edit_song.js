@@ -1131,12 +1131,15 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     // Adiciona o bloco
                     if (block.type === 'text') {
                         const textBlock = createTextBlock(block, index);
+                        textBlock.dataset.blockIndex = index;
                         blockContainer.appendChild(textBlock);
                     } else if (block.type === 'sheet') {
                         const sheetBlock = createSheetBlock(block, index);
+                        sheetBlock.dataset.blockIndex = index;
                         blockContainer.appendChild(sheetBlock);
                     } else if (block.type === 'section') {
                         const sectionBlock = createSectionBlock(block, index);
+                        sectionBlock.dataset.blockIndex = index;
                         blockContainer.appendChild(sectionBlock);
                     }
                 });
@@ -1204,8 +1207,9 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     top: 35px;
                     left: 50%;
                     transform: translateX(-50%);
-                    background: white;
-                    border: 1px solid #ddd;
+                    background: var(--uc-surface-2);
+                    border: 1px solid var(--uc-line);
+                    color: var(--uc-text);
                     border-radius: 8px;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                     padding: 8px;
@@ -1235,7 +1239,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     optionDiv.innerHTML = `<i class="${option.icon}"></i> ${option.text}`;
                     
                     optionDiv.addEventListener('mouseenter', () => {
-                        optionDiv.style.background = '#f5f5f5';
+                        optionDiv.style.background = 'var(--uc-surface-3)';
                     });
                     
                     optionDiv.addEventListener('mouseleave', () => {
@@ -1301,6 +1305,9 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     const sectionName = prompt('Nome da seção (ex: Coro, Verso 1, Ponte...):', 'Coro');
                     if (!sectionName) return;
                     newBlock = { type: 'section', title: sectionName, id: Date.now() };
+                    // Seção já vem com o bloco de texto embaixo
+                    blocks.splice(position, 0, newBlock, { type: 'text', content: '', id: Date.now() + 1 });
+                    newBlock = null;
                 } else if (type === 'sheet') {
                     newBlock = { type: 'sheet', content: '', id: Date.now() };
                 }
@@ -1309,7 +1316,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 
                 // Insere o bloco na posição correta
-                blocks.splice(position, 0, newBlock);
+                if (newBlock) blocks.splice(position, 0, newBlock);
                 
                 // Re-renderiza
                 renderBlocks(true); // skipFocus=true para manter posição do scroll
@@ -1329,7 +1336,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 
                 const div = document.createElement('textarea');
                 div.className = 'text-block';
-                div.style.cssText = `padding: ${selectionMode ? '10px 10px 10px 35px' : '10px'}; min-height: 50px; outline: none; border: none; border-bottom: 1px dashed #eee; background: white; white-space: pre; overflow-x: auto; overflow-y: hidden; width: 100%; resize: none; line-height: 1.4; box-sizing: border-box; color: #333;`;
+                div.style.cssText = `padding: ${selectionMode ? '10px 10px 10px 35px' : '10px'}; min-height: 50px; outline: none; border: none; border-bottom: 1px dashed var(--uc-line); background: var(--uc-bg); border-radius: 6px; white-space: pre; overflow-x: auto; overflow-y: hidden; width: 100%; resize: none; line-height: 1.4; box-sizing: border-box; color: var(--uc-text);`;
                 div.setAttribute('placeholder', 'Digite a letra da música...');
                 div.setAttribute('wrap', 'off');
                 div.value = block.content || '';
@@ -1352,10 +1359,15 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     adjustHeight();
                 });
                 
+                // Ctrl+Enter: quebra o texto no cursor e abre uma nova seção
+                // (nome + texto) com o que estava abaixo do cursor
                 div.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' && e.ctrlKey) {
                         e.preventDefault();
-                        addTextBlock(index + 1);
+                        const before = div.value.slice(0, div.selectionStart).replace(/\n+$/, '');
+                        const after = div.value.slice(div.selectionEnd).replace(/^\n+/, '');
+                        blocks[index].content = before;
+                        addSectionBlock(index + 1, after);
                     }
                 });
                 
@@ -1431,7 +1443,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 deleteBtn.type = 'button'; // Evita submit do formulário
                 deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
                 deleteBtn.title = 'Excluir bloco';
-                deleteBtn.style.cssText = 'background: rgba(29,34,54,.08); color: #c2414b; border: 1px solid rgba(29,34,54,.12); border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 14px; ';
+                deleteBtn.style.cssText = 'background: var(--uc-danger-soft); color: var(--uc-danger); border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
                     e.stopPropagation();
@@ -1454,7 +1466,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             function createSheetBlock(block, index) {
                 const div = document.createElement('div');
                 div.className = 'sheet-block';
-                div.style.cssText = 'padding: 15px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; margin: 10px 0; position: relative; text-align: center;';
+                div.style.cssText = 'padding: 15px; background: #fff; border: 1px solid var(--uc-line); border-radius: 8px; margin: 10px 0; position: relative; text-align: center;';
                 
                 // Container para a partitura
                 const sheetContainer = document.createElement('div');
@@ -1481,7 +1493,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 deleteBtn.type = 'button';
                 deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
                 deleteBtn.title = 'Excluir';
-                deleteBtn.style.cssText = 'background: rgba(29,34,54,.08); color: #c2414b; border: 1px solid rgba(29,34,54,.12); border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
+                deleteBtn.style.cssText = 'background: var(--uc-danger-soft); color: var(--uc-danger); border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1534,7 +1546,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             function createSectionBlock(block, index) {
                 const div = document.createElement('div');
                 div.className = 'section-block';
-                div.style.cssText = `background: #1d2236; color: white; padding: 9px 14px; margin: 18px 0 8px 0; border-radius: 8px; font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; position: relative; border: ${selectedBlocks.has(index) ? '3px solid #f2b84b' : 'none'};`;
+                div.style.cssText = `background: var(--uc-surface-3); color: var(--uc-text); padding: 9px 14px; margin: 18px 0 8px 0; border-radius: 8px; font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; position: relative; border: ${selectedBlocks.has(index) ? '3px solid #f2b84b' : 'none'};`;
                 
                 // Checkbox de seleção
                 const checkbox = document.createElement('input');
@@ -1556,6 +1568,14 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     updateHiddenField();
                 });
                 
+                // Enter no nome da seção pula pro texto logo abaixo
+                input.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const ta = document.querySelector(`#blockEditor [data-block-index="${index + 1}"] textarea`);
+                    if (ta) { ta.focus(); ta.setSelectionRange(0, 0); }
+                });
+                
                 // Controles
                 const controls = document.createElement('div');
                 controls.className = 'section-controls';
@@ -1565,7 +1585,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 deleteBtn.type = 'button'; // Evita submit do formulário
                 deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
                 deleteBtn.title = 'Excluir Seção';
-                deleteBtn.style.cssText = 'background: rgba(29,34,54,.08); color: #c2414b; border: 1px solid rgba(29,34,54,.12); border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
+                deleteBtn.style.cssText = 'background: var(--uc-danger-soft); color: var(--uc-danger); border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
                     e.stopPropagation();
@@ -1603,25 +1623,21 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 });
             }
             
-            // Adiciona bloco de seção
-            function addSectionBlock() {
-                // Salva a posição do scroll antes de re-renderizar
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            // Adiciona uma seção já com o bloco de texto logo abaixo e põe o
+            // cursor no nome da seção
+            function addSectionBlock(position = -1, text = '') {
+                if (position === -1) position = blocks.length;
+                const now = Date.now();
+                blocks.splice(position, 0,
+                    { type: 'section', title: '', id: now },
+                    { type: 'text', content: text, id: now + 1 });
+                renderBlocks(true);
                 
-                const newBlock = { 
-                    type: 'section', 
-                    title: '',
-                    id: Date.now()
-                };
-                blocks.push(newBlock);
-                renderBlocks(true); // skipFocus=true para manter posição do scroll
-                
-                // Restaura a posição do scroll após re-renderizar
-                requestAnimationFrame(() => {
-                    window.scrollTo(0, scrollTop);
-                });
-                
-                console.log('✅ Bloco de seção adicionado!');
+                const input = document.querySelector(`#blockEditor [data-block-index="${position}"] input[type="text"]`);
+                if (input) {
+                    input.focus({ preventScroll: true });
+                    input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
             }
             
             // Adiciona bloco de partitura
