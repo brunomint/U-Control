@@ -1,527 +1,225 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="{{ versioned_static('js/csrf.js') }}"></script>
-    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
-    <title>Página de Controle</title>
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css" />
-    <script src="/static/vendor/socketio/socket.io.min.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/control.css') }}">
+{% extends "base.html" %}
+{% set app_theme = true %}
 
+{% block title %}Controle - U-Control{% endblock %}
 
-</head>
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+{% endblock %}
 
-<body>
-    <!-- Botão hambúrguer (só aparece em mobile) -->
-    <button class="menu-toggle" onclick="toggleMenu()">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <!-- Overlay escuro (só aparece quando menu aberto em mobile) -->
-    <div class="menu-overlay" onclick="toggleMenu()"></div>
-    
-    <div class="menu">
-        <ul>
-        <!-- Centralizando o "Bem-vindo" e o botão de logout -->
-            <div class="welcome-container">
-                <div class="user-profile">
-                    <span class="avatar">{{ current_user.username[0] | upper }}</span>
-                    <div class="user-info">
-                        <p class="name">{{ current_user.username }}</p>
-                        <p class="status">online</p>
-                    </div>
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/control.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<!-- Três zonas: o que está no telão (esquerda), o que mostrar (centro) e
+     ferramentas em abas (direita). Os ids usados pelo control.js são os
+     mesmos do layout antigo de sidebar — só a disposição mudou. -->
+<main class="ctl">
+
+    <!-- ═══ 1. Telão agora ═══ -->
+    <section class="uc-card ctl-live" aria-labelledby="live-title">
+        <div class="uc-card-head">
+            <h2 id="live-title">Telão agora</h2>
+            <span class="uc-pill uc-pill-live" id="mode-pill"><span class="dot"></span>Público e monitor</span>
+        </div>
+
+        <!-- "Preparar vs. liberar": conteúdo preparado em /lyrics/<id>,
+             /bible/control, /bible/<book>/<chapter> ou /presenter espera
+             aqui até ser liberado. Ver blueprints/display.py. -->
+        <div class="staged-panel" id="staged-panel"></div>
+
+        <div class="iframe-container" id="iframe-container-wrap">
+            <div class="mode-indicator monitor" id="monitor-mode-indicator"><i class="fas fa-tv"></i> Modo monitor: ações não afetam o público</div>
+            <div class="mode-indicator public" id="public-mode-indicator"><i class="fas fa-users"></i> Modo público: o monitor de palco não muda</div>
+            <!-- Prévia do aviso em faixa (mesmo texto do /monitor e da tela pública) -->
+            <div id="control-ticker-bar"><span id="control-ticker-text"></span></div>
+            <!-- As telas são renderizadas em 1280×720 e reduzidas (control.js:
+                 fitPreviewStage), pra prévia mostrar o mesmo enquadramento do telão. -->
+            <div class="preview-stage" id="preview-stage">
+                <iframe id="iframe1" src="about:blank" title="Prévia do telão (esquerda)"></iframe>
+                <iframe id="iframe2" src="about:blank" title="Prévia do telão (direita)"></iframe>
+            </div>
+        </div>
+
+        <div class="live-actions">
+            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> <span>Tela preta</span></button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="Copia o que está no público para o monitor de palco"><i class="fas fa-rotate"></i> Sincronizar monitor</button>
+        </div>
+
+        <div class="mode-toggles">
+            <div class="mode-row">
+                <div>
+                    <div class="mode-name">Modo monitor</div>
+                    <div class="mode-desc">Só o retorno de palco muda</div>
+                </div>
+                <button type="button" class="uc-switch" id="monitor-mode-btn" role="switch" aria-checked="false" aria-label="Modo monitor" onclick="toggleMonitorMode()"></button>
+            </div>
+            <div class="mode-row">
+                <div>
+                    <div class="mode-name">Modo público</div>
+                    <div class="mode-desc">Só a tela do público muda</div>
+                </div>
+                <button type="button" class="uc-switch" id="public-mode-btn" role="switch" aria-checked="false" aria-label="Modo público" onclick="togglePublicMode()"></button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ 2. O que mostrar ═══ -->
+    <section class="uc-card ctl-show" aria-labelledby="show-title">
+        <div class="uc-card-head show-head">
+            <h2 id="show-title">O que mostrar</h2>
+            <div class="uc-seg" role="group" aria-label="Layout do telão">
+                <button type="button" data-layout="full" aria-pressed="true"><i class="fas fa-square"></i> Tela inteira</button>
+                <button type="button" data-layout="split" aria-pressed="false"><i class="fas fa-table-columns"></i> Dividida</button>
+            </div>
+        </div>
+
+        <div class="side-label" id="side-label-a">Fonte <span class="hint">· um toque já envia ao telão</span></div>
+        <div class="sources" data-slot="a"></div>
+
+        <div id="split-b" hidden>
+            <div class="side-label">Lado direito</div>
+            <div class="sources" data-slot="b"></div>
+            <p class="split-warn"><i class="fas fa-triangle-exclamation"></i> Tela dividida aparece só no retorno de palco (/monitor).</p>
+            <div class="send-row">
+                <span class="uc-muted" id="split-desc">Escolha os dois lados e envie.</span>
+                <button type="button" class="uc-btn uc-btn-live" id="split-send" disabled><i class="fas fa-play"></i> Mostrar no telão</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ 3. Ferramentas ═══ -->
+    <section class="uc-card ctl-tools" aria-label="Ferramentas">
+        <div class="tools-tabs" role="tablist">
+            <button type="button" role="tab" data-tool="images" aria-selected="true"><i class="fas fa-images"></i> Imagens</button>
+            <button type="button" role="tab" data-tool="timer" aria-selected="false"><i class="fas fa-hourglass-half"></i> Cronômetro</button>
+            <button type="button" role="tab" data-tool="ticker" aria-selected="false"><i class="fas fa-bullhorn"></i> Avisos</button>
+            <button type="button" role="tab" data-tool="urls" aria-selected="false"><i class="fas fa-globe"></i> URLs</button>
+            <button type="button" role="tab" data-tool="share" aria-selected="false"><i class="fas fa-desktop"></i> Tela</button>
+            <button type="button" role="tab" data-tool="links" aria-selected="false"><i class="fas fa-up-right-from-square"></i> Abrir</button>
+        </div>
+
+        <!-- Imagens e vídeos -->
+        <div class="tool" data-panel="images">
+            <div class="tool-row">
+                <div class="uc-field grow">
+                    <label for="folderSelect">Pasta</label>
+                    <select class="uc-input" id="folderSelect" onchange="onFolderChange()"><option value="Geral">Geral</option></select>
+                </div>
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="promptNewFolder()"><i class="fas fa-folder-plus"></i> Nova</button>
+                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="deleteFolderBtn" onclick="deleteCurrentFolder()" style="display:none"><i class="fas fa-trash-can"></i> Excluir</button>
+            </div>
+
+            <div class="upload">
+                <input type="file" id="fileInput" multiple aria-label="Arquivos para enviar">
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="uploadBtn" onclick="uploadImages()"><i class="fas fa-upload"></i> Enviar</button>
+            </div>
+            <div id="uploadProgressWrap" style="display:none">
+                <div class="progress"><div id="uploadProgressBar"></div><span id="uploadProgressText">0%</span></div>
+                <div id="uploadStatusText" class="uc-muted small"></div>
+            </div>
+
+            <div class="tool-row">
+                <label class="uc-muted small" for="slideshowInterval">A cada</label>
+                <input class="uc-input interval" type="number" id="slideshowInterval" value="5" min="1" max="300">
+                <span class="uc-muted small">s</span>
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" id="btnSlideshow" onclick="toggleSlideshow()">▶ Slideshow</button>
+            </div>
+
+            <div class="tool-row">
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="toggleSelectBtn" onclick="toggleSelectMode()">☑ Selecionar</button>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="selectAllBtn" onclick="selectAllImages()" style="display:none">Todas</button>
+                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="deleteSelectedBtn" onclick="deleteSelectedImages()" style="display:none"><i class="fas fa-trash-can"></i> <span id="selectedCount">0</span> selecionadas</button>
+            </div>
+
+            <div id="imageGallery"></div>
+        </div>
+
+        <!-- Cronômetro -->
+        <div class="tool" data-panel="timer" hidden>
+            <div class="uc-field">
+                <label for="countdownLabel">Texto acima do relógio (opcional)</label>
+                <input class="uc-input" type="text" id="countdownLabel" placeholder="Ex.: O culto começa em">
+            </div>
+            <div class="tool-row">
+                <div class="uc-field grow">
+                    <label for="countdownMin">Minutos</label>
+                    <input class="uc-input" type="number" id="countdownMin" value="30" min="0" max="999">
+                </div>
+                <div class="uc-field grow">
+                    <label for="countdownSec">Segundos</label>
+                    <input class="uc-input" type="number" id="countdownSec" value="0" min="0" max="59">
                 </div>
             </div>
-            <li>
-                <img src="/static/U-Control.png" alt="U Control" style="width:90px; height:90px; object-fit:contain; margin:8px auto 4px; display:block;" />
-                <p style="text-align:center; color:#00bcd4; font-size:13px; font-weight:700; letter-spacing:1px; margin:0 0 8px;">U-Control</p>
-            </li>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="showCountdownOnMonitor()"><i class="fas fa-display"></i> Exibir no telão</button>
+            <div class="tool-row">
+                <button type="button" class="uc-btn uc-btn-primary grow" id="btnCountdownStart" onclick="startCountdown()"><i class="fas fa-play"></i> Iniciar</button>
+                <button type="button" class="uc-btn uc-btn-secondary grow" id="btnCountdownPause" onclick="pauseResumeCountdown()">⏸ Pausar</button>
+                <button type="button" class="uc-btn uc-btn-secondary" onclick="resetCountdown()" title="Zerar" aria-label="Zerar"><i class="fas fa-rotate-left"></i></button>
+            </div>
+        </div>
 
-            <li>
-                <i class="fas fa-sliders-h"></i> URL
-                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
-                <ul class="submenu">
-                    <li>
-                        <h1>Página de Controle</h1>
+        <!-- Avisos em faixa -->
+        <div class="tool" data-panel="ticker" hidden>
+            <div class="uc-field">
+                <label for="tickerText">Aviso em faixa rolante</label>
+                <textarea class="uc-input" id="tickerText" rows="3" placeholder="Texto do aviso…"></textarea>
+            </div>
+            <div class="uc-field">
+                <label>Mostrar em</label>
+                <div class="tool-row">
+                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="sendTicker('public')">Público</button>
+                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="sendTicker('monitor')">Monitor</button>
+                    <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="sendTicker('all')">Ambos</button>
+                </div>
+            </div>
+            <div class="tool-row">
+                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm grow" onclick="stopTicker('all')"><i class="fas fa-stop"></i> Parar</button>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm grow" onclick="clearTicker()"><i class="fas fa-xmark"></i> Limpar</button>
+            </div>
+        </div>
 
-                        <!-- Formulário para adicionar URLs -->
-                        <div class="input-container">
-                            <label for="url1">URL 1:</label>
-                            <input type="text" id="url1" placeholder="Digite a URL 1">
-                            <button class="button" onclick="sendUrl(1)">Mostrar URL 1</button>
-                        </div>
-                        <div class="input-container">
-                            <label for="url2">URL 2:</label>
-                            <input type="text" id="url2" placeholder="Digite a URL 2">
-                            <button class="button" onclick="sendUrl(2)">Mostrar URL 2</button>
-                        </div>
-                        <div class="input-container">
-                            <label for="url3">URL 3:</label>
-                            <input type="text" id="url3" placeholder="Digite a URL 3">
-                            <button class="button" onclick="sendUrl(3)">Mostrar URL 3</button>
-                        </div>
-                        <button class="button_slide slide_right" onclick="saveUrls()">Salvar URLs</button>                    
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <i class="fas fa-image"></i> Imagens/Vídeos
-                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
-                <ul class="submenu">
-                    <li>
+        <!-- URLs -->
+        <div class="tool" data-panel="urls" hidden>
+            <div class="uc-field"><label for="url1">URL 1</label><input class="uc-input uc-mono" type="text" id="url1" placeholder="Cole um link"></div>
+            <div class="uc-field"><label for="url2">URL 2</label><input class="uc-input uc-mono" type="text" id="url2" placeholder="Cole um link"></div>
+            <div class="uc-field"><label for="url3">URL 3</label><input class="uc-input uc-mono" type="text" id="url3" placeholder="Cole um link"></div>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="saveUrls()">Salvar URLs</button>
+            <p class="uc-note">Para mostrar uma URL no telão, use URL 1, 2 ou 3 em "O que mostrar".</p>
+        </div>
 
-                        <h1 style="margin:0 0 12px 0; font-size:1.1em; color:#eee;">Imagens Salvas</h1>
-                    <ul style="padding:0; list-style:none;">
+        <!-- Compartilhar tela -->
+        <div class="tool" data-panel="share" hidden>
+            <p class="uc-muted small">Mostra a tela deste computador no telão.</p>
+            <div class="tool-row">
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('public')">Público</button>
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('monitor')">Monitor</button>
+                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="startScreenShare('all')">Ambos</button>
+            </div>
+            <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" onclick="stopScreenShare()"><i class="fas fa-stop"></i> Parar compartilhamento</button>
+            <div id="screenShareStatus" class="uc-muted small"></div>
+        </div>
 
-                            <!-- Seção: Pasta -->
-                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">📁 Pasta</div>
-                            <select id="folderSelect" onchange="onFolderChange()" style="width:100%; padding:7px 10px; border-radius:6px; border:1px solid #555; background:#2a2a2a; color:#fff; font-size:0.88em; margin-bottom:8px;"><option value="Geral">Geral</option></select>
-                            <div style="display:flex; gap:6px;">
-                                <button onclick="promptNewFolder()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#2196f3; color:#fff; font-size:0.78em; cursor:pointer; transition:opacity .2s;">+ Nova pasta</button>
-                                <button id="deleteFolderBtn" onclick="deleteCurrentFolder()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#e53935; color:#fff; font-size:0.78em; cursor:pointer; display:none; transition:opacity .2s;">🗑 Excluir pasta</button>
-                            </div>
+        <!-- Abrir telas em nova aba (itens de nav_config com contexto "launcher") -->
+        <div class="tool" data-panel="links" hidden>
+            <p class="uc-muted small">Abre em outra aba, sem sair do Controle.</p>
+            <ul class="uc-rows">
+                {% for item in launcher_items %}
+                <li>
+                    <i class="fas {{ item.icon }}"></i>
+                    <a class="grow launcher-link" href="{{ url_for(item.endpoint) }}" target="_blank" rel="noopener">{{ item.label }}</a>
+                    <i class="fas fa-up-right-from-square"></i>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+</main>
+{% endblock %}
 
-                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
-
-                            <!-- Seção: Upload -->
-                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">Upload</div>
-                            <input type="file" id="fileInput" multiple style="width:100%; font-size:0.8em; color:#ccc; margin-bottom:8px;">
-                            <button id="uploadBtn" onclick="uploadImages()" style="width:100%; padding:7px 0; border:none; border-radius:6px; background:#4caf50; color:#fff; font-size:0.8em; cursor:pointer; transition:opacity .2s;">📤 Enviar arquivos</button>
-                            <div id="uploadProgressWrap" style="display:none; margin-top:8px;">
-                                <div style="background:#222; border-radius:6px; overflow:hidden; height:18px; position:relative;">
-                                    <div id="uploadProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#4caf50,#81c784); border-radius:6px; transition:width .15s;"></div>
-                                    <span id="uploadProgressText" style="position:absolute; top:0; left:0; right:0; text-align:center; font-size:0.72em; line-height:18px; color:#fff; font-weight:bold;">0%</span>
-                                </div>
-                                <div id="uploadStatusText" style="color:#aaa; font-size:0.72em; margin-top:4px; text-align:center;"></div>
-                            </div>
-
-                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
-
-                            <!-- Seção: Modo tela -->
-                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">Modo tela</div>
-                            <button id="blackoutBtn" onclick="toggleBlackout()" style="width:100%; padding:7px 0; border:none; border-radius:6px; background:#333; color:#fff; font-size:0.8em; cursor:pointer; border:1px solid #555; transition:all .2s;">🌙 Escurecer tela</button>
-
-                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
-
-                            <!-- Seção: Slideshow -->
-                            <div style="margin-bottom:5px; color:#aaa; font-size:0.75em; text-transform:uppercase; letter-spacing:0.5px;">Slideshow</div>
-                            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
-                                <label style="color:#aaa; font-size:12px; white-space:nowrap;">Intervalo:</label>
-                                <input type="number" id="slideshowInterval" value="5" min="1" max="300"
-                                    style="width:52px; background:#222; border:1px solid #555; color:#fff;
-                                           border-radius:6px; padding:5px; text-align:center; font-size:13px;">
-                                <span style="color:#aaa; font-size:12px;">s</span>
-                            </div>
-                            <button id="btnSlideshow" onclick="toggleSlideshow()"
-                                style="width:100%; padding:7px 0; border:none; border-radius:6px;
-                                       background:#4a148c; color:#fff; font-size:0.8em; cursor:pointer;
-                                       border:1px solid #6a1fb0; transition:all .2s;">
-                                ▶ Slideshow
-                            </button>
-
-                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
-
-                            <!-- Seção: Seleção -->
-                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                <button id="toggleSelectBtn" onclick="toggleSelectMode()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#ff9800; color:#fff; font-size:0.78em; cursor:pointer; transition:all .2s;">☑ Selecionar</button>
-                                <button id="selectAllBtn" onclick="selectAllImages()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#607d8b; color:#fff; font-size:0.78em; cursor:pointer; display:none;">Todas</button>
-                                <button id="deleteSelectedBtn" onclick="deleteSelectedImages()" style="flex:1; padding:6px 0; border:none; border-radius:6px; background:#e53935; color:#fff; font-size:0.78em; cursor:pointer; display:none;">🗑 <span id="selectedCount">0</span> selecionadas</button>
-                            </div>
-
-                            <hr style="border:none; border-top:1px solid #3a3a3a; margin:14px 0;">
-
-                            <!-- Galeria -->
-                            <div id="imageGallery"></div>
-                    </ul>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <i class="fas fa-hourglass-half"></i> Cronômetro
-                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
-                <ul class="submenu">
-                    <li>
-                        <h1>Cronômetro</h1>
-                        <!-- Texto opcional -->
-                        <input type="text" id="countdownLabel" placeholder="Texto (opcional)"
-                            style="width:100%; box-sizing:border-box; background:#222; border:1px solid #555;
-                                   color:#fff; border-radius:6px; padding:7px 10px; font-size:13px;
-                                   margin-bottom:8px;">
-                        <!-- Duração -->
-                        <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
-                            <input type="number" id="countdownMin" value="30" min="0" max="999"
-                                style="width:58px; background:#222; border:1px solid #555; color:#fff;
-                                       border-radius:6px; padding:6px 4px; text-align:center; font-size:14px;">
-                            <span style="color:#aaa; font-size:13px;">min</span>
-                            <input type="number" id="countdownSec" value="0" min="0" max="59"
-                                style="width:50px; background:#222; border:1px solid #555; color:#fff;
-                                       border-radius:6px; padding:6px 4px; text-align:center; font-size:14px;">
-                            <span style="color:#aaa; font-size:13px;">s</span>
-                        </div>
-                        <!-- Exibir no telão -->
-                        <button onclick="showCountdownOnMonitor()"
-                            style="width:100%; background:#1565c0; border:none; border-radius:6px;
-                                   color:#fff; padding:8px; margin-bottom:6px; cursor:pointer; font-size:13px;">
-                            ⏱ Exibir no Telão
-                        </button>
-                        <!-- Controles Iniciar / Pausar / Reset -->
-                        <div style="display:flex; gap:4px;">
-                            <button id="btnCountdownStart" onclick="startCountdown()"
-                                style="flex:1; background:#2e7d32; border:none; border-radius:6px;
-                                       color:#fff; padding:8px; cursor:pointer; font-size:13px;">
-                                ▶ Iniciar
-                            </button>
-                            <button id="btnCountdownPause" onclick="pauseResumeCountdown()"
-                                style="flex:1; background:#e65100; border:none; border-radius:6px;
-                                       color:#fff; padding:8px; cursor:pointer; font-size:13px;">
-                                ⏸ Pausar
-                            </button>
-                            <button onclick="resetCountdown()"
-                                style="flex:1; background:#555; border:none; border-radius:6px;
-                                       color:#fff; padding:8px; cursor:pointer; font-size:16px;"
-                                title="Reiniciar">
-                                ↺
-                            </button>
-                        </div>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <i class="fas fa-bullhorn"></i> Avisos
-                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
-                <ul class="submenu">
-                    <li>
-                        <h1>Avisos em Ticker</h1>
-                        <textarea id="tickerText" placeholder="Texto do aviso..." rows="3"
-                            style="width:100%; box-sizing:border-box; background:#222; border:1px solid #555;
-                                   color:#fff; border-radius:6px; padding:7px 10px; font-size:13px;
-                                   margin-bottom:8px; resize:vertical;"></textarea>
-                        <div style="display:flex; gap:4px; margin-bottom:6px;">
-                            <button onclick="sendTicker('public')"
-                                style="flex:1; background:#1565c0; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px; line-height:1.3;">
-                                📢 Público
-                            </button>
-                            <button onclick="sendTicker('monitor')"
-                                style="flex:1; background:#6a1b9a; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px; line-height:1.3;">
-                                📢 Monitor
-                            </button>
-                            <button onclick="sendTicker('all')"
-                                style="flex:1; background:#1b5e20; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px; line-height:1.3;">
-                                📢 Ambos
-                            </button>
-                        </div>
-                        <div style="display:flex; gap:4px;">
-                            <button onclick="stopTicker('all')"
-                                style="flex:1; background:#b71c1c; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px;">
-                                ⏹ Parar
-                            </button>
-                            <button onclick="clearTicker()"
-                                style="flex:1; background:#555; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px;">
-                                ✕ Limpar
-                            </button>
-                        </div>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <i class="fas fa-link"></i>Links
-                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
-                <ul class="submenu">
-                    <li>
-
-                        <h1>Links</h1>
-                    <ul>
-                        <!-- Itens vêm de nav_config.NAV_ITEMS (contexto
-                             "launcher"), injetado via launcher_items no
-                             context processor de main.py — fonte única,
-                             ver .claude/plans/harmonic-mixing-breeze.md -->
-                        {% for item in launcher_items %}
-                        <li>
-                            <a href='{{ url_for(item.endpoint) }}' target="_blank" class="help-link">
-                                <i class="fas {{ item.icon }}"></i> {{ item.label }}
-                            </a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <i class="fas fa-desktop"></i> Tela
-                <i class="fas fa-chevron-right arrow" style="float: right;"></i>
-                <ul class="submenu">
-                    <li>
-                        <h1>Compartilhar Tela</h1>
-                        <div style="display:flex; gap:4px; margin-bottom:6px;">
-                            <button onclick="startScreenShare('public')"
-                                style="flex:1; background:#1565c0; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px; line-height:1.3;">
-                                🖥 Público
-                            </button>
-                            <button onclick="startScreenShare('monitor')"
-                                style="flex:1; background:#6a1b9a; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px; line-height:1.3;">
-                                🖥 Monitor
-                            </button>
-                            <button onclick="startScreenShare('all')"
-                                style="flex:1; background:#1b5e20; border:none; border-radius:6px;
-                                       color:#fff; padding:7px 4px; cursor:pointer; font-size:11px; line-height:1.3;">
-                                🖥 Ambos
-                            </button>
-                        </div>
-                        <button onclick="stopScreenShare()"
-                            style="width:100%; background:#b71c1c; border:none; border-radius:6px;
-                                   color:#fff; padding:7px 4px; cursor:pointer; font-size:11px;">
-                            ⏹ Parar
-                        </button>
-                        <div id="screenShareStatus" style="font-size:0.75em; color:#aaa; margin-top:6px; text-align:center;"></div>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <a href='/historico' target="_blank" class="help-link"><i class="fas fa-history"></i> Histórico </a>
-            </li>
-            <li>
-                <a href='/help' class="help-link"><i class="fas fa-question-circle"></i> Ajuda </a>
-            </li>
-            <li>
-                                <a href="{{ url_for('auth.logout') }}">
-                    <button class="logout-btn">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </button>
-                </a>
-            </li>
-        </ul>
-    </div>        
-
-
-
-    <script src="{{ versioned_static('js/pages/control.js') }}"></script>
-
-<div class="content">
-    <!-- Modo Monitor / Modo Público / Sincronizar (Fase R.5 do redesign
-         — relocado da sidebar pra cá, mesmas funções toggleMonitorMode()/
-         togglePublicMode()/syncMonitor(), mesmos estilos inline que o JS
-         alterna diretamente via .style.background/.borderColor. -->
-    <div class="mode-selector">
-        <button id="monitor-mode-btn" onclick="toggleMonitorMode()"
-            style="padding:8px 16px;border:1px solid #555;border-radius:6px;
-                   background:#333;color:#fff;font-size:0.82em;cursor:pointer;
-                   display:flex;align-items:center;gap:6px;justify-content:center;transition:all .2s;">
-            <i class="fas fa-tv"></i> Modo Monitor
-        </button>
-        <button id="public-mode-btn" onclick="togglePublicMode()"
-            style="padding:8px 16px;border:1px solid #555;border-radius:6px;
-                   background:#333;color:#fff;font-size:0.82em;cursor:pointer;
-                   display:flex;align-items:center;gap:6px;justify-content:center;transition:all .2s;">
-            <i class="fas fa-users"></i> Modo Público
-        </button>
-        <button onclick="syncMonitor()"
-            style="padding:8px 12px;border:1px solid #555;border-radius:6px;
-                   background:#1e3a5f;color:#7eb8f7;font-size:0.78em;cursor:pointer;
-                   display:flex;align-items:center;gap:6px;justify-content:center;transition:opacity .2s;">
-            <i class="fas fa-sync-alt"></i> Sincronizar Monitor
-        </button>
-    </div>
-    <!-- "Preparar vs. liberar" — conteúdo preparado em /lyrics/<id>,
-         /bible/control, /bible/<book>/<chapter> ou /presenter fica
-         esperando aqui até ser liberado; nenhuma dessas páginas muda a
-         tela sozinha mais. Um card por kind (lyrics/bible/image), só
-         aparece quando tem algo preparado. Ver blueprints/display.py:
-         stage_content/release_staged_content/discard_staged_content. -->
-    <div class="staged-panel" id="staged-panel"></div>
-    <div class="iframe-container" id="iframe-container-wrap">
-        <!-- Indicador de Modo Monitor -->
-        <div id="monitor-mode-indicator" style="
-            display:none; position:absolute; top:0; left:0; right:0;
-            background:rgba(183,28,28,.85); color:#fff; font-size:0.78em;
-            font-weight:700; padding:4px 10px; z-index:10;
-            align-items:center; gap:6px; pointer-events:none;
-        "><i class="fas fa-tv"></i> MODO MONITOR — ações não afetam o público</div>
-        <!-- Indicador de Modo Público -->
-        <div id="public-mode-indicator" style="
-            display:none; position:absolute; top:0; left:0; right:0;
-            background:rgba(27,94,32,.85); color:#fff; font-size:0.78em;
-            font-weight:700; padding:4px 10px; z-index:10;
-            align-items:center; gap:6px; pointer-events:none;
-        "><i class="fas fa-users"></i> MODO PÚBLICO — o monitor de palco não será afetado</div>
-        <!-- Ticker de avisos (preview) — mesmo texto que aparece no /monitor
-             e na tela pública via evento 'ticker_update', só que dentro do
-             preview local, pra conferir sem trocar de aba. -->
-        <div id="control-ticker-bar" style="
-            display:none; position:absolute; bottom:0; left:0; right:0;
-            background:rgba(0,0,0,.85); color:#FFD600; font-weight:700;
-            font-size:0.85em; padding:6px 10px; z-index:10; text-align:center;
-            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-            pointer-events:none;
-        "><span id="control-ticker-text"></span></div>
-        <iframe id="iframe1" src="about:blank" title="Iframe Esquerdo"></iframe>
-        <iframe id="iframe2" src="about:blank" title="Iframe Direito"></iframe>
-    </div> <!-- Fechamento da div .iframe-container -->
-
-    <div class="side-by-side"></div> <!-- Fechamento da div .side-by-side -->
-
-    <div class="button-container"> <!-- Início da div .button-container -->
-        <!-- Grupo 1: Botões para exibir uma única informação -->
-        <div class="button-group">
-            <h3><i class="fas fa-expand"></i> Exibir em Tela Cheia</h3>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(1)">URL 1</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(2)">URL 2</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(3)">URL 3</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(4)">Cifra</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(5)">Relógio</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(6)">Imagem</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(7)">Bíblia</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="sendUrl(8)">Letra</button>
-            </div>
-        </div> <!-- Fechamento da div .button-group -->
-
-        <!-- Grupo 2: Botões para exibir duas informações -->
-        <div class="button-group">
-            <h3><i class="fas fa-columns"></i> URL + Tela Dividida</h3>
-            <div style="color:#ffb74d; font-size:0.72em; margin:-4px 0 8px; text-align:center;">
-                <i class="fas fa-triangle-exclamation"></i> Aparece só no retorno de palco (/monitor)
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(1, 2)">URL 1/2</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(2, 3)">URL 2/3</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(1, 3)">URL 1/3</button>
-            </div>
-        </div> <!-- Fechamento da div .button-group -->
-
-        <!-- Grupo 2B: Botões para exibir Imagem + Tela Dividida -->
-        <div class="button-group">
-            <h3><i class="fas fa-image"></i> Imagem + Tela Dividida</h3>
-            <div style="color:#ffb74d; font-size:0.72em; margin:-4px 0 8px; text-align:center;">
-                <i class="fas fa-triangle-exclamation"></i> Aparece só no retorno de palco (/monitor)
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(6, 1)">Imagem/URL 1</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(6, 2)">Imagem/URL 2</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(6, 3)">Imagem/URL 3</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(6, 4)">Imagem/Cifra</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(6, 5)">Imagem/Relógio</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(6, 8)">Imagem/Letra</button>
-            </div>
-        </div> <!-- Fechamento da div .button-group -->
-
-        <!-- Grupo 2C: Botões para exibir Letra + Tela Dividida -->
-        <div class="button-group">
-            <h3><i class="fas fa-align-left"></i> Letra + Tela Dividida</h3>
-            <div style="color:#ffb74d; font-size:0.72em; margin:-4px 0 8px; text-align:center;">
-                <i class="fas fa-triangle-exclamation"></i> Aparece só no retorno de palco (/monitor)
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(8, 1)">Letra/URL 1</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(8, 2)">Letra/URL 2</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(8, 3)">Letra/URL 3</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(8, 6)">Letra/Imagem</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(8, 5)">Letra/Relógio</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(8, 4)">Letra/Cifra</button>
-            </div>
-        </div> <!-- Fechamento da div .button-group -->
-
-        <!-- Grupo 3: Botões para exibir Cifra + Tela Dividida -->
-        <div class="button-group">
-            <h3><i class="fas fa-music"></i> Cifra + Tela Dividida</h3>
-            <div style="color:#ffb74d; font-size:0.72em; margin:-4px 0 8px; text-align:center;">
-                <i class="fas fa-triangle-exclamation"></i> Aparece só no retorno de palco (/monitor)
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(4, 1)">Cifra/URL 1</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(4, 2)">Cifra/URL 2</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(4, 3)">Cifra/URL 3</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(4, 5)">Cifra/Relógio</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(4, 6)">Cifra/Imagem</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(4, 8)">Cifra/Letra</button>
-            </div>
-        </div> <!-- Fechamento da div .button-group -->
-
-        <!-- Grupo 4: Botões para exibir Relógio + Tela Dividida -->
-        <div class="button-group">
-            <h3><i class="fas fa-clock"></i> Relógio + Tela Dividida</h3>
-            <div style="color:#ffb74d; font-size:0.72em; margin:-4px 0 8px; text-align:center;">
-                <i class="fas fa-triangle-exclamation"></i> Aparece só no retorno de palco (/monitor)
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(5, 1)">Relógio/URL 1</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(5, 2)">Relógio/URL 2</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(5, 3)">Relógio/URL 3</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(5, 4)">Relógio/Cifra</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(5, 6)">Relógio/Imagem</button>
-            </div>
-            <div class="subgroup">
-                <button class="button" type="button" onclick="showTwoUrls(5, 8)">Relógio/Letra</button>
-            </div>
-        </div> <!-- Fechamento da div .button-group -->
-    </div> <!-- Fechamento da div .button-container -->
-</div> <!-- Fechamento da div .content -->
-
-
-</body>
-</html>
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/control.js') }}"></script>
+{% endblock %}

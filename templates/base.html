@@ -7,10 +7,18 @@
     <script src="{{ versioned_static('js/csrf.js') }}"></script>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='U-Control-ico.ico') }}">
     <title>{% block title %}U-Control{% endblock %}</title>
+    {#- Tema único (static/css/app.css): opt-in por página enquanto a
+        migração não termina — a página declara {% set app_theme = true %}
+        no topo. As que não declaram continuam só com o próprio CSS. #}
+    {% if app_theme %}
+    <meta name="color-scheme" content="dark">
+    <link rel="stylesheet" href="{{ versioned_static('css/tokens.css') }}">
+    <link rel="stylesheet" href="{{ versioned_static('css/app.css') }}">
+    {% endif %}
     {% block head_extra %}{% endblock %}
     {% block styles %}{% endblock %}
 </head>
-<body>
+<body{% if app_theme %} class="uc-app"{% endif %}>
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
 </body>

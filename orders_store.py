@@ -119,6 +119,21 @@ def get_order(date):
     return _order_to_dict(order) if order else {}
 
 
+def get_next_order(from_date):
+    """Primeira ordem com data >= from_date (YYYY-MM-DD) que tenha conteúdo
+    — tipo de culto ou itens. O calendário cria linhas vazias pra datas
+    sem culto marcado; essas são puladas. Retorna (date, dict) ou
+    (None, {}) se não houver nenhuma. Usado pelo card "Próximo culto" do
+    dashboard."""
+    candidates = Order.query.options(
+        selectinload(Order.itens), selectinload(Order.eventos)
+    ).filter(Order.date >= from_date).order_by(Order.date.asc()).limit(60)
+    for order in candidates:
+        if order.tipo or order.itens:
+            return order.date, _order_to_dict(order)
+    return None, {}
+
+
 def save_order(date, data):
     """Salva/atualiza/remove UMA ordem só — poucas queries, sem tocar nas
     outras 175. /api/orders/<date> chamava load_orders()+save_orders()

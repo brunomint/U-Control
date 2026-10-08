@@ -17,6 +17,7 @@ Versões fixadas (mesmas já em uso no projeto, sem pular versão à toa):
 | jsPDF | 2.4.0 | cdnjs | exportar ordem do culto em PDF |
 | html2canvas | 1.4.1 | jsdelivr | captura de tela na agenda |
 | Bootstrap | 5.3.0-alpha3 | jsdelivr | só `login.html` |
+| Manrope (fonte variável 400–800) | — | fonts.gstatic.com | tema único (`css/tokens.css`) — navbar e páginas com `app_theme`; só `latin`/`latin-ext` |
 | Google Fonts (Roboto+Merriweather) | — | fonts.googleapis.com | páginas de bíblia — só subconjuntos `latin`/`latin-ext` baixados (suficiente pra português; cirílico/grego/vietnamita etc. removidos de propósito) |
 | VexFlow | 4.2.2 (cjs), 4.2.2 (releases), 4.2.3 (cjs), 4.2.5 (esm) | jsdelivr/unpkg | renderização de partitura — **4 builds diferentes coexistindo de propósito**, ver nota abaixo |
 

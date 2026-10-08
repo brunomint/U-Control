@@ -25,54 +25,59 @@ Cada item tem `contexts` (onde ele aparece):
 Um item pode estar em ambos, num só, ou (raro) em nenhum dos dois — só
 existindo pra outros consumidores futuros de NAV_ITEMS.
 
-`group` (só relevante pros itens com "nav" em contexts): ao_vivo |
-preparar | agenda | sistema — vira o agrupamento visual da barra.
+`group` (só relevante pros itens com "nav" em contexts) define onde o
+item fica na barra (templates/_nav.html):
+  - "live": botão vermelho de destaque (só o Controle — é a tela do
+    culto em andamento);
+  - "principal": links sempre visíveis;
+  - "criar" / "sistema": viram menus suspensos ("Criar ▾", "Sistema ▾").
+`nav_label` (opcional) é um rótulo mais curto só pra barra — `label`
+continua sendo o usado no launcher e na página de Links.
 """
 
 NAV_ITEMS = [
-    # ── Ao vivo ──────────────────────────────────────────────────────
+    # ── Principal (links sempre visíveis na barra) ───────────────────
+    {
+        "endpoint": "auth.dashboard", "label": "Início", "icon": "fa-house",
+        "group": "principal", "login_required": True, "contexts": ["nav", "launcher"],
+    },
     {
         "endpoint": "display.control", "label": "Controle", "icon": "fa-sliders",
-        "group": "ao_vivo", "login_required": True, "contexts": ["nav", "qr"],
+        "group": "live", "login_required": True, "contexts": ["nav", "qr"],
     },
     {
         "endpoint": "orders.order_list", "label": "Ordem do Culto", "icon": "fa-list-ol",
-        "group": "ao_vivo", "login_required": True, "contexts": ["nav", "launcher", "qr"],
+        "group": "principal", "login_required": True, "contexts": ["nav", "launcher", "qr"],
     },
     {
-        "endpoint": "songs.list_songs", "label": "Biblioteca de Música", "icon": "fa-music",
-        "group": "ao_vivo", "login_required": True, "contexts": ["nav", "launcher", "qr"],
+        "endpoint": "songs.list_songs", "label": "Biblioteca de Música", "nav_label": "Músicas", "icon": "fa-music",
+        "group": "principal", "login_required": True, "contexts": ["nav", "launcher", "qr"],
     },
     {
         "endpoint": "bible.bible_home", "label": "Bíblia", "icon": "fa-book-bible",
-        "group": "ao_vivo", "login_required": True, "contexts": ["nav", "qr"],
+        "group": "principal", "login_required": True, "contexts": ["nav", "qr"],
     },
 
-    # ── Preparar (antes do culto) ────────────────────────────────────
+    # ── Criar (menu "Criar ▾" — preparar antes do culto) ─────────────
     {
         "endpoint": "songs.new_song", "label": "Nova Música", "icon": "fa-plus",
-        "group": "preparar", "login_required": True, "contexts": ["nav"],
+        "group": "criar", "login_required": True, "contexts": ["nav"],
     },
     {
-        "endpoint": "songs.sheet_editor", "label": "Editor de Partitura", "icon": "fa-file-music",
-        "group": "preparar", "login_required": True, "contexts": ["nav"],
+        "endpoint": "songs.sheet_editor", "label": "Editor de Partitura", "icon": "fa-file-pen",
+        "group": "criar", "login_required": True, "contexts": ["nav"],
     },
     {
         "endpoint": "orders.order_new", "label": "Nova Ordem", "icon": "fa-calendar-plus",
-        "group": "preparar", "login_required": True, "contexts": ["nav"],
+        "group": "criar", "login_required": True, "contexts": ["nav"],
     },
 
-    # ── Agenda de equipes ────────────────────────────────────────────
     {
-        "endpoint": "agenda.agenda_dashboard", "label": "Agenda de Equipes", "icon": "fa-calendar-days",
-        "group": "agenda", "login_required": True, "contexts": ["nav"],
+        "endpoint": "agenda.agenda_dashboard", "label": "Agenda de Equipes", "nav_label": "Agenda", "icon": "fa-calendar-days",
+        "group": "principal", "login_required": True, "contexts": ["nav"],
     },
 
-    # ── Sistema ──────────────────────────────────────────────────────
-    {
-        "endpoint": "auth.dashboard", "label": "Início", "icon": "fa-house",
-        "group": "sistema", "login_required": True, "contexts": ["nav", "launcher"],
-    },
+    # ── Sistema (menu "Sistema ▾") ───────────────────────────────────
     {
         "endpoint": "utils.exibir_links", "label": "Links / QR", "icon": "fa-qrcode",
         "group": "sistema", "login_required": False, "contexts": ["nav"],
@@ -140,13 +145,16 @@ NAV_ITEMS = [
 ]
 
 GROUP_LABELS = {
-    "ao_vivo": "Ao Vivo",
-    "preparar": "Preparar",
-    "agenda": "Agenda",
+    "live": "Ao vivo",
+    "principal": "Principal",
+    "criar": "Criar",
     "sistema": "Sistema",
 }
 
-GROUP_ORDER = ["ao_vivo", "preparar", "agenda", "sistema"]
+GROUP_ORDER = ["live", "principal", "criar", "sistema"]
+
+# Grupos que viram menu suspenso na barra; os outros ficam como links soltos.
+MENU_GROUPS = {"criar", "sistema"}
 
 
 def items_for_context(context, logged_in):
@@ -175,5 +183,8 @@ def grouped_nav_items(logged_in):
     for key in GROUP_ORDER:
         group_items = [i for i in items if i["group"] == key]
         if group_items:
-            groups.append({"key": key, "label": GROUP_LABELS[key], "links": group_items})
+            groups.append({
+                "key": key, "label": GROUP_LABELS[key], "links": group_items,
+                "is_menu": key in MENU_GROUPS,
+            })
     return groups

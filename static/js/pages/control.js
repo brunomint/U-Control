@@ -1,7 +1,7 @@
  document.addEventListener('DOMContentLoaded', function () {
-    setupMenuToggle();
-    setupPreventMenuClose();
-    setupPresetCardSelection();
+    setupToolTabs();
+    setupSourcePicker();
+    setupPreviewScaling();
     loadUrls();
     loadFolders();
     loadDisplayState(); // Carrega estado salvo ao iniciar
@@ -64,51 +64,6 @@ socket.on('lyrics_visibility_changed', function(data) {
     }
 });
 
-// Função para abrir/fechar menu em mobile
-function toggleMenu() {
-    const menu = document.querySelector('.menu');
-    const overlay = document.querySelector('.menu-overlay');
-    
-    menu.classList.toggle('active');
-    overlay.classList.toggle('active');
-}
-
-function setupMenuToggle() {
-    const menuItems = document.querySelectorAll('.menu > ul > li');
-    menuItems.forEach(menuItem => {
-        menuItem.addEventListener('click', function () {
-            const isOpen = menuItem.classList.contains('open');
-            menuItems.forEach(item => item.classList.remove('open'));
-            if (!isOpen) menuItem.classList.add('open');
-        });
-    });
-}
-
-function setupPreventMenuClose() {
-    document.querySelectorAll('input, textarea, button, form, img, select, span, hr, #imageGallery')
-        .forEach(input => input.addEventListener('click', event => event.stopPropagation()));
-}
-
-// Marca visualmente o último botão de preset clicado (Fase R.4 do
-// redesign) — puramente cosmético, não toca em sendUrl()/showTwoUrls()
-// nem no estado real de socket. Listener direto em cada botão (não
-// delegação no container) porque setupPreventMenuClose() já para a
-// propagação de clique em todo <button>, o que impediria um listener
-// delegado no ancestral de disparar.
-function setupPresetCardSelection() {
-    const container = document.querySelector('.button-container');
-    if (!container) return;
-    container.querySelectorAll('.button').forEach(button => {
-        button.addEventListener('click', function () {
-            container.querySelectorAll('.button.selected').forEach(b => b.classList.remove('selected'));
-            container.querySelectorAll('.button-group.selected').forEach(g => g.classList.remove('selected'));
-            button.classList.add('selected');
-            const group = button.closest('.button-group');
-            if (group) group.classList.add('selected');
-        });
-    });
-}
-
 function sendUrl(urlNumber) {
     const fixedRoutes = {
         4: "/lyrics/display",
@@ -150,8 +105,10 @@ function updateIframes(url1, url2) {
     // que sabe carregar e tocar o conteúdo correto.
     if (url1 && url1.startsWith('/static/')) url1 = '/img';
     if (url2 && url2.startsWith('/static/')) url2 = '/img';
-    iframe1.src = url1;
-    iframe2.src = url2;
+    // src vazio carrega a própria página (/control) dentro do iframe
+    // escondido — about:blank evita esse segundo painel invisível.
+    iframe1.src = url1 || 'about:blank';
+    iframe2.src = url2 || 'about:blank';
     iframe1.style.width = url2 ? '50%' : '100%';
     iframe2.style.width = url2 ? '50%' : '0';
 }
@@ -177,6 +134,7 @@ function loadUrls() {
             document.getElementById('url1').value = urls.url1;
             document.getElementById('url2').value = urls.url2;
             document.getElementById('url3').value = urls.url3;
+            refreshSourceButtons();
         });
 }
 
@@ -447,8 +405,9 @@ function toggleBlackout() {
     blackoutActive = !blackoutActive;
     socket.emit('blackout', { active: blackoutActive });
     const btn = document.getElementById('blackoutBtn');
-    btn.textContent = blackoutActive ? '☀️ Restaurar tela' : '🌙 Escurecer tela';
-    btn.style.background = blackoutActive ? '#4caf50' : '#333';
+    btn.classList.toggle('active', blackoutActive);
+    btn.querySelector('i').className = blackoutActive ? 'fas fa-sun' : 'fas fa-moon';
+    btn.querySelector('span').textContent = blackoutActive ? 'Voltar a imagem' : 'Tela preta';
 }
 
 let selectMode = false;
@@ -464,7 +423,6 @@ function toggleSelectMode() {
     selectedImages.clear();
     const btn = document.getElementById('toggleSelectBtn');
     btn.textContent = selectMode ? '✖ Cancelar' : '☑ Selecionar';
-    btn.style.background = selectMode ? '#757575' : '#ff9800';
     document.getElementById('deleteSelectedBtn').style.display = selectMode ? 'inline-block' : 'none';
     document.getElementById('selectAllBtn').style.display = selectMode ? 'inline-block' : 'none';
     updateSelectedCount();
@@ -530,7 +488,7 @@ function deleteSelectedImages() {
 
 function showImageInMonitor(imageUrl) {
     stopSlideshow();
-    document.querySelectorAll('.submenu img').forEach(img => img.classList.remove('selecionada'));
+    document.querySelectorAll('#imageGallery img').forEach(img => img.classList.remove('selecionada'));
     const matchEl = document.querySelector(`img[src="${imageUrl}"]`);
     if (matchEl) matchEl.classList.add('selecionada');
 
@@ -1008,19 +966,9 @@ let publicOnlyMode = false;
 function toggleMonitorMode() {
     monitorOnlyMode = !monitorOnlyMode;
     if (monitorOnlyMode && publicOnlyMode) togglePublicMode();
-    const btn = document.getElementById('monitor-mode-btn');
-    const indicator = document.getElementById('monitor-mode-indicator');
-    if (monitorOnlyMode) {
-        btn.style.background = '#b71c1c';
-        btn.style.borderColor = '#ef5350';
-        btn.innerHTML = '<i class="fas fa-tv"></i> Modo Monitor ATIVO';
-        indicator.style.display = 'flex';
-    } else {
-        btn.style.background = '#333';
-        btn.style.borderColor = '#555';
-        btn.innerHTML = '<i class="fas fa-tv"></i> Modo Monitor';
-        indicator.style.display = 'none';
-    }
+    document.getElementById('monitor-mode-btn').setAttribute('aria-checked', String(monitorOnlyMode));
+    document.getElementById('monitor-mode-indicator').style.display = monitorOnlyMode ? 'flex' : 'none';
+    updateModePill();
     // Manda o modo pro servidor — fonte única de verdade que _release_kind
     // usa pra QUALQUER liberação (card do /control ou banner nas próprias
     // páginas, ver display_state._active_mode). Também reseta o
@@ -1035,19 +983,9 @@ function toggleMonitorMode() {
 function togglePublicMode() {
     publicOnlyMode = !publicOnlyMode;
     if (publicOnlyMode && monitorOnlyMode) toggleMonitorMode();
-    const btn = document.getElementById('public-mode-btn');
-    const indicator = document.getElementById('public-mode-indicator');
-    if (publicOnlyMode) {
-        btn.style.background = '#1b5e20';
-        btn.style.borderColor = '#66bb6a';
-        btn.innerHTML = '<i class="fas fa-users"></i> Modo Público ATIVO';
-        indicator.style.display = 'flex';
-    } else {
-        btn.style.background = '#333';
-        btn.style.borderColor = '#555';
-        btn.innerHTML = '<i class="fas fa-users"></i> Modo Público';
-        indicator.style.display = 'none';
-    }
+    document.getElementById('public-mode-btn').setAttribute('aria-checked', String(publicOnlyMode));
+    document.getElementById('public-mode-indicator').style.display = publicOnlyMode ? 'flex' : 'none';
+    updateModePill();
     // Ver comentário equivalente em toggleMonitorMode().
     socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
 }
@@ -1197,3 +1135,166 @@ socket.on('content_discarded', function(data) {
     delete _stagedItems[data.kind];
     renderStagedPanel();
 });
+
+
+// ── Layout novo (tema único): abas, prévia em escala e seletor de fontes ──
+// Substitui a sidebar de submenus e os 40 botões de combinação (URL 1/2,
+// Imagem/Cifra, Letra/Relógio…). As 8 fontes chamam as mesmas
+// sendUrl()/showTwoUrls() de sempre, com os mesmos números de antes.
+
+const SOURCES = [
+    { id: 'letra',   num: 8, label: 'Letra',   icon: 'fa-align-left',  sub: 'texto da música', route: '/lyrics/display/public' },
+    { id: 'cifra',   num: 4, label: 'Cifra',   icon: 'fa-guitar',      sub: 'acordes + letra', route: '/lyrics/display' },
+    { id: 'biblia',  num: 7, label: 'Bíblia',  icon: 'fa-book-bible',  sub: 'versículo',       route: '/bible/display' },
+    { id: 'imagem',  num: 6, label: 'Imagem',  icon: 'fa-image',       sub: 'galeria',         route: '/img' },
+    { id: 'relogio', num: 5, label: 'Relógio', icon: 'fa-clock',       sub: 'hora atual',      route: '/clock' },
+    { id: 'url1',    num: 1, label: 'URL 1',   icon: 'fa-globe' },
+    { id: 'url2',    num: 2, label: 'URL 2',   icon: 'fa-globe' },
+    { id: 'url3',    num: 3, label: 'URL 3',   icon: 'fa-globe' },
+];
+const SOURCE_BY_ID = Object.fromEntries(SOURCES.map(src => [src.id, src]));
+
+let screenLayout = 'full';            // 'full' | 'split'
+let splitPick = { a: null, b: null };  // escolha em andamento na tela dividida
+let onAir = [];                        // fontes no ar, derivadas dos iframes da prévia
+
+function urlInputValue(src) {
+    const el = src.route ? null : document.getElementById(src.id);
+    return el ? el.value.trim() : '';
+}
+
+function sourceSubLabel(src) {
+    if (src.route) return src.sub;
+    const value = urlInputValue(src);
+    if (!value) return 'vazia';
+    try { return new URL(value, window.location.origin).hostname.replace(/^www\./, ''); }
+    catch (e) { return value; }
+}
+
+// Descobre a fonte a partir da URL de um iframe da prévia.
+function sourceFromUrl(url) {
+    if (!url || url === 'about:blank') return null;
+    let path = url;
+    try { path = new URL(url, window.location.origin).pathname; } catch (e) { /* mantém */ }
+    const fixed = SOURCES.find(src => src.route && src.route === path);
+    if (fixed) return fixed.id;
+    const custom = SOURCES.find(src => !src.route && urlInputValue(src) && urlInputValue(src) === url);
+    return custom ? custom.id : null;
+}
+
+function renderSourceButtons() {
+    document.querySelectorAll('.sources').forEach(box => {
+        box.innerHTML = SOURCES.map(src => `
+            <button type="button" class="src-btn" data-src="${src.id}" aria-pressed="false">
+                <i class="fas ${src.icon}"></i>${src.label}<small></small>
+            </button>`).join('');
+    });
+    refreshSourceButtons();
+}
+
+function refreshSourceButtons() {
+    document.querySelectorAll('.sources').forEach(box => {
+        const slot = box.dataset.slot;
+        box.querySelectorAll('.src-btn').forEach(btn => {
+            const src = SOURCE_BY_ID[btn.dataset.src];
+            btn.querySelector('small').textContent = sourceSubLabel(src);
+            btn.disabled = !src.route && !urlInputValue(src);
+            const picked = screenLayout === 'split' && splitPick[slot] === src.id;
+            const live = screenLayout === 'full'
+                ? onAir.length === 1 && onAir[0] === src.id
+                : onAir.length === 2 && onAir[slot === 'a' ? 0 : 1] === src.id;
+            btn.setAttribute('aria-pressed', String(picked));
+            btn.classList.toggle('on-air', live && !picked);
+            btn.title = live ? 'No ar agora' : '';
+        });
+    });
+
+    const split = screenLayout === 'split';
+    document.getElementById('split-b').hidden = !split;
+    document.getElementById('side-label-a').innerHTML = split
+        ? 'Lado esquerdo'
+        : 'Fonte <span class="hint">· um toque já envia ao telão</span>';
+    const ready = splitPick.a && splitPick.b && splitPick.a !== splitPick.b;
+    document.getElementById('split-send').disabled = !ready;
+    document.getElementById('split-desc').textContent = ready
+        ? `${SOURCE_BY_ID[splitPick.a].label} à esquerda, ${SOURCE_BY_ID[splitPick.b].label} à direita.`
+        : (splitPick.a && splitPick.a === splitPick.b ? 'Escolha fontes diferentes para cada lado.' : 'Escolha os dois lados e envie.');
+}
+
+function setupSourcePicker() {
+    renderSourceButtons();
+
+    document.querySelectorAll('.sources').forEach(box => {
+        box.addEventListener('click', e => {
+            const btn = e.target.closest('.src-btn');
+            if (!btn || btn.disabled) return;
+            const src = SOURCE_BY_ID[btn.dataset.src];
+            if (screenLayout === 'full') {
+                sendUrl(src.num);
+            } else {
+                splitPick[box.dataset.slot] = src.id;
+                refreshSourceButtons();
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-layout]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            screenLayout = btn.dataset.layout;
+            document.querySelectorAll('[data-layout]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+            splitPick = { a: onAir[0] || null, b: onAir[1] || null };
+            refreshSourceButtons();
+        });
+    });
+
+    document.getElementById('split-send').addEventListener('click', () => {
+        if (!(splitPick.a && splitPick.b && splitPick.a !== splitPick.b)) return;
+        showTwoUrls(SOURCE_BY_ID[splitPick.a].num, SOURCE_BY_ID[splitPick.b].num);
+    });
+
+    ['url1', 'url2', 'url3'].forEach(id => document.getElementById(id).addEventListener('input', refreshSourceButtons));
+}
+
+// Toda troca de tela (daqui, de outro PC via socket ou do estado salvo)
+// passa por updateIframes — o destaque "no ar" acompanha a prévia.
+const _origUpdateIframes = updateIframes;
+updateIframes = function (url1, url2) {
+    _origUpdateIframes(url1, url2);
+    onAir = [sourceFromUrl(url1), url2 ? sourceFromUrl(url2) : null].filter(Boolean);
+    if (url2 && onAir.length < 2) onAir = [];  // combinação que não reconhecemos: não destaca nada
+    refreshSourceButtons();
+};
+
+// A prévia renderiza as telas em 1280×720 e reduz pra caber no card.
+function setupPreviewScaling() {
+    const wrap = document.getElementById('iframe-container-wrap');
+    const stage = document.getElementById('preview-stage');
+    if (!wrap || !stage) return;
+    const fit = () => stage.style.setProperty('--preview-scale', wrap.clientWidth / 1280);
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(wrap);
+    else window.addEventListener('resize', fit);
+}
+
+function updateModePill() {
+    const pill = document.getElementById('mode-pill');
+    if (!pill) return;
+    if (monitorOnlyMode) pill.innerHTML = '<span class="dot"></span>Só monitor';
+    else if (publicOnlyMode) pill.innerHTML = '<span class="dot"></span>Só público';
+    else pill.innerHTML = '<span class="dot"></span>Público e monitor';
+}
+
+// Abas das ferramentas; lembra a última aberta neste navegador.
+function setupToolTabs() {
+    const tabs = document.querySelectorAll('.tools-tabs [data-tool]');
+    const show = name => {
+        tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.tool === name)));
+        document.querySelectorAll('.tool[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== name; });
+        try { localStorage.setItem('uc-control-tool', name); } catch (e) { /* sem storage */ }
+    };
+    tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.tool)));
+    let saved = null;
+    try { saved = localStorage.getItem('uc-control-tool'); } catch (e) { /* sem storage */ }
+    if (saved && document.querySelector(`.tool[data-panel="${saved}"]`)) show(saved);
+}
+

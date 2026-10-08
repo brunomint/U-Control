@@ -1,88 +1,79 @@
-<!-- Barra de navegação compartilhada — ver .claude/plans/harmonic-mixing-breeze.md.
-     Consome nav_groups (injetado em toda página via context processor
-     inject_nav() em main.py), que por sua vez vem de nav_config.py —
-     fonte única, substitui as 6 variações de .tabs que existiam antes.
-     Estilo minimalista de propósito (mesmo gradiente roxo que as
-     barras .tabs antigas já usavam) — o redesign visual das páginas
-     fica pra uma rodada futura, à parte desta reorganização de
-     navegação. -->
-<nav class="site-nav">
-    {% for group in nav_groups %}
-    <div class="site-nav-group">
-        <span class="site-nav-group-label">{{ group.label }}</span>
-        {% for item in group.links %}
-        <a href="{{ url_for(item.endpoint) }}"
-           class="site-nav-link{% if request.endpoint == item.endpoint %} active{% endif %}">
-            <i class="fas {{ item.icon }}"></i> {{ item.label }}
-        </a>
+<!-- Barra de navegação compartilhada. Itens vêm de nav_groups (context
+     processor inject_nav() em main.py ← nav_config.py, fonte única).
+     Grupo "live" = botão vermelho do Controle; "principal" = links
+     soltos; grupos com is_menu = menu suspenso (<details>). Estilo em
+     static/css/nav.css, que só depende de tokens.css — funciona também
+     nas páginas que ainda não migraram pro app.css. -->
+<link rel="stylesheet" href="{{ versioned_static('css/tokens.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/nav.css') }}">
+<nav class="site-nav" aria-label="Navegação principal">
+    <a class="site-nav-brand" href="{{ url_for('auth.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+        <img src="{{ url_for('static', filename='U-Control_Icon.png') }}" alt="">
+        <span>U-Control</span>
+    </a>
+    <div class="site-nav-links">
+        {% for group in nav_groups %}
+            {% if group.is_menu %}
+            {% set ns = namespace(active=false) %}
+            {% for item in group.links %}{% if request.endpoint == item.endpoint %}{% set ns.active = true %}{% endif %}{% endfor %}
+            <details class="site-nav-menu{% if ns.active %} has-active{% endif %}">
+                <summary>{% if group.key == 'criar' %}<i class="fas fa-plus"></i>{% endif %}{{ group.label }} <i class="fas fa-chevron-down"></i></summary>
+                <div class="site-nav-menu-list">
+                    {% for item in group.links %}
+                    <a href="{{ url_for(item.endpoint) }}"
+                       class="site-nav-link{% if request.endpoint == item.endpoint %} active{% endif %}">
+                        <i class="fas {{ item.icon }}"></i> {{ item.label }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </details>
+            {% else %}
+                {% for item in group.links %}
+                <a href="{{ url_for(item.endpoint) }}"
+                   class="site-nav-link{% if group.key == 'live' %} live{% endif %}{% if request.endpoint == item.endpoint %} active{% endif %}">
+                    {% if group.key == 'live' %}<span class="dot"></span>{% else %}<i class="fas {{ item.icon }}"></i>{% endif %}
+                    {{ item.nav_label or item.label }}
+                </a>
+                {% endfor %}
+            {% endif %}
         {% endfor %}
     </div>
-    {% endfor %}
+    {% if current_user.is_authenticated %}
+    <div class="site-nav-user">
+        <span class="site-nav-avatar">{{ current_user.username[0] | upper }}</span>
+        <span class="site-nav-username">{{ current_user.username }}</span>
+        <a class="site-nav-logout" href="{{ url_for('auth.logout') }}" title="Sair" aria-label="Sair">
+            <i class="fas fa-right-from-bracket"></i>
+        </a>
+    </div>
+    {% endif %}
 </nav>
-<style>
-    .site-nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        z-index: 1000;
-        background: linear-gradient(135deg, #5a4fcf, #7c3aed);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 4px 18px;
-        padding: 8px 16px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        font-family: 'Roboto', sans-serif;
-        font-size: 13px;
-        box-sizing: border-box;
-    }
-
-    .site-nav-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .site-nav-group + .site-nav-group {
-        border-left: 1px solid rgba(255, 255, 255, 0.25);
-        padding-left: 18px;
-    }
-
-    .site-nav-group-label {
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: rgba(255, 255, 255, 0.55);
-        margin-right: 2px;
-    }
-
-    .site-nav-link {
-        color: #fff;
-        text-decoration: none;
-        padding: 4px 8px;
-        border-radius: 6px;
-        white-space: nowrap;
-    }
-
-    .site-nav-link:hover {
-        background: rgba(255, 255, 255, 0.15);
-    }
-
-    .site-nav-link.active {
-        background: rgba(255, 255, 255, 0.22);
-        font-weight: bold;
-    }
-
-    .site-nav-link i {
-        margin-right: 4px;
-    }
-
-    @media (max-width: 900px) {
-        .site-nav {
-            position: static;
-        }
-    }
-</style>
+<div class="site-nav-spacer"></div>
+<script>
+// Menus suspensos: a lista é position:fixed (a faixa de links tem
+// overflow-x:auto pra rolar no celular, o que cortaria um menu absolute),
+// então posiciona embaixo do botão ao abrir. Fecha ao abrir outro, ao
+// clicar fora e com Esc.
+(function () {
+    const menus = document.querySelectorAll('.site-nav-menu');
+    menus.forEach(function (menu) {
+        menu.addEventListener('toggle', function () {
+            if (!menu.open) return;
+            menus.forEach(function (other) { if (other !== menu) other.open = false; });
+            const r = menu.querySelector('summary').getBoundingClientRect();
+            const list = menu.querySelector('.site-nav-menu-list');
+            list.style.top = r.bottom + 'px';
+            list.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 236)) + 'px';
+        });
+    });
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.site-nav-menu')) menus.forEach(function (m) { m.open = false; });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') menus.forEach(function (m) { m.open = false; });
+    });
+    document.querySelector('.site-nav-links').addEventListener('scroll', function () {
+        menus.forEach(function (m) { m.open = false; });
+    });
+})();
+</script>

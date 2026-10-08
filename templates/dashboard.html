@@ -1,247 +1,151 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Dashboard - U-Control{% endblock %}
+{% block title %}Início - U-Control{% endblock %}
 
 {% block head_extra %}
 <link href="/static/vendor/fontawesome/css/all.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-<!-- Header -->
-<div class="header">
-    <h1>
-        <i class="fas fa-tachometer-alt"></i>
-        Bem-vindo, {{ current_user.username }}!
-    </h1>
-    <a href="{{ url_for('auth.logout') }}" style="text-decoration: none;">
-        <button class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-    </a>
-</div>
-
-<!-- Status e Ações Rápidas -->
-<div class="grid-2">
-    <!-- Status -->
-    <div class="card">
-        <div class="card-title">
-            <i class="fas fa-tv" style="color: var(--primary);"></i>
-            STATUS DO SISTEMA
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1><span id="greeting">Olá</span>, {{ current_user.username }}</h1>
+            <div class="uc-page-sub" id="current-date"></div>
         </div>
-        <div id="system-status-container">
-            <div class="status-item">
-                <span>Servidor</span>
-                <span style="color: var(--text-secondary);">Carregando...</span>
+        <div class="uc-btn-row">
+            <span class="uc-pill uc-pill-muted" id="server-pill"><span class="dot"></span>Verificando servidor…</span>
+            <span class="uc-pill uc-pill-muted" id="screens-pill"><i class="fas fa-display"></i> — telas conectadas</span>
+        </div>
+    </div>
+
+    <div class="dash-top">
+        <!-- Próximo culto: preenchido por dashboard.js via /api/culto/proximo -->
+        <section class="uc-card next" id="next-service" aria-label="Próximo culto">
+            <div class="uc-empty"><i class="fas fa-calendar-days"></i>Carregando o próximo culto…</div>
+        </section>
+
+        <section class="uc-card" aria-labelledby="shortcuts-title">
+            <div class="uc-card-head"><h2 id="shortcuts-title">Atalhos</h2></div>
+            <div class="shortcuts">
+                <a class="tile" href="{{ url_for('songs.list_songs') }}"><i class="fas fa-music"></i><span>Músicas<small>biblioteca</small></span></a>
+                <a class="tile" href="/view" target="_blank" rel="noopener"><i class="fas fa-guitar"></i><span>Cifra<small>para os músicos</small></span></a>
+                <a class="tile" href="{{ url_for('bible.bible_home') }}"><i class="fas fa-book-bible"></i><span>Bíblia<small>buscar versículo</small></span></a>
+                <a class="tile" href="/presenter" target="_blank" rel="noopener"><i class="fas fa-person-chalkboard"></i><span>Presenter<small>fotos no telão</small></span></a>
+                <a class="tile" href="{{ url_for('agenda.agenda_dashboard') }}"><i class="fas fa-calendar-days"></i><span>Agenda<small>escalas</small></span></a>
+                <a class="tile" href="{{ url_for('songs.new_song') }}"><i class="fas fa-plus"></i><span>Nova música<small>cadastrar letra</small></span></a>
+            </div>
+        </section>
+    </div>
+
+    <div class="uc-grid-2">
+        <section class="uc-card" aria-labelledby="recent-title">
+            <div class="uc-card-head">
+                <h2 id="recent-title">Músicas recentes</h2>
+                <a class="uc-link" href="{{ url_for('songs.list_songs') }}">Ver todas</a>
+            </div>
+            {% if recent_songs %}
+            <ul class="uc-rows">
+                {% for song in recent_songs %}
+                <li>
+                    <i class="fas fa-music"></i>
+                    <span class="grow">{{ song.title }}</span>
+                    {% if song.url %}
+                    <a class="uc-btn uc-btn-ghost uc-btn-sm" href="{{ song.url }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-eye"></i> Abrir</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="uc-empty"><i class="fas fa-music"></i>Nenhuma música exibida ainda.</div>
+            {% endif %}
+        </section>
+
+        <section class="uc-card" aria-labelledby="activity-title">
+            <div class="uc-card-head">
+                <h2 id="activity-title">Atividade recente</h2>
+                <a class="uc-link" href="{{ url_for('utils.historico') }}">Histórico</a>
+            </div>
+            {% if recent_activity %}
+            <ul class="uc-rows">
+                {% for a in recent_activity %}
+                <li>
+                    {% if a.type == 'song' %}<i class="fas fa-music"></i>
+                    {% elif a.type == 'bible' %}<i class="fas fa-book-bible"></i>
+                    {% elif a.type == 'ticker' %}<i class="fas fa-bullhorn"></i>
+                    {% else %}<i class="fas fa-display"></i>{% endif %}
+                    <span class="grow">{{ a.action }} <b>{{ a.target | truncate(48, true, '…') }}</b>{% if a.count > 1 %} <span class="count">×{{ a.count }}</span>{% endif %}</span>
+                    <span class="sub uc-mono">
+                        {%- if a.count > 1 and a.first_ts[11:16] != a.last_ts[11:16] -%}
+                            {{ a.first_ts[11:16] }}–{{ a.last_ts[11:16] }}
+                        {%- else -%}
+                            {{ a.last_ts[11:16] }}
+                        {%- endif -%}
+                        {%- if a.last_ts[:10] != today %} · {{ a.last_ts[8:10] }}/{{ a.last_ts[5:7] }}{% endif -%}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="uc-empty"><i class="fas fa-clock-rotate-left"></i>Nada exibido no telão ainda.</div>
+            {% endif %}
+        </section>
+    </div>
+
+    <!-- Sistema: preenchido por dashboard.js via /api/system/status (a cada 5 s) -->
+    <section class="uc-card sys" id="system-strip" aria-label="Sistema">
+        <span class="uc-muted">Carregando status do sistema…</span>
+    </section>
+
+    <details class="uc-card setup">
+        <summary>
+            <i class="fas fa-screwdriver-wrench"></i>
+            <span><b>Configurar aparelhos</b> <span class="uc-muted">· app Android, script do telão e QR codes</span></span>
+            <i class="fas fa-chevron-down chev"></i>
+        </summary>
+        <div class="setup-body">
+            <div class="setup-item">
+                <h3><i class="fab fa-android"></i> App U-Control Screen</h3>
+                <p>Para TV ou celular. Abre o Monitor e a Exibição Pública em tela cheia, com vídeo e som.</p>
+                <div class="uc-btn-row">
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/static/U-Control-Screen.apk" download="U-Control-Screen.apk"><i class="fas fa-download"></i> Baixar .apk</a>
+                </div>
+                <p class="small">Para instalar, desative o Play Protect na Play Store.</p>
+            </div>
+            <div class="setup-item">
+                <h3><i class="fas fa-display"></i> Script do telão</h3>
+                <p>Rode no PC ligado ao datashow: abre o monitor em tela cheia, com vídeo tocando com som. O endereço do servidor já vem preenchido.</p>
+                <div class="uc-btn-row">
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/download-monitor-launcher/windows"><i class="fab fa-windows"></i> Windows</a>
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/download-monitor-launcher/linux"><i class="fab fa-linux"></i> Linux</a>
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/download-monitor-launcher/mac"><i class="fab fa-apple"></i> Mac</a>
+                </div>
+                <p class="small">Precisa de Chrome, Edge, Brave ou Chromium.</p>
+            </div>
+            <div class="setup-item">
+                <h3><i class="fas fa-qrcode"></i> QR codes</h3>
+                <p>Os códigos para abrir cada tela no celular ficam na página Links.</p>
+                <div class="uc-btn-row">
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="{{ url_for('utils.exibir_links') }}"><i class="fas fa-qrcode"></i> Abrir Links e QR</a>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Ações Rápidas -->
-    <div class="card">
-        <div class="card-title">
-            <i class="fas fa-bolt" style="color: var(--warning);"></i>
-            AÇÕES RÁPIDAS
-        </div>
-        <button class="action-btn" onclick="window.open('/agenda/dashboard', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #00bcd4, #0097a7); box-shadow: 0 4px 12px rgba(0,188,212,0.35);">
-            <i class="fas fa-calendar-alt"></i>
-            Agenda de Equipes
-        </button>
-        <button class="action-btn" onclick="window.open('/songs', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #8e44ad, #6c3483); box-shadow: 0 4px 12px rgba(142,68,173,0.35);">
-            <i class="fas fa-book-open"></i>
-            Biblioteca
-        </button>
-        <button class="action-btn" onclick="window.open('/view', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #f39c12, #d68910); box-shadow: 0 4px 12px rgba(243,156,18,0.35);">
-            <i class="fas fa-guitar"></i>
-            Cifra
-        </button>
-        <button class="action-btn" onclick="window.open('/order', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #4caf50, #2e7d32); box-shadow: 0 4px 12px rgba(76,175,80,0.35);">
-            <i class="fas fa-list-ul"></i>
-            Ordem
-        </button>
-        <button class="action-btn" onclick="window.open('/bible', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #3498db, #2c82c9); box-shadow: 0 4px 12px rgba(52,152,219,0.35);">
-            <i class="fas fa-book-bible"></i>
-            Bíblia
-        </button>
-        <button class="action-btn" onclick="window.open('/presenter', '_blank', 'noopener,noreferrer')" style="background: linear-gradient(135deg, #e67e22, #ca6f1e); box-shadow: 0 4px 12px rgba(230,126,34,0.35);">
-            <i class="fas fa-person-chalkboard"></i>
-            Presenter
-        </button>
-    </div>
-
-    <!-- App Android -->
-    <div class="card">
-        <div class="card-title">
-            <i class="fab fa-android" style="color: #3ddc84;"></i>
-            APP ANDROID
-        </div>
-        <p style="color:#888; font-size:0.85em; margin:0 0 12px; line-height:1.5;">
-            Instale o app U-Control Screen na TV ou celular para acessar o Monitor e a Exibição Pública em tela cheia, com suporte a vídeo com som.
-        </p>
-        <a href="/static/U-Control-Screen.apk" download="U-Control-Screen.apk"
-           class="action-btn"
-           style="display:flex; align-items:center; justify-content:center; gap:8px;
-                  background: linear-gradient(135deg, #3ddc84, #2a9d5c);
-                  box-shadow: 0 4px 12px rgba(61,220,132,0.35); text-decoration:none;">
-            <i class="fab fa-android"></i>
-            Baixar U-Control Screen.apk
-        </a>
-        <p style="font-size:11px; color:#666; margin:10px 0 0; line-height:1.5; text-align:center;">
-            ⚠️ Para instalar, desative o Play Protect na Play Store
-        </p>
-    </div>
-</div>
-
-<!-- Inicializador do Monitor (Telao) -->
-<div class="card grid-full">
-    <div class="card-title">
-        <i class="fas fa-tv" style="color: var(--primary);"></i>
-        INICIALIZADOR DO MONITOR (TELÃO)
-    </div>
-    <p style="color:#666; font-size:0.9em; margin:8px 0 14px;">
-        Baixe o script no PC conectado ao datashow e execute-o para abrir o monitor em tela cheia
-        com vídeos tocando <strong>com som automaticamente</strong>. O endereço do servidor já vem preenchido.
-        <br>
-        <small>Requer <strong>Google Chrome</strong>, <strong>Microsoft Edge</strong>, <strong>Brave</strong> ou <strong>Chromium</strong>.</small>
-    </p>
-    <div class="quick-actions">
-        <button class="action-btn" onclick="window.location='/download-monitor-launcher/windows'"
-                style="background: linear-gradient(135deg, #2c7be5, #1a5fc4); box-shadow: 0 4px 12px rgba(44,123,229,0.35);">
-            <i class="fab fa-windows"></i>
-            Windows (.bat)
-        </button>
-        <button class="action-btn" onclick="window.location='/download-monitor-launcher/linux'"
-                style="background: linear-gradient(135deg, #e8590c, #c0470a); box-shadow: 0 4px 12px rgba(232,89,12,0.35);">
-            <i class="fab fa-linux"></i>
-            Linux (.sh)
-        </button>
-        <button class="action-btn" onclick="window.location='/download-monitor-launcher/mac'"
-                style="background: linear-gradient(135deg, #495057, #343a40); box-shadow: 0 4px 12px rgba(73,80,87,0.35);">
-            <i class="fab fa-apple"></i>
-            Mac (.command)
-        </button>
-    </div>
-</div>
-
-<!-- Culto de Hoje -->
-<div class="card grid-full">
-    <div class="card-title">
-        <i class="fas fa-calendar-alt" style="color: var(--success);"></i>
-        ORDEM DO CULTO - <span id="current-date"></span>
-    </div>
-    <div id="culto-status-container" class="culto-steps"></div>
-</div>
-
-<!-- QR Codes -->
-<div class="card grid-full">
-    <div class="card-title">
-        <i class="fas fa-qrcode" style="color: var(--primary);"></i>
-        ACESSO RÁPIDO (QR CODES)
-    </div>
-    <div class="qr-grid">
-        <div class="qr-item" onclick="window.open('/control', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/control_qr_code.png" alt="Controle">
-            <p>Controle</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/monitor', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/monitor_qr_code.png" alt="Monitor">
-            <p>Monitor</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/view', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/view_qr_code.png" alt="Cifra">
-            <p>Cifra</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/songs', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/songs_qr_code.png" alt="Biblioteca">
-            <p>Biblioteca</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/presenter', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/presenter_qr_code.png" alt="Presenter">
-            <p>Presenter</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/order', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/order_qr_code.png" alt="Ordem">
-            <p>Ordem</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/agenda/dashboard', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/order_qr_code.png" alt="Agenda">
-            <p>Agenda Equipes</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/img', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/img_qr_code.png" alt="Imagens">
-            <p>Imagens</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/bible', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/bible_qr_code.png" alt="Bíblia">
-            <p>Bíblia</p>
-        </div>
-        <div class="qr-item" onclick="window.open('/help', '_blank', 'noopener,noreferrer')">
-            <img src="/static/qrcodes/help_qr_code.png" alt="Ajuda">
-            <p>Ajuda</p>
-        </div>
-    </div>
-</div>
-
-<!-- Músicas Recentes e Atividade -->
-<div class="grid-2">
-    <!-- Músicas Recentes -->
-    <div class="card">
-        <div class="card-title">
-            <i class="fas fa-music" style="color: var(--success);"></i>
-            MÚSICAS RECENTES
-        </div>
-        {% if recent_songs %}
-            {% for song in recent_songs %}
-            <div class="list-item">
-                <span><i class="fas fa-music"></i> {{ song.title }}</span>
-                <a href="{{ song.url or '#' }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-size: 12px;">Exibir</a>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
-                <i class="fas fa-info-circle"></i> Nenhuma música tocada recentemente
-            </div>
-        {% endif %}
-        <div style="text-align: center; margin-top: 15px;">
-            <a href="/songs" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: none; font-size: 14px;">
-                Ver todas <i class="fas fa-arrow-right"></i>
-            </a>
-        </div>
-    </div>
-
-    <!-- Atividade Recente -->
-    <div class="card">
-        <div class="card-title">
-            <i class="fas fa-history" style="color: var(--warning);"></i>
-            ATIVIDADE RECENTE
-        </div>
-        {% if recent_activity %}
-            {% for entry in recent_activity %}
-            <div class="list-item">
-                <span>
-                    {% if entry.type == 'song' %}<i class="fas fa-music"></i>
-                    {% elif entry.type == 'bible' %}<i class="fas fa-book"></i>
-                    {% elif entry.type == 'video' %}<i class="fas fa-video"></i>
-                    {% elif entry.type == 'ticker' %}<i class="fas fa-bullhorn"></i>
-                    {% else %}<i class="fas fa-image"></i>{% endif %}
-                    {{ entry.title | truncate(40, true, '…') }}
-                </span>
-                <span class="time-badge">{{ entry.ts[11:16] }}</span>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; color: var(--text-secondary); padding: 20px;">
-                <i class="fas fa-info-circle"></i> Nenhuma atividade registrada
-            </div>
-        {% endif %}
-    </div>
-</div>
+    </details>
+</main>
 {% endblock %}
 
 {% block scripts %}
+<script>
+    window.UC_URLS = {
+        control: "{{ url_for('display.control') }}",
+        orderNew: "{{ url_for('orders.order_new') }}"
+    };
+</script>
 <script src="{{ versioned_static('js/pages/dashboard.js') }}"></script>
 {% endblock %}

@@ -90,10 +90,58 @@ def dashboard():
             if len(recent_songs) >= 3:
                 break
 
-    # 5 entradas mais recentes de atividade
-    recent_activity = list(reversed(log[-5:])) if log else []
+    return render_template('dashboard.html', recent_songs=recent_songs,
+                           recent_activity=group_activity(log),
+                           today=datetime.now().strftime('%Y-%m-%d'))
 
-    return render_template('dashboard.html', recent_songs=recent_songs, recent_activity=recent_activity)
+
+# Rotas fixas que aparecem como "título" no log quando o telão troca de
+# tela (display.py loga a URL crua) — nomes que o operador reconhece.
+_ROUTE_NAMES = {
+    '/lyrics/display': 'Cifra',
+    '/lyrics/display/public': 'Letra',
+    '/clock': 'Relógio',
+    '/img': 'Imagem',
+    '/bible/display': 'Bíblia',
+    '/countdown': 'Cronômetro',
+}
+
+
+def _describe_activity(entry):
+    """(ação, alvo) legíveis pra uma entrada do display_log."""
+    kind, title = entry.get('type'), (entry.get('title') or '').strip()
+    if kind == 'song':
+        return 'Exibiu a letra de', title
+    if kind == 'bible':
+        return 'Exibiu', title
+    if kind == 'ticker':
+        return 'Aviso no telão:', title
+    if title.startswith('/static/'):
+        from urllib.parse import unquote
+        return 'Exibiu a imagem', unquote(title.rsplit('/', 1)[-1])
+    parts = [_ROUTE_NAMES.get(p.strip(), p.strip()) for p in title.split(' + ')]
+    return 'Telão mudou para', ' + '.join(parts)
+
+
+def group_activity(log, limit=5):
+    """Últimas `limit` atividades, juntando repetições seguidas da mesma
+    coisa (ex. a mesma música exibida 5 vezes em 3 minutos vira uma linha
+    "×5" com o intervalo de horário)."""
+    groups = []
+    for entry in reversed(log):
+        key = (entry.get('type'), entry.get('title'))
+        if groups and groups[-1]['key'] == key:
+            groups[-1]['count'] += 1
+            groups[-1]['first_ts'] = entry.get('ts', '')
+            continue
+        if len(groups) >= limit:
+            break
+        action, target = _describe_activity(entry)
+        groups.append({
+            'key': key, 'type': entry.get('type'), 'action': action, 'target': target,
+            'count': 1, 'last_ts': entry.get('ts', ''), 'first_ts': entry.get('ts', ''),
+        })
+    return groups
 
 
 @auth_bp.route('/logout')
@@ -121,7 +169,7 @@ def remover_usuario(id):
         db.session.commit()
         flash('Usuário removido com sucesso.')
     else:
-        flash('Usuário não encontrado.')
+        flash('Usuário não encontrado.', 'error')
     return redirect(url_for('auth.visualizar_usuarios'))
 
 
@@ -131,9 +179,9 @@ def alterar_senha(id):
     usuario = User.query.get(id)
     password = request.form.get('password', '')
     if not usuario:
-        flash('Usuário não encontrado.')
+        flash('Usuário não encontrado.', 'error')
     elif not password:
-        flash('A senha não pode estar em branco.')
+        flash('A senha não pode estar em branco.', 'error')
     else:
         usuario.password = generate_password_hash(password, method='pbkdf2:sha256')
         db.session.commit()
@@ -149,7 +197,7 @@ def adicionar_usuario():
 
     # Verifica se o nome de usuário já existe
     if User.query.filter_by(username=username).first():
-        flash('Usuário já existe.')
+        flash('Já existe um usuário com esse nome.', 'error')
     else:
         # Criptografa a senha
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')

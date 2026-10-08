@@ -868,3 +868,104 @@ def test_api_staged_content_reflects_current_state(app, client):
     data = response.get_json()
     assert "bible" in data
     assert data["bible"]["label"] == "João 3:16"
+
+
+def test_get_next_order_skips_empty_calendar_rows(app):
+    # O calendário cria linhas vazias pras datas sem culto marcado — o card
+    # "Próximo culto" do dashboard tem que pular essas.
+    import orders_store
+    from extensions import db
+    from models_orders import Order
+
+    with app.app_context():
+        db.session.add(Order(date="2099-01-02"))
+        db.session.commit()
+        orders_store.save_order("2099-01-03", {"tipo": "Culto Dominical", "itens": [{"title": "Abertura", "url": "/order"}]})
+
+        found_date, order = orders_store.get_next_order("2099-01-01")
+        assert found_date == "2099-01-03"
+        assert order["tipo"] == "Culto Dominical"
+        assert orders_store.get_next_order("2099-01-04") == (None, {})
+
+        orders_store.save_order("2099-01-03", {})
+        db.session.delete(db.session.get(Order, "2099-01-02"))
+        db.session.commit()
+
+
+def test_api_culto_proximo_splits_song_artist_and_builds_team(app, logged_in_client, monkeypatch):
+    import datetime as real_datetime
+    import blueprints.orders as orders_module
+    import orders_store
+
+    class FakeDate(real_datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2099, 2, 1)
+
+    monkeypatch.setattr(orders_module, "date", FakeDate)
+    with app.app_context():
+        orders_store.save_order("2099-02-03", {
+            "tipo": "Culto Dominical",
+            "horario_culto": "18:40",
+            "dirigente": "Miquéias",
+            "itens": [
+                {"title": "Ele É Exaltado | Adhemar de Campos", "url": "/lyrics/349"},
+                {"isBible": True, "reference": "Salmos 23", "title": "Salmos 23"},
+            ],
+            "louvor": {"cantores": ["Bel"], "musicos": [{"instrumento": "Teclado", "pessoa": "Jefferson"}]},
+            "midia": {"lider": "Vitor", "palco": "", "visual": "Thaynara"},
+        })
+
+    data = logged_in_client.get("/api/culto/proximo").get_json()
+    assert data["status"] == "ok"
+    assert data["date"] == "2099-02-03"
+    assert data["days_until"] == 2
+    assert data["horario"] == "18:40"
+    assert data["itens"][0] == {"kind": "song", "title": "Ele É Exaltado", "artist": "Adhemar de Campos", "url": "/lyrics/349"}
+    assert data["itens"][1]["kind"] == "bible"
+    assert {"funcao": "Mídia", "pessoa": "Vitor"} in data["equipe"]
+    assert {"funcao": "Teclado", "pessoa": "Jefferson"} in data["equipe"]
+    assert {"funcao": "Vozes", "pessoa": "Bel"} in data["equipe"]
+    assert not any(e["funcao"] == "Palco" for e in data["equipe"])  # vazio não entra
+
+    with app.app_context():
+        orders_store.save_order("2099-02-03", {})
+
+
+def test_group_activity_merges_consecutive_repeats():
+    from blueprints.auth import group_activity
+
+    log = [
+        {"type": "image", "title": "/static/imagens/Geral/boas%20vindas.jpg", "ts": "2026-10-08T18:00:00"},
+        {"type": "song", "title": "Ele É Exaltado", "ts": "2026-10-08T19:08:00"},
+        {"type": "song", "title": "Ele É Exaltado", "ts": "2026-10-08T19:09:00"},
+        {"type": "song", "title": "Ele É Exaltado", "ts": "2026-10-08T19:11:00"},
+        {"type": "image", "title": "/lyrics/display + /clock", "ts": "2026-10-08T19:12:00"},
+    ]
+    groups = group_activity(log)
+
+    assert [g["count"] for g in groups] == [1, 3, 1]
+    assert groups[0]["target"] == "Cifra + Relógio"
+    assert groups[1]["action"] == "Exibiu a letra de"
+    assert (groups[1]["first_ts"], groups[1]["last_ts"]) == ("2026-10-08T19:08:00", "2026-10-08T19:11:00")
+    assert groups[2]["target"] == "boas vindas.jpg"
+
+
+def test_redesigned_pages_render_with_theme_and_nav(logged_in_client):
+    for path in ("/dashboard", "/control", "/usuarios"):
+        response = logged_in_client.get(path)
+        assert response.status_code == 200, path
+        html = response.get_data(as_text=True)
+        assert 'class="uc-app"' in html, path
+        assert "css/app.css" in html, path
+        assert 'class="site-nav"' in html, path
+        assert "site-nav-link live" in html, path  # botão do Controle
+
+
+def test_unmigrated_page_keeps_own_css_but_gets_new_nav(logged_in_client, tmp_path, monkeypatch):
+    # Páginas que ainda não migraram não podem receber o app.css (quebraria
+    # o CSS delas), mas a barra nova vale pra todas.
+    monkeypatch.chdir(tmp_path)
+    html = logged_in_client.get("/order").get_data(as_text=True)
+    assert "css/app.css" not in html
+    assert 'class="site-nav"' in html

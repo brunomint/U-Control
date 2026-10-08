@@ -10,6 +10,7 @@ from flask import Blueprint, jsonify, render_template, request
 from flask_login import login_required
 
 from orders_store import (
+    get_next_order,
     get_order,
     load_orders,
     save_order,
@@ -66,6 +67,55 @@ def api_culto_status():
         'dirigente': order.get('dirigente', ''),
         'pregador': order.get('pregador', ''),
         'steps': steps
+    })
+
+
+@orders_bp.route('/api/culto/proximo', methods=['GET'])
+@login_required
+def api_culto_proximo():
+    """Próximo culto (hoje ou depois) pro card do dashboard: dados do
+    culto, itens da ordem e equipe. Itens de música vêm como
+    "Título | Artista" — separa aqui pra a tela não precisar."""
+    today = date.today()
+    order_date, order = get_next_order(today.isoformat())
+    if not order_date:
+        return jsonify({'status': 'none'})
+
+    itens = []
+    for item in order.get('itens', []):
+        if item.get('isBible'):
+            itens.append({'kind': 'bible', 'title': item.get('reference') or item.get('title') or 'Leitura'})
+        elif 'anyText' in item:
+            text = (item.get('anyText') or '').strip()
+            if text:
+                itens.append({'kind': 'text', 'title': text.splitlines()[0][:80]})
+        else:
+            title, _, artist = (item.get('title') or 'Item').partition(' | ')
+            itens.append({'kind': 'song', 'title': title.strip(), 'artist': artist.strip(), 'url': item.get('url')})
+
+    louvor = order.get('louvor') or {}
+    midia = order.get('midia') or {}
+    equipe = []
+    for label, pessoa in (('Mídia', midia.get('lider')), ('Palco', midia.get('palco')), ('Visual', midia.get('visual'))):
+        if pessoa:
+            equipe.append({'funcao': label, 'pessoa': pessoa})
+    for m in louvor.get('musicos') or []:
+        if m.get('pessoa'):
+            equipe.append({'funcao': m.get('instrumento') or 'Música', 'pessoa': m['pessoa']})
+    cantores = [c for c in (louvor.get('cantores') or []) if c]
+    if cantores:
+        equipe.append({'funcao': 'Vozes', 'pessoa': ', '.join(cantores)})
+
+    return jsonify({
+        'status': 'ok',
+        'date': order_date,
+        'days_until': (date.fromisoformat(order_date) - today).days,
+        'tipo': order.get('tipo', ''),
+        'horario': order.get('horario_culto') or order.get('horario') or '',
+        'dirigente': order.get('dirigente', ''),
+        'pregador': order.get('pregador', ''),
+        'itens': itens,
+        'equipe': equipe,
     })
 
 

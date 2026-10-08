@@ -1,0 +1,61 @@
+/* Tokens do tema único do U-Control — cores, fonte, raios.
+   Só variáveis e @font-face: é seguro carregar em qualquer página
+   (inclusive nas que ainda não migraram pro app.css), por isso a navbar
+   (_nav.html) puxa este arquivo sozinho.
+
+   Regras de cor:
+   - --accent (roxo): só a ação principal da tela e o item ativo;
+   - --live (vermelho): só o que mexe no telão agora;
+   - --danger: só apagar/remover;
+   - todo o resto é neutro. */
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(/static/vendor/fonts/files/manrope-var-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(/static/vendor/fonts/files/manrope-var-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --uc-bg: #0f1220;
+  --uc-surface: #161a2b;
+  --uc-surface-2: #1d2236;
+  --uc-surface-3: #262c44;
+  --uc-line: #2a3050;
+  --uc-text: #e9ebf4;
+  --uc-muted: #9198b3;
+  --uc-faint: #636a87;
+
+  --uc-accent: #8b6cf6;
+  --uc-accent-strong: #7350ea;
+  --uc-accent-soft: rgba(139, 108, 246, .15);
+  --uc-accent-text: #b9a8ff;
+
+  --uc-live: #f04b55;
+  --uc-live-strong: #d93a45;
+  --uc-live-soft: rgba(240, 75, 85, .14);
+  --uc-ok: #3fcf8e;
+  --uc-ok-soft: rgba(63, 207, 142, .13);
+  --uc-warn: #f2b84b;
+  --uc-warn-soft: rgba(242, 184, 75, .13);
+  --uc-danger: #f0707a;
+  --uc-danger-soft: rgba(240, 112, 122, .12);
+
+  --uc-font: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --uc-mono: ui-monospace, 'Cascadia Code', 'DejaVu Sans Mono', Menlo, Consolas, monospace;
+
+  --uc-r-sm: 6px;
+  --uc-r: 10px;
+  --uc-r-lg: 14px;
+  --uc-nav-h: 56px;
+}

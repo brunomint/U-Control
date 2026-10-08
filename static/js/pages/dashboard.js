@@ -1,26 +1,12 @@
-// Atualiza hora atual
-function updateTime() {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const el = document.getElementById('current-time');
-    if (el) el.textContent = timeStr;
-}
+// Início: saudação/data, card "Próximo culto" (/api/culto/proximo) e
+// faixa do sistema + pills do topo (/api/system/status, a cada 5 s).
 
-// Atualiza data atual
-function updateDate() {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-    const el = document.getElementById('current-date');
-    if (el) el.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
-}
+const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+               'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 function escapeHtml(unsafe) {
-    return unsafe
+    return String(unsafe)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -28,214 +14,172 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-async function loadSystemStatus() {
-    const container = document.getElementById('system-status-container');
-    if (!container) return;
+function updateGreeting() {
+    const now = new Date();
+    const h = now.getHours();
+    const greeting = h < 12 ? 'Bom dia' : (h < 18 ? 'Boa tarde' : 'Boa noite');
+    const g = document.getElementById('greeting');
+    if (g) g.textContent = greeting;
+    const d = document.getElementById('current-date');
+    if (d) d.textContent = `${DIAS[now.getDay()]}, ${now.getDate()} de ${MESES[now.getMonth()]} de ${now.getFullYear()}`;
+}
 
+function isLoginRedirect(response) {
+    return response.redirected || response.url.includes('/login');
+}
+
+// ── Próximo culto ──────────────────────────────────────────────────────
+const KIND_LABEL = { song: 'música', bible: 'leitura', text: 'texto' };
+
+function whenLabel(days) {
+    if (days === 0) return 'Hoje';
+    if (days === 1) return 'Amanhã';
+    return `Próximo culto · em ${days} dias`;
+}
+
+function formatServiceDate(iso) {
+    // iso = YYYY-MM-DD; monta a data local sem passar por UTC.
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${DIAS[dt.getDay()]}, ${d} de ${MESES[m - 1]}`;
+}
+
+function renderNextService(data) {
+    const card = document.getElementById('next-service');
+    if (!card) return;
+
+    if (data.status !== 'ok') {
+        card.innerHTML = `
+            <div class="uc-empty">
+                <i class="fas fa-calendar-plus"></i>
+                Nenhum culto marcado daqui pra frente.
+                <div class="uc-btn-row" style="justify-content:center;margin-top:14px">
+                    <a class="uc-btn uc-btn-primary" href="${window.UC_URLS.orderNew}"><i class="fas fa-plus"></i> Nova ordem de culto</a>
+                </div>
+            </div>`;
+        return;
+    }
+
+    const title = formatServiceDate(data.date) + (data.horario ? ` · ${data.horario}` : '');
+    const meta = [data.tipo, data.dirigente && `dirigente: ${data.dirigente}`, data.pregador && `pregação: ${data.pregador}`]
+        .filter(Boolean).map(escapeHtml).join(' · ');
+
+    const itens = data.itens.length
+        ? `<ol class="next-order">${data.itens.map((item, i) => `
+            <li>
+                <span class="n">${String(i + 1).padStart(2, '0')}</span>
+                <span class="t">${escapeHtml(item.title)}${item.artist ? `<span class="artist">${escapeHtml(item.artist)}</span>` : ''}</span>
+                <span class="kind">${KIND_LABEL[item.kind] || ''}</span>
+            </li>`).join('')}</ol>`
+        : `<div class="uc-empty"><i class="fas fa-list-ol"></i>A ordem ainda não tem itens.</div>`;
+
+    const equipe = data.equipe.length
+        ? `<div class="team">${data.equipe.map(e => `<span><b>${escapeHtml(e.funcao)}</b>${escapeHtml(e.pessoa)}</span>`).join('')}</div>`
+        : '';
+
+    card.innerHTML = `
+        <div class="next-head">
+            <div>
+                <div class="next-eyebrow${data.days_until === 0 ? ' today' : ''}">${whenLabel(data.days_until)}</div>
+                <h2>${escapeHtml(title)}</h2>
+                ${meta ? `<div class="next-meta">${meta}</div>` : ''}
+            </div>
+        </div>
+        ${itens}
+        <div class="next-foot">
+            <a class="uc-btn uc-btn-live uc-btn-lg" href="${window.UC_URLS.control}"><i class="fas fa-play"></i> Abrir Controle</a>
+            <a class="uc-btn uc-btn-secondary uc-btn-lg" href="/order/${encodeURIComponent(data.date)}">Editar ordem</a>
+            ${equipe}
+        </div>`;
+}
+
+async function loadNextService() {
+    const card = document.getElementById('next-service');
     try {
-        const response = await fetch('/api/system/status');
-        const contentType = response.headers.get('content-type') || '';
-
-        if (response.redirected || response.url.includes('/login')) {
-            container.innerHTML = `
-                <div class="status-item">
-                    <span>Servidor</span>
-                    <span class="status-badge" style="background: var(--warning);">SESSÃO</span>
-                </div>`;
+        const response = await fetch('/api/culto/proximo');
+        if (isLoginRedirect(response)) {
+            card.innerHTML = `<div class="uc-empty"><i class="fas fa-lock"></i>Sua sessão expirou. Entre de novo e recarregue a página.</div>`;
             return;
         }
-
-        if (!contentType.includes('application/json')) {
-            throw new Error('Resposta não é JSON');
-        }
-
-        const data = await response.json();
-        const online = !!data.online;
-        const badgeText = online ? 'ONLINE' : 'OFFLINE';
-        const badgeColor = online ? 'var(--success)' : 'var(--danger)';
-
-        const publicUrl = data.public_url || '--';
-        const localUrl = data.local_url || '--';
-        const socketioClients = (data.socketio_clients === 0 || data.socketio_clients) ? data.socketio_clients : '--';
-        const socketioByRole = (data.socketio_by_role && typeof data.socketio_by_role === 'object') ? data.socketio_by_role : {};
-        const cpuPercent = (data.cpu_percent === 0 || data.cpu_percent) ? data.cpu_percent : null;
-        const ramPercent = (data.ram_percent === 0 || data.ram_percent) ? data.ram_percent : null;
-
-        const cpuText = (cpuPercent === null) ? '--' : `${Number(cpuPercent).toFixed(0)}%`;
-        const ramText = (ramPercent === null) ? '--' : `${Number(ramPercent).toFixed(0)}%`;
-
-        const diskTotalGb = (data.disk_total_gb === 0 || data.disk_total_gb) ? data.disk_total_gb : null;
-        const diskFreeGb = (data.disk_free_gb === 0 || data.disk_free_gb) ? data.disk_free_gb : null;
-        const diskUsedPercent = (data.disk_used_percent === 0 || data.disk_used_percent) ? data.disk_used_percent : null;
-
-        const diskText = (diskTotalGb === null || diskFreeGb === null || diskUsedPercent === null)
-            ? '--'
-            : `${Number(diskFreeGb).toFixed(1)}GB livre / ${Number(diskTotalGb).toFixed(1)}GB (${Number(diskUsedPercent).toFixed(0)}% usado)`;
-
-        const roleLabel = {
-            'monitor': 'Monitor',
-            'lyrics_display': 'Display Letras',
-            'presenter': 'Presenter',
-            'unknown': 'Outros'
-        };
-
-        const roleCountsHtml = Object.keys(socketioByRole)
-            .sort()
-            .map((role) => {
-                const label = roleLabel[role] || role;
-                const count = socketioByRole[role];
-                return `
-                    <div class="status-item">
-                        <span>SocketIO - ${escapeHtml(String(label))}</span>
-                        <span style="color: var(--text-secondary);">${escapeHtml(String(count))}</span>
-                    </div>`;
-            }).join('');
-
-        container.innerHTML = `
-            <div class="status-item">
-                <span>Servidor</span>
-                <span class="status-badge" style="background: ${badgeColor};">${badgeText}</span>
-            </div>
-            <div class="status-item">
-                <span>CPU / RAM</span>
-                <span style="color: var(--text-secondary);">${escapeHtml(cpuText)} / ${escapeHtml(ramText)}</span>
-            </div>
-            <div class="status-item">
-                <span>Disco</span>
-                <span style="color: var(--text-secondary);">${escapeHtml(diskText)}</span>
-            </div>
-            <div class="status-item">
-                <span>Conexões SocketIO</span>
-                <span style="color: var(--text-secondary);">${escapeHtml(String(socketioClients))}</span>
-            </div>
-            ${roleCountsHtml}
-            <div class="status-item">
-                <span>Acesso público</span>
-                <span style="color: var(--text-secondary);">${escapeHtml(String(publicUrl))}</span>
-            </div>
-            <div class="status-item">
-                <span>Acesso local</span>
-                <span style="color: var(--text-secondary);">${escapeHtml(String(localUrl))}</span>
-            </div>`;
+        renderNextService(await response.json());
     } catch (e) {
         console.error(e);
-        container.innerHTML = `
-            <div class="status-item">
-                <span>Servidor</span>
-                <span class="status-badge" style="background: var(--danger);">OFFLINE</span>
-            </div>
-            <div class="status-item">
-                <span>CPU / RAM</span>
-                <span style="color: var(--text-secondary);">-- / --</span>
-            </div>
-            <div class="status-item">
-                <span>Disco</span>
-                <span style="color: var(--text-secondary);">--</span>
-            </div>
-            <div class="status-item">
-                <span>Conexões SocketIO</span>
-                <span style="color: var(--text-secondary);">--</span>
-            </div>
-            <div class="status-item">
-                <span>Acesso público</span>
-                <span style="color: var(--text-secondary);">--</span>
-            </div>
-            <div class="status-item">
-                <span>Acesso local</span>
-                <span style="color: var(--text-secondary);">--</span>
-            </div>`;
+        card.innerHTML = `<div class="uc-empty"><i class="fas fa-triangle-exclamation"></i>Não deu pra carregar o próximo culto. Recarregue a página.</div>`;
     }
 }
 
-async function loadCultoStatus() {
-    const container = document.getElementById('culto-status-container');
-    if (!container) return;
-    container.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Carregando...</span>
-            </div>
-            <p class="mt-2">Carregando ordem do culto...</p>
+// ── Sistema ───────────────────────────────────────────────────────────
+const SCREEN_ROLES = { monitor: 'Monitor', lyrics_display: 'Letras', presenter: 'Presenter' };
+
+function has(v) { return v === 0 || !!v; }
+
+function meter(label, pct, text) {
+    if (!has(pct)) return `<div class="stat"><span>${label}</span><span class="uc-mono">--</span></div>`;
+    const p = Math.max(0, Math.min(100, Number(pct)));
+    return `
+        <div class="stat">
+            <span>${label}</span>
+            <span class="uc-mono">${escapeHtml(text)}</span>
+            <span class="meter"><i class="${p >= 85 ? 'high' : ''}" style="width:${p}%"></i></span>
         </div>`;
+}
 
+function setServerPill(state) {
+    const pill = document.getElementById('server-pill');
+    if (!pill) return;
+    const map = {
+        online: ['uc-pill-ok', 'Servidor online'],
+        offline: ['uc-pill-danger', 'Servidor offline'],
+        session: ['uc-pill-warn', 'Sessão expirada'],
+    };
+    const [cls, text] = map[state];
+    pill.className = `uc-pill ${cls}`;
+    pill.innerHTML = `<span class="dot"></span>${text}`;
+}
+
+function setScreensPill(byRole) {
+    const pill = document.getElementById('screens-pill');
+    if (!pill) return;
+    const parts = Object.keys(SCREEN_ROLES)
+        .filter(role => byRole[role])
+        .map(role => `${SCREEN_ROLES[role]}: ${byRole[role]}`);
+    const total = Object.keys(SCREEN_ROLES).reduce((n, role) => n + (Number(byRole[role]) || 0), 0);
+    pill.className = `uc-pill ${total ? 'uc-pill-ok' : 'uc-pill-muted'}`;
+    pill.innerHTML = `<i class="fas fa-display"></i> ${total} ${total === 1 ? 'tela conectada' : 'telas conectadas'}`;
+    pill.title = parts.length ? parts.join(' · ') : 'Nenhum monitor, letreiro ou presenter aberto agora';
+}
+
+async function loadSystemStatus() {
+    const strip = document.getElementById('system-strip');
+    if (!strip) return;
     try {
-        const response = await fetch('/api/culto/status');
-        const contentType = response.headers.get('content-type') || '';
-
-        if (response.redirected || response.url.includes('/login')) {
-            container.innerHTML = `
-                <div class="alert alert-warning">
-                    Sua sessão expirou. Faça login novamente e recarregue a página.
-                </div>`;
-            return;
-        }
-
-        if (!contentType.includes('application/json')) {
-            throw new Error('Resposta não é JSON');
-        }
-
+        const response = await fetch('/api/system/status');
+        if (isLoginRedirect(response)) { setServerPill('session'); return; }
         const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(data?.error || 'Erro ao carregar status');
-        }
+        setServerPill(data.online ? 'online' : 'offline');
+        setScreensPill(data.socketio_by_role && typeof data.socketio_by_role === 'object' ? data.socketio_by_role : {});
 
-        if (data.status === 'no_service') {
-            container.innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> ${escapeHtml(data.message || 'Nenhum culto agendado para hoje')}
-                </div>`;
-            return;
-        }
-
-        if (!data.steps || data.steps.length === 0) {
-            const info = [];
-            if (data.tipo) info.push(`<strong>${escapeHtml(data.tipo)}</strong>`);
-            if (data.horario) info.push(`🕐 ${escapeHtml(data.horario)}`);
-            if (data.dirigente) info.push(`Dirigente: ${escapeHtml(data.dirigente)}`);
-            if (data.pregador) info.push(`Pregador: ${escapeHtml(data.pregador)}`);
-            container.innerHTML = `
-                <div style="line-height:1.8; color: var(--text-secondary); font-size:0.9em;">
-                    ${info.length ? info.join('<br>') : '<i class="fas fa-exclamation-triangle"></i> Culto agendado sem itens na ordem.'}
-                </div>`;
-            return;
-        }
-
-        const typeIcon = {
-            'abertura': 'fa-door-open',
-            'louvor': 'fa-music',
-            'mensagem': 'fa-book',
-            'oferta': 'fa-hand-holding-usd',
-            'encerramento': 'fa-sign-out-alt',
-            'item': 'fa-circle'
-        };
-
-        container.innerHTML = data.steps.map((step) => {
-            const icon = typeIcon[step.type] || typeIcon.item;
-            return `
-                <div class="step pending">
-                    <i class="fas ${icon}"></i> ${escapeHtml(step.title || 'Item')}
-                </div>`;
-        }).join('');
+        const diskText = has(data.disk_free_gb) ? `${Number(data.disk_free_gb).toFixed(1).replace('.', ',')} GB livres` : '--';
+        strip.innerHTML = `
+            ${meter('CPU', data.cpu_percent, has(data.cpu_percent) ? `${Number(data.cpu_percent).toFixed(0)}%` : '')}
+            ${meter('RAM', data.ram_percent, has(data.ram_percent) ? `${Number(data.ram_percent).toFixed(0)}%` : '')}
+            ${meter('Disco', data.disk_used_percent, diskText)}
+            <div class="addr">
+                <span>Público <span class="uc-mono">${escapeHtml(data.public_url || '--')}</span></span>
+                <span>Rede local <span class="uc-mono">${escapeHtml(data.local_url || '--')}</span></span>
+            </div>`;
     } catch (e) {
         console.error(e);
-        container.innerHTML = `
-            <div class="alert alert-warning">
-                Não foi possível carregar a ordem do culto. Tente recarregar a página.
-            </div>`;
+        setServerPill('offline');
+        strip.innerHTML = `<span class="uc-muted">Sem resposta do servidor. Tentando de novo…</span>`;
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    try { updateTime(); } catch (e) { console.error(e); }
-    try { updateDate(); } catch (e) { console.error(e); }
-    setInterval(() => {
-        try { updateTime(); } catch (e) { console.error(e); }
-    }, 1000);
-
-    try { loadCultoStatus(); } catch (e) { console.error(e); }
-    try { loadSystemStatus(); } catch (e) { console.error(e); }
-    setInterval(() => {
-        try { loadSystemStatus(); } catch (e) { console.error(e); }
-    }, 5000);
+    updateGreeting();
+    setInterval(updateGreeting, 60000);
+    loadNextService();
+    loadSystemStatus();
+    setInterval(loadSystemStatus, 5000);
 });
