@@ -1,208 +1,30 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="{{ versioned_static('js/csrf.js') }}"></script>
-    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Editar Música</title>
-    <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-    <script src="/static/vendor/vexflow/4.2.2-cjs/vexflow.js"></script>
-    <script src="/static/js/youtube-player.js?v=10"></script>
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% extends "base.html" %}
+{% set app_theme = true %}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/song-editor.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/edit_song.css') }}">
+{% block title %}Editar {{ song.title if song else 'música' }} - U-Control{% endblock %}
 
-</head>
-<body>
-    {% include "_nav.html" %}
+{% block head_extra %}
+<script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+<script src="/static/vendor/vexflow/4.2.2-cjs/vexflow.js"></script>
+<script src="/static/js/youtube-player.js?v=10"></script>
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
-    <!-- Barra de Ferramentas -->
-    <div class="toolbar-fixed" style="
-        position: relative !important;
-        z-index: 10 !important;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
-        border-bottom: 3px solid #2196f3 !important;
-        border-top: 1px solid #ddd !important;
-        padding: 20px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
-        display: flex !important;
-        gap: 15px !important;
-        flex-wrap: wrap !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100% !important;
-        min-height: 80px !important;
-        margin-top: 60px !important;
-        margin-bottom: 0 !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        border-radius: 0 !important;
-    ">
-        <button type="button" id="addSectionBtn" class="bto-transpor" style="background: #2196f3 !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            🎵 Nova Seção
-        </button>
-        <button type="button" id="addTextBlockBtn" class="bto-transpor" style="background: #4caf50 !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            📝 Adicionar Texto
-        </button>
-        <button type="button" id="insertSheetBtn" class="bto-transpor" style="background: #1976d2 !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            🎼 Criar Partitura
-        </button>
-        <button type="button" id="addSheetBlockBtn" class="bto-transpor" style="background: #9c27b0 !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            🎨 Inserir Partitura
-        </button>
-        <button type="button" id="previewBtn" class="bto-transpor" style="background: #ff9800 !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            👁️ Preview
-        </button>
-        <button type="button" id="clearAllBtn" class="bto-transpor" style="background: #f44336 !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            🗑️ Limpar Tudo
-        </button>
-        <button type="button" id="selectModeBtn" class="bto-transpor" style="background: #607d8b !important; color: white !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            ☑️ Selecionar
-        </button>
-        <button type="button" id="deleteSelectedBtn" class="bto-transpor" style="background: #e91e63 !important; color: white !important; display: none !important; margin: 0 !important; padding: 12px 20px !important; font-size: 14px !important; font-weight: bold !important;">
-            🗑️ Excluir Selecionados
-        </button>
-    </div>
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/song-editor.css') }}">
+{% endblock %}
 
-    <div class="content">
-        <form id="songForm">
-            <label for="title">Título:</label>
-            <input type="text" id="title" name="title" value="{{ song.title if song else '' }}" required><br>
-    
-            <label for="author">Autor:</label>
-            <input type="text" id="author" name="author" value="{{ song.author if song else '' }}"><br>
-
-            <div style="margin: 8px 0 12px; padding: 7px 12px; background: rgba(251,191,36,0.1); border-left: 3px solid #fbbf24; border-radius: 4px; font-size: 0.82rem; color: #92400e;">
-                💡 Linhas que começam com <code style="background:#fef3c7;padding:1px 5px;border-radius:3px">//</code> são <strong>notas privadas de palco</strong> — aparecem apenas no monitor do operador, nunca no telão.
-                <span style="opacity:.7">Ex: <code>// Repetir este verso 2x</code></span>
-            </div>
-
-              
-
-            <div class="toolbar">
-                <div class="tom-widget">
-                    <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
-                    <div class="tom-popover" id="tomPanel">
-                        <div class="tom-popover-row">
-                            <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
-                            <button type="button" class="bto-transpor" onclick="transposeStep(-1)">−1/2 tom</button>
-                            <button type="button" class="bto-transpor" onclick="transposeStep(1)">+1/2 tom</button>
-                            <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
-                        </div>
-                        <div class="tom-grid" id="tomGrid">
-                            <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
-                            <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
-                            <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
-                            <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
-                            <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
-                            <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
-                            <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
-                            <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
-                            <button type="button" class="tom-key-btn" data-key="F" onclick="jumpToKey('F')">F</button>
-                            <button type="button" class="tom-key-btn" data-key="F#" onclick="jumpToKey('F#')">F#</button>
-                            <button type="button" class="tom-key-btn" data-key="G" onclick="jumpToKey('G')">G</button>
-                            <button type="button" class="tom-key-btn" data-key="Ab" onclick="jumpToKey('Ab')">Ab</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="scrollable-div">
-                <div id="sections">
-                    <div class="section">
-                        <div class="section-header" style="display: none;">
-                            <input type="text" name="sections[]" placeholder="Título da Seção (ex. verso, coro, estrofe...)">
-                            <button type="button" class="addSection" title="Adicionar Seção"><i class="fas fa-plus"></i></button>
-                            <button type="button" class="removeSection" title="Remover Seção"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-
-                        
-                        <!-- Editor de Blocos Integrado -->
-                        <div id="blockEditor" style="border: 1px solid #ddd; border-radius: 4px; min-height: 300px; background: white;">
-                            <!-- Blocos de conteúdo aparecerão aqui -->
-                            <div class="block-container" id="blockContainer">
-                                <div class="text-block" contenteditable="true" data-placeholder="Digite a letra da música..." style="padding: 10px; min-height: 50px; outline: none; border-bottom: 1px dashed #eee;">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Campo oculto para envio do formulário -->
-                        <textarea id="entrada" name="texts[]" style="display: none;"></textarea>
-                        
-                        <!-- Campo oculto para URL do vídeo de referência -->
-                        <input type="hidden" id="video_url" name="video_url" value="{{ song.video_url or '' }}">
-                        <!-- Campo oculto para URL do áudio local -->
-                        <input type="hidden" id="audio_url" name="audio_url" value="{{ song.audio_url or '' }}">
-                        
-                    </div>
-                </div>
-            </div>
-
-            <div class="footer">
-                <button type="submit" class="btn-salvar">
-                    <i class="fas fa-save"></i> Salvar
-                  </button>
-                  <a href="{{ url_for('songs.list_songs') }}" class="button">
-                    <i class="fas fa-music"></i> Ver Músicas
-                  </a>
-                  <button type="button" class="bto-transpor" onclick="processCifraClubManual()" style="margin-left: 10px;">
-                    <i class="fas fa-link"></i> Processar Link Cifra Club
-                  </button>
-            </div>
-
-        </form>
-    </div>
-
-
-
-
+{% block content %}
+{% include "_nav.html" %}
+{% include "_song_editor.html" %}
 <script id="edit-song-data" type="application/json">{{ {"songId": (song.id if song else 0), "song": (song if song else none)} | tojson }}</script>
-    <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
-    <script>
-        // Lido por edit_song.js pra buscar sheet_render.js (ES module,
-        // import() dinâmico) já com cache-busting.
-        window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
-    </script>
-    <script src="{{ versioned_static('js/pages/edit_song.js') }}"></script>
+{% endblock %}
 
-    <!-- Editor VexFlow Modal -->
-    <div id="vexEditor" class="vex-editor-container" style="display: none;">
-        <div class="vex-editor" style="background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto;">
-            <h3>Editor de Partitura</h3>
-            
-            <!-- Toolbar -->
-            <div class="vex-toolbar" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <div class="vex-durations">
-                    <span>Duração:</span>
-                    <button class="vex-btn active" data-dur="w" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅝</button>
-                <button class="vex-btn" data-dur="h" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅗𝅥</button>
-                <button class="vex-btn" data-dur="q" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅘𝅥</button>
-                <button class="vex-btn" data-dur="8" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅘𝅥𝅮</button>
-                <button class="vex-btn" data-dur="16" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅘𝅥𝅯</button>
-                    <button class="vex-btn" data-dur="8" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅘𝅥𝅮</button>
-                    <button class="vex-btn" data-dur="16" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">𝅘𝅥𝅯</button>
-                </div>
-                
-                <div class="vex-accidentals">
-                    <span>Acidentes:</span>
-                    <button class="vex-btn active" data-acc="n" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">♮</button>
-                    <button class="vex-btn" data-acc="#" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">♯</button>
-                    <button class="vex-btn" data-acc="b" style="padding: 8px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin: 0 2px;">♭</button>
-                </div>
-            </div>
-            
-            <!-- Canvas para partitura -->
-            <div id="vex-canvas" style="border: 1px solid #ccc; margin: 20px 0; min-height: 200px; background: white;"></div>
-            
-            <!-- Botões de ação -->
-            <div class="vex-actions" style="text-align: center; margin-top: 20px; gap: 10px; display: flex; justify-content: center;">
-                <button id="vex-insert" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Inserir Partitura</button>
-                <button id="vex-cancel" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Cancelar</button>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+{% block scripts %}
+<script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+<script>
+    // Lido por edit_song.js pra buscar sheet_render.js (ES module, import() dinâmico) com cache-busting.
+    window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
+</script>
+<script src="{{ versioned_static('js/pages/edit_song.js') }}"></script>
+{% endblock %}

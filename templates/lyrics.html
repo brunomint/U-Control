@@ -1,357 +1,193 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="{{ versioned_static('js/csrf.js') }}"></script>
-    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
-    <title>{{ song.title }}</title>
-    <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-    <script src="/static/vendor/socketio/socket.io.min.js"></script>
-    <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
-    <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% extends "base.html" %}
+{% set app_theme = true %}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/lyrics.css') }}">
+{% block title %}{{ song.title }} · Letra ao vivo{% endblock %}
 
-    <style>
-        /* Widget "Tom: X" estilo Cifra Club — mesmo padrão de new_song/
-           edit_song/view_song (ver .claude/plans/harmonic-mixing-breeze.md),
-           cores seguem o mesmo tema escuro dos outros botões fixos desta
-           página (#btn-bg/#btn-tema: fundo #1e1e2e, borda #475569). */
-        .tom-widget {
-            position: fixed;
-            top: 15px;
-            right: 460px;
-            z-index: 1100;
-        }
+{% block head_extra %}
+<script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
-        .tom-trigger {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 18px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            user-select: none;
-            border-radius: 50px;
-            background: #1e1e2e;
-            color: #fff;
-            border: 2px solid #475569;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
-        }
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/lyrics.css') }}">
+{% endblock %}
 
-        .tom-trigger:hover {
-            background: #2a2a3e;
-        }
+{% block content %}
+{% include "_nav.html" %}
 
-        .tom-trigger strong {
-            color: #a78bfa;
-        }
-
-        .tom-popover {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            z-index: 1101;
-            width: 260px;
-            background: #1e1e2e;
-            border: 1px solid #475569;
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
-            padding: 10px;
-        }
-
-        .tom-popover-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .tom-btn {
-            flex: 1;
-            background: rgba(124, 58, 237, .18);
-            color: #e2e8f0;
-            border: 1px solid rgba(124, 58, 237, .35);
-            border-radius: 6px;
-            padding: 8px 4px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .tom-btn:hover {
-            background: rgba(124, 58, 237, .32);
-        }
-
-        .tom-icon-btn {
-            background: rgba(255, 255, 255, .08);
-            color: #e2e8f0;
-            border: 1px solid rgba(255, 255, 255, .15);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            flex-shrink: 0;
-            font-size: 15px;
-            line-height: 1;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .tom-icon-btn:hover {
-            background: rgba(255, 255, 255, .18);
-        }
-
-        .tom-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 6px;
-        }
-
-        .tom-key-btn {
-            padding: 8px 4px;
-            background: rgba(255, 255, 255, .06);
-            border: 1px solid rgba(255, 255, 255, .15);
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #e2e8f0;
-            cursor: pointer;
-        }
-
-        .tom-key-btn:hover {
-            background: rgba(124, 58, 237, .3);
-        }
-
-        .tom-key-btn.active {
-            background: #7c3aed;
-            color: white;
-            border-color: #7c3aed;
-        }
-
-        @media (max-width: 900px) {
-            .tom-widget {
-                position: static;
-                display: flex;
-                justify-content: center;
-                margin: 8px 0;
-            }
-
-            .tom-popover {
-                right: auto;
-                left: 0;
-            }
-        }
-    </style>
-</head>
-<body>
-
-
-<div id="menu" class="collapsed">
-        <h2>Menu</h2>
-        <div class="order">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Buscar música...">
+<!-- Lista da ordem (abre pela esquerda pelo botão "Ordem do culto") -->
+<aside id="menu" class="collapsed" aria-label="Ordem do culto">
+    <div class="menu-head">
+        <h2>Ordem do culto</h2>
+        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="closeMenu()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="order">
+        <div class="search-box uc-search">
+            <i class="fas fa-music"></i>
+            <input class="uc-input" type="text" id="searchInput" placeholder="Adicionar música" autocomplete="off">
             <div id="autocompleteList" class="autocomplete-list"></div>
         </div>
-        <div class="search-box">
-            <input type="text" id="bibleSearchInput" placeholder="Buscar na Bíblia (ex: João 3:16)...">
+        <div class="search-box uc-search">
+            <i class="fas fa-book-bible"></i>
+            <input class="uc-input" type="text" id="bibleSearchInput" placeholder="Adicionar leitura (ex.: João 3:16)" autocomplete="off">
             <div id="bibleAutocompleteList" class="autocomplete-list"></div>
         </div>
         <div class="anyText">
-            <input type="text" id="freeTextInput" placeholder="Digite qualquer texto...">
-            <button onclick="addToList()">Adicionar Texto</button>
+            <input class="uc-input" type="text" id="freeTextInput" placeholder="Texto livre">
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="addToList()"><i class="fas fa-plus"></i> Texto</button>
         </div>
         <div class="list">
-            <h2>Ordem do Culto</h2>
-            <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)">
-        </div>
-        <button class="action-button" onclick="saveList()">Salvar Lista</button>
+            <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <button type="button" class="uc-btn uc-btn-primary action-button" onclick="saveList()"><i class="fas fa-floppy-disk"></i> Salvar lista</button>
         </div>
     </div>
-
-        
-        <a href="/order">Voltar</a>
-        <a href="/">Início</a>
-      </div>
-
-    <!-- Modal de leitura da passagem ao vivo (sendBibleListItem em
-         lyrics_4.js) — um verso por linha, clicável: clicar manda só
-         aquele verso ao telão (sendSingleBibleVerse), nunca todos juntos.
-         Fica FORA de #menu de propósito: #menu tem transform (usado pra
-         abrir/fechar a barra lateral), e transform num ancestral cria um
-         novo bloco de referência pra position:fixed dos filhos — o modal
-         ficava preso dentro da largura do menu em vez de cobrir a tela. -->
-    <div id="bibleReadAlongModal" class="bible-modal-backdrop" style="display:none;"
-         onclick="if (event.target === this) closeBibleReadAlong();">
-        <div class="bible-modal-content">
-            <div class="bible-modal-header">
-                <span class="bible-read-along-ref" id="bibleReadAlongRef"></span>
-                <div class="bible-modal-header-actions">
-                    <!-- Mesma função/estado do botão Esconder/Mostrar da barra
-                         lateral (toggleLyricsVisibility em lyrics_2.js) — o
-                         modal fica por cima de tudo (z-index maior) e cobre
-                         aquele botão, então precisa de um aqui dentro
-                         também. Os dois ficam sincronizados via a classe
-                         compartilhada .lyrics-toggle-btn. -->
-                    <button type="button" class="lyrics-toggle-btn bible-modal-toggle {{ 'show-mode' if not lyrics_visible else '' }}"
-                            onclick="toggleLyricsVisibility()" title="Mostrar/Esconder na tela">
-                        <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
-                        <span class="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
-                    </button>
-                    <button type="button" class="bible-modal-close" onclick="closeBibleReadAlong()">✕</button>
-                </div>
-            </div>
-            <div class="bible-read-along-text" id="bibleReadAlongText"></div>
-        </div>
+    <div class="menu-links">
+        <a href="/order"><i class="fas fa-list-ol"></i> Ordens de culto</a>
+        <a href="/songs"><i class="fas fa-music"></i> Músicas</a>
     </div>
+</aside>
 
-    <div class="main-content"></div>
-    <button id="toggle-button" onclick="openMenu()">☰ Menu</button>
-        <h1>{{ song.title }} - {{ song.author }}</h1>
-
-        <!-- Widget de transposição estilo Cifra Club — transpõe a letra/
-             cifra exibida aqui E o que é enviado ao vivo pro monitor do
-             músico (/lyrics/display) via socket.io, pra nunca ficar
-             dessincronizado durante o culto. Não salva no servidor; tom
-             escolhido persiste em localStorage por música. -->
-        <div class="tom-widget">
-            <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
-            <div class="tom-popover" id="tomPanel">
-                <div class="tom-popover-row">
-                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
-                    <button type="button" class="tom-btn" onclick="transposeStep(-1)">−1/2 tom</button>
-                    <button type="button" class="tom-btn" onclick="transposeStep(1)">+1/2 tom</button>
-                    <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
-                </div>
-                <div class="tom-grid" id="tomGrid">
-                    <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
-                    <button type="button" class="tom-key-btn" data-key="Bb" onclick="jumpToKey('Bb')">Bb</button>
-                    <button type="button" class="tom-key-btn" data-key="B" onclick="jumpToKey('B')">B</button>
-                    <button type="button" class="tom-key-btn" data-key="C" onclick="jumpToKey('C')">C</button>
-                    <button type="button" class="tom-key-btn" data-key="C#" onclick="jumpToKey('C#')">C#</button>
-                    <button type="button" class="tom-key-btn" data-key="D" onclick="jumpToKey('D')">D</button>
-                    <button type="button" class="tom-key-btn" data-key="Eb" onclick="jumpToKey('Eb')">Eb</button>
-                    <button type="button" class="tom-key-btn" data-key="E" onclick="jumpToKey('E')">E</button>
-                    <button type="button" class="tom-key-btn" data-key="F" onclick="jumpToKey('F')">F</button>
-                    <button type="button" class="tom-key-btn" data-key="F#" onclick="jumpToKey('F#')">F#</button>
-                    <button type="button" class="tom-key-btn" data-key="G" onclick="jumpToKey('G')">G</button>
-                    <button type="button" class="tom-key-btn" data-key="Ab" onclick="jumpToKey('Ab')">Ab</button>
-                </div>
-            </div>
-        </div>
-
-        <button id="btn-bg" onclick="alternarFundoDisplay()" title="Alternar fundo preto/branco do monitor"
-            style="position:fixed;top:15px;right:310px;z-index:1100;padding:10px 18px;
-                   font-size:14px;font-weight:600;cursor:pointer;border:none;border-radius:50px;
-                   background:#1e1e2e;color:#fff;border:2px solid #475569;
-                   box-shadow:0 4px 12px rgba(0,0,0,.3);display:flex;align-items:center;gap:6px;">
-            ⬛ Fundo
-        </button>
-        <button id="btn-tema" onclick="abrirModalTema()" title="Definir tema visual de fundo"
-            style="position:fixed;top:15px;right:160px;z-index:1100;padding:10px 18px;
-                   font-size:14px;font-weight:600;cursor:pointer;border:none;border-radius:50px;
-                   background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;
-                   box-shadow:0 4px 15px rgba(124,58,237,.4);display:flex;align-items:center;gap:6px;">
-            🖼️ <span id="btn-tema-label">Tema</span>
-        </button>
-
-        <!-- Modal de seleção de tema -->
-        <div id="modal-tema" style="display:none;position:fixed;inset:0;z-index:2000;
-             background:rgba(0,0,0,.75);overflow-y:auto;padding:20px;">
-            <div style="background:#1e1e2e;border-radius:16px;max-width:800px;margin:40px auto;padding:24px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                    <h2 style="color:#e2e8f0;margin:0;font-size:1.2rem;">🖼️ Tema Visual</h2>
-                    <button onclick="fecharModalTema()" style="background:none;border:none;color:#94a3b8;font-size:1.5rem;cursor:pointer;">✕</button>
-                </div>
-                <button onclick="limparTema()" style="width:100%;padding:10px;margin-bottom:16px;
-                    background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
-                    color:#f87171;border-radius:8px;cursor:pointer;font-size:.9rem;">
-                    🚫 Sem tema (fundo preto)
+<!-- Leitura da passagem ao vivo (lyrics_4.js: sendBibleListItem) — fora de
+     #menu de propósito: o transform do menu prenderia o position:fixed. -->
+<div id="bibleReadAlongModal" class="bible-modal-backdrop" style="display:none;" onclick="if (event.target === this) closeBibleReadAlong();">
+    <div class="bible-modal-content">
+        <div class="bible-modal-header">
+            <span class="bible-read-along-ref" id="bibleReadAlongRef"></span>
+            <div class="bible-modal-header-actions">
+                <!-- Mesmo estado do botão Esconder/Mostrar da página (.lyrics-toggle-btn) -->
+                <button type="button" class="lyrics-toggle-btn bible-modal-toggle {{ 'show-mode' if not lyrics_visible else '' }}" onclick="toggleLyricsVisibility()" title="Mostrar/esconder no telão">
+                    <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
+                    <span class="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
                 </button>
-                <div id="tema-preview" style="display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;max-height:140px;">
-                    <img id="tema-preview-img" src="" style="width:100%;height:140px;object-fit:cover;">
-                </div>
-                <div style="border-top:1px solid #333;padding:12px 0 4px;margin-bottom:12px;">
-                    <p style="color:#aaa;font-size:0.8rem;margin:0 0 8px">Cor sólida</p>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                        <input type="color" id="cor-tema" value="#000000"
-                               style="width:44px;height:32px;border:none;cursor:pointer;background:none;padding:0">
-                        <button onclick="aplicarCorTema()"
-                                style="padding:4px 14px;border-radius:6px;border:none;background:#6d28d9;color:#fff;cursor:pointer;font-size:0.85rem">
-                            Aplicar cor
-                        </button>
-                    </div>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
-                        <span title="Preto"        onclick="aplicarCorPreset('#000000')" style="width:28px;height:28px;background:#000000;border:2px solid #555;border-radius:5px;cursor:pointer;display:inline-block"></span>
-                        <span title="Azul noite"   onclick="aplicarCorPreset('#0f172a')" style="width:28px;height:28px;background:#0f172a;border:2px solid #555;border-radius:5px;cursor:pointer;display:inline-block"></span>
-                        <span title="Roxo escuro"  onclick="aplicarCorPreset('#1e1b4b')" style="width:28px;height:28px;background:#1e1b4b;border:2px solid #555;border-radius:5px;cursor:pointer;display:inline-block"></span>
-                        <span title="Vinho"        onclick="aplicarCorPreset('#4c0519')" style="width:28px;height:28px;background:#4c0519;border:2px solid #555;border-radius:5px;cursor:pointer;display:inline-block"></span>
-                        <span title="Verde escuro" onclick="aplicarCorPreset('#052e16')" style="width:28px;height:28px;background:#052e16;border:2px solid #555;border-radius:5px;cursor:pointer;display:inline-block"></span>
-                        <span title="Cinza escuro" onclick="aplicarCorPreset('#1c1917')" style="width:28px;height:28px;background:#1c1917;border:2px solid #555;border-radius:5px;cursor:pointer;display:inline-block"></span>
-                    </div>
-                </div>
-                <div style="border-top:1px solid #333;padding:12px 0 4px;margin-bottom:12px;">
-                    <p style="color:#aaa;font-size:0.8rem;margin:0 0 10px">Gradiente</p>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <span title="Noite estrelada"  onclick="aplicarGradiente('linear-gradient(160deg,#0f0c29,#302b63,#24243e)')" style="width:52px;height:36px;background:linear-gradient(160deg,#0f0c29,#302b63,#24243e);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Oceano profundo"  onclick="aplicarGradiente('linear-gradient(160deg,#0f2027,#203a43,#2c5364)')" style="width:52px;height:36px;background:linear-gradient(160deg,#0f2027,#203a43,#2c5364);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Aurora"           onclick="aplicarGradiente('linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1a1a2e,#16213e,#0f3460);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Crepúsculo roxo"  onclick="aplicarGradiente('linear-gradient(160deg,#1e1b4b,#312e81,#4338ca)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1e1b4b,#312e81,#4338ca);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Vinho e âmbar"    onclick="aplicarGradiente('linear-gradient(160deg,#4c0519,#7f1d1d,#92400e)')" style="width:52px;height:36px;background:linear-gradient(160deg,#4c0519,#7f1d1d,#92400e);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Floresta"         onclick="aplicarGradiente('linear-gradient(160deg,#052e16,#14532d,#166534)')" style="width:52px;height:36px;background:linear-gradient(160deg,#052e16,#14532d,#166534);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Bruma dourada"    onclick="aplicarGradiente('linear-gradient(160deg,#1c1917,#44403c,#78350f)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1c1917,#44403c,#78350f);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Éter"             onclick="aplicarGradiente('linear-gradient(160deg,#0c4a6e,#075985,#0369a1)')" style="width:52px;height:36px;background:linear-gradient(160deg,#0c4a6e,#075985,#0369a1);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Café escuro"      onclick="aplicarGradiente('linear-gradient(160deg,#0d0500,#3b1a08,#6b3a1f)')" style="width:52px;height:36px;background:linear-gradient(160deg,#0d0500,#3b1a08,#6b3a1f);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Mogno"            onclick="aplicarGradiente('linear-gradient(160deg,#1a0800,#5c2206,#8b4513)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1a0800,#5c2206,#8b4513);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Âmbar profundo"   onclick="aplicarGradiente('linear-gradient(160deg,#1a0900,#4a1c00,#92400e)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1a0900,#4a1c00,#92400e);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Terra queimada"   onclick="aplicarGradiente('linear-gradient(160deg,#0d0500,#431407,#7c2d12)')" style="width:52px;height:36px;background:linear-gradient(160deg,#0d0500,#431407,#7c2d12);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Canela"           onclick="aplicarGradiente('linear-gradient(160deg,#1c0800,#6b3a1f,#a16207)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1c0800,#6b3a1f,#a16207);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Ouro velho"       onclick="aplicarGradiente('linear-gradient(160deg,#1c1004,#4a3000,#854d0e)')" style="width:52px;height:36px;background:linear-gradient(160deg,#1c1004,#4a3000,#854d0e);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Cobre e noite"    onclick="aplicarGradiente('linear-gradient(160deg,#0d0500,#292524,#7c3a00)')" style="width:52px;height:36px;background:linear-gradient(160deg,#0d0500,#292524,#7c3a00);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                        <span title="Chocolate"        onclick="aplicarGradiente('linear-gradient(160deg,#030000,#1c0a00,#5c2a0a)')" style="width:52px;height:36px;background:linear-gradient(160deg,#030000,#1c0a00,#5c2a0a);border:2px solid #555;border-radius:6px;cursor:pointer;display:inline-block"></span>
-                    </div>
-                </div>
-                <div id="tema-folders" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
-                <div id="tema-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;"></div>
+                <button type="button" class="bible-modal-close" onclick="closeBibleReadAlong()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
             </div>
         </div>
+        <div class="bible-read-along-text" id="bibleReadAlongText"></div>
+    </div>
+</div>
 
-        <div id="sections-list"></div>
-        <button id="prev"><i class="fas fa-arrow-up"></i></button>
-<button id="next"><i class="fas fa-arrow-down"></i></button>
-<button id="toggle-lyrics" class="lyrics-toggle-btn {{ 'show-mode' if not lyrics_visible else '' }}">
-    <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
-    <span class="toggle-text" id="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
-</button>
-
-    
+<main class="lyrics-page">
+    <div class="main-content"></div>
+    <div class="lyrics-head">
+        <div class="lyrics-title">
+            <button type="button" id="toggle-button" class="uc-btn uc-btn-secondary" onclick="openMenu()"><i class="fas fa-list-ol"></i> Ordem do culto</button>
+            <div class="min-w-0">
+                <h1>{{ song.title }}</h1>
+                {% if song.author %}<div class="uc-page-sub">{{ song.author }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="lyrics-tools">
+            <!-- Transposição estilo Cifra Club: transpõe esta tela e o monitor
+                 do músico (/lyrics/display) ao vivo. Não salva no servidor. -->
+            <div class="tom-widget">
+                <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">Tom <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
+                <div class="tom-popover" id="tomPanel">
+                    <div class="tom-popover-row">
+                        <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Voltar ao tom original" aria-label="Voltar ao tom original"><i class="fas fa-rotate-left"></i></button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(-1)">−½ tom</button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(1)">+½ tom</button>
+                    </div>
+                    <div class="tom-grid" id="tomGrid">
+                        {% for k in ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','Ab'] %}
+                        <button type="button" class="tom-key-btn" data-key="{{ k }}" onclick="jumpToKey('{{ k }}')">{{ k }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="btn-bg" class="tool-btn" onclick="alternarFundoDisplay()" title="Alternar fundo preto/branco do monitor do músico"><i class="fas fa-moon"></i> Fundo preto</button>
+            <button type="button" id="btn-tema" class="tool-btn" onclick="abrirModalTema()" title="Fundo visual da letra no telão"><i class="fas fa-image"></i> <span id="btn-tema-label">Tema</span></button>
+        </div>
     </div>
 
-    <script src="{{ versioned_static('js/pages/lyrics_1.js') }}"></script>
-        
+    <p class="lyrics-hint">Toque numa seção para prepará-la · setas trocam de seção</p>
+    <div id="sections-list"></div>
+</main>
 
+<!-- Controles flutuantes -->
+<div class="float-controls">
+    <button type="button" id="toggle-lyrics" class="lyrics-toggle-btn {{ 'show-mode' if not lyrics_visible else '' }}">
+        <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
+        <span class="toggle-text" id="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
+    </button>
+    <div class="nav-buttons">
+        <button type="button" id="prev" aria-label="Seção anterior"><i class="fas fa-arrow-up"></i></button>
+        <button type="button" id="next" aria-label="Próxima seção"><i class="fas fa-arrow-down"></i></button>
+    </div>
+</div>
+
+<!-- Modal de tema visual -->
+<div id="modal-tema" class="uc-modal-overlay" style="display:none;">
+    <div class="uc-modal tema-modal" role="dialog" aria-modal="true" aria-labelledby="tema-title">
+        <div class="uc-modal-head">
+            <h2 id="tema-title">Tema visual da letra</h2>
+            <button type="button" class="uc-modal-close" onclick="fecharModalTema()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="uc-modal-body">
+            <button type="button" class="uc-btn uc-btn-danger" onclick="limparTema()"><i class="fas fa-ban"></i> Sem tema (fundo preto)</button>
+            <div id="tema-preview" class="tema-preview" style="display:none;">
+                <img id="tema-preview-img" src="" alt="Tema atual">
+            </div>
+
+            <div class="tema-section">
+                <div class="uc-label-caps">Cor sólida</div>
+                <div class="tema-row">
+                    <input type="color" id="cor-tema" value="#000000" aria-label="Escolher cor">
+                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="aplicarCorTema()">Aplicar cor</button>
+                    {% for title, c in [('Preto','#000000'),('Azul noite','#0f172a'),('Roxo escuro','#1e1b4b'),('Vinho','#4c0519'),('Verde escuro','#052e16'),('Cinza escuro','#1c1917')] %}
+                    <button type="button" class="swatch" title="{{ title }}" aria-label="{{ title }}" style="background:{{ c }}" onclick="aplicarCorPreset('{{ c }}')"></button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="tema-section">
+                <div class="uc-label-caps">Gradiente</div>
+                <div class="tema-row">
+                    {% for title, g in [
+                        ('Noite estrelada','linear-gradient(160deg,#0f0c29,#302b63,#24243e)'),
+                        ('Oceano profundo','linear-gradient(160deg,#0f2027,#203a43,#2c5364)'),
+                        ('Aurora','linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)'),
+                        ('Crepúsculo roxo','linear-gradient(160deg,#1e1b4b,#312e81,#4338ca)'),
+                        ('Vinho e âmbar','linear-gradient(160deg,#4c0519,#7f1d1d,#92400e)'),
+                        ('Floresta','linear-gradient(160deg,#052e16,#14532d,#166534)'),
+                        ('Bruma dourada','linear-gradient(160deg,#1c1917,#44403c,#78350f)'),
+                        ('Éter','linear-gradient(160deg,#0c4a6e,#075985,#0369a1)'),
+                        ('Café escuro','linear-gradient(160deg,#0d0500,#3b1a08,#6b3a1f)'),
+                        ('Mogno','linear-gradient(160deg,#1a0800,#5c2206,#8b4513)'),
+                        ('Âmbar profundo','linear-gradient(160deg,#1a0900,#4a1c00,#92400e)'),
+                        ('Terra queimada','linear-gradient(160deg,#0d0500,#431407,#7c2d12)'),
+                        ('Canela','linear-gradient(160deg,#1c0800,#6b3a1f,#a16207)'),
+                        ('Ouro velho','linear-gradient(160deg,#1c1004,#4a3000,#854d0e)'),
+                        ('Cobre e noite','linear-gradient(160deg,#0d0500,#292524,#7c3a00)'),
+                        ('Chocolate','linear-gradient(160deg,#030000,#1c0a00,#5c2a0a)')
+                    ] %}
+                    <button type="button" class="swatch wide" title="{{ title }}" aria-label="{{ title }}" style="background:{{ g }}" onclick="aplicarGradiente('{{ g }}')"></button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="tema-section">
+                <div class="uc-label-caps">Imagem</div>
+                <div id="tema-folders" class="tema-folders"></div>
+                <div id="tema-grid" class="tema-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible} | tojson }}</script>
-    <script>
-        // Lido por lyrics_2.js pra buscar sheet_render.js (ES module,
-        // import() dinâmico) já com cache-busting.
-        window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
-    </script>
-    <script src="{{ versioned_static('js/pages/lyrics_2.js') }}"></script>
-    <script src="{{ versioned_static('js/release_banner.js') }}"></script>
-    <script>initReleaseBanner(socket, 'lyrics');</script>
+<script>
+    // Lido por lyrics_2.js pra buscar sheet_render.js (ES module, import() dinâmico) com cache-busting.
+    window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
+</script>
+{% endblock %}
 
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/lyrics_1.js') }}"></script>
+<script src="{{ versioned_static('js/pages/lyrics_2.js') }}"></script>
+<script src="{{ versioned_static('js/release_banner.js') }}"></script>
+<script>initReleaseBanner(socket, 'lyrics');</script>
 <script src="{{ versioned_static('js/pages/lyrics_3.js') }}"></script>
-
-  <script src="{{ versioned_static('js/pages/lyrics_4.js') }}"></script>
-  
-  
-  
-</body>
-</html>
+<script src="{{ versioned_static('js/pages/lyrics_4.js') }}"></script>
+{% endblock %}

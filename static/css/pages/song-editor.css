@@ -1,761 +1,222 @@
-        /* Piano Styles */
-        .piano-container {
-            position: relative;
-            display: flex;
-            margin: 20px auto;
-            width: 100%;
-            max-width: 500px;
-            height: 150px;
-            background: #f0f0f0;
-            border-radius: 5px;
-            padding: 5px;
-            box-sizing: border-box;
-        }
-        
-        .piano-key {
-            position: relative;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 10px;
-            box-sizing: border-box;
-            cursor: pointer;
-            user-select: none;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .white-key {
-            position: relative;
-            flex: 1;
-            height: 100%;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 0 0 5px 5px;
-            z-index: 1;
-        }
-        
-        .black-key {
-            position: absolute;
-            top: 0;
-            right: -15px;
-            width: 30px;
-            height: 60%;
-            background: #333;
-            color: white;
-            border-radius: 0 0 3px 3px;
-            z-index: 2;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 5px;
-            box-sizing: border-box;
-        }
-        
-        .white-key:active, .white-key.active {
-            background: #e0e0e0;
-        }
-        
-        .black-key:active, .black-key.active {
-            background: #111;
-        }
-
-        /* Estilos para o editor de partitura */
-      .vex-editor-container {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.7);
-        z-index: 2000;
-        justify-content: center;
-        align-items: center;
-      }
-      
-      .vex-editor-container.show {
-        display: flex;
-      }
-      
-      .vex-editor {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        width: 90%;
-        max-width: 900px;
-        max-height: 90vh;
-        overflow-y: auto;
-      }
-      
-      .vex-toolbar {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-      }
-      
-      .vex-btn {
-        padding: 8px 12px;
-        background: #f0f0f0;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      
-      .vex-btn:hover {
-        background: #e0e0e0;
-      }
-      
-      .vex-btn.active {
-        background: #00bcd4;
-        color: white;
-        border-color: #00acc1;
-      }
-      
-      #vex-canvas {
-        width: 100%;
-        min-height: 200px;
-        border: 1px solid #ddd;
-        margin: 10px 0;
-      }
-      
-      .vex-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 15px;
-      }
-      
-      .insert-score-btn {
-        background: #4caf50;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      
-      .insert-score-btn:hover {
-        background: #43a047;
-      }
-      
-      .cancel-btn {
-        background: #f44336;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      
-      .cancel-btn:hover {
-        background: #d32f2f;
-      }
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f7f9fc;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-            .section-header {
-            display: flex;
-            align-items: center; /* Alinha verticalmente os itens */
-            justify-content: space-between; /* Empurra o botão para a direita */
-            margin-bottom: 5px;
-        }
-
-        .section {
-            padding: 10px;
-            margin-bottom: 15px;
-
-        }
-
-        .section-header input {
-            flex: 1;
-            margin-right: 10px;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .section-header input:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-            outline: none;
-        }
-
-        .removeSection {
-            padding: 8px 12px;
-            background-color: #ff4d4d;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .removeSection:hover {
-            background-color: #e60000;
-        }
-
-        .tabs {
-            position: fixed; /* Fixa o elemento na tela */
-            top: 0; /* Posiciona no topo */
-            left: 0; /* Alinha à esquerda */
-            width: 100%; /* Ocupa toda a largura da tela */
-            background-color: #00bcd4; /* Cor de fundo */
-            color: white; /* Cor do texto */
-            display: flex; /* Exibe as abas em linha */
-            justify-content: space-around; /* Espaçamento igual entre os itens */
-            padding: 10px 0; /* Espaçamento interno vertical */
-            box-shadow: 0 5px 8px rgba(0, 0, 0, 0.1); /* Adiciona uma sombra para destaque */
-            z-index: 1000; /* Garante que fique acima de outros elementos */
-        }
-
-        .tab {
-            padding: 10px 20px; /* Espaçamento interno */
-            text-align: center; /* Centraliza o texto */
-            cursor: pointer; /* Adiciona o cursor de mão */
-        }  
-
-
-
-        .tab:last-child {
-            border-right: none;
-        }
-
-        .tab a {
-            color: white; /* Cor do texto dos links */
-            text-decoration: none; /* Remove o sublinhado */
-        }
-
-        .tab.active {
-            font-weight: bold; /* Destaca a aba ativa */
-            text-decoration: underline; /* Sublinha a aba ativa */
-        }
-
-        .content {
-
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin: 110px auto;
-            max-width: 800px;
-        }
-
-        label {
-            display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"], textarea {
-            width: calc(100% - 20px);
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            margin-bottom: 5px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-
-        .input-button-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 400px; /* ajuste conforme o seu layout */
-        }
-
-        .input-button-wrapper input {
-            width: 100%;
-            padding: 10px 100px 10px 12px; /* espaço maior para o botão */
-            font-size: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            height: 40px; /* define altura fixa para o input */
-            transition: border-color 0.3s;
-        }
-
-        .input-button-wrapper input:focus {
-            border-color: #1e88e5;
-            outline: none;
-            box-shadow: 0 0 5px rgba(30, 136, 229, 0.5);
-        }
-
-        .input-button-wrapper button.btn-cifra {
-            position: absolute;
-            right: 2px;
-            top: 45%;
-            transform: translateY(-50%);
-            height: 34px; /* um pouco menor que o input para encaixar */
-            padding: 0 16px;
-            border-radius: 12px;
-            font-size: 13px;
-            background-color: #000102;
-            color: white;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background-color 0.3s, transform 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-        }
-
-        .input-button-wrapper button.btn-cifra:hover {
-            height: 36px;
-            font-size: 14px;
-            border-radius: 8px;
-            transform: translateY(-50%);
-  
-        }
-
-        .toolbar {
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Widget "Tom: X" estilo Cifra Club — clicar no rótulo abre uma
-           janelinha flutuante (popover) com desfazer/±meio-tom/grade de
-           notas; tudo fica escondido até o clique, igual ao app de
-           referência (não fica ocupando espaço permanente no toolbar). */
-        .tom-widget {
-            position: relative;
-            display: inline-block;
-        }
-
-        .tom-trigger {
-            display: inline-block;
-            font-size: 13px;
-            color: #444;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 6px 12px;
-            cursor: pointer;
-            user-select: none;
-            transition: background-color 0.2s ease;
-        }
-
-        .tom-trigger:hover {
-            background: #ececec;
-        }
-
-        .tom-trigger strong {
-            color: #9c27b0;
-            font-size: 15px;
-        }
-
-        .tom-popover {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            z-index: 20;
-            width: 260px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
-            padding: 10px;
-        }
-
-        .tom-popover-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .tom-popover-row .bto-transpor {
-            flex: 1;
-            justify-content: center;
-            padding: 8px 4px;
-            font-size: 12px;
-        }
-
-        .tom-icon-btn {
-            background: #f0f0f0;
-            color: #555;
-            border: 1px solid #ddd;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            flex-shrink: 0;
-            font-size: 15px;
-            line-height: 1;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s ease;
-        }
-
-        .tom-icon-btn:hover {
-            background: #e0e0e0;
-        }
-
-        .tom-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 6px;
-        }
-
-        .tom-key-btn {
-            padding: 8px 4px;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #444;
-            cursor: pointer;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-
-        .tom-key-btn:hover {
-            background: #e8d5ef;
-        }
-
-        .tom-key-btn.active {
-            background: #9c27b0;
-            color: white;
-            border-color: #7b1fa2;
-        }
-
-        .bto-transpor {
-            background-color: #9c27b0; /* roxo vibrante */
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 14px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-            .bto-transpor:hover {
-            background-color: #7b1fa2;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-        }
-
-            .bto-transpor i {
-            font-size: 18px;
-        }
-
-        .toolbar select {
-            padding: 5px 10px;
-            margin-right: 5px;
-            cursor: pointer;
-        }
-
-        .scrollable-div {
-            width: 100%;
-            height: auto; /* Altura automática para se ajustar ao conteúdo */
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            padding: 10px;
-            box-sizing: border-box;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        textarea[name="texts[]"], #entrada {
-            width: 100%;
-            box-sizing: border-box;
-            resize: none; /* ou 'vertical' se quiser permitir redimensionamento */
-            border: none;
-            outline: none;
-            padding: 10px;
-            font-size: inherit;
-            background-color: transparent;
-            overflow: auto;
-            min-height: 120px;
-            background-color: #f7f9fc;
-        }
-
-        .addSection {
-            background: none;
-            border: none;
-            color: #28a745; /* verde suave */
-            font-size: 18px;
-            cursor: pointer;
-        }
-
-        .addSection:hover {
-    color: #1c7c34; /* verde mais escuro no hover */
-        }
-
-        .removeSection {
-            background: none;
-            border: none;
-            color: #ff4d4d;
-            font-size: 18px;
-            cursor: pointer;
-        }
-
-        .removeSection:hover {
-            color: #f89e9e;
-        }
-
-        a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .footer {
-            display: flex;
-            align-items: center;
-            margin-top: 20px;
-        }
-
-        .footer input[type="text"] {
-            flex: 1;
-            margin-right: 10px;
-        }
-
-        .footer label {
-            margin-right: 10px;
-        }        
-        
-        .btn-salvar {
-            background-color: #4CAF50; /* verde moderno */
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            margin-right: 10px;
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px; /* espaçamento entre ícone e texto */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        .btn-salvar:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .btn-salvar i {
-            font-size: 18px;
-        }
-
-        @media (max-width: 600px) {
-            .tabs {
-                padding: 8px;
-        }
-
-        .tab {
-            padding: 10px 5px;
-            font-size: 14px;
-        }
-
-        .content {
-            margin: 100px 10px;
-            padding: 4px;
-        }
-
-        .section-header { 
-            align-items: stretch;
-        }
-
-        .section-header input {
-            margin-bottom: 10px;
-            margin-right: 0;
-        }
-
-        .input-button-wrapper input {
-            font-size: 14px;
-            padding: 10px 90px 10px 12px;
-        }
-
-        .input-button-wrapper button.btn-cifra {
-            height: 34px;
-            padding: 0 12px;
-            font-size: 13px;
-        }
-
-        .bto-transpor {
-            padding: 6px 10px;
-            font-size: 12px;
-        }
-
-        .btn-salvar {
-            padding: 8px 12px;
-            font-size: 12px;
-        }
-    }
-
-    
-    /* CSS para Editor de Blocos Integrado */
-    .block-container {
-        padding: 0;
-    }
-    
-    .text-block {
-        font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace !important;
-        font-size: 14px;
-        line-height: 1.4;
-        white-space: pre !important;
-    }
-    
-    .text-block:empty:before {
-        content: attr(data-placeholder);
-        color: #999;
-        font-style: italic;
-    }
-    
-    .text-block:focus {
-        background: #f9f9f9;
-        border-bottom-color: #1976d2;
-    }
-    
-    .sheet-block {
-        padding: 15px;
-        background: #fafafa;
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-        margin: 10px 0;
-        position: relative;
-        text-align: center;
-    }
-    
-    .sheet-block svg {
-        max-width: 100%;
-        height: auto;
-        background: white;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .sheet-block .sheet-controls {
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        opacity: 0;
-        transition: opacity 0.2s;
-    }
-    
-    .sheet-block:hover .sheet-controls {
-        opacity: 1;
-    }
-    
-    .sheet-controls button {
-        background: rgba(0,0,0,0.7);
-        color: white;
-        border: none;
-        border-radius: 3px;
-        padding: 4px 8px;
-        margin-left: 4px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-    
-    .sheet-controls button:hover {
-        background: rgba(0,0,0,0.9);
-    }
-    
-    .section-block {
-        background: linear-gradient(135deg, #2196f3, #1976d2);
-        color: white;
-        padding: 12px 20px;
-        margin: 20px 0 10px 0;
-        border-radius: 8px;
-        font-weight: bold;
-        font-size: 16px;
-        position: relative;
-        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
-    }
-    
-    .section-block input {
-        background: transparent;
-        border: none;
-        color: white;
-        font-weight: bold;
-        font-size: 16px;
-        width: 100%;
-        outline: none;
-    }
-    
-    .section-block input::placeholder {
-        color: rgba(255, 255, 255, 0.8);
-    }
-    
-    .section-block .section-controls {
-        position: absolute;
-        top: 8px;
-        right: 10px;
-        opacity: 0;
-        transition: opacity 0.2s;
-    }
-    
-    .section-block:hover .section-controls {
-        opacity: 1;
-    }
-    
-    .section-controls button {
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: none;
-        border-radius: 3px;
-        padding: 4px 8px;
-        margin-left: 4px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-    
-    .section-controls button:hover {
-        background: rgba(255,255,255,0.3);
-    }
-    
-    .block-placeholder {
-        padding: 20px;
-        text-align: center;
-        color: #999;
-        font-style: italic;
-        border: 2px dashed #ddd;
-        border-radius: 4px;
-        margin: 10px 0;
-    }
-    
-    .block-add-buttons {
-        display: none;
-        position: absolute;
-        left: -40px;
-        top: 50%;
-        transform: translateY(-50%);
-        flex-direction: column;
-        gap: 4px;
-    }
-    
-    .text-block:hover + .block-add-buttons,
-    .sheet-block:hover + .block-add-buttons {
-        display: flex;
-    }
-
+/* Editor de música (new_song.html / edit_song.html → _song_editor.html).
+   Moldura no tema escuro; a área de edição (#blockEditor) é uma folha
+   clara, porque as partituras do VexFlow são desenhadas em preto sobre
+   branco. Blocos montados por new_song.js/edit_song.js. Base, card e
+   botões vêm do app.css. */
+
+.editor-page { max-width: 1000px; }
+.editor-form { display: grid; gap: 14px; }
+.grow { flex: 1; }
+
+.meta-card { display: grid; gap: 12px; }
+.meta-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto; gap: 12px; align-items: end; }
+.stage-tip { margin: 0; font-size: 13px; color: var(--uc-muted); }
+.stage-tip i { color: var(--uc-warn); margin-right: 4px; }
+.stage-tip code, .vex-editor code { font-family: var(--uc-mono); background: var(--uc-surface-2); border: 1px solid var(--uc-line); border-radius: 4px; padding: 0 5px; color: var(--uc-text); }
+
+/* Tom */
+.toolbar { display: flex; }
+.tom-widget { position: relative; }
+.tom-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--uc-r-sm);
+  border: 1px solid var(--uc-line);
+  background: var(--uc-bg);
+  color: var(--uc-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tom-trigger strong { color: var(--uc-accent-text); }
+.tom-trigger .fa-chevron-down { font-size: 10px; color: var(--uc-muted); }
+.tom-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  width: 270px;
+  padding: 10px;
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.tom-popover-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.tom-popover-row .bto-transpor, .tom-icon-btn, .tom-key-btn {
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface);
+  color: var(--uc-text);
+  border-radius: var(--uc-r-sm);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tom-popover-row .bto-transpor { flex: 1; padding: 7px 4px; }
+.tom-icon-btn { width: 34px; flex: none; }
+.tom-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.tom-key-btn { padding: 7px 0; }
+.tom-key-btn:hover, .tom-icon-btn:hover, .tom-popover-row .bto-transpor:hover { border-color: var(--uc-accent); }
+.tom-key-btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
+
+/* Barra de ferramentas */
+.toolbar-fixed {
+  position: sticky;
+  top: var(--uc-nav-h);
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--uc-r-lg);
+  background: rgba(22, 26, 43, .96);
+  border: 1px solid var(--uc-line);
+  backdrop-filter: blur(6px);
+}
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: var(--uc-r-sm);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--uc-muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tool-btn:hover { color: var(--uc-text); background: var(--uc-surface-2); }
+.tool-btn.active { color: var(--uc-text); background: var(--uc-surface-3); border-color: var(--uc-line); }
+.tool-btn.danger { background: var(--uc-danger-soft); color: var(--uc-danger); }
+.tool-btn.danger-ghost:hover { color: var(--uc-danger); background: var(--uc-danger-soft); }
+.tool-sep { width: 1px; height: 22px; background: var(--uc-line); margin: 0 4px; }
+
+/* Seções ocultas legadas (o JS usa .section-header só como suporte) */
+.section-header { display: none; }
+
+/* Folha de edição */
+#blockEditor {
+  min-height: 360px;
+  padding: 18px 22px;
+  border-radius: var(--uc-r-lg);
+  background: #fbfbfd;
+  color: #1d2236;
+  box-shadow: 0 2px 0 rgba(255, 255, 255, .04) inset, 0 10px 30px rgba(0, 0, 0, .3);
+}
+.block-container { padding: 0; }
+.text-block {
+  padding: 10px 12px;
+  min-height: 50px;
+  outline: none;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-family: var(--uc-mono) !important;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre !important;
+  word-wrap: normal;
+  overflow-x: auto;
+  color: #1d2236;
+}
+.text-block:empty::before { content: attr(data-placeholder); color: #9aa0b4; font-style: italic; }
+.text-block:hover { border-color: #e4e6ef; }
+.text-block:focus { background: #f2f1fb; border-color: #c9bffa; }
+
+.section-block {
+  position: relative;
+  margin: 18px 0 8px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: #1d2236;
+  color: #fff;
+  font-weight: 800;
+}
+.section-block input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.section-block input::placeholder { color: rgba(255, 255, 255, .6); }
+.section-block .section-controls { position: absolute; top: 6px; right: 8px; opacity: 0; transition: opacity .15s; }
+.section-block:hover .section-controls { opacity: 1; }
+.section-controls button { background: rgba(255, 255, 255, .15); color: #fff; border: 0; border-radius: 4px; padding: 4px 8px; margin-left: 4px; cursor: pointer; font-size: 12px; }
+.section-controls button:hover { background: rgba(255, 255, 255, .28); }
+
+.sheet-block { position: relative; margin: 10px 0; padding: 14px; border-radius: 8px; background: #fff; border: 1px solid #e4e6ef; text-align: center; }
+.sheet-block svg { max-width: 100%; height: auto; background: #fff; }
+.sheet-block .sheet-controls { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity .15s; }
+.sheet-block:hover .sheet-controls { opacity: 1; }
+.sheet-controls button { background: rgba(29, 34, 54, .85); color: #fff; border: 0; border-radius: 4px; padding: 4px 8px; margin-left: 4px; cursor: pointer; font-size: 12px; }
+.sheet-controls button:hover { background: #1d2236; }
+.block-placeholder { padding: 20px; text-align: center; color: #9aa0b4; font-style: italic; border: 2px dashed #e4e6ef; border-radius: 8px; margin: 10px 0; }
+.insert-menu { color: #1d2236; }
+.block-add-buttons { display: none; position: absolute; left: -40px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 4px; }
+.text-block:hover + .block-add-buttons, .sheet-block:hover + .block-add-buttons { display: flex; }
+
+textarea[name="texts[]"], #entrada { display: none; }
+
+.footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 4px; }
+
+/* Editor de partitura (modal) */
+.vex-editor-container {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 6, 12, .75);
+}
+.vex-editor-container.show { display: flex; }
+.vex-editor {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: var(--uc-r-lg);
+  background: var(--uc-surface);
+  border: 1px solid var(--uc-line);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
+  display: grid;
+  gap: 14px;
+}
+.vex-head h3 { font-size: 16px; font-weight: 800; }
+.vex-toolbar { display: flex; flex-wrap: wrap; gap: 16px; }
+.vex-durations, .vex-accidentals { display: flex; align-items: center; gap: 4px; }
+.vex-durations span, .vex-accidentals span { font-size: 12px; font-weight: 700; color: var(--uc-muted); margin-right: 4px; }
+.vex-btn { min-width: 38px; padding: 6px 10px; border-radius: var(--uc-r-sm); border: 1px solid var(--uc-line); background: var(--uc-surface-2); color: var(--uc-text); font-size: 18px; cursor: pointer; }
+.vex-btn:hover { border-color: var(--uc-faint); }
+.vex-btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
+#vex-canvas { width: 100%; min-height: 200px; border-radius: var(--uc-r); background: #fff; }
+.vex-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Teclado de piano (usado pelo editor de partitura) */
+.piano-container { position: relative; display: flex; width: 100%; max-width: 500px; height: 150px; margin: 10px auto; padding: 5px; border-radius: 6px; background: var(--uc-surface-2); box-sizing: border-box; }
+.piano-key { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; box-sizing: border-box; cursor: pointer; user-select: none; font-weight: 700; color: #333; }
+.white-key { flex: 1; height: 100%; background: #fff; border: 1px solid #ccc; border-radius: 0 0 5px 5px; z-index: 1; }
+.black-key { position: absolute; top: 0; right: -15px; width: 30px; height: 60%; background: #222; color: #fff; border-radius: 0 0 3px 3px; z-index: 2; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; box-sizing: border-box; }
+.white-key:active, .white-key.active { background: #e4e6ef; }
+.black-key:active, .black-key.active { background: #000; }
+
+@media (max-width: 760px) {
+  .meta-grid { grid-template-columns: minmax(0, 1fr); }
+  #blockEditor { padding: 12px; }
+  .tool-btn { padding: 7px 9px; }
+}

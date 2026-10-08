@@ -1,989 +1,35 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="{{ versioned_static('js/csrf.js') }}"></script>
-    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
-    <!-- Adicione no <head> -->
-        <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
-        <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
-        <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
-        <script src="/static/js/youtube-player.js?v=10"></script>
+{% extends "base.html" %}
+{% set app_theme = true %}
 
-    <title>Visualizar Músicas</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #0a0a0a;
-            color: #e2e8f0;
-            display: flex;
-            min-height: 100vh;
-            overflow-x: auto;
-            overflow-y: auto;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        /* Estilo do menu - Tema Moderno */
-        .menu {
-            width: 260px;
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-            color: #e2e8f0;
-            height: 100vh;
-            padding-top: 20px;
-            padding-bottom: 80px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            transition: transform 0.3s ease;
-            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
-            border-right: 1px solid rgba(74, 222, 128, 0.2);
-            overflow-y: auto;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            scrollbar-width: thin;
-            scrollbar-color: #4ade80 #1a1a2e;
-            z-index: 1000;
-            box-sizing: border-box;
-        }
-        
-        .menu h1 {
-            font-weight: bold;
-            font-size: 22px;
-            color: #4ade80;
-            text-align: center;
-            margin: 0 0 20px 0;
-            padding: 0 15px;
-            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-        }
-        
-        .menu.hidden {
-            transform: translateX(-100%);
-        }
-        
-        .menu-title {
-            font-size: 12px;
-            font-weight: 600;
-            padding: 12px 20px;
-            border-bottom: 1px solid rgba(74, 222, 128, 0.2);
-            margin-bottom: 5px;
-            color: #4ade80;
-            background: rgba(74, 222, 128, 0.1);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .menu a {
-            display: block;
-            color: #e2e8f0;
-            padding: 10px 20px;
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            border-left: 3px solid transparent;
-        }
-        
-        .menu a:hover {
-            background: rgba(74, 222, 128, 0.1);
-            border-left: 3px solid #4ade80;
-            color: #4ade80;
-            padding-left: 24px;
-        }
-        
-        .menu a.active {
-            background: rgba(74, 222, 128, 0.15);
-            border-left: 3px solid #4ade80;
-            color: #4ade80;
-        }
-        
-        /* Conteúdo principal */
-        .content {
-            margin-left: 280px;
-            padding: 20px;
-            width: auto;
-            min-width: calc(100vw - 280px);
-            box-sizing: border-box;
-            transition: margin-left 0.3s ease;
-            margin-top: 60px; /* Afasta do topo */
-            overflow: visible;
-            display: inline-block;
-        }
-        
-        h1, h4 {
-            font-size: 28px;
-            color: #4ade80;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        /* Header da Música - Estilo Moderno */
-        .song-header {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 25px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            margin-bottom: 30px;
-        }
+{% block title %}{{ song.title }} · Cifra{% endblock %}
 
-        /* Agrupa Buscar+Imprimir num único item flex — sem isso, cada
-           botão decidia sozinho se cabia na linha do título (título
-           comprido, em 2 linhas, sobra pouco espaço) e um wrap
-           deixava "Buscar" grudado no título e "Imprimir" sozinho
-           numa linha própria, alinhado à esquerda (achado ao vivo,
-           2026-09-22, com screenshot real). Como UM bloco só, os dois
-           botões quebram juntos pra a linha de baixo quando não cabem,
-           sempre lado a lado. */
-        .song-header-actions {
-            position: relative;
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-        }
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+<script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+<script src="/static/js/youtube-player.js?v=10"></script>
+{% endblock %}
 
-        .search-song-widget {
-            flex-shrink: 0;
-        }
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/view_song.css') }}">
+{% endblock %}
 
-        .search-song-btn {
-            flex-shrink: 0;
-            background: rgba(74, 222, 128, 0.1);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            color: #e2e8f0;
-            border-radius: 8px;
-            padding: 10px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background-color 0.2s ease;
-            white-space: nowrap;
-        }
+{% block content %}
+{% include "_nav.html" %}
 
-        .search-song-btn:hover {
-            background: rgba(74, 222, 128, 0.2);
-        }
-
-        .search-song-popover {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
-            z-index: 10000;
-            width: 320px;
-            /* calc já conta a borda/padding do próprio popover (box-sizing:
-               border-box logo abaixo) — sem isso, a largura real renderizada
-               ficava maior que o "width", estourando a tela em celular
-               (achado ao vivo, 2026-09-22: popover ancorado no botão
-               "Buscar", que não fica na borda direita de verdade — o botão
-               "Imprimir" vem depois dele — sobrava pouco espaço à
-               esquerda). Ancorado agora em .song-header-actions (grupo
-               Buscar+Imprimir inteiro), que aí sim termina na borda
-               direita de verdade. */
-            max-width: calc(100vw - 40px);
-            box-sizing: border-box;
-            background: #16213e;
-            border: 1px solid rgba(74, 222, 128, 0.25);
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            padding: 10px;
-        }
-
-        .search-song-popover input[type="text"] {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 10px 12px;
-            border: 1px solid rgba(96, 165, 250, 0.3);
-            border-radius: 8px;
-            font-size: 14px;
-            color: #e2e8f0;
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .search-song-popover input[type="text"]:focus {
-            outline: none;
-            border-color: #60a5fa;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .search-song-results {
-            margin-top: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-            border-radius: 8px;
-        }
-
-        .search-song-results:not(:empty) {
-            border: 1px solid rgba(96, 165, 250, 0.25);
-        }
-
-        .search-song-item {
-            padding: 9px 12px;
-            font-size: 13px;
-            color: #cbd5e1;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(96, 165, 250, 0.1);
-        }
-
-        .search-song-item:last-child {
-            border-bottom: none;
-        }
-
-        .search-song-item:hover {
-            background: rgba(96, 165, 250, 0.15);
-            color: #93c5fd;
-        }
-
-        .search-song-item .autor {
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .print-btn {
-            flex-shrink: 0;
-            background: rgba(74, 222, 128, 0.1);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            color: #e2e8f0;
-            border-radius: 8px;
-            padding: 10px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background-color 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .print-btn:hover {
-            background: rgba(74, 222, 128, 0.2);
-        }
-        
-        .song-header-icon {
-            font-size: 48px;
-            background: linear-gradient(135deg, #4ade80, #22c55e);
-            width: 80px;
-            height: 80px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 20px rgba(74, 222, 128, 0.4);
-            flex-shrink: 0;
-        }
-        
-        .song-header-info {
-            flex: 1;
-        }
-        
-        .song-header-title {
-            color: #fff !important;
-            font-size: 28px !important;
-            font-weight: 700;
-            margin: 0 0 8px 0 !important;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .song-header-author {
-            color: #a0aec0;
-            font-size: 16px;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .song-header-author::before {
-            content: '🎤 ';
-        }
-        
-        /* Seções - Divisores internos (sem cards separados) */
-        .section-card {
-            background: transparent;
-            border-radius: 0;
-            margin: 0;
-            overflow: visible;
-            box-shadow: none;
-        }
-        
-        .section-card-header {
-            background: rgba(74, 222, 128, 0.08);
-            border-left: 4px solid #4ade80;
-            border-radius: 0 8px 8px 0;
-            padding: 12px 20px;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .section-card-header h5 {
-            color: #4ade80 !important;
-            margin: 0 !important;
-            font-size: 15px !important;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-        }
-        
-        .section-card-content {
-            padding: 0 0 0 20px;
-        }
-        
-        .section-card-content pre,
-        .song-content-card pre {
-            background: transparent !important;
-            color: #e2e8f0 !important;
-            padding: 0 !important;
-            margin: 0 0 15px 0 !important;
-            font-size: 14px !important;
-            line-height: 1.6 !important;
-            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
-        }
-        
-        .section-card-content pre *,
-        .song-content-card pre * {
-            font-size: inherit !important;
-            line-height: inherit !important;
-            font-family: inherit !important;
-        }
-
-        .comment-line {
-            color: #475569;
-            font-style: italic;
-            font-size: 0.85em !important;
-        }
-        
-        /* Card único para toda a música */
-        .song-content-card {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: 16px;
-            padding: 25px;
-            margin-top: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            border: 1px solid rgba(74, 222, 128, 0.15);
-            min-width: fit-content;
-        }
-        
-        h3 {
-            color: #a0aec0;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        h5 {
-            color: #4ade80 !important;
-            margin-top: 20px;
-            font-weight: bold;
-            font-size: 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Garante que títulos de seção sempre sejam verdes */
-        .section-title, h5, .song-section {
-            color: #4ade80 !important;
-        }
-        
-        pre {
-            background-color: transparent;
-            color: #e2e8f0;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: bold;
-            line-height: 1.4;
-            margin: 5px 0;
-            margin-right: 50px;
-            white-space: pre !important;
-            overflow-x: visible;
-            word-wrap: normal;
-            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-            box-sizing: border-box;
-        }
-        
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            color: #007BFF;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
-        }
-        
-        /* Partitura responsiva - com fundo claro para visibilidade */
-        .sheet-display {
-            overflow-x: visible;
-            max-width: none;
-            width: auto;
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 15px 0;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-        }
-        
-        .sheet-display svg {
-            max-width: 100%;
-            height: auto;
-        }
-        
-        @media (max-width: 768px) {
-            .sheet-display {
-                overflow-x: visible;
-            }
-            
-            .sheet-display svg {
-                width: 100%;
-                height: auto;
-                transform: scale(0.9);
-                transform-origin: center top;
-            }
-        }
-        
-        /* Impressão — pensado pra sair em preto no branco, sem gastar tinta
-           colorida à toa: esconde todo o "chrome" da página (menu, botão de
-           menu, controles de auto-scroll, botões flutuantes de scroll,
-           widget de transposição, player de vídeo flutuante, o próprio
-           botão Imprimir) e converte o tema escuro/verde-neon em texto
-           preto sobre fundo branco. A partitura (.sheet-display) já nasce
-           com fundo claro pra ser visível na tela, então não precisa de
-           ajuste — só perde a sombra/borda, que não fazem sentido no papel. */
-        @media print {
-            @page {
-                margin: 1.5cm;
-            }
-
-            a, a:visited {
-                display: none !important;
-                visibility: hidden;
-            }
-
-            #toggle-menu,
-            .menu,
-            .menu a, .menu a:visited,
-            .controls,
-            .scroll-buttons,
-            .tom-widget,
-            .print-btn,
-            .search-song-widget,
-            #yt-floating-player,
-            .footer {
-                display: none !important;
-                visibility: hidden;
-            }
-
-            /* overflow: auto no body (linha ~20, pra rolagem normal na
-               tela) é uma pegadinha conhecida de impressão no Chrome —
-               overflow diferente de "visible" no body/html faz o motor
-               de impressão tratar o conteúdo como "rolável" em vez de
-               paginar de verdade, e IGNORA break-before/break-inside em
-               qualquer descendente, mesmo forçado via JS (achado ao
-               vivo, 2026-09-19: um bloco com break-before: page direto
-               no inline style ainda assim não pulava de página —
-               confirmado com um teste isolado, sem essa regra, que
-               break-before funciona normalmente). */
-            body {
-                background: #fff !important;
-                color: #000 !important;
-                display: block !important;
-                overflow: visible !important;
-            }
-
-            .content {
-                display: block !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                width: auto !important;
-                min-width: 0 !important;
-            }
-
-            .song-header {
-                background: none !important;
-                box-shadow: none !important;
-                padding: 0 0 15px 0;
-                border-bottom: 2px solid #000;
-                border-radius: 0;
-                margin-bottom: 20px;
-            }
-
-            .song-header-icon {
-                display: none;
-            }
-
-            .song-header-title {
-                color: #000 !important;
-                text-shadow: none !important;
-            }
-
-            .song-header-author {
-                color: #333 !important;
-            }
-
-            .song-content-card {
-                background: none !important;
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                margin-top: 0 !important;
-                min-width: 0 !important;
-            }
-
-            /* Seção de texto puro (sem partitura) pode cortar entre
-               páginas — só não pode cortar DENTRO de um par cifra+letra
-               (pedido explícito do usuário, com exemplo real, 2026-09-20:
-               prefere aproveitar o espaço da página a manter a seção
-               inteira igual ao WeasyPrint faz). Cada par vira um <div>
-               (ver prepararQuebraDePagina() no JS) com break-inside:avoid
-               próprio — a seção/card em si NÃO tem mais avoid, então o
-               Chrome corta livremente entre um par e o próximo. Seção
-               com partitura VexFlow integrada continua indivisível por
-               inteiro via :has() logo abaixo, porque não dá pra cortar
-               uma partitura no meio nem separá-la do seu cabeçalho. */
-            .section-card-content pre > div {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-
-            .section-card:has(.sheet-display) {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-
-            .section-card-header {
-                background: none !important;
-                border-left: 3px solid #000;
-                border-radius: 0;
-                box-shadow: none !important;
-                break-after: avoid-page;
-                page-break-after: avoid;
-            }
-
-            .section-card-header h5,
-            h5, h3 {
-                color: #000 !important;
-                text-shadow: none !important;
-            }
-
-            pre,
-            .section-card-content pre,
-            .song-content-card pre {
-                color: #000 !important;
-                background: transparent !important;
-            }
-
-            .chord {
-                color: #000 !important;
-                text-shadow: none !important;
-                font-weight: 700;
-            }
-
-            .comment-line {
-                color: #555 !important;
-            }
-
-            .sheet-display {
-                box-shadow: none !important;
-                border-radius: 0;
-                padding: 0;
-                break-inside: avoid;
-            }
-        }
-        
-        /* Estilo do botão de esconder/exibir - escondido em telas grandes */
-        #toggle-menu {
-            display: none; /* Escondido por padrão em telas grandes */
-            position: fixed;
-            top: 8px;
-            left: 8px;
-            padding: 12px 14px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #4ade80;
-            border: 2px solid #4ade80;
-            cursor: pointer;
-            font-size: 16px;
-            z-index: 1000;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
-            transition: all 0.2s ease;
-        }
-        
-        #toggle-menu:hover {
-            background: rgba(74, 222, 128, 0.15);
-            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
-            transform: scale(1.05);
-        }
-        
-        /* Ajuste para dispositivos móveis */
-        @media (max-width: 768px) {
-            /* Menu escondido por padrão em mobile */
-            .menu {
-                width: 240px;
-                font-size: 16px;
-                height: 100vh;
-                max-height: 100vh;
-                overflow-y: auto;
-                transform: translateX(-100%); /* Escondido por padrão */
-            }
-            
-            .menu.visible {
-                transform: translateX(0); /* Visível quando tem classe .visible */
-            }
-        
-            /* Botão visível em mobile */
-            #toggle-menu {
-                display: block !important;
-                top: 8px;
-                left: 8px;
-                padding: 10px 12px;
-                font-size: 20px;
-            }
-        
-            .content {
-                margin-left: 0; /* Remove a margem esquerda em dispositivos móveis */
-                padding: 10px;
-                padding-right: 10px;
-                width: auto;
-                min-width: 100%;
-                box-sizing: border-box;
-                transition: margin-left 0.3s ease;
-                margin-top: 60px;
-                margin-bottom: 140px;
-                padding-bottom: 120px;
-                height: auto;
-                min-height: calc(100vh - 120px);
-                overflow-x: visible;
-            }
-            
-            /* Fonte menor no mobile para caber na tela */
-            .section-card-content pre,
-            .song-content-card pre {
-                font-size: 11px !important;
-                line-height: 1.4 !important;
-            }
-            
-            .section-card-content pre *,
-            .song-content-card pre * {
-                font-size: 11px !important;
-                line-height: 1.4 !important;
-            }
-            
-            .chord {
-                font-size: 11px !important;
-            }
-        }
-        
-        /* Botões flutuantes de scroll para touch/iPad */
-        .scroll-buttons {
-            position: fixed;
-            right: 15px;
-            bottom: 80px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 999;
-        }
-        
-        .scroll-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border: 2px solid #4ade80;
-            color: #4ade80;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            transition: all 0.2s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .scroll-btn:hover,
-        .scroll-btn:active {
-            background: rgba(74, 222, 128, 0.2);
-            transform: scale(1.1);
-        }
-        
-        /* Esconde botões em telas grandes com mouse */
-        @media (min-width: 1024px) and (hover: hover) {
-            .scroll-buttons {
-                display: none;
-            }
-        }
-        
-        .footer {
-            position: fixed;
-            font-size: 12px;
-            bottom: 0;
-            width: 100%;
-            text-align: center;
-            background-color: #333;
-            color: #fff;
-            padding: 10px;
-        }
-
-        @media (min-width: 769px) {
-            body {
-                font-size: 18px;
-            }
-        
-            .menu {
-                width: 280px;
-                font-size: 18px;
-            }
-            
-            .menu a {
-                font-size: 16px;
-                padding: 14px 20px;
-            }
-            
-            .menu-title {
-                font-size: 14px;
-                padding: 14px 20px;
-            }
-            
-            .content {
-                margin-left: 300px;
-            }
-        
-            h1, h2, h3 {
-                font-size: 24px;
-            }
-            
-            .section-card-content pre,
-            .song-content-card pre {
-                font-size: 18px !important;
-                line-height: 1.7 !important;
-            }
-            
-            .section-card-content pre *,
-            .song-content-card pre * {
-                font-size: 18px !important;
-                line-height: 1.7 !important;
-            }
-            
-            .chord {
-                font-size: 18px !important;
-            }
-        }
-        
-        /* Barra de Controles - Estilo Moderno */
-        .controls {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: white;
-            padding: 10px 16px;
-            border-radius: 12px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 13px;
-            z-index: 999;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 1px solid rgba(74, 222, 128, 0.2);
-        }
-        
-        .controls input[type="range"] {
-            width: 100px;
-            height: 6px;
-            border-radius: 3px;
-            background: rgba(255,255,255,0.1);
-            accent-color: #4ade80;
-            cursor: pointer;
-        }
-        
-        .scroll-toggle {
-            background: linear-gradient(135deg, #4ade80, #22c55e);
-            border: none;
-            color: #1a1a2e;
-            font-size: 14px;
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
-        }
-        
-        .scroll-toggle:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.5);
-        }
-        
-        /* Acordes Destacados */
-        .chord {
-            color: #4ade80;
-            font-weight: 600;
-            text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
-        }
-        
-        .section-card-content pre,
-        pre {
-            font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace !important;
-            white-space: pre !important;
-            tab-size: 4;
-        }
-
-        /* Widget "Tom: X" estilo Cifra Club — clicar no rótulo abre uma
-           janelinha flutuante com desfazer/±meio-tom/grade de notas.
-           Cores seguem o tema escuro/verde já usado nesta página (mesmo
-           verde do .chord) em vez do roxo do editor. */
-        .song-toolbar {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-
-        .tom-widget {
-            position: relative;
-            display: inline-block;
-        }
-
-        .tom-trigger {
-            display: inline-block;
-            font-size: 14px;
-            color: #e2e8f0;
-            background: rgba(74, 222, 128, 0.1);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            border-radius: 8px;
-            padding: 8px 14px;
-            cursor: pointer;
-            user-select: none;
-            transition: background-color 0.2s ease;
-        }
-
-        .tom-trigger:hover {
-            background: rgba(74, 222, 128, 0.2);
-        }
-
-        .tom-trigger strong {
-            color: #4ade80;
-            font-size: 16px;
-        }
-
-        .tom-popover {
-            display: none;
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            z-index: 10000; /* acima do player flutuante (youtube-player.js usa 9999) */
-            width: 260px;
-            background: #16213e;
-            border: 1px solid rgba(74, 222, 128, 0.25);
-            border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            padding: 10px;
-        }
-
-        .tom-popover-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .tom-btn {
-            flex: 1;
-            background: rgba(74, 222, 128, 0.12);
-            color: #e2e8f0;
-            border: 1px solid rgba(74, 222, 128, 0.25);
-            border-radius: 6px;
-            padding: 8px 4px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .tom-btn:hover {
-            background: rgba(74, 222, 128, 0.25);
-        }
-
-        .tom-icon-btn {
-            background: rgba(255, 255, 255, 0.08);
-            color: #e2e8f0;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            flex-shrink: 0;
-            font-size: 15px;
-            line-height: 1;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s ease;
-        }
-
-        .tom-icon-btn:hover {
-            background: rgba(255, 255, 255, 0.18);
-        }
-
-        .tom-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 6px;
-        }
-
-        .tom-key-btn {
-            padding: 8px 4px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #e2e8f0;
-            cursor: pointer;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-
-        .tom-key-btn:hover {
-            background: rgba(74, 222, 128, 0.2);
-        }
-
-        .tom-key-btn.active {
-            background: #4ade80;
-            color: #0a0a0a;
-            border-color: #4ade80;
-        }
-        </style>
-</head>
-<body>
     <!-- Botão para esconder/exibir o menu -->
-    <button id="toggle-menu" onclick="toggleMenu()">☰</button>
+    <button type="button" id="toggle-menu" onclick="toggleMenu()" aria-label="Ordem do culto"><i class="fas fa-list-ol"></i></button>
 
     <!-- Menu -->
     <div class="menu" id="menu">
-        <div id="song-list" class="menu-item"><h1>Ordem do Culto</h1></div>
+        <div id="song-list" class="menu-item"><h2>Ordem do culto</h2></div>
         
         {% if bible_items %}
-        <div class="menu-title" style="color: #7c3aed; font-size: 14px; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div class="menu-title">
             <i class="fas fa-book-bible"></i> Textos Bíblicos
         </div>
         {% for item in bible_items %}
-        <a href="{{ item.url }}" style="color: #e1bee7;">
+        <a href="{{ item.url }}" class="bible-link">
             <i class="fas fa-bookmark"></i> {{ item.reference }}
         </a>
         {% endfor %}
@@ -994,7 +40,7 @@
     <div class="content" id="content">
         <!-- Header da Música - Estilo Moderno -->
         <div class="song-header">
-            <div class="song-header-icon">🎵</div>
+            <div class="song-header-icon"><i class="fas fa-guitar"></i></div>
             <div class="song-header-info">
                 <h1 class="song-header-title">{{ song.title }}</h1>
                 <p class="song-header-author">{{ song.author }}</p>
@@ -1012,13 +58,13 @@
                  no navegador (não salva no servidor); o tom escolhido fica
                  guardado em localStorage por música. -->
             <div class="tom-widget">
-                <span class="tom-trigger" onclick="toggleKeyGrid()">Tom: <strong id="tomAtual">—</strong></span>
+                <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">Tom <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
                 <div class="tom-popover" id="tomPanel">
                     <div class="tom-popover-row">
-                        <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Desfazer transposição">↺</button>
-                        <button type="button" class="tom-btn" onclick="transposeStep(-1)">−1/2 tom</button>
-                        <button type="button" class="tom-btn" onclick="transposeStep(1)">+1/2 tom</button>
-                        <button type="button" class="tom-icon-btn" onclick="toggleKeyGrid()" title="Fechar">⌄</button>
+                        <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Voltar ao tom original" aria-label="Voltar ao tom original"><i class="fas fa-rotate-left"></i></button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(-1)">−½ tom</button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(1)">+½ tom</button>
+                        
                     </div>
                     <div class="tom-grid" id="tomGrid">
                         <button type="button" class="tom-key-btn" data-key="A" onclick="jumpToKey('A')">A</button>
@@ -1066,7 +112,7 @@
                         {% set sheet_id = clean_title.split('_')[-1] | int %}
                         
                         {# Renderiza a partitura correspondente #}
-                        <div style="margin: 5px 0 20px 0;">
+                        <div class="sheet-wrap">
                             <div id="sheet-display-{{ sheet_id }}" class="sheet-display" data-sheet-id="{{ sheet_id }}">
                             </div>
                         </div>
@@ -1109,7 +155,7 @@
                                 {% set sheet_id = ns.sheet_id_str | int %}
                                 
                                 {# Renderiza a partitura #}
-                                <div style="margin: 5px 0 20px 0;">
+                                <div class="sheet-wrap">
                                     <div id="sheet-display-{{ sheet_id }}" class="sheet-display" data-sheet-id="{{ sheet_id }}">
                                     </div>
                                 </div>
@@ -1182,8 +228,8 @@
     </div>
 
     <div class="controls">
-        <span title="Velocidade da rolagem">🐢</span>
-        <input type="range" id="speedControl" min="250" max="400" value="250" />
+        <span class="speed-label" title="Velocidade da rolagem automática"><i class="fas fa-gauge"></i> Rolagem</span>
+        <input type="range" id="speedControl" min="250" max="400" value="250" aria-label="Velocidade da rolagem" />
         <button id="toggleScroll" class="scroll-toggle" title="Iniciar/Pausar">
             <i class="fas fa-play"></i></button>
       
@@ -1198,7 +244,9 @@
             <i class="fas fa-chevron-down"></i>
         </button>
     </div>
-    
+{% endblock %}
+
+{% block scripts %}
     <script>
         // Função para carregar conteúdo via AJAX
         function loadContent(url) {
@@ -1288,7 +336,7 @@
                     if (item.isBible) {
                         // Item de Bíblia - usa URL de controle
                         const url = generateBibleUrl(item.reference);
-                        menu.innerHTML += `<a href="${url}" class="song-link" style="color: #b39ddb;">📖 ${item.reference}</a>`;
+                        menu.innerHTML += `<a href="${url}" class="song-link bible-link">${item.reference}</a>`;
                     } else if (item.url && item.title) {
                         let modifiedUrl = item.url;
 
@@ -1297,7 +345,7 @@
 
                         // Se terminar com "/order" ou "/order/new", mostra como texto
                         if (modifiedUrl.includes("/order")) {
-                            menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.title}</a>`;
+                            menu.innerHTML += `<span class="song-link text-item">${item.title}</span>`;
                         } else {
                             // Adiciona o parâmetro order para manter a lista correta no menu
                             const urlWithOrder = orderDate ? `${modifiedUrl}?order=${orderDate}` : modifiedUrl;
@@ -1307,12 +355,12 @@
                             menu.innerHTML += `<a href="${urlWithOrder}" class="song-link${isActive}">${item.title}</a>`;
                         }
                     } else if (item.anyText) {
-                        menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.anyText}</a>`;
+                        menu.innerHTML += `<span class="song-link text-item">${item.anyText}</span>`;
                     }
                 });
             } catch (error) {
                 console.error("Erro ao carregar a lista:", error);
-                alert("Erro ao carregar a lista de músicas.");
+                document.getElementById("menu").insertAdjacentHTML('beforeend', '<p class="menu-error">Não deu pra carregar a ordem.</p>');
             }
         }
 
@@ -1945,5 +993,4 @@ window.onload = () => {
         document.addEventListener('DOMContentLoaded', () => renderPartituras(0));
     </script>
     {% endif %}
-</body>
-</html>
+{% endblock %}

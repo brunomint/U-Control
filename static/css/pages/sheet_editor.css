@@ -1,0 +1,74 @@
+/* Editor de partitura (sheet_editor.html) — controles à esquerda, partitura
+   à direita. A partitura fica numa folha branca (o VexFlow desenha em preto).
+   Base e card vêm do app.css; as classes .btn/.row/.control-group são as
+   que o script do editor usa e cria. */
+
+.sheet-head { max-width: 1600px; margin: 0 auto; padding: 24px 16px 0; }
+.sheet-main {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+  align-items: start;
+}
+.sheet-main .card { padding: 14px; }
+
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.row:last-child { margin-bottom: 0; }
+.controls label { display: block; font-size: 11.5px; font-weight: 700; color: var(--uc-muted); margin-bottom: 3px; }
+.controls label.btn { display: inline-flex; margin: 0; color: var(--uc-text); }
+.controls select, .controls input[type="text"] {
+  padding: 6px 8px;
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r-sm);
+  background: var(--uc-bg);
+  color: var(--uc-text);
+  font: inherit;
+  font-size: 13px;
+  color-scheme: dark;
+}
+.controls select:focus, .controls input:focus { outline: none; border-color: var(--uc-accent); }
+#editPitch, #editDuration, #editAccidental { width: 70px; }
+#editOctave { width: 56px; }
+#chordInput { width: 100px; }
+
+.control-group { padding: 10px; margin-bottom: 10px; border-radius: var(--uc-r); background: var(--uc-surface-2); border: 1px solid var(--uc-line); }
+.control-group-title { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-muted); }
+.group-title { font-size: 12px; font-weight: 600; color: var(--uc-muted); margin-right: 2px; }
+
+.btn {
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: var(--uc-r-sm);
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface);
+  color: var(--uc-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { border-color: var(--uc-faint); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
+.action-btn { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
+.action-btn:hover:not(:disabled) { background: var(--uc-accent-strong); border-color: var(--uc-accent-strong); }
+.dur, .rest-btn { min-width: 34px; font-size: 17px; padding: 2px 6px; text-align: center; }
+.kbd { display: inline-block; min-width: 26px; text-align: center; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); font-family: var(--uc-mono); font-size: 12px; }
+.controls small { display: block; margin-top: 6px; color: var(--uc-faint); font-size: 12px; line-height: 1.5; }
+.controls input[type="checkbox"] { accent-color: var(--uc-accent); }
+
+.score-section { display: flex; flex-direction: column; gap: 10px; position: sticky; top: calc(var(--uc-nav-h) + 16px); }
+.score-header { display: flex; align-items: center; justify-content: space-between; }
+.score-header h2 { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-muted); }
+.zoom-controls { display: flex; align-items: center; gap: 6px; }
+.zoom-controls .btn { width: 30px; padding: 0; }
+#zoomLevel { min-width: 44px; text-align: center; font-family: var(--uc-mono); font-size: 12.5px; color: var(--uc-muted); }
+.score-wrap { overflow-x: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 240px; }
+
+@media (max-width: 960px) {
+  .sheet-main { grid-template-columns: minmax(0, 1fr); }
+  .score-section { position: static; order: -1; }
+}

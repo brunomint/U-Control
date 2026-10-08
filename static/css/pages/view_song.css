@@ -1,0 +1,381 @@
+/* Cifra para os músicos (view_song.html, rota /view/<id>) — pública, usada
+   no palco em celular/tablet. Lista da ordem à esquerda (gaveta no
+   celular), cifra no centro, rolagem automática no canto. Base vem do
+   app.css; o bloco @media print no fim é o mesmo de antes do tema único
+   (quebra de página por par cifra/letra, ver prepararQuebraDePagina). */
+
+/* ── Lista da ordem ── */
+.menu {
+  position: fixed;
+  top: var(--uc-nav-h);
+  left: 0;
+  bottom: 0;
+  z-index: 900;
+  width: 270px;
+  padding: 16px 10px 90px;
+  overflow-y: auto;
+  background: var(--uc-surface);
+  border-right: 1px solid var(--uc-line);
+  transition: transform .25s ease;
+  scrollbar-width: thin;
+}
+.menu h2 { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-muted); padding: 0 10px 8px; }
+.menu-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-warn); padding: 14px 10px 6px; }
+.menu a, .menu .song-link {
+  display: block;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--uc-r-sm);
+  color: var(--uc-text);
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.menu a:hover { background: var(--uc-surface-2); text-decoration: none; }
+.menu a.active { background: var(--uc-accent-soft); color: var(--uc-accent-text); box-shadow: inset 3px 0 0 var(--uc-accent); }
+.menu .bible-link { color: var(--uc-warn); }
+.menu .text-item { color: var(--uc-faint); font-weight: 500; font-style: italic; }
+.menu-error { color: var(--uc-danger); font-size: 13px; padding: 10px 12px; margin: 0; }
+#toggle-menu {
+  display: none;
+  position: fixed;
+  top: calc(var(--uc-nav-h) + 10px);
+  left: 10px;
+  z-index: 950;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--uc-r);
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface-3);
+  color: var(--uc-text);
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .4);
+}
+
+/* ── Conteúdo ── */
+.content { margin-left: 270px; padding: 24px 28px 140px; min-width: 0; }
+.song-header { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.song-header-icon {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--uc-r);
+  background: var(--uc-accent-soft);
+  color: var(--uc-accent-text);
+  font-size: 22px;
+}
+.song-header-info { min-width: 0; }
+.song-header-title { margin: 0; font-size: 28px; font-weight: 800; line-height: 1.15; }
+.song-header-author { margin: 2px 0 0; color: var(--uc-muted); font-size: 15px; }
+
+.song-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.song-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tom-widget { position: relative; }
+.tom-trigger, .search-song-btn, .print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--uc-r);
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface-2);
+  color: var(--uc-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tom-trigger:hover, .search-song-btn:hover, .print-btn:hover { border-color: var(--uc-faint); }
+.tom-trigger strong { color: var(--uc-accent-text); }
+.tom-trigger .fa-chevron-down { font-size: 10px; color: var(--uc-muted); }
+.tom-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: 270px;
+  padding: 10px;
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.tom-popover-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.tom-btn, .tom-icon-btn, .tom-key-btn { border: 1px solid var(--uc-line); background: var(--uc-surface); color: var(--uc-text); border-radius: var(--uc-r-sm); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.tom-btn { flex: 1; padding: 7px 4px; }
+.tom-icon-btn { width: 34px; flex: none; }
+.tom-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.tom-key-btn { padding: 7px 0; }
+.tom-btn:hover, .tom-icon-btn:hover, .tom-key-btn:hover { border-color: var(--uc-accent); }
+.tom-key-btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
+
+.search-song-widget { position: relative; }
+.search-song-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: min(340px, 86vw);
+  padding: 8px;
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.search-song-popover input[type="text"] { width: 100%; padding: 9px 12px; border-radius: var(--uc-r-sm); border: 1px solid var(--uc-line); background: var(--uc-bg); color: var(--uc-text); font: inherit; }
+.search-song-popover input[type="text"]:focus { outline: none; border-color: var(--uc-accent); }
+.search-song-results { max-height: 300px; overflow-y: auto; }
+.search-song-results:not(:empty) { margin-top: 6px; }
+.search-song-item { padding: 9px 10px; border-radius: var(--uc-r-sm); cursor: pointer; font-weight: 600; font-size: 14px; }
+.search-song-item:hover { background: var(--uc-surface-3); }
+.search-song-item .autor { color: var(--uc-muted); font-weight: 500; }
+
+/* Cifra */
+.song-content-card {
+  display: inline-block;
+  min-width: min(100%, 640px);
+  padding: 20px 24px;
+  border-radius: var(--uc-r-lg);
+  background: var(--uc-surface);
+  border: 1px solid var(--uc-line);
+}
+.section-card + .section-card { margin-top: 18px; }
+.section-card-header h5, .section-title, h5.section-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--uc-accent-text);
+}
+.content pre {
+  margin: 0 0 14px;
+  padding: 0;
+  background: transparent;
+  color: var(--uc-text);
+  font-family: var(--uc-mono) !important;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.7;
+  white-space: pre !important;
+  tab-size: 4;
+}
+.content pre * { font-size: inherit; line-height: inherit; font-family: inherit !important; }
+.chord { color: var(--uc-warn); font-weight: 800; }
+.comment-line { color: var(--uc-faint); font-style: italic; font-size: .85em !important; }
+.sheet-wrap { margin: 5px 0 20px; }
+.sheet-display { padding: 16px; margin: 12px 0; border-radius: var(--uc-r); background: #fff; color: #1d2236; }
+.sheet-display svg { max-width: 100%; height: auto; }
+
+/* Rolagem automática e botões de rolar */
+.controls {
+  position: fixed;
+  top: calc(var(--uc-nav-h) + 10px);
+  right: 12px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-radius: var(--uc-r);
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .35);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--uc-muted);
+}
+.speed-label i { margin-right: 4px; }
+.controls input[type="range"] { width: 100px; accent-color: var(--uc-accent); cursor: pointer; }
+.scroll-toggle { width: 36px; height: 32px; display: grid; place-items: center; border: 0; border-radius: var(--uc-r-sm); background: var(--uc-accent); color: #fff; cursor: pointer; }
+.scroll-toggle:hover { background: var(--uc-accent-strong); }
+.scroll-buttons { position: fixed; right: 14px; bottom: 80px; z-index: 800; display: flex; flex-direction: column; gap: 10px; }
+.scroll-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface-3);
+  color: var(--uc-text);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .4);
+  -webkit-tap-highlight-color: transparent;
+}
+.scroll-btn:active { border-color: var(--uc-accent); }
+@media (min-width: 1024px) and (hover: hover) {
+  .scroll-buttons { display: none; }
+}
+
+@media (max-width: 768px) {
+  .menu { width: 260px; transform: translateX(-100%); box-shadow: none; }
+  .menu.visible { transform: translateX(0); box-shadow: 0 0 0 100vmax rgba(5, 6, 12, .6); }
+  #toggle-menu { display: grid; place-items: center; }
+  .content { margin-left: 0; padding: 66px 12px 160px; }
+  .song-header-title { font-size: 22px; }
+  .song-header-icon { display: none; }
+  .song-content-card { display: block; padding: 14px; overflow-x: auto; }
+  .content pre { font-size: 13px; line-height: 1.5; }
+  .controls { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); right: 76px; }
+}
+
+/* Impressão — pensado pra sair em preto no branco, sem gastar tinta
+   colorida à toa: esconde todo o "chrome" da página (menu, botão de
+   menu, controles de auto-scroll, botões flutuantes de scroll,
+   widget de transposição, player de vídeo flutuante, o próprio
+   botão Imprimir) e converte o tema escuro/verde-neon em texto
+   preto sobre fundo branco. A partitura (.sheet-display) já nasce
+   com fundo claro pra ser visível na tela, então não precisa de
+   ajuste — só perde a sombra/borda, que não fazem sentido no papel. */
+@media print {
+    @page {
+        margin: 1.5cm;
+    }
+
+    a, a:visited {
+        display: none !important;
+        visibility: hidden;
+    }
+
+    #toggle-menu,
+    .menu,
+    .menu a, .menu a:visited,
+    .controls,
+    .scroll-buttons,
+    .tom-widget,
+    .print-btn,
+    .search-song-widget,
+    #yt-floating-player,
+    .footer {
+        display: none !important;
+        visibility: hidden;
+    }
+
+    /* overflow: auto no body (linha ~20, pra rolagem normal na
+       tela) é uma pegadinha conhecida de impressão no Chrome —
+       overflow diferente de "visible" no body/html faz o motor
+       de impressão tratar o conteúdo como "rolável" em vez de
+       paginar de verdade, e IGNORA break-before/break-inside em
+       qualquer descendente, mesmo forçado via JS (achado ao
+       vivo, 2026-09-19: um bloco com break-before: page direto
+       no inline style ainda assim não pulava de página —
+       confirmado com um teste isolado, sem essa regra, que
+       break-before funciona normalmente). */
+    body {
+        background: #fff !important;
+        color: #000 !important;
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    .content {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
+    .song-header {
+        background: none !important;
+        box-shadow: none !important;
+        padding: 0 0 15px 0;
+        border-bottom: 2px solid #000;
+        border-radius: 0;
+        margin-bottom: 20px;
+    }
+
+    .song-header-icon {
+        display: none;
+    }
+
+    .song-header-title {
+        color: #000 !important;
+        text-shadow: none !important;
+    }
+
+    .song-header-author {
+        color: #333 !important;
+    }
+
+    .song-content-card {
+        background: none !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-top: 0 !important;
+        min-width: 0 !important;
+    }
+
+    /* Seção de texto puro (sem partitura) pode cortar entre
+       páginas — só não pode cortar DENTRO de um par cifra+letra
+       (pedido explícito do usuário, com exemplo real, 2026-09-20:
+       prefere aproveitar o espaço da página a manter a seção
+       inteira igual ao WeasyPrint faz). Cada par vira um <div>
+       (ver prepararQuebraDePagina() no JS) com break-inside:avoid
+       próprio — a seção/card em si NÃO tem mais avoid, então o
+       Chrome corta livremente entre um par e o próximo. Seção
+       com partitura VexFlow integrada continua indivisível por
+       inteiro via :has() logo abaixo, porque não dá pra cortar
+       uma partitura no meio nem separá-la do seu cabeçalho. */
+    .section-card-content pre > div {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .section-card:has(.sheet-display) {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .section-card-header {
+        background: none !important;
+        border-left: 3px solid #000;
+        border-radius: 0;
+        box-shadow: none !important;
+        break-after: avoid-page;
+        page-break-after: avoid;
+    }
+
+    .section-card-header h5,
+    h5, h3 {
+        color: #000 !important;
+        text-shadow: none !important;
+    }
+
+    pre,
+    .section-card-content pre,
+    .song-content-card pre {
+        color: #000 !important;
+        background: transparent !important;
+    }
+
+    .chord {
+        color: #000 !important;
+        text-shadow: none !important;
+        font-weight: 700;
+    }
+
+    .comment-line {
+        color: #555 !important;
+    }
+
+    .sheet-display {
+        box-shadow: none !important;
+        border-radius: 0;
+        padding: 0;
+        break-inside: avoid;
+    }
+}
+/* Tema único: a barra de navegação também não vai pro papel. */
+@media print {
+  .site-nav, .site-nav-spacer, #release-banner, .uc-toast { display: none !important; }
+  /* Mesmo tamanho que saía antes (a largura da A4 caía na regra de celular, 11px). */
+  .content pre, .content pre * { font-size: 11px !important; line-height: 1.4 !important; }
+  .song-content-card { display: block; }
+}

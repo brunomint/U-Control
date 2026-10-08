@@ -100,30 +100,42 @@ async function loadList() {
         }
 
         const menu = document.getElementById("menu");
+        const dateEl = document.getElementById('orderDateLabel');
+        if (dateEl && orderDate) {
+            const [y, m, d] = orderDate.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+            const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            dateEl.textContent = `${dias[dt.getDay()]}, ${d} de ${meses[m - 1]}`;
+        }
+        if (!data.length) {
+            menu.innerHTML += '<div class="uc-empty">Nenhuma música na ordem ainda. Use a busca acima.</div>';
+        }
 
         // Adiciona a lista de músicas diretamente no menu
         data.forEach(item => {
             if (item.isBible) {
                 // Item de Bíblia - usa URL de controle gerada pelo backend
                 const url = generateBibleUrl(item.reference);
-                menu.innerHTML += `<a href="${url}" class="song-link" style="color: #b39ddb;">📖 ${item.reference}</a>`;
+                menu.innerHTML += `<a href="${url}" class="song-link bible"><span class="t">${item.reference}</span><span class="k">Bíblia</span></a>`;
             } else if (item.url && item.title) {
                 let modifiedUrl = item.url.replace("/lyrics/", "/view/");
                 // Se for /order, mostra como texto
                 if (modifiedUrl.includes("/order")) {
-                    menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.title}</a>`;
+                    menu.innerHTML += `<div class="song-link text"><span class="t">${item.title}</span></div>`;
                 } else {
                     // Adiciona o parâmetro order para manter a lista correta no menu
                     const urlWithOrder = orderDate ? `${modifiedUrl}?order=${orderDate}` : modifiedUrl;
-                    menu.innerHTML += `<a href="${urlWithOrder}" class="song-link">${item.title}</a>`;
+                    const [t, artist] = item.title.split(' | ');
+                    menu.innerHTML += `<a href="${urlWithOrder}" class="song-link"><span class="t">${t}${artist ? ` <span class="artist">${artist}</span>` : ''}</span><i class="fas fa-chevron-right"></i></a>`;
                 }
             } else if (item.anyText) {
-                menu.innerHTML += `<a href="#" class="song-link" style="color: #ffb74d;">${item.anyText}</a>`;
+                menu.innerHTML += `<div class="song-link text"><span class="t">${item.anyText}</span></div>`;
             }
         });
     } catch (error) {
         console.error("Erro ao carregar a lista:", error);
-        alert("Erro ao carregar a lista de músicas.");
+        document.getElementById("menu").innerHTML += '<div class="uc-empty">Não deu pra carregar a ordem. Recarregue a página.</div>';
     }
 }
 

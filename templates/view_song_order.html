@@ -1,55 +1,46 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Visualizar Músicas{% endblock %}
+{% block title %}Cifras do culto - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/view_song_order.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/view_song_order.css') }}">
 {% endblock %}
 
 {% block content %}
-<!-- Botão para esconder/exibir o menu -->
-<button id="toggle-menu" onclick="toggleMenu()">☰</button>
-
-<!-- Menu -->
-<div class="menu" id="menu">
-    <div id="song-list" class="menu-item">Ordem do Culto</div>
-</div>
-
-<!-- Conteúdo -->
-<div class="content" id="content">
-    <div class="branding">
-
-        <div class="description">
-            <img class="img-content" src="static/U-Control-ico.ico" alt="Logo U-Control">
-            <h1>Bem-vindo ao <strong>U_Control</strong></h1>
-            <p>O programa de mídia mais inovador da galáxia. E talvez do universo.<br></p>
-            <p>Para exibir cifra, basta clicar no <strong>"Menu"</strong> e clicar na música que deseja exibir. </p>
-
-            <div class="search-song-widget">
-                <button type="button" class="search-song-btn" onclick="toggleSearchSong()" title="Buscar música">
-                    <i class="fas fa-search"></i> Buscar
-                </button>
-                <div class="search-song-popover" id="searchSongPopover">
-                    <input type="text" id="searchSongInput" placeholder="Título, autor ou trecho da letra...">
-                    <div class="search-song-results" id="searchSongResults"></div>
-                </div>
-            </div>
+{% include "_nav.html" %}
+<!-- Página dos músicos: lista as músicas da ordem (do dia ou ?order=AAAA-MM-DD)
+     e abre a cifra de cada uma. Pública, sem login. -->
+<main class="uc-page cifras-page" id="content">
+    <div class="uc-page-head">
+        <div>
+            <h1>Cifras do culto</h1>
+            <div class="uc-page-sub" id="orderDateLabel">Ordem de hoje</div>
         </div>
-
     </div>
 
+    <div class="search-song-widget">
+        <button type="button" class="search-song-btn" onclick="toggleSearchSong()" hidden>Buscar</button>
+        <div class="search-song-popover uc-search" id="searchSongPopover">
+            <i class="fas fa-magnifying-glass"></i>
+            <input class="uc-input" type="search" id="searchSongInput" placeholder="Buscar outra música: título, autor ou trecho da letra" autocomplete="off">
+            <div class="search-song-results" id="searchSongResults"></div>
+        </div>
+    </div>
 
+    <section class="uc-card">
+        <div class="menu" id="menu">
+            <div id="song-list" class="uc-label-caps list-title">Ordem do culto</div>
+        </div>
+    </section>
 
-</div>
-
-<footer class="footer">
-    Desenvolvido por Bruno Fragoso
-</footer>
+    <footer class="credits">Desenvolvido por Bruno Fragoso</footer>
+</main>
 
 <script id="view-song-order-data" type="application/json">{{ {"orderDate": order_date or ""} | tojson }}</script>
 {% endblock %}

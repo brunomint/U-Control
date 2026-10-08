@@ -1,326 +1,39 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* Ordem do culto compartilhável (view_order.html) — base, card e botões vêm do app.css. */
 
-body {
-    min-height: 100vh;
-}
+.view-order { max-width: 760px; }
+.not-found { display: grid; justify-items: center; gap: 10px; }
+.not-found h1 { font-size: 20px; }
+.not-found p { margin: 0; }
 
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-}
+.order-header { display: grid; gap: 4px; text-align: center; padding: 26px 20px; }
+.order-when { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-accent-text); }
+.order-date { font-size: 30px; font-weight: 800; }
+.order-type { font-size: 16px; font-weight: 700; color: var(--uc-muted); }
+.order-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin-top: 10px; font-size: 14px; color: var(--uc-muted); }
+.order-meta i { color: var(--uc-faint); margin-right: 4px; }
+.order-meta b { color: var(--uc-text); }
+.order-tema { margin: 10px 0 0; font-style: italic; color: var(--uc-text); }
 
-/* Header */
-.order-header {
-    background: linear-gradient(135deg, #00bcd4, #0097a7);
-    border-radius: 20px;
-    padding: 30px;
-    margin-bottom: 30px;
-    text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 188, 212, 0.3);
-}
+.items-container .uc-card-head { flex-wrap: wrap; }
+.stats { display: flex; gap: 14px; font-size: 12.5px; color: var(--uc-muted); }
+.stats b { color: var(--uc-text); font-variant-numeric: tabular-nums; }
+.items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.item { display: flex; align-items: center; gap: 14px; padding: 11px 14px; border-radius: var(--uc-r); background: var(--uc-surface-2); border: 1px solid var(--uc-line); }
+.item-number { font-family: var(--uc-mono); font-size: 12px; color: var(--uc-faint); }
+.item-content { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.item-title { font-weight: 700; color: var(--uc-text); text-decoration: none; min-width: 0; }
+a.item-title:hover { color: var(--uc-accent-text); }
+.item-title .artist { color: var(--uc-muted); font-weight: 500; font-size: 13px; margin-left: 4px; }
+.item-type { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--uc-faint); white-space: nowrap; }
+.item.bible .item-type { color: var(--uc-warn); }
+.item.text-item .item-title { color: var(--uc-muted); font-weight: 600; }
 
-.order-date {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
-.order-weekday {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-bottom: 15px;
-}
-
-.order-type {
-    display: inline-block;
-    background: rgba(255,255,255,0.2);
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-/* Metadata */
-.order-meta {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-.meta-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1rem;
-}
-
-.meta-item i {
-    font-size: 1.2rem;
-}
-
-/* Items list */
-.items-container {
-    background: rgba(255,255,255,0.05);
-    border-radius: 20px;
-    padding: 25px;
-    backdrop-filter: blur(10px);
-}
-
-.items-title {
-    font-size: 1.3rem;
-    margin-bottom: 20px;
-    color: #00bcd4;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 18px 20px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 12px;
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.item:hover {
-    background: rgba(255,255,255,0.15);
-    transform: translateX(5px);
-}
-
-.item-number {
-    width: 35px;
-    height: 35px;
-    background: linear-gradient(135deg, #00bcd4, #0097a7);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.9rem;
-    flex-shrink: 0;
-}
-
-.item-content {
-    flex: 1;
-}
-
-.item-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: white;
-    text-decoration: none;
-}
-
-.item-title:hover {
-    color: #00bcd4;
-}
-
-.item.bible {
-    border-left: 4px solid #7c3aed;
-}
-
-.item.bible .item-number {
-    background: linear-gradient(135deg, #7c3aed, #5a4fcf);
-}
-
-.item.text-item {
-    border-left: 4px solid #ff9800;
-}
-
-.item.text-item .item-number {
-    background: linear-gradient(135deg, #ff9800, #f57c00);
-}
-
-.item-type {
-    font-size: 0.75rem;
-    color: #888;
-    text-transform: uppercase;
-    margin-top: 3px;
-}
-
-/* Actions */
-.actions {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 30px;
-    flex-wrap: wrap;
-}
-
-.action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 25px;
-    border-radius: 25px;
-    font-size: 1rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
-}
-
-.action-btn.primary {
-    background: linear-gradient(135deg, #00bcd4, #0097a7);
-    color: white;
-}
-
-.action-btn.primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(0, 188, 212, 0.4);
-}
-
-.action-btn.secondary {
-    background: rgba(255,255,255,0.1);
-    color: white;
-}
-
-.action-btn.secondary:hover {
-    background: rgba(255,255,255,0.2);
-}
-
-/* Not found */
-.not-found {
-    text-align: center;
-    padding: 60px 20px;
-}
-
-.not-found-icon {
-    font-size: 5rem;
-    margin-bottom: 20px;
-}
-
-.not-found h2 {
-    font-size: 1.8rem;
-    margin-bottom: 10px;
-}
-
-.not-found p {
-    color: #888;
-    margin-bottom: 30px;
-}
-
-/* Toast */
-.toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: #333;
-    color: white;
-    padding: 15px 30px;
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    transition: transform 0.3s ease;
-    z-index: 2000;
-}
-
-.toast.show {
-    transform: translateX(-50%) translateY(0);
-}
-
-/* Stats */
-.stats {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.stat {
-    text-align: center;
-}
-
-.stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #00bcd4;
-}
-
-.stat-label {
-    font-size: 0.8rem;
-    color: #888;
-    text-transform: uppercase;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .container {
-        padding: 15px;
-    }
-
-    .order-date {
-        font-size: 2rem;
-    }
-
-    .order-meta {
-        gap: 15px;
-    }
-
-    .meta-item {
-        font-size: 0.9rem;
-    }
-
-    .item {
-        padding: 15px;
-    }
-
-    .item-title {
-        font-size: 1rem;
-    }
-
-    .actions {
-        flex-direction: column;
-    }
-
-    .action-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-/* Print styles */
 @media print {
-    body {
-        background: white;
-        color: black;
-    }
-
-    .order-header {
-        background: #f5f5f5;
-        color: black;
-        box-shadow: none;
-    }
-
-    .items-container {
-        background: white;
-    }
-
-    .item {
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-    }
-
-    .item-title {
-        color: black;
-    }
-
-    .actions {
-        display: none;
-    }
+  .site-nav, .site-nav-spacer, .actions, #release-banner, .uc-toast { display: none !important; }
+  body.uc-app { background: #fff; color: #000; }
+  .uc-card, .item { background: #fff; border-color: #ccc; color: #000; }
+  .item-title, .order-meta b, .order-tema, .stats b { color: #000; }
+  .order-when, .order-type, .order-meta, .stats, .item-type, .item-number, .item-title .artist { color: #444; }
 }

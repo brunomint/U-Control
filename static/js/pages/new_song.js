@@ -1193,7 +1193,7 @@
                 button.innerHTML = '<i class="fas fa-plus"></i>';
                 button.title = 'Inserir bloco aqui';
                 button.style.cssText = `
-                    background: #4caf50; 
+                    background: #7350ea; 
                     color: white; 
                     border: none; 
                     border-radius: 50%; 
@@ -1436,9 +1436,9 @@
                 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.type = 'button'; // Evita submit do formulário
-                deleteBtn.textContent = '🗑️';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
                 deleteBtn.title = 'Excluir bloco';
-                deleteBtn.style.cssText = 'background: #d32f2f; color: white; border: 2px solid white; border-radius: 5px; padding: 6px 10px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+                deleteBtn.style.cssText = 'background: rgba(29,34,54,.08); color: #c2414b; border: 1px solid rgba(29,34,54,.12); border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
                     e.stopPropagation();
@@ -1517,9 +1517,9 @@
                 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.type = 'button'; // Evita submit do formulário
-                deleteBtn.textContent = '🗑️';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
                 deleteBtn.title = 'Excluir';
-                deleteBtn.style.cssText = 'background: #d32f2f; color: white; border: 2px solid white; border-radius: 5px; padding: 6px 10px; margin-left: 4px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+                deleteBtn.style.cssText = 'background: rgba(29,34,54,.08); color: #c2414b; border: 1px solid rgba(29,34,54,.12); border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
                     e.stopPropagation();
@@ -1541,7 +1541,7 @@
             function createSectionBlock(block, index) {
                 const div = document.createElement('div');
                 div.className = 'section-block';
-                div.style.cssText = `background: linear-gradient(135deg, #2196f3, #1976d2); color: white; padding: 12px 20px; margin: 20px 0 10px 0; border-radius: 8px; font-weight: bold; font-size: 16px; position: relative; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3); border: ${selectedBlocks.has(index) ? '3px solid #ffeb3b' : 'none'};`;
+                div.style.cssText = `background: #1d2236; color: white; padding: 9px 14px; margin: 18px 0 8px 0; border-radius: 8px; font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; position: relative; border: ${selectedBlocks.has(index) ? '3px solid #f2b84b' : 'none'};`;
                 
                 // Checkbox de seleção
                 const checkbox = document.createElement('input');
@@ -1570,9 +1570,9 @@
                 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.type = 'button'; // Evita submit do formulário
-                deleteBtn.textContent = '🗑️';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
                 deleteBtn.title = 'Excluir Seção';
-                deleteBtn.style.cssText = 'background: #d32f2f; color: white; border: 2px solid white; border-radius: 5px; padding: 6px 10px; margin-left: 4px; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+                deleteBtn.style.cssText = 'background: rgba(29,34,54,.08); color: #c2414b; border: 1px solid rgba(29,34,54,.12); border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
                     e.stopPropagation();
@@ -1804,12 +1804,12 @@
                 const deleteBtn = document.getElementById('deleteSelectedBtn');
                 
                 if (selectionMode) {
-                    selectBtn.textContent = '❌ Cancelar';
-                    selectBtn.style.background = '#f44336';
-                    deleteBtn.style.display = 'inline-block';
+                    selectBtn.innerHTML = '<i class="fas fa-xmark"></i> Cancelar seleção';
+                    selectBtn.classList.add('active');
+                    deleteBtn.style.display = 'inline-flex';
                 } else {
-                    selectBtn.textContent = '☑️ Selecionar';
-                    selectBtn.style.background = '#607d8b';
+                    selectBtn.innerHTML = '<i class="fas fa-square-check"></i> Selecionar';
+                    selectBtn.classList.remove('active');
                     deleteBtn.style.display = 'none';
                 }
                 
@@ -1940,7 +1940,7 @@
                 const header = document.createElement('div');
                 header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;';
                 header.innerHTML = `
-                    <h3 style="margin: 0; color: #1976d2;">👁️ Preview da Música</h3>
+                    <h3 style="margin: 0; color: #5b3fd6;">Pré-visualização</h3>
                     <button onclick="this.closest('[style*=fixed]').remove()" style="background: #f44; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">✕</button>
                 `;
                 
@@ -1952,7 +1952,7 @@
                 let previewHTML = '';
                 blocks.forEach(block => {
                     if (block.type === 'section') {
-                        previewHTML += `<div style="color: #1976d2; font-weight: bold; font-size: 18px; margin: 25px 0 15px 0; text-transform: uppercase; letter-spacing: 1px;">${block.title || 'SEÇÃO'}</div>`;
+                        previewHTML += `<div style="color: #5b3fd6; font-weight: bold; font-size: 18px; margin: 25px 0 15px 0; text-transform: uppercase; letter-spacing: 1px;">${block.title || 'SEÇÃO'}</div>`;
                     } else if (block.type === 'text') {
                         if (block.content && block.content.trim()) {
                             // Preserva formatação HTML original: cores, espaçamento, etc.

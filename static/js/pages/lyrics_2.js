@@ -7,12 +7,12 @@ let currentTheme = CONFIG.theme;
         // ── Tema visual ───────────────────────────────────────────────
         function atualizarBotaoTema() {
             const lbl = document.getElementById('btn-tema-label');
-            lbl.textContent = currentTheme ? 'Tema ✓' : 'Tema';
+            lbl.textContent = currentTheme ? 'Tema ativo' : 'Tema';
         }
         atualizarBotaoTema();
 
         function abrirModalTema() {
-            document.getElementById('modal-tema').style.display = 'block';
+            document.getElementById('modal-tema').style.display = 'flex';
             if (currentTheme && currentTheme.url) {
                 document.getElementById('tema-preview-img').src = currentTheme.url;
                 document.getElementById('tema-preview').style.display = 'block';
@@ -76,11 +76,7 @@ let currentTheme = CONFIG.theme;
                     const pastas = ['Geral', ...all.filter(f => f !== 'Geral')];
                     const foldersDiv = document.getElementById('tema-folders');
                     foldersDiv.innerHTML = pastas.map(p =>
-                        `<button onclick="carregarImagensTema('${p}')"
-                            style="padding:6px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;
-                            background:${p===pastaAtiva?'#7c3aed':'rgba(255,255,255,.08)'};
-                            color:${p===pastaAtiva?'#fff':'#94a3b8'};border:1px solid rgba(255,255,255,.1);">
-                            ${p}</button>`
+                        `<button type="button" class="tema-folder${p===pastaAtiva?' active':''}" onclick="carregarImagensTema('${p}')">${p}</button>`
                     ).join('');
                     carregarImagensTema(pastaAtiva);
                 }).catch(() => carregarImagensTema('Geral'));
@@ -89,30 +85,25 @@ let currentTheme = CONFIG.theme;
         function carregarImagensTema(pasta) {
             pastaAtiva = pasta;
             document.querySelectorAll('#tema-folders button').forEach(b => {
-                b.style.background = b.textContent.trim() === pasta ? '#7c3aed' : 'rgba(255,255,255,.08)';
-                b.style.color = b.textContent.trim() === pasta ? '#fff' : '#94a3b8';
+                b.classList.toggle('active', b.textContent.trim() === pasta);
             });
             fetch(`/imagens?folder=${encodeURIComponent(pasta)}`)
                 .then(r => r.json())
                 .then(urls => {
                     const grid = document.getElementById('tema-grid');
                     if (!urls.length) {
-                        grid.innerHTML = '<p style="color:#64748b;font-size:.85rem;">Nenhuma imagem nesta pasta.</p>';
+                        grid.innerHTML = '<p class="tema-empty">Nenhuma imagem nesta pasta.</p>';
                         return;
                     }
                     grid.innerHTML = urls.map(url => {
                         const active = currentTheme && currentTheme.url === url;
-                        return `<div onclick="selecionarTema('${url}','image')"
-                            style="cursor:pointer;border-radius:8px;overflow:hidden;
-                            border:2px solid ${active?'#7c3aed':'transparent'};transition:border-color .2s;"
-                            onmouseover="this.style.borderColor='#a78bfa'"
-                            onmouseout="this.style.borderColor='${active?'#7c3aed':'transparent'}'">
-                            <img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;display:block;">
-                        </div>`;
+                        return `<button type="button" class="tema-thumb${active?' active':''}" onclick="selecionarTema('${url}','image')">
+                            <img src="${url}" alt="" loading="lazy">
+                        </button>`;
                     }).join('');
                 }).catch(() => {
                     document.getElementById('tema-grid').innerHTML =
-                        '<p style="color:#64748b;font-size:.85rem;">Erro ao carregar imagens.</p>';
+                        '<p class="tema-empty">Erro ao carregar as imagens.</p>';
                 });
         }
 
@@ -124,9 +115,8 @@ let currentTheme = CONFIG.theme;
         let _displayBgDark = true;
         function _atualizarBtnBg() {
             const btn = document.getElementById('btn-bg');
-            btn.innerHTML = (_displayBgDark ? '⬛' : '⬜') + ' Fundo';
-            btn.style.background = _displayBgDark ? '#1e1e2e' : '#f1f5f9';
-            btn.style.color = _displayBgDark ? '#fff' : '#1e293b';
+            btn.innerHTML = `<i class="fas ${_displayBgDark ? 'fa-moon' : 'fa-sun'}"></i> Fundo ${_displayBgDark ? 'preto' : 'branco'}`;
+            btn.classList.toggle('light', !_displayBgDark);
         }
         fetch('/api/display-bg').then(r => r.json()).then(d => {
             _displayBgDark = d.dark !== false;
@@ -413,7 +403,7 @@ let currentTheme = CONFIG.theme;
                 
                 const styleComment = t => t.split('\n').map(l =>
                     l.trim().startsWith('//')
-                        ? `<span style="color:#64748b;font-style:italic;font-size:0.85em">${l}</span>`
+                        ? `<span class="stage-note">${l}</span>`
                         : l
                 ).join('\n');
 

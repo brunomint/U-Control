@@ -1,0 +1,123 @@
+{#- Formulário do editor de música, compartilhado por new_song.html e
+    edit_song.html (antes eram dois arquivos quase iguais). `song` é None
+    na criação. Os ids/classes são os que new_song.js/edit_song.js usam.
+    A área de edição (#blockEditor) fica clara de propósito, como uma
+    folha: as partituras do VexFlow são desenhadas em preto sobre branco. -#}
+<main class="uc-page editor-page">
+    <div class="uc-page-head">
+        <div>
+            <a class="uc-link" href="{{ url_for('songs.list_songs') }}"><i class="fas fa-arrow-left"></i> Músicas</a>
+            <h1>{{ 'Editar música' if song else 'Nova música' }}</h1>
+        </div>
+    </div>
+
+    <form id="songForm" class="editor-form">
+        <section class="uc-card meta-card">
+            <div class="meta-grid">
+                <div class="uc-field">
+                    <label for="title">Título</label>
+                    <input class="uc-input" type="text" id="title" name="title" value="{{ song.title if song else '' }}" required>
+                </div>
+                <div class="uc-field">
+                    <label for="author">Autor</label>
+                    <input class="uc-input" type="text" id="author" name="author" value="{{ (song.author or '') if song else '' }}">
+                </div>
+                <div class="uc-field">
+                    <label>Tom</label>
+                    <div class="toolbar">
+                        <div class="tom-widget">
+                            <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">Tom <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
+                            <div class="tom-popover" id="tomPanel">
+                                <div class="tom-popover-row">
+                                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Voltar ao tom original" aria-label="Voltar ao tom original"><i class="fas fa-rotate-left"></i></button>
+                                    <button type="button" class="bto-transpor" onclick="transposeStep(-1)">−½ tom</button>
+                                    <button type="button" class="bto-transpor" onclick="transposeStep(1)">+½ tom</button>
+                                </div>
+                                <div class="tom-grid" id="tomGrid">
+                                    {% for k in ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','Ab'] %}
+                                    <button type="button" class="tom-key-btn" data-key="{{ k }}" onclick="jumpToKey('{{ k }}')">{{ k }}</button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="stage-tip"><i class="fas fa-lightbulb"></i> Linhas que começam com <code>//</code> são <strong>notas de palco</strong>: aparecem só no monitor do operador, nunca no telão. Ex.: <code>// Repetir este verso 2x</code></p>
+        </section>
+
+        <!-- Barra de ferramentas do editor -->
+        <div class="toolbar-fixed" role="toolbar" aria-label="Ferramentas do editor">
+            <button type="button" id="addSectionBtn" class="tool-btn"><i class="fas fa-heading"></i> Nova seção</button>
+            <button type="button" id="addTextBlockBtn" class="tool-btn"><i class="fas fa-align-left"></i> Texto</button>
+            <button type="button" id="insertSheetBtn" class="tool-btn"><i class="fas fa-music"></i> Criar partitura</button>
+            <button type="button" id="addSheetBlockBtn" class="tool-btn"><i class="fas fa-file-import"></i> Inserir partitura</button>
+            <span class="tool-sep" aria-hidden="true"></span>
+            <button type="button" id="previewBtn" class="tool-btn"><i class="fas fa-eye"></i> Pré-visualizar</button>
+            <button type="button" id="selectModeBtn" class="tool-btn"><i class="fas fa-square-check"></i> Selecionar</button>
+            <button type="button" id="deleteSelectedBtn" class="tool-btn danger" style="display: none;"><i class="fas fa-trash-can"></i> Excluir selecionados</button>
+            <button type="button" id="clearAllBtn" class="tool-btn danger-ghost"><i class="fas fa-eraser"></i> Limpar tudo</button>
+        </div>
+
+        <div class="scrollable-div">
+            <div id="sections">
+                <div class="section">
+                    <div class="section-header" style="display: none;">
+                        <input type="text" name="sections[]" placeholder="Título da seção (ex.: verso, coro)">
+                        <button type="button" class="addSection" title="Adicionar seção"><i class="fas fa-plus"></i></button>
+                        <button type="button" class="removeSection" title="Remover seção"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+
+                    <!-- Editor de blocos (folha clara) -->
+                    <div id="blockEditor">
+                        <div class="block-container" id="blockContainer">
+                            <div class="text-block" contenteditable="true" data-placeholder="Digite a letra da música…"></div>
+                        </div>
+                    </div>
+
+                    <!-- Campos ocultos enviados com o formulário -->
+                    <textarea id="entrada" name="texts[]" style="display: none;"></textarea>
+                    <input type="hidden" id="video_url" name="video_url" value="{{ (song.video_url or '') if song else '' }}">
+                    <input type="hidden" id="audio_url" name="audio_url" value="{{ (song.audio_url or '') if song else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="processCifraClubManual()"><i class="fas fa-link"></i> Importar link do Cifra Club</button>
+            <span class="grow"></span>
+            <a href="{{ url_for('songs.list_songs') }}" class="uc-btn uc-btn-ghost">Cancelar</a>
+            <button type="submit" class="uc-btn uc-btn-primary btn-salvar"><i class="fas fa-floppy-disk"></i> Salvar música</button>
+        </div>
+    </form>
+</main>
+
+<!-- Editor de partitura (modal; o desenho precisa de fundo branco) -->
+<div id="vexEditor" class="vex-editor-container" style="display: none;">
+    <div class="vex-editor">
+        <div class="vex-head">
+            <h3>Editor de partitura</h3>
+        </div>
+        <div class="vex-toolbar">
+            <div class="vex-durations">
+                <span>Duração</span>
+                <button type="button" class="vex-btn active" data-dur="w" title="Semibreve">𝅝</button>
+                <button type="button" class="vex-btn" data-dur="h" title="Mínima">𝅗𝅥</button>
+                <button type="button" class="vex-btn" data-dur="q" title="Semínima">𝅘𝅥</button>
+                <button type="button" class="vex-btn" data-dur="8" title="Colcheia">𝅘𝅥𝅮</button>
+                <button type="button" class="vex-btn" data-dur="16" title="Semicolcheia">𝅘𝅥𝅯</button>
+            </div>
+            <div class="vex-accidentals">
+                <span>Acidentes</span>
+                <button type="button" class="vex-btn active" data-acc="n" title="Natural">♮</button>
+                <button type="button" class="vex-btn" data-acc="#" title="Sustenido">♯</button>
+                <button type="button" class="vex-btn" data-acc="b" title="Bemol">♭</button>
+            </div>
+        </div>
+        <div id="vex-canvas"></div>
+        <div class="vex-actions">
+            <button type="button" id="vex-cancel" class="uc-btn uc-btn-ghost">Cancelar</button>
+            <button type="button" id="vex-insert" class="uc-btn uc-btn-primary">Inserir partitura</button>
+        </div>
+    </div>
+</div>

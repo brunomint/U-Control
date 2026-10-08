@@ -1,49 +1,50 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <script src="{{ versioned_static('js/csrf.js') }}"></script>
-    <link rel="icon" type="image/x-icon" href="static/U-Control-ico.ico">
-    <title>Controle de Fotos</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/presenter.css') }}">
-</head>
-<body>
-    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
-    <nav class="menu">
-        <ul>
-            <li>
-                <img src="/static/U-Control.png" alt="U Control" class="logo">
-            </li>
-            <li><p>Deseja enviar mais arquivos?</p></li>
-            <li>
-                <div>
-                    <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/webm,video/quicktime">
-                    <button id="uploadBtn" onclick="uploadImages()">Enviar Arquivos</button>
-                    <div id="uploadProgressWrap" style="display:none; margin-top:8px;">
-                        <div style="background:#222; border-radius:6px; overflow:hidden; height:18px; position:relative;">
-                            <div id="uploadProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#4caf50,#81c784); border-radius:6px; transition:width .15s;"></div>
-                            <span id="uploadProgressText" style="position:absolute; top:0; left:0; right:0; text-align:center; font-size:0.72em; line-height:18px; color:#fff; font-weight:bold;">0%</span>
-                        </div>
-                        <div id="uploadStatusText" style="color:#aaa; font-size:0.72em; margin-top:4px; text-align:center;"></div>
-                    </div>
-                </div>
-            </li>
-        </ul>
-    </nav>
+{% extends "base.html" %}
+{% set app_theme = true %}
 
-    <div style="position:fixed; top:0; right:0; z-index:999; padding:8px 12px; display:flex; gap:8px; align-items:center;">
-        <select id="folderSelect" onchange="onFolderChange()" style="padding:8px 12px; border-radius:8px; border:1px solid #555; background:#333; color:#fff; font-size:0.9em;"></select>
-        <button id="blackoutBtn" onclick="toggleBlackout()" style="padding:10px 18px; border:none; border-radius:8px; background:#212121; color:white; font-size:0.95em; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.4);">🌑 Escurecer Tela</button>
+{% block title %}Fotos no telão - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/presenter.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page presenter-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Fotos no telão</h1>
+            <div class="uc-page-sub">Toque numa foto para prepará-la · a lupa abre o zoom</div>
+        </div>
+        <div class="toolbar">
+            <select class="uc-input" id="folderSelect" onchange="onFolderChange()" aria-label="Pasta"></select>
+            <button type="button" class="uc-btn uc-btn-secondary menu-toggle" onclick="toggleMenu()"><i class="fas fa-upload"></i> Enviar arquivos</button>
+            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> Tela preta</button>
+        </div>
     </div>
-    <h2>Toque ou clique na foto para visualização.</h2>
+
+    <!-- Envio de arquivos (abre/fecha pelo botão "Enviar arquivos") -->
+    <section class="uc-card menu" aria-label="Enviar arquivos">
+        <div class="upload-row">
+            <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/webm,video/quicktime" aria-label="Arquivos">
+            <button type="button" class="uc-btn uc-btn-primary" id="uploadBtn" onclick="uploadImages()"><i class="fas fa-upload"></i> Enviar</button>
+        </div>
+        <div id="uploadProgressWrap" style="display:none">
+            <div class="progress"><div id="uploadProgressBar"></div><span id="uploadProgressText">0%</span></div>
+            <div id="uploadStatusText" class="uc-muted"></div>
+        </div>
+    </section>
+
     <div id="imageGallery" class="foto-lista"></div>
+</main>
+{% endblock %}
 
-
-    <script src="/static/vendor/socketio/socket.io.min.js"></script>
-    <script src="{{ versioned_static('js/pages/presenter.js') }}"></script>
-    <script src="{{ versioned_static('js/release_banner.js') }}"></script>
-    <script>initReleaseBanner(socket, 'image');</script>
-</body>
-</html>
+{% block scripts %}
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ versioned_static('js/pages/presenter.js') }}"></script>
+<script src="{{ versioned_static('js/release_banner.js') }}"></script>
+<script>initReleaseBanner(socket, 'image');</script>
+{% endblock %}

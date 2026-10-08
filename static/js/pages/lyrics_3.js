@@ -3,7 +3,6 @@
       const toggleButton = document.getElementById('toggle-button');
   
       menu.classList.add('active');
-      toggleButton.style.display = 'none';
     }
   
     // Fecha o menu se clicar fora
@@ -16,7 +15,6 @@
   
       if (!isClickInsideMenu && !isClickOnButton && menu.classList.contains('active')) {
         menu.classList.remove('active');
-        toggleButton.style.display = 'block';
       }
     });
   
@@ -24,3 +22,7 @@
     document.getElementById('menu').addEventListener('click', function (event) {
       event.stopPropagation();
     });
+
+    function closeMenu() {
+      document.getElementById('menu').classList.remove('active');
+    }

@@ -952,7 +952,11 @@ def test_group_activity_merges_consecutive_repeats():
 
 
 def test_redesigned_pages_render_with_theme_and_nav(logged_in_client):
-    for path in ("/dashboard", "/control", "/usuarios"):
+    for path in ("/dashboard", "/control", "/usuarios", "/songs", "/new_song", "/sheet_editor",
+                 "/order", "/order/new", "/historico", "/links", "/help", "/bible",
+                 "/bible/jo", "/bible/jo/3", "/bible/control/jo/3", "/presenter",
+                 "/agenda/dashboard", "/agenda/edit", "/agenda/2099-01-01/admin",
+                 "/agenda/2099-01-01/louvor"):
         response = logged_in_client.get(path)
         assert response.status_code == 200, path
         html = response.get_data(as_text=True)
@@ -969,3 +973,15 @@ def test_projector_screens_stay_outside_theme_and_nav(client):
         html = client.get(path).get_data(as_text=True)
         assert "css/app.css" not in html, path
         assert 'class="site-nav"' not in html, path
+
+
+def test_public_pages_use_theme_without_operator_menu(client):
+    # Páginas que a equipe abre sem login (agenda, cifras): tema novo, mas a
+    # barra só mostra a marca e "Entrar" — nada do menu do operador.
+    for path in ("/login", "/agenda", "/agenda/2099-01-01", "/view"):
+        response = client.get(path)
+        assert response.status_code == 200, path
+        html = response.get_data(as_text=True)
+        assert 'class="uc-app"' in html, path
+        assert "site-nav-link live" not in html, path
+

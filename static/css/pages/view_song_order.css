@@ -1,400 +1,52 @@
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 0;
-    font-size: 18px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #0a0a0a;
-    color: #e2e8f0;
-}
+/* Cifras do culto (view_song_order.html, rota /view) — lista montada por
+   view_song_order.js. Base, card e busca vêm do app.css. */
 
-/* Estilo do menu - Tema Moderno */
-.menu {
-    width: 260px;
-    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-    color: #e2e8f0;
-    height: 100vh;
-    padding-top: 20px;
-    padding-bottom: 80px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    transition: transform 0.3s ease;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
-    border-right: 1px solid rgba(74, 222, 128, 0.2);
-    overflow-y: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    scrollbar-width: thin;
-    scrollbar-color: #4ade80 #1a1a2e;
-    z-index: 900;
-    box-sizing: border-box;
-}
+.cifras-page { max-width: 640px; }
 
-.menu h1 {
-    font-weight: bold;
-    font-size: 22px;
-    color: #4ade80;
-    text-align: center;
-    margin: 0 0 20px 0;
-    padding: 0 15px;
-    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-}
-
-.menu.hidden {
-    transform: translateX(-100%);
-}
-
-.menu-title {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 12px 20px;
-    border-bottom: 1px solid rgba(74, 222, 128, 0.2);
-    margin-bottom: 5px;
-    color: #4ade80;
-    background: rgba(74, 222, 128, 0.1);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.menu a {
-    display: block;
-    color: #e2e8f0;
-    padding: 10px 20px;
-    text-decoration: none;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    border-left: 3px solid transparent;
-}
-
-.menu a:hover {
-    background: rgba(74, 222, 128, 0.1);
-    border-left: 3px solid #4ade80;
-    color: #4ade80;
-    padding-left: 24px;
-}
-
-.menu-item {
-    font-size: 22px;
-    font-weight: bold;
-    padding: 20px 15px;
-    margin-bottom: 10px;
-    color: #4ade80;
-    text-align: center;
-    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-}
-
-h1, h3, h4 {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-h1 {
-    color: #4ade80;
-    text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-}
-
-h5 {
-    color: #4ade80;
-    margin-top: 20px;
-}
-
-pre {
-    background: transparent !important;
-    color: #e2e8f0 !important;
-    padding: 0 !important;
-    margin: 0 0 15px 0 !important;
-    font-size: 14px !important;
-    line-height: 1.6 !important;
-    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace !important;
-}
-
-pre * {
-    font-size: inherit !important;
-    line-height: inherit !important;
-    font-family: inherit !important;
-}
-
-a {
-    display: inline-block;
-    margin-top: 20px;
-    color: #007BFF;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-@media print {
-    a, a:visited {
-        display: none !important;
-        visibility: hidden;
-    }
-
-    #toggle-menu {
-        display: none !important;
-        visibility: hidden;
-    }
-
-    .menu {
-        display: none !important;
-        visibility: hidden;
-    }
-
-    .menu a, .menu a:visited {
-        display: none !important;
-        visibility: hidden;
-    }
-
-    .controls {
-        visibility: hidden;
-    }
-}
-
-/* Branding */
-.branding {
-    text-align: center;
-    padding: 0 10px 20px;
-    margin-bottom: 20px;
-}
-
-.branding img {
-    width: 120px;
-    height: auto;
-    margin-bottom: 10px;
-}
-
-.branding p {
-    font-size: 16px;
-    color: white;
-    margin: 0;
-}
-
-/* Estilo do botão de esconder/exibir - escondido em telas grandes */
-#toggle-menu {
-    display: none; /* Escondido por padrão em telas grandes */
-    position: fixed;
-    top: 8px;
-    left: 8px;
-    padding: 12px 14px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: #4ade80;
-    border: 2px solid #4ade80;
-    cursor: pointer;
-    font-size: 16px;
-    z-index: 1000;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
-    transition: all 0.2s ease;
-}
-
-#toggle-menu:hover {
-    background: rgba(74, 222, 128, 0.15);
-    box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
-    transform: scale(1.05);
-}
-
-/* Ajuste para dispositivos móveis */
-@media (max-width: 768px) {
-    /* Menu escondido por padrão em mobile */
-    .menu {
-        width: 240px;
-        font-size: 16px;
-        height: 100vh;
-        max-height: 100vh;
-        overflow-y: auto;
-        transform: translateX(-100%); /* Escondido por padrão */
-    }
-
-    .menu.visible {
-        transform: translateX(0); /* Visível quando tem classe .visible */
-    }
-
-    /* Botão visível em mobile */
-    #toggle-menu {
-        display: block !important;
-        top: 8px;
-        left: 8px;
-        padding: 10px 12px;
-        font-size: 20px;
-    }
-
-    .content {
-        margin-left: 0;
-        padding: 20px;
-        margin-top: 60px;
-    }
-}
-
-/* Telas grandes */
-@media (min-width: 769px) {
-    .menu {
-        width: 280px;
-        font-size: 18px;
-        z-index: 1000;
-    }
-
-    .menu a {
-        font-size: 16px;
-        padding: 14px 20px;
-    }
-
-    .menu-title {
-        font-size: 14px;
-        padding: 14px 20px;
-    }
-
-    .content {
-        margin-left: 300px;
-    }
-
-    pre {
-        font-size: 18px !important;
-        line-height: 1.7 !important;
-    }
-
-    pre * {
-        font-size: 18px !important;
-        line-height: 1.7 !important;
-    }
-}
-
-.img-content {
-    border-radius: 0px;
-}
-
-.description {
-    font-size: 18px;
-    color: #e2e8f0;
-    text-align: center;
-    padding: 30px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    border: 1px solid rgba(74, 222, 128, 0.15);
-}
-
-.description p {
-    color: #a0aec0;
-    line-height: 1.6;
-}
-
-.description strong {
-    color: #4ade80;
-}
-
-/* Busca de música na página de boas-vindas — mesma API pública
-   (/api/songs/search) E o mesmo padrão visual/interação do widget em
-   view_song.html (botão compacto + popover, mesmos nomes de classe de
-   propósito, pra ficar visualmente idêntico entre as duas páginas, não
-   só com cores parecidas — pedido explícito do usuário, 2026-09-22,
-   depois de uma primeira versão em caixa de texto sempre visível que
-   não bateu com o resto do app). */
-.search-song-widget {
-    position: relative;
-    display: inline-block;
-    margin-top: 15px;
-}
-
-.search-song-btn {
-    background: rgba(74, 222, 128, 0.1);
-    border: 1px solid rgba(74, 222, 128, 0.3);
-    color: #e2e8f0;
-    border-radius: 8px;
-    padding: 10px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: background-color 0.2s ease;
-    white-space: nowrap;
-}
-
-.search-song-btn:hover {
-    background: rgba(74, 222, 128, 0.2);
-}
-
-.search-song-popover {
-    display: none;
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10000;
-    width: 320px;
-    max-width: calc(100vw - 40px);
-    box-sizing: border-box;
-    text-align: left;
-    background: #16213e;
-    border: 1px solid rgba(74, 222, 128, 0.25);
-    border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    padding: 10px;
-}
-
-.search-song-popover input[type="text"] {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px 12px;
-    border: 1px solid rgba(96, 165, 250, 0.3);
-    border-radius: 8px;
-    font-size: 14px;
-    color: #e2e8f0;
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-.search-song-popover input[type="text"]:focus {
-    outline: none;
-    border-color: #60a5fa;
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
+/* Busca sempre visível (o JS ainda alterna o display do popover; o
+   !important mantém o campo à mostra) */
+.search-song-widget { position: relative; }
+.search-song-popover { display: block !important; }
 .search-song-results {
-    margin-top: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    border-radius: 8px;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
 }
+.search-song-results:empty { display: none; }
+.search-song-item { padding: 11px 14px; cursor: pointer; border-bottom: 1px solid var(--uc-line); font-weight: 600; }
+.search-song-item:last-child { border-bottom: 0; }
+.search-song-item:hover { background: var(--uc-surface-3); }
+.search-song-item .autor { color: var(--uc-muted); font-weight: 500; }
 
-.search-song-results:not(:empty) {
-    border: 1px solid rgba(96, 165, 250, 0.25);
+.menu { display: grid; gap: 6px; }
+.list-title { margin-bottom: 6px; }
+.song-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--uc-r);
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  color: var(--uc-text);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
 }
+a.song-link:hover { border-color: var(--uc-accent); }
+.song-link .t { min-width: 0; }
+.song-link .artist { color: var(--uc-muted); font-weight: 500; font-size: 13px; }
+.song-link i { color: var(--uc-faint); }
+.song-link .k { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--uc-warn); }
+.song-link.text { background: none; border-style: dashed; color: var(--uc-muted); font-weight: 600; }
 
-.search-song-item {
-    padding: 9px 12px;
-    font-size: 13px;
-    color: #cbd5e1;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(96, 165, 250, 0.1);
-}
-
-.search-song-item:last-child {
-    border-bottom: none;
-}
-
-.search-song-item:hover {
-    background: rgba(96, 165, 250, 0.15);
-    color: #93c5fd;
-}
-
-.search-song-item .autor {
-    color: #64748b;
-    font-size: 12px;
-}
-
-.footer {
-    position: fixed;
-    font-size: 12px;
-    bottom: 0;
-    width: 100%;
-    text-align: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: #a0aec0;
-    padding: 12px;
-    z-index: 1000;
-    border-top: 1px solid rgba(74, 222, 128, 0.2);
-}
+.credits { text-align: center; color: var(--uc-faint); font-size: 12px; padding-top: 8px; }

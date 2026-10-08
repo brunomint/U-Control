@@ -9,7 +9,7 @@ const [year, month, day] = dateStr.split('-');
 const dateObj = new Date(year, month - 1, day);
 
 document.getElementById('orderDate').textContent = `${day} de ${months[dateObj.getMonth()]}`;
-document.getElementById('orderWeekday').textContent = `${weekdays[dateObj.getDay()]} • ${year}`;
+document.getElementById('orderWeekday').textContent = `${weekdays[dateObj.getDay()]} · ${year}`;
 
 // Count stats
 const items = document.querySelectorAll('.item');
@@ -44,12 +44,7 @@ function copyLink() {
 }
 
 function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    window.ucToast(message);
 }
 
 // Réplica do filtro `truncate(length, killwords=True, end="...")` do Jinja2

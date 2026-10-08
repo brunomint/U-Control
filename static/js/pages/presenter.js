@@ -7,7 +7,7 @@
         document.addEventListener('click', function(event) {
             const menu = document.querySelector('.menu');
             const isClickInsideMenu = menu.contains(event.target);
-            const isClickOnToggleButton = event.target.matches('button');
+            const isClickOnToggleButton = !!event.target.closest('button');
 
             // Se o menu estiver aberto e o clique não for dentro do menu ou no botão de toggle
             if (menu.classList.contains('open') && !isClickInsideMenu && !isClickOnToggleButton) {
@@ -25,8 +25,10 @@
             blackoutActive = !blackoutActive;
             socket.emit('blackout', { active: blackoutActive });
             const btn = document.getElementById('blackoutBtn');
-            btn.textContent = blackoutActive ? '☀️ Restaurar Tela' : '🌑 Escurecer Tela';
-            btn.style.background = blackoutActive ? '#4caf50' : '#212121';
+            btn.classList.toggle('active', blackoutActive);
+            btn.innerHTML = blackoutActive
+                ? '<i class="fas fa-sun"></i> Voltar a imagem'
+                : '<i class="fas fa-moon"></i> Tela preta';
         }
 
         socket.on('atualizar_foto', function(data) {
@@ -74,9 +76,9 @@
                             imgContainer.className = 'image-container';
                             if (item.type === 'video') {
                                 imgContainer.innerHTML = `
-                                    <div style="position: relative; display: inline-block;">
+                                    <div class="thumb-wrap">
                                         <video src="${item.url}" preload="metadata"
-                                            style="max-width:80%; height:auto; border-radius:10px; display:block; pointer-events:none;"
+                                            style="width:100%; aspect-ratio:16/10; object-fit:cover; border-radius:8px; display:block; pointer-events:none;"
                                             muted playsinline></video>
                                         <div onclick="showVideoInMonitor('${item.url}')" data-video-url="${item.url}"
                                              style="position:absolute; inset:0; cursor:pointer; border-radius:10px;
@@ -96,7 +98,7 @@
                                                        font-size:18px; align-items:center; justify-content:center; z-index:2;">⏮️</button>
                                     </div>
                                     <div class="video-progress-wrap" data-progress-url="${item.url}"
-                                         style="display:none; margin-top:6px; width:80%;">
+                                         style="display:none; margin-top:6px; width:100%;">
                                         <div class="video-progress-bar"
                                              onclick="seekVideoFromBar(event, '${item.url}')"
                                              style="position:relative; height:14px; background:#555; border-radius:7px;
@@ -113,12 +115,12 @@
                                 `;
                             } else {
                                 imgContainer.innerHTML = `
-                                    <div style="position: relative; display: inline-block;">
+                                    <div class="thumb-wrap">
                                         <img src="${item.url}" alt="Imagem ${index + 1}" onclick="resetView('${item.url}')">
                                         <button type="button"
                                                 class="zoom-btn"
                                                 aria-label="Abrir zoom"
-                                                onclick="openZoomModal('${item.url}')">🔍</button>
+                                                onclick="openZoomModal('${item.url}')"><i class="fas fa-magnifying-glass-plus"></i></button>
                                     </div>
                                 `;
                             }
@@ -501,7 +503,7 @@
             zoomModal.innerHTML = `
                 <div class="zoom-backdrop" onclick="closeZoomModal()"></div>
                 <div class="zoom-content">
-                    <button class="zoom-close" onclick="closeZoomModal()" aria-label="Fechar">✕</button>
+                    <button type="button" class="zoom-close" onclick="closeZoomModal()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
                     <div class="zoom-image-wrapper">
                         <img id="zoom-image" src="" alt="Zoom preview" title="Clique no ponto que deseja aproximar. Clique duplo ou toque duplo para reset.">
                     </div>

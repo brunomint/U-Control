@@ -110,7 +110,10 @@ function updateSongList(song) {
     // Botão para remover a música
     const removeButton = document.createElement("button");
     removeButton.className = "remove-btn";
-    removeButton.textContent = "🗑️";
+    removeButton.type = "button";
+    removeButton.title = "Remover da lista";
+    removeButton.setAttribute("aria-label", "Remover da lista");
+    removeButton.innerHTML = '<i class="fas fa-trash-can"></i>';
     removeButton.onclick = () => songList.removeChild(songItem);
 
     // Adiciona o botão ao item da música
@@ -364,7 +367,7 @@ async function sendBibleListItem(reference, songItemEl) {
 // clicar manda só aquele verso ao telão (sendSingleBibleVerse). Modal (não
 // caixinha na barra lateral) pra ter espaço de sobra pra ler o texto.
 function renderBibleReadAlong() {
-    document.getElementById('bibleReadAlongRef').textContent = `📖 ${currentBibleReference}`;
+    document.getElementById('bibleReadAlongRef').textContent = currentBibleReference;
 
     const textEl = document.getElementById('bibleReadAlongText');
     textEl.innerHTML = '';

@@ -1,56 +1,27 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <script src="{{ versioned_static('js/csrf.js') }}"></script>
-  <title>Editor de Partitura – VexFlow</title>
-  <style>
-    :root{
-      --gap:12px; --primary:#1976d2; --primary-light:#e3f2fd; --primary-dark:#0d47a1;
-      --text:#212121; --text-light:#757575; --border:#e0e0e0; --bg:#f8f9fa; --card:#fff;
-      --shadow:0 2px 8px rgba(0,0,0,.08); --radius:8px;
-    }
-    body{font-family:Segoe UI,Roboto,Ubuntu,Open Sans,sans-serif;margin:0;background:var(--bg);color:var(--text);line-height:1.5;}
-    header{padding:12px 20px;background:var(--primary);color:#fff;box-shadow:var(--shadow);position:sticky;top:0;z-index:10}
-    h1{font-size:20px;margin:0;font-weight:500}
-    main{padding:10px;display:grid;grid-template-columns:280px 1fr;gap:10px;max-width:1600px;margin:0 auto}
-    @media (max-width:900px){main{grid-template-columns:1fr}}
-    .card{background:var(--card);border-radius:var(--radius);padding:8px;box-shadow:var(--shadow)}
-    .row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
-    .controls label{display:block;font-size:11px;color:var(--text-light);margin-bottom:2px;font-weight:500}
-    select,input[type="text"]{padding:4px 6px;border:1px solid var(--border);border-radius:3px;font:inherit;background:#fff;font-size:12px}
-    select:focus,input:focus{outline:1px solid var(--primary-light);border-color:var(--primary)}
-    .btn{padding:4px 8px;border:1px solid var(--border);background:#fff;border-radius:3px;cursor:pointer;font-size:12px;transition:.2s;min-height:24px}
-    .btn:hover{background:var(--primary-light);border-color:var(--primary)}
-    .btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .btn.active:hover{background:var(--primary-dark)}
-    .kbd{font-size:10px;padding:2px 4px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;background:#fff;color:var(--text-light)}
-    .score-wrap{overflow-x:auto;padding:8px;border-radius:var(--radius);background:#fff;box-shadow:inset 0 0 0 1px var(--border)}
-    small{color:var(--text-light);font-size:10px;display:block;margin-top:6px}
-    .group-title{font-size:11px;color:var(--text-light);margin-right:4px;font-weight:500}
-    .control-group{background:var(--bg);border-radius:var(--radius);padding:6px;margin-bottom:8px;border:1px solid var(--border)}
-    .control-group-title{font-size:12px;font-weight:500;margin-bottom:4px;color:var(--text);display:block}
-    .action-btn{background:var(--primary);color:#fff;border:none;padding:6px 10px;font-weight:500;font-size:11px}
-    .action-btn:hover{background:var(--primary-dark);color:#fff}
-    .dur,.rest-btn{min-width:28px;text-align:center;font-size:14px;padding:3px 4px}
-    .score-section{display:flex;flex-direction:column}
-    .score-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px}
-    .score-header h2{font-size:16px;font-weight:500;margin:0;color:var(--text)}
-    .zoom-controls{display:flex;align-items:center;gap:4px}
-    .zoom-controls .btn{min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;padding:0;font-size:12px}
-    #zoomLevel{font-size:12px;color:var(--text-light);min-width:40px;text-align:center}
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}Editor de partitura - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/sheet_editor.css') }}">
+{% endblock %}
+
+{% block content %}
 {% include "_nav.html" %}
-<div style="padding-top: 48px;"></div>
+<div class="sheet-head uc-page-head">
+  <div>
+    <h1>Editor de partitura</h1>
+    <div class="uc-page-sub">{% if song %}{{ song.title }}{% else %}Partitura nova. Salve como JSON ou abra pela música para gravar nela.{% endif %}</div>
+  </div>
+</div>
 
-<header><h1>Editor de Partitura</h1></header>
-
-<main>
-  <section class="card controls">
+<main class="sheet-main">
+  <section class="uc-card card controls">
     <div class="control-group">
       <span class="control-group-title">Configurações da Partitura</span>
       <div class="row">
@@ -110,7 +81,7 @@
         <button type="button" class="btn" id="dotBtn" title="Ponto (.)">.</button>
       </div>
       <div class="row">
-        <label class="row" style="margin-left:0"><input type="checkbox" id="isRest"> Pausa (R)</label>
+        <label class="row"><input type="checkbox" id="isRest"> Pausa (R)</label>
       </div>
       <div class="row">
         <span class="group-title">Pausas rápidas:</span>
@@ -127,7 +98,7 @@
       <div class="row">
         <div>
           <label>Altura:</label>
-          <select id="editPitch" style="width: 60px;" disabled>
+          <select id="editPitch" disabled>
             <option value="">-</option>
             <option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option>
             <option value="G">G</option><option value="A">A</option><option value="B">B</option>
@@ -135,7 +106,7 @@
         </div>
         <div>
           <label>Oitava:</label>
-          <select id="editOctave" style="width: 50px;" disabled>
+          <select id="editOctave" disabled>
             <option value="">-</option>
             <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
             <option value="5">5</option><option value="6">6</option><option value="7">7</option>
@@ -143,7 +114,7 @@
         </div>
         <div>
           <label>Duração:</label>
-          <select id="editDuration" style="width: 60px;" disabled>
+          <select id="editDuration" disabled>
             <option value="">-</option>
             <option value="w">𝅝</option><option value="h">𝅗𝅥</option><option value="q">𝅘𝅥</option>
             <option value="8">𝅘𝅥𝅮</option><option value="16">𝅘𝅥𝅯</option>
@@ -153,7 +124,7 @@
       <div class="row">
         <div>
           <label>Acidente:</label>
-          <select id="editAccidental" style="width: 60px;" disabled>
+          <select id="editAccidental" disabled>
             <option value="">Nenhum</option>
             <option value="#">♯</option><option value="b">♭</option><option value="n">♮</option>
             <option value="##">𝄪</option><option value="bb">𝄫</option>
@@ -170,7 +141,7 @@
         </div>
       </div>
       <div class="row">
-        <small>💡 Clique em uma nota para editá-la. Modifique as propriedades e clique em "Aplicar"</small>
+        <small>Clique numa nota para editá-la, mude as propriedades e toque em "Aplicar".</small>
       </div>
     </div>
 
@@ -179,7 +150,7 @@
       <div class="row">
         <div>
           <label>Cifra:</label>
-          <input type="text" id="chordInput" placeholder="C, Am, F#m7" style="width: 80px;">
+          <input type="text" id="chordInput" placeholder="C, Am, F#m7">
         </div>
         <div>
           <button type="button" class="btn" id="addChordBtn">Adicionar Cifra</button>
@@ -187,7 +158,7 @@
         </div>
       </div>
       <div class="row">
-        <small>💡 Clique em uma nota para selecioná-la, depois digite a cifra e clique em "Adicionar"</small>
+        <small>Selecione uma nota, digite a cifra e toque em "Adicionar".</small>
       </div>
     </div>
 
@@ -216,7 +187,7 @@
     </small>
   </section>
 
-  <section class="card score-section">
+  <section class="uc-card card score-section">
     <div class="score-header">
       <h2>Partitura</h2>
       <div class="zoom-controls">
@@ -233,7 +204,9 @@
 <script id="song-data" type="application/json">
 {% if song %}{{ song|tojson }}{% else %}null{% endif %}
 </script>
+{% endblock %}
 
+{% block scripts %}
 <script type="module">
   import { renderSheetMusic, normalizeSheetData } from '{{ versioned_static("js/sheet_render.js") }}';
 
@@ -1129,5 +1102,4 @@
   setZoom(state.zoomLevel);
   render();
 </script>
-</body>
-</html>
+{% endblock %}
