@@ -45,7 +45,7 @@ function loadContent(section) {
                     <img src="static/imges_help/Login.png" alt="Login" class="centered-image">
                 </div>
                 <p>Para o primeiro acesso, utilize as seguintes credenciais:</p>
-                <div style="background-color: #f0f8ff; padding: 10px; border-left: 4px solid #007bff; font-family: Arial, sans-serif;">
+                <div class="callout">
                     <strong>Usuário:</strong> <code>admin</code><br>
                     <strong>Senha:</strong> <code>1234</code>
                 </div>
@@ -60,7 +60,7 @@ function loadContent(section) {
                         <div class="image-container">
                             <img src="static/imges_help/link_novo-usuario.png" alt="Login" class="centered-image">
                         </div>
-                    <li>Na página "Usuários Registrados", localize o usuário "admin" na lista de usuários cadastrados e Selecione a opção para <strong><span style="color: red;">remover</span></strong>.</li>
+                    <li>Na página "Usuários Registrados", localize o usuário "admin" na lista de usuários cadastrados e Selecione a opção para <strong class="danger">remover</strong>.</li>
                         <div class="image-container">
                             <img src="static/imges_help/remover_usuario.png" alt="Login" class="centered-image">
                         </div>
@@ -109,4 +109,8 @@ function loadContent(section) {
     }
 
     content.innerHTML = html;
+    document.querySelectorAll('.help-menu [data-section]').forEach(a => {
+        a.classList.toggle('active', a.dataset.section === section);
+    });
+    content.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }

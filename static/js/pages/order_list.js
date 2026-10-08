@@ -148,63 +148,62 @@ function countItems(itens) {
     return { musicas, biblia, outros, total: itens.length };
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 function createOrderCard(dateStr, order) {
     const date = formatDate(dateStr);
     const stats = countItems(order.itens || []);
     const today = isToday(dateStr);
     const past = isPast(dateStr);
 
-    let headerClass = '';
-    let badge = '';
+    let state = 'future';
+    let badge = '<span class="uc-pill uc-pill-muted">Agendado</span>';
     if (today) {
-        headerClass = 'today';
-        badge = '🔴 HOJE';
+        state = 'today';
+        badge = '<span class="uc-pill uc-pill-live"><span class="dot"></span>Hoje</span>';
     } else if (past) {
-        headerClass = 'past';
-        badge = 'Passado';
-    } else {
-        badge = 'Agendado';
+        state = 'past';
+        badge = '<span class="uc-pill uc-pill-muted">Passado</span>';
     }
 
+    const people = [
+        order.dirigente && `<span><b>Dirigente</b> ${escapeHtml(order.dirigente)}</span>`,
+        order.pregador && `<span><b>Pregação</b> ${escapeHtml(order.pregador)}</span>`,
+        order.tema && `<span><b>Tema</b> ${escapeHtml(order.tema)}</span>`,
+    ].filter(Boolean).join('');
+
+    const horario = order.horario_culto || order.horario || '';
+
     return `
-        <div class="order-card" data-date="${dateStr}">
-            <div class="card-header ${headerClass}">
-                <div class="card-date">${date.day} ${date.month}</div>
-                <div class="card-weekday">${date.weekday} • ${order.horario || '18:40'}</div>
-                <div class="card-badge">${badge}</div>
+        <article class="uc-card order-card ${state}" data-date="${dateStr}">
+            <div class="order-top">
+                <div class="order-date">
+                    <span class="day">${date.day}</span>
+                    <span class="month">${date.month}</span>
+                </div>
+                <div class="order-head">
+                    <div class="order-tipo">${escapeHtml(order.tipo || 'Culto')}</div>
+                    <div class="order-when">${date.weekday}${horario ? ` · ${escapeHtml(horario)}` : ''}</div>
+                </div>
+                ${badge}
             </div>
-            <div class="card-body">
-                <div class="card-tipo">${order.tipo || 'Culto'}</div>
-
-                <div class="card-info">
-                    ${order.dirigente ? `<div class="card-info-item">👤 <strong>Dirigente:</strong> ${order.dirigente}</div>` : ''}
-                    ${order.pregador ? `<div class="card-info-item">🎤 <strong>Pregador:</strong> ${order.pregador}</div>` : ''}
-                    ${order.tema ? `<div class="card-info-item">📝 <strong>Tema:</strong> ${order.tema}</div>` : ''}
-                </div>
-
-                <div class="card-stats">
-                    <div class="stat-item">
-                        <div class="stat-number">${stats.musicas}</div>
-                        <div class="stat-label">Músicas</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${stats.biblia}</div>
-                        <div class="stat-label">Bíblia</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${stats.total}</div>
-                        <div class="stat-label">Total</div>
-                    </div>
-                </div>
-
-                <div class="card-actions">
-                    <a href="/order/${dateStr}" class="card-btn secondary">✏️ Editar</a>
-                    <a href="/view/order/${dateStr}" class="card-btn primary">👁️ Visualizar</a>
-                    <a href="/view?order=${dateStr}" class="card-btn primary" title="Abrir cifras">🎵 Cifras</a>
-                    <button class="card-btn secondary" onclick="copyLink('${dateStr}')" title="Copiar link">🔗</button>
-                </div>
+            ${people ? `<div class="order-people">${people}</div>` : ''}
+            <div class="order-stats">
+                <span><i class="fas fa-music"></i> ${stats.musicas} ${stats.musicas === 1 ? 'música' : 'músicas'}</span>
+                <span><i class="fas fa-book-bible"></i> ${stats.biblia} ${stats.biblia === 1 ? 'leitura' : 'leituras'}</span>
+                <span><i class="fas fa-list"></i> ${stats.total} no total</span>
             </div>
-        </div>
+            <div class="order-actions">
+                <a href="/order/${dateStr}" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-pen"></i> Editar</a>
+                <a href="/view/order/${dateStr}" class="uc-btn uc-btn-ghost uc-btn-sm"><i class="fas fa-eye"></i> Ver</a>
+                <a href="/view?order=${dateStr}" class="uc-btn uc-btn-ghost uc-btn-sm" title="Abrir as cifras desta ordem"><i class="fas fa-guitar"></i> Cifras</a>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyLink('${dateStr}')" title="Copiar link público da ordem" aria-label="Copiar link"><i class="fas fa-link"></i></button>
+            </div>
+        </article>
     `;
 }
 
@@ -224,13 +223,8 @@ function copyLink(dateStr) {
     });
 }
 
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+function showToast(message, type) {
+    window.ucToast(message, type);
 }
 
 async function loadOrders() {
@@ -241,7 +235,7 @@ async function loadOrders() {
         applyFilters();
     } catch (error) {
         console.error('Erro ao carregar ordens:', error);
-        showToast('Erro ao carregar ordens de culto');
+        showToast('Erro ao carregar as ordens de culto', 'error');
     }
 }
 

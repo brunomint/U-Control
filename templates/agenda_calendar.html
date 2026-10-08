@@ -1,34 +1,39 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Agenda de Equipes{% endblock %}
+{% block title %}Calendário - Igreja João XXIII{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-noturno.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agenda_calendar.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/agenda_calendar.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="page">
-    <div class="header">
+{% include "_nav.html" %}
+<main class="uc-page cal-page">
+    <div class="uc-page-head cal-head">
         <div>
-            <div class="title">CALENDÁRIO JOÃOXXIII</div>
-            <div class="subtitle">Escala e eventos do mês</div>
+            <h1>Calendário João XXIII</h1>
+            <div class="uc-page-sub">Cultos, escalas e eventos do mês</div>
         </div>
-        <div class="nav">
-            <button class="btn" id="prevBtn">◀</button>
+        <div class="month-nav">
+            <button type="button" class="btn" id="prevBtn" aria-label="Mês anterior"><i class="fas fa-chevron-left"></i></button>
             <div class="month-label" id="monthLabel"></div>
-            <button class="btn" id="nextBtn">▶</button>
+            <button type="button" class="btn" id="nextBtn" aria-label="Próximo mês"><i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
 
-    <div class="card calendar-shell">
+    <section class="uc-card calendar-shell">
         <div class="calendar-head" id="calendarHead"></div>
         <div id="calendar" class="calendar-grid"></div>
-        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada em orders.json</div>
-    </div>
+        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada.</div>
+    </section>
 
-    <div class="footer-note">Clique na data para ver detalhes dos eventos e das escalas.</div>
-</div>
+    <p class="cal-note">Toque numa data para ver os detalhes das escalas e dos eventos.</p>
+</main>
 {% endblock %}
 
 {% block scripts %}

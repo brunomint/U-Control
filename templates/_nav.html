@@ -12,6 +12,9 @@
         <span>U-Control</span>
     </a>
     <div class="site-nav-links">
+        {#- Visitante sem login (páginas públicas: agenda, cifra) não vê o
+            menu do operador — só a marca e o botão Entrar. #}
+        {% if current_user.is_authenticated %}
         {% for group in nav_groups %}
             {% if group.is_menu %}
             {% set ns = namespace(active=false) %}
@@ -37,6 +40,7 @@
                 {% endfor %}
             {% endif %}
         {% endfor %}
+        {% endif %}
     </div>
     {% if current_user.is_authenticated %}
     <div class="site-nav-user">
@@ -46,6 +50,8 @@
             <i class="fas fa-right-from-bracket"></i>
         </a>
     </div>
+    {% else %}
+    <a class="site-nav-link" href="{{ url_for('auth.login', next=request.path) }}"><i class="fas fa-right-to-bracket"></i> Entrar</a>
     {% endif %}
 </nav>
 <div class="site-nav-spacer"></div>

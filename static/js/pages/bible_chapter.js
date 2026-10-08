@@ -78,10 +78,16 @@ function sendToDisplay() {
         label: reference
     });
 
-    showToast('Preparado — libere no /control pra ir ao ar!');
+    showToast('Preparado. Toque em “Liberar no telão” para exibir.');
 }
 
 function sendSingleVerse(verseNum, text) {
+    // O texto vem da página: passado inline no onclick, um apóstrofo no
+    // versículo quebrava a string JS.
+    if (text === undefined) {
+        const el = document.getElementById(`verse-${verseNum}`);
+        text = el ? el.querySelector('.verse-text').textContent : '';
+    }
     const reference = `${bookName} ${chapter}:${verseNum}`;
 
     socket.emit('stage_content', {
@@ -97,7 +103,7 @@ function sendSingleVerse(verseNum, text) {
         label: reference
     });
 
-    showToast(`${reference} preparado — libere no /control!`);
+    showToast(`${reference} preparado. Toque em “Liberar no telão” para exibir.`);
 }
 
 function copyVerses() {
@@ -113,12 +119,7 @@ function copyVerses() {
 }
 
 function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    window.ucToast(message);
 }
 
 async function changeTranslation() {

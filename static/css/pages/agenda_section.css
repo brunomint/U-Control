@@ -1,128 +1,130 @@
-* { box-sizing: border-box; }
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f7f9fc; color: #0f172a; }
-.page { max-width: 900px; margin: 40px auto; padding: 24px; background: #ffffff; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
-.header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-.title { font-size: 22px; font-weight: 700; }
-.badge { padding: 6px 12px; background: #ecfeff; color: #0891b2; border: 1px solid #bae6fd; border-radius: 10px; font-weight: 600; }
-.card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 8px 24px rgba(15,23,42,0.08); margin-bottom: 16px; }
-.line { display: flex; gap: 8px; font-size: 14px; color: #334155; margin-bottom: 8px; }
-.line strong { color: #0f172a; }
-ul { margin: 0; padding-left: 18px; color: #334155; }
-.empty { color: #94a3b8; font-size: 14px; }
-.btn { background: #0ea5e9; color: white; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 18px rgba(14,165,233,0.25); }
-.btn:hover { box-shadow: 0 10px 22px rgba(14,165,233,0.3); }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
-.back { text-decoration: none; color: #0ea5e9; font-weight: 700; }
-label { display: block; font-weight: 600; margin: 10px 0 6px; color: #0f172a; }
-input, textarea {
-    width: 100%;
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e1;
-    font-size: 14px;
-    font-family: inherit;
-    background: #f8fafc;
+/* Editar escala (agenda_section.html: louvor, mídia ou eventos) — base,
+   card, botões e modal vêm do app.css. Os campos não levam classe
+   (vários são gerados pelo JS), então o estilo vai por .section-form. */
+
+.section-page { max-width: 980px; }
+.section-form { display: grid; gap: 20px; }
+.section-form input:not([type="checkbox"]),
+.section-form select,
+.section-form textarea {
+  width: 100%;
+  background: var(--uc-bg);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r-sm);
+  padding: 9px 12px;
+  color: var(--uc-text);
+  font: inherit;
+  color-scheme: dark;
 }
-textarea { resize: vertical; min-height: 100px; }
-.hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-.status { margin-top: 10px; font-size: 13px; }
-.status.ok { color: #059669; }
-.status.err { color: #b91c1c; }
-/* Itens (músicas/texto/bíblia) */
-.items-card { margin-top: 10px; }
-.search-section { margin: 12px 0 8px; }
-.search-box { position: relative; margin-bottom: 15px; }
-#searchInput {
-    width: 100%;
-    padding: 15px 20px 15px 50px;
-    border: 2px solid #00bcd4;
-    border-radius: 25px;
-    font-size: 16px;
-    outline: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2300bcd4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>');
-    background-repeat: no-repeat;
-    background-position: 15px center;
+.section-form input:focus, .section-form select:focus, .section-form textarea:focus { border-color: var(--uc-accent); outline: none; }
+.section-form input::placeholder, .section-form textarea::placeholder { color: var(--uc-faint); }
+.section-form textarea { resize: vertical; min-height: 70px; }
+.section-form label { font-size: 12px; font-weight: 700; color: var(--uc-muted); }
+.hint { font-weight: 500; color: var(--uc-faint); margin-left: 4px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.span-2 { grid-column: 1 / -1; }
+
+.hour-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.hour-btn {
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface-2);
+  color: var(--uc-text);
+  border-radius: 99px;
+  padding: 4px 11px;
+  font-family: var(--uc-mono);
+  font-size: 12.5px;
+  cursor: pointer;
 }
-#searchInput:focus { border-color: #0097a7; box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3); }
-#searchInput::placeholder { color: #94a3b8; }
+.hour-btn:hover { border-color: var(--uc-accent); color: var(--uc-accent-text); }
+
+.status { min-height: 20px; font-weight: 600; font-size: 13px; color: var(--uc-muted); }
+.status.ok { color: var(--uc-ok); }
+.status.err { color: var(--uc-danger); }
+
+/* Itens da ordem (louvor) */
+.items-block { display: grid; gap: 10px; padding-top: 18px; border-top: 1px solid var(--uc-line); }
+.block-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.search-box { position: relative; }
+.section-form .uc-search input { padding-left: 36px; }
 .autocomplete-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border: 2px solid #00bcd4;
-    border-top: none;
-    border-radius: 0 0 15px 15px;
-    max-height: 300px;
-    overflow-y: auto;
-    z-index: 100;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-    display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
 }
-.autocomplete-list.show { display: block; }
-.autocomplete-item {
-    padding: 15px 20px;
-    cursor: pointer;
-    border-bottom: 1px solid #f0f0f0;
-    transition: all 0.2s ease;
-}
-.autocomplete-item:hover { background: linear-gradient(135deg, #e0f7fa, #f1f8e9); }
-.song-title { font-weight: bold; color: #00695c; }
-.song-author { color: #666; font-size: 0.85rem; }
-.actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
-.actions-row input { flex: 1; min-width: 180px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: #f8fafc; }
-.actions-row button { padding: 12px 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; color: white; box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
-.btn-text { background: linear-gradient(135deg, #4CAF50, #43a047); }
-.btn-bible { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
-#songList { margin-top: 12px; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; background: #fff; min-height: 80px; }
-#songList:empty::before { content: 'Nenhum item. Use a busca ou botões para adicionar.'; color: #94a3b8; font-size: 13px; }
-.song-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; background: #f8fafc; }
-.song-item.bible { background: linear-gradient(135deg, #f3e8ff, #ede9fe); border-left: 4px solid #7c3aed; }
-.song-item.text-item { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-left: 4px solid #fb923c; }
-.drag-handle {
-    cursor: grab;
-    font-size: 18px;
-    color: #94a3b8;
-    display: inline-flex;
-    align-items: center;
-    user-select: none;
-    padding: 0 4px;
-}
-.drag-handle:hover { color: #0ea5e9; }
-.song-info a { text-decoration: none; color: #0f172a; font-weight: 600; }
-.remove-btn { border: none; background: linear-gradient(135deg, #ef5350, #e53935); color: white; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; }
-.remove-btn:hover { opacity: 0.9; }
+.autocomplete-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--uc-line); }
+.autocomplete-item:last-child { border-bottom: 0; }
+.autocomplete-item:hover { background: var(--uc-surface-3); }
+.autocomplete-item.empty { color: var(--uc-muted); cursor: default; }
+.autocomplete-item .song-title { font-weight: 700; }
+.autocomplete-item .song-author { color: var(--uc-muted); font-size: 12.5px; }
+.actions-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.add-input-group { display: flex; gap: 8px; }
+.add-input-group input { flex: 1; min-width: 0; }
 
-/* Botões extras */
-.btn-copiar { background: linear-gradient(135deg, #059669, #047857); margin-left: 8px; }
-
-/* Modais */
-.modal-overlay {
-    display: none; position: fixed; inset: 0; z-index: 3000;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+#songList { display: grid; gap: 6px; counter-reset: item; }
+#songList:empty::before {
+  content: "Nenhum item ainda.";
+  display: block;
+  padding: 20px 12px;
+  text-align: center;
+  color: var(--uc-muted);
+  border: 1px dashed var(--uc-line);
+  border-radius: var(--uc-r);
 }
-.modal-box {
-    background: #1e293b; border-radius: 16px; padding: 24px;
-    max-width: 460px; width: 92%; margin: 60px auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+.song-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--uc-r);
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+  counter-increment: item;
 }
-.modal-box h3 { color: #e2e8f0; margin: 0 0 16px; font-size: 1.05rem; }
-.modal-close-btn { margin-top: 14px; width: 100%; padding: 9px; border-radius: 8px; border: none; background: rgba(255,255,255,0.08); color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
+.song-item::before { content: counter(item, decimal-leading-zero); font-family: var(--uc-mono); font-size: 12px; color: var(--uc-faint); min-width: 20px; }
+.drag-handle { color: var(--uc-faint); cursor: grab; padding: 2px 4px; }
+.song-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.song-info::before { font-family: 'Font Awesome 6 Free'; font-weight: 900; content: "\f001"; color: var(--uc-accent-text); font-size: 13px; width: 16px; text-align: center; }
+.song-item.bible .song-info::before { content: "\f647"; color: var(--uc-warn); }
+.song-item.text-item .song-info::before { content: "\f036"; color: var(--uc-muted); }
+.song-info a { color: var(--uc-text); text-decoration: none; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.song-info a:hover { color: var(--uc-accent-text); }
+.remove-btn { border: 0; background: none; color: var(--uc-muted); padding: 5px 8px; border-radius: var(--uc-r-sm); cursor: pointer; }
+.remove-btn:hover { color: var(--uc-danger); background: var(--uc-danger-soft); }
 
-/* Modal aplicar ao mês */
-.mes-header { display: flex; gap: 8px; margin-bottom: 12px; }
-.mes-header select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 7px 10px; font-size: 0.88rem; flex: 1; }
-.mes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 240px; overflow-y: auto; margin-bottom: 10px; }
-.mes-check { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
-.mes-check span { color: #cbd5e1; font-size: 0.85rem; }
-.mes-check input[type=checkbox] { accent-color: #0ea5e9; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
-.mes-apply-btn { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #059669; color: #fff; font-weight: 700; cursor: pointer; font-size: 0.9rem; margin-bottom: 8px; }
-.mes-result { font-size: 0.82rem; text-align: center; min-height: 18px; margin-bottom: 6px; }
-.mes-subtitle { color: #64748b; font-size: 0.78rem; margin: -10px 0 14px; }
-/* Agrupamento por dia da semana no Copiar Mês */
-.copiar-group { margin-bottom: 14px; }
-.copiar-group-title { color: #7dd3fc; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.copiar-group-dates { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+/* Eventos */
+.eventos-container { display: grid; gap: 12px; }
+.evento-bloco {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: var(--uc-r);
+  background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line);
+}
+.evento-bloco label:not(:first-child) { margin-top: 6px; }
+.evento-remove { justify-self: start; margin-top: 6px; }
+
+/* Modal copiar mês (grade montada por agenda_section.js) */
+.mes-subtitle { margin: 0; font-size: 13px; }
+.mes-header { display: grid; grid-template-columns: 1fr 110px; gap: 8px; }
+.copiar-grid { max-height: 260px; overflow-y: auto; }
+.copiar-group { margin-bottom: 12px; }
+.copiar-group-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-accent-text); padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--uc-line); }
+.copiar-group-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.mes-check { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--uc-r-sm); background: var(--uc-surface-2); cursor: pointer; }
+.mes-check input { accent-color: var(--uc-accent); width: 16px; height: 16px; }
+.mes-result { min-height: 18px; font-size: 13px; font-weight: 600; }
+
+@media (max-width: 720px) {
+  .form-grid, .actions-row { grid-template-columns: minmax(0, 1fr); }
+}

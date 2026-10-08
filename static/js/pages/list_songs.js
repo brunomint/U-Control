@@ -121,7 +121,7 @@ async function confirmAddToOrder() {
     }
 
     const button = selectedSongData.button;
-    const originalText = button.text();
+    const originalHtml = button.html();
     const originalClass = button.attr('class');
 
     try {
@@ -154,12 +154,12 @@ async function confirmAddToOrder() {
             body: JSON.stringify(orderData)
         });
 
-        button.text('✓ Adicionada!');
+        button.html('<i class="fas fa-check"></i> Adicionada');
         button.removeClass('add-order').addClass('view');
         showNotification(`"${selectedSongData.songTitle}" adicionada à ordem de ${formatDate(selectedDate)}!`);
 
         setTimeout(() => {
-            button.text(originalText);
+            button.html(originalHtml);
             button.attr('class', originalClass);
         }, 2000);
 
@@ -173,47 +173,7 @@ async function confirmAddToOrder() {
 
 // Função para mostrar notificações (global)
 function showNotification(message, type = 'success') {
-    $('.notification').remove();
-
-    const isError = type === 'error';
-    const bgColor = isError ?
-        'linear-gradient(135deg, #e74c3c, #c0392b)' :
-        'linear-gradient(135deg, #4CAF50, #45a049)';
-    const shadowColor = isError ?
-        'rgba(231, 76, 60, 0.3)' :
-        'rgba(76, 175, 80, 0.3)';
-    const icon = isError ? '⚠️' : '🎵';
-
-    const notification = $(`
-        <div class="notification" style="
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: ${bgColor};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px ${shadowColor};
-            z-index: 10001;
-            font-weight: 600;
-            max-width: 300px;
-            animation: slideIn 0.3s ease;
-        ">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span>${icon}</span>
-                <span>${message}</span>
-            </div>
-        </div>
-    `);
-
-    $('body').append(notification);
-
-    const timeout = isError ? 4000 : 3000;
-    setTimeout(() => {
-        notification.fadeOut(300, function() {
-            $(this).remove();
-        });
-    }, timeout);
+    window.ucToast(message, type);
 }
 
 $(document).ready(function() {
@@ -227,7 +187,7 @@ $(document).ready(function() {
             const author = $(this).find('.song-author').text().toLowerCase();
 
             // Remove highlights anteriores
-            $(this).find('.highlight').each(function() {
+            $(this).find('.uc-highlight').each(function() {
                 $(this).replaceWith($(this).text());
             });
 
@@ -261,7 +221,7 @@ $(document).ready(function() {
     function highlightText(element, searchTerm) {
         const text = element.text();
         const regex = new RegExp(`(${searchTerm})`, 'gi');
-        const highlightedText = text.replace(regex, '<span class="highlight">$1</span>');
+        const highlightedText = text.replace(regex, '<span class="uc-highlight">$1</span>');
         element.html(highlightedText);
     }
 

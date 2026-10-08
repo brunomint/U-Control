@@ -18,7 +18,8 @@ body.uc-app {
 }
 .uc-app h1, .uc-app h2, .uc-app h3, .uc-app h4 { margin: 0; text-wrap: balance; }
 .uc-app button, .uc-app input, .uc-app select, .uc-app textarea { font: inherit; color: inherit; }
-.uc-app a { color: var(--uc-accent-text); }
+/* :where() zera a especificidade — senão esta regra venceria as cores das classes .uc-btn-* em <a>. */
+:where(.uc-app) a { color: var(--uc-accent-text); }
 .uc-app :focus-visible { outline: 2px solid var(--uc-accent); outline-offset: 2px; }
 .uc-app [hidden] { display: none !important; }
 
@@ -127,7 +128,7 @@ body.uc-app {
 @keyframes uc-blink { 50% { opacity: .35; } }
 
 /* ── Formulários ── */
-.uc-field { display: grid; gap: 6px; min-width: 0; }
+.uc-field { display: grid; gap: 6px; min-width: 0; align-content: start; }
 .uc-field > label { font-size: 12px; font-weight: 700; color: var(--uc-muted); }
 .uc-input {
   width: 100%;
@@ -267,6 +268,63 @@ textarea.uc-input { resize: vertical; }
 }
 .uc-mono { font-family: var(--uc-mono); font-size: 12.5px; }
 .uc-muted { color: var(--uc-muted); }
+
+/* ── Toast (aviso flutuante) ── */
+.uc-toast {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 10001;
+  max-width: min(360px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--uc-r);
+  background: var(--uc-surface-3);
+  border: 1px solid var(--uc-line);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+  font-weight: 600;
+  animation: uc-toast-in .2s ease;
+}
+.uc-toast i { color: var(--uc-ok); }
+.uc-toast.error { border-color: rgba(240, 112, 122, .4); }
+.uc-toast.error i { color: var(--uc-danger); }
+@keyframes uc-toast-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* ── Modal ── */
+.uc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(5, 6, 12, .7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.uc-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--uc-surface);
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
+}
+.uc-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--uc-line); }
+.uc-modal-head h2, .uc-modal-head h3 { font-size: 16px; font-weight: 800; }
+.uc-modal-close { border: 0; background: none; color: var(--uc-muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: var(--uc-r-sm); }
+.uc-modal-close:hover { color: var(--uc-text); background: var(--uc-surface-2); }
+.uc-modal-body { padding: 20px; display: grid; gap: 14px; }
+.uc-modal-foot { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--uc-line); }
+
+/* ── Busca ── */
+.uc-search { position: relative; }
+.uc-search > i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--uc-faint); pointer-events: none; }
+.uc-search .uc-input { padding-left: 36px; }
+.uc-highlight { background: var(--uc-accent-soft); color: var(--uc-accent-text); border-radius: 3px; padding: 0 2px; }
 
 @media (max-width: 900px) {
   .uc-grid-2 { grid-template-columns: minmax(0, 1fr); }

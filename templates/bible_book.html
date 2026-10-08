@@ -1,56 +1,39 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}{{ book_name }} - Bíblia U-Control{% endblock %}
+{% block title %}{{ book_name }} - Bíblia{% endblock %}
 
 {% block head_extra %}
-<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-roxo.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible_book.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/bible_book.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<div class="container">
-    <div class="breadcrumb">
-        <a href="/bible?translation={{ current_translation }}"><i class="fas fa-book-bible"></i> Bíblia</a>
-        <span>›</span>
-        <strong>{{ book_name }}</strong>
-    </div>
-
-    <div class="book-header">
-        <h1><i class="fas fa-book-open"></i> {{ book_name }}</h1>
-        <p>{{ num_chapters }} capítulo{% if num_chapters > 1 %}s{% endif %}</p>
-
-        <div class="translation-bar">
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <a class="uc-link" href="/bible?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> Bíblia</a>
+            <h1>{{ book_name }}</h1>
+            <div class="uc-page-sub">{{ num_chapters }} capítulo{% if num_chapters > 1 %}s{% endif %}</div>
+        </div>
+        <div class="translation-bar" role="group" aria-label="Tradução">
             {% for key, trans in translations.items() %}
-            <a href="/bible/{{ book_abbrev }}?translation={{ key }}"
-               class="translation-btn {% if key == current_translation %}active{% endif %}">
-                {{ trans.abbrev }}
-            </a>
+            <a href="/bible/{{ book_abbrev }}?translation={{ key }}" class="translation-btn{% if key == current_translation %} active{% endif %}" title="{{ trans.name }}">{{ trans.abbrev }}</a>
             {% endfor %}
         </div>
     </div>
 
-    <div class="chapters-container">
-        <h2><i class="fas fa-list-ol"></i> Selecione um Capítulo</h2>
+    <section class="uc-card">
+        <div class="uc-card-head"><h2>Escolha o capítulo</h2></div>
         <div class="chapters-grid">
             {% for i in range(1, num_chapters + 1) %}
-            <a href="/bible/{{ book_abbrev }}/{{ i }}?translation={{ current_translation }}" class="chapter-btn">
-                {{ i }}
-            </a>
+            <a href="/bible/{{ book_abbrev }}/{{ i }}?translation={{ current_translation }}" class="chapter-btn">{{ i }}</a>
             {% endfor %}
         </div>
-    </div>
-
-    <center>
-        <a href="/bible?translation={{ current_translation }}" class="back-btn">
-            <i class="fas fa-arrow-left"></i> Voltar para Bíblia
-        </a>
-    </center>
-</div>
+    </section>
+</main>
 {% endblock %}

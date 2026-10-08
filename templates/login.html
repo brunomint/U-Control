@@ -1,49 +1,40 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Login{% endblock %}
-
-{% block head_extra %}
-<!-- Link para o Bootstrap -->
-<link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-{% endblock %}
+{% block title %}Entrar - U-Control{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/login.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/login.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <div class="logo-container">
-        <img src="/static/U-Control.png" alt="U Control">
-        <p class="logo-name">U-Control</p>
-    </div>
-    <h2 class="text-center mb-4">Login</h2>
-    <form method="POST" action="/login">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
-        <div class="mb-3">
-            <label for="username" class="form-label">Usuário</label>
-            <input type="text" id="username" name="username" class="form-control" required>
+<main class="login-wrap">
+    <div class="uc-card login-card">
+        <div class="login-brand">
+            <img src="/static/U-Control.png" alt="">
+            <h1>U-Control</h1>
+            <p class="uc-muted">Entre para operar o telão</p>
         </div>
-        <div class="mb-3">
-            <label for="password" class="form-label">Senha</label>
-            <input type="password" id="password" name="password" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Entrar</button>
-    </form>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <div class="alert alert-danger mt-3" role="alert">
-            {% for category, message in messages %}
-                <p class="{{ category }}">{{ message }}</p>
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% endwith %}
-</div>
-{% endblock %}
 
-{% block scripts %}
-<!-- Script do Bootstrap -->
-<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="uc-flash uc-flash-error" role="alert">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <form class="uc-form-stack" method="POST" action="/login">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+            <div class="uc-field">
+                <label for="username">Usuário</label>
+                <input class="uc-input" type="text" id="username" name="username" autocomplete="username" autofocus required>
+            </div>
+            <div class="uc-field">
+                <label for="password">Senha</label>
+                <input class="uc-input" type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">Entrar</button>
+        </form>
+    </div>
+</main>
 {% endblock %}

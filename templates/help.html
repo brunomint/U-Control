@@ -1,42 +1,48 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Ajuda - Como Usar o U-Control{% endblock %}
+{% block title %}Ajuda - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/help.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/help.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-<div class="menu">
-    <h3>Menu de Ajuda</h3>
-    <a onclick="loadContent('funcionalidades')">1. Principais Funcionalidades</a>
-    <a onclick="loadContent('iniciando')">2. Iniciando o Programa</a>
-    <a onclick="loadContent('credenciais')">3. Credenciais de Login</a>
-    <a onclick="loadContent('dicas')">4. Dicas e Truques</a>
-    <a onclick="loadContent('problemas')">5. Solução de Problemas</a>
-    <a onclick="loadContent('contato')">6. Contato</a>
-</div>
-<div class="content" id="content">
-    <h1>Bem-vindo à Ajuda do Programa U-Control</h1>
-    <p>
-        Bem-vindo à ajuda do programa <strong>U-Control</strong>, um sistema revolucionário de projeção de mídia projetado para transformar a maneira como você apresenta, organiza e sincroniza conteúdos visuais.
-    </p>
-    <p>Com o <strong>U-Control</strong>, você tem em mãos uma ferramenta poderosa e intuitiva que permite:</p>
-    <ul>
-        <li><strong>Gerenciar mídia em tempo real:</strong> Controle apresentações, vídeos e imagens com precisão.</li>
-        <li><strong>Sincronização perfeita:</strong> Sincronize telas de controle e monitor com agilidade, garantindo apresentações impecáveis.</li>
-        <li><strong>Interface amigável:</strong> Navegue facilmente por um sistema desenvolvido para simplificar seu fluxo de trabalho.</li>
-    </ul>
-    <p>
-        Nosso objetivo é proporcionar a melhor experiência, seja em eventos, reuniões, aulas ou apresentações. Explore esta seção de ajuda para aprender como aproveitar ao máximo as funcionalidades do <strong>U-Control</strong>.
-    </p>
-    <p>Selecione uma opção no menu para saber mais sobre como usar o programa.</p>
-</div>
+<main class="uc-page help-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Ajuda</h1>
+            <div class="uc-page-sub">Como usar o U-Control</div>
+        </div>
+    </div>
+
+    <div class="help-grid">
+        <nav class="uc-card help-menu" aria-label="Tópicos de ajuda">
+            <a href="#content" data-section="funcionalidades" onclick="event.preventDefault(); loadContent('funcionalidades')">Principais funcionalidades</a>
+            <a href="#content" data-section="iniciando" onclick="event.preventDefault(); loadContent('iniciando')">Iniciando o programa</a>
+            <a href="#content" data-section="credenciais" onclick="event.preventDefault(); loadContent('credenciais')">Credenciais de login</a>
+            <a href="#content" data-section="dicas" onclick="event.preventDefault(); loadContent('dicas')">Dicas e truques</a>
+            <a href="#content" data-section="problemas" onclick="event.preventDefault(); loadContent('problemas')">Solução de problemas</a>
+            <a href="#content" data-section="contato" onclick="event.preventDefault(); loadContent('contato')">Contato</a>
+        </nav>
+
+        <article class="uc-card help-content" id="content">
+            <h2>Bem-vindo à ajuda do U-Control</h2>
+            <p>O <strong>U-Control</strong> controla o que aparece no telão da igreja: letras, cifras, versículos, imagens, vídeos e avisos, a partir de qualquer computador ou celular na mesma rede.</p>
+            <ul>
+                <li><strong>Mídia em tempo real:</strong> troque letra, imagem ou vídeo no telão com um toque.</li>
+                <li><strong>Telas sincronizadas:</strong> o telão do público e o retorno de palco seguem o Controle.</li>
+                <li><strong>Preparação antes do culto:</strong> monte a ordem, cadastre músicas e organize as escalas.</li>
+            </ul>
+            <p>Escolha um tópico ao lado para saber mais.</p>
+        </article>
+    </div>
+</main>
 {% endblock %}
 
 {% block scripts %}

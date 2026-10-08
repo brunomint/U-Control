@@ -1,49 +1,45 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Histórico do Culto{% endblock %}
+{% block title %}Histórico - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-noturno.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/historico.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/historico.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-<div class="container">
-    <div class="page-header">
-        <h1>📜 Histórico do Culto</h1>
-        <p>Registros de exibição: músicas, imagens, versículos e avisos</p>
-    </div>
-
-    <div class="actions-bar">
-        <a href="/control" class="btn btn-secondary">← Painel</a>
-        <button class="btn btn-danger" onclick="clearHistory()">🗑 Limpar histórico</button>
-    </div>
-
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('historico')">📜 Histórico</button>
-        <button class="tab-btn" onclick="switchTab('relatorio')">📊 Relatório</button>
-    </div>
-
-    <div id="tab-historico">
-        <div id="content"><div class="loading">Carregando...</div></div>
-    </div>
-
-    <div id="tab-relatorio" style="display:none">
-        <div class="period-bar">
-            <button class="period-btn active" onclick="setPeriod(7, this)">Últimos 7 dias</button>
-            <button class="period-btn" onclick="setPeriod(30, this)">Últimos 30 dias</button>
-            <button class="period-btn" onclick="setPeriod(0, this)">Todo o período</button>
+<main class="uc-page hist-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Histórico</h1>
+            <div class="uc-page-sub">Tudo o que foi exibido no telão: músicas, imagens, versículos e avisos</div>
         </div>
-        <div id="ranking"><div class="loading">Carregando...</div></div>
+        <button type="button" class="uc-btn uc-btn-ghost uc-danger-text" onclick="clearHistory()"><i class="fas fa-trash-can"></i> Limpar histórico</button>
     </div>
-</div>
 
-<div class="toast" id="toast"></div>
+    <div class="hist-tabs uc-seg" role="tablist">
+        <button type="button" class="tab-btn active" onclick="switchTab('historico')"><i class="fas fa-clock-rotate-left"></i> Histórico</button>
+        <button type="button" class="tab-btn" onclick="switchTab('relatorio')"><i class="fas fa-ranking-star"></i> Mais tocadas</button>
+    </div>
+
+    <section id="tab-historico">
+        <div id="content"><div class="uc-empty">Carregando…</div></div>
+    </section>
+
+    <section id="tab-relatorio" style="display:none">
+        <div class="period-bar">
+            <button type="button" class="period-btn active" onclick="setPeriod(7, this)">7 dias</button>
+            <button type="button" class="period-btn" onclick="setPeriod(30, this)">30 dias</button>
+            <button type="button" class="period-btn" onclick="setPeriod(0, this)">Todo o período</button>
+        </div>
+        <div class="uc-card" id="ranking"><div class="uc-empty">Carregando…</div></div>
+    </section>
+</main>
 {% endblock %}
 
 {% block scripts %}

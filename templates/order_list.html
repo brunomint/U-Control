@@ -1,96 +1,74 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Ordens de Culto{% endblock %}
+{% block title %}Ordens de Culto - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-noturno.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/order_list.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/order_list.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<div class="container">
-    <div class="header">
-        <h1>📋 Ordens de Culto</h1>
-        <p>Gerencie as programações dos seus cultos</p>
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Ordens de culto</h1>
+            <div class="uc-page-sub" id="resultsInfo">&nbsp;</div>
+        </div>
+        <a href="/order/new" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> Nova ordem</a>
     </div>
 
-    <div class="actions-top">
-        <a href="/order/new" class="btn-new">
-            <span>➕</span> Nova Ordem de Culto
-        </a>
-    </div>
-
-    <div class="filters-row">
-        <div class="results-info" id="resultsInfo">&nbsp;</div>
-        <div class="filters-actions">
-            <button class="btn-outline" id="clearFilters">Limpar filtros</button>
-        </div>
-    </div>
-
-    <div class="filters">
-        <div>
-            <label for="filterDateFrom">Data inicial</label>
-            <input type="date" id="filterDateFrom">
-        </div>
-        <div>
-            <label for="filterDateTo">Data final</label>
-            <input type="date" id="filterDateTo">
-        </div>
-        <div>
-            <label for="filterType">Tipo de culto</label>
-            <select id="filterType">
-                <option value="">Todos</option>
-                <option value="Culto Dominical">Culto Dominical</option>
-                <option value="Culto de Oração">Culto de Oração</option>
-                <option value="Culto de Jovens">Culto de Jovens</option>
-                <option value="Culto de Ensino">Culto de Ensino</option>
-                <option value="Culto Santa Ceia">Culto Santa Ceia</option>
-                <option value="Culto Especial">Culto Especial</option>
-                <option value="Outro">Outro</option>
-            </select>
-        </div>
-        <div>
-            <label for="filterStatus">Status</label>
-            <select id="filterStatus">
-                <option value="">Todos</option>
-                <option value="futuro">Futuros</option>
+    <section class="uc-card filters" aria-label="Filtros">
+        <div class="uc-field">
+            <label for="filterStatus">Quando</label>
+            <select id="filterStatus" class="uc-input">
+                <option value="">Hoje e próximos</option>
+                <option value="futuro">Só futuros</option>
                 <option value="hoje">Hoje</option>
                 <option value="passado">Passados</option>
             </select>
         </div>
-        <div>
-            <label for="filterText">Dirigente/Pregador</label>
-            <input type="text" id="filterText" placeholder="Buscar por nome...">
+        <div class="uc-field">
+            <label for="filterDateFrom">De</label>
+            <input type="date" id="filterDateFrom" class="uc-input">
         </div>
-    </div>
+        <div class="uc-field">
+            <label for="filterDateTo">Até</label>
+            <input type="date" id="filterDateTo" class="uc-input">
+        </div>
+        <div class="uc-field">
+            <label for="filterType">Tipo de culto</label>
+            <select id="filterType" class="uc-input">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div class="uc-field">
+            <label for="filterText">Dirigente ou pregador</label>
+            <input type="text" id="filterText" class="uc-input" placeholder="Buscar por nome">
+        </div>
+        <button type="button" class="uc-btn uc-btn-ghost" id="clearFilters"><i class="fas fa-xmark"></i> Limpar</button>
+    </section>
 
     <div class="orders-grid" id="ordersGrid">
-        <!-- Cards serão inseridos via JavaScript -->
+        <!-- Cards inseridos por order_list.js -->
     </div>
 
     <div class="pagination" id="pagination" style="display:none;">
-        <button class="page-btn" id="prevPage">◀ Anterior</button>
-        <span class="results-info" id="pageInfo"></span>
-        <button class="page-btn" id="nextPage">Próxima ▶</button>
+        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="prevPage"><i class="fas fa-chevron-left"></i> Anterior</button>
+        <span class="uc-muted" id="pageInfo"></span>
+        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="nextPage">Próxima <i class="fas fa-chevron-right"></i></button>
     </div>
 
-    <div class="empty-state" id="emptyState" style="display: none;">
-        <div class="empty-state-icon">📭</div>
-        <h2>Nenhuma ordem de culto</h2>
-        <p>Comece criando sua primeira ordem de culto</p>
-        <a href="/order/new" class="btn-new">
-            <span>➕</span> Criar Primeira Ordem
-        </a>
+    <div class="uc-card uc-empty" id="emptyState" style="display: none;">
+        <i class="fas fa-calendar-xmark"></i>
+        <p>Nenhuma ordem de culto para esses filtros.</p>
+        <a href="/order/new" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> Criar ordem</a>
     </div>
-</div>
-
-<div class="toast" id="toast">Link copiado!</div>
+</main>
 {% endblock %}
 
 {% block scripts %}

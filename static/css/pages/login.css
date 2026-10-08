@@ -1,35 +1,14 @@
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #222222; /* Fundo escuro */
-    color: white; /* Texto branco */
+/* Login — base, card, formulário e botões vêm do app.css. */
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
 }
-.login-container {
-    background: #333; /* Fundo do container */
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2); /* Box shadow mais evidente */
-    max-width: 400px;
-    width: 100%;
-}
-.logo-container {
-    text-align: center;
-    margin-bottom: 1rem;
-}
-.logo-container img {
-    max-width: 110px;
-    height: auto;
-}
-.logo-container .logo-name {
-    color: #00bcd4;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-top: 6px;
-}
-.form-control:focus {
-    border-color: #7c7f81; /* Borda mais clara ao focar */
-    box-shadow: 0 0 10px rgba(124, 127, 129, 0.8); /* Leve brilho no foco */
-}
+.login-card { width: 100%; max-width: 380px; padding: 28px; display: grid; gap: 20px; }
+.login-brand { text-align: center; display: grid; justify-items: center; gap: 4px; }
+.login-brand img { width: 84px; height: 84px; object-fit: contain; }
+.login-brand h1 { font-size: 22px; font-weight: 800; margin-top: 6px; }
+.login-brand p { margin: 0; }
+.login-card .uc-btn { width: 100%; }

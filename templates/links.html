@@ -1,49 +1,42 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Links - U-Control{% endblock %}
+{% block title %}Links e QR codes - U-Control{% endblock %}
 
 {% block head_extra %}
-<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/links.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/links.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<div class="container">
-    <div class="header">
-        <h1><i class="fas fa-qrcode"></i> Links & QR Codes</h1>
-        <p>Escaneie os QR Codes para acessar rapidamente cada funcionalidade</p>
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Links e QR codes</h1>
+            <div class="uc-page-sub">Aponte a câmera do celular para abrir cada tela. Os endereços são da rede local da igreja.</div>
+        </div>
     </div>
 
     <div class="links-grid">
         {% for item in dados %}
-        <div class="link-card">
-            <h3><i class="fas fa-link"></i> {{ item.nome }}</h3>
+        <article class="uc-card link-card">
+            <h2>{{ item.nome }}</h2>
             <div class="qr-code">
-                <img src="{{ item.img }}" alt="QR Code - {{ item.nome }}">
+                <img src="{{ item.img }}" alt="QR code para {{ item.nome }}">
             </div>
-            <div class="link-url">{{ item.url }}</div>
+            <div class="link-url uc-mono">{{ item.url }}</div>
             <div class="link-actions">
-                <a href="{{ item.url }}" target="_blank" class="btn btn-primary">
-                    <i class="fas fa-external-link-alt"></i> Abrir
-                </a>
-                <button class="btn btn-secondary" onclick="copyUrl('{{ item.url }}')">
-                    <i class="fas fa-copy"></i> Copiar
-                </button>
+                <a href="{{ item.url }}" target="_blank" rel="noopener" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-up-right-from-square"></i> Abrir</a>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyUrl('{{ item.url }}')"><i class="fas fa-copy"></i> Copiar</button>
             </div>
-        </div>
+        </article>
         {% endfor %}
     </div>
-</div>
-
-<div class="copy-feedback" id="copyFeedback">
-    <i class="fas fa-check"></i> Link copiado!
-</div>
+</main>
 {% endblock %}
 
 {% block scripts %}

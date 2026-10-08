@@ -1,44 +1,47 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Agenda (edição){% endblock %}
+{% block title %}Calendário (edição) - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<script src="/static/vendor/html2canvas/html2canvas.min.js"></script>
+{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agenda_calendar_edit.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/agenda_calendar.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/agenda_calendar_edit.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="page">
-    <div class="header">
+{% include "_nav.html" %}
+<main class="uc-page cal-page">
+    <div class="uc-page-head cal-head">
         <div>
-            <div class="title">CALENDÁRIO JOÃOXXIII (EDIÇÃO)</div>
-            <div class="subtitle">Calendário privado de edição de escalas e eventos</div>
+            <a class="uc-link" href="/agenda/dashboard"><i class="fas fa-arrow-left"></i> Agenda</a>
+            <h1>Calendário <span class="uc-pill uc-pill-warn">Edição</span></h1>
+            <div class="uc-page-sub">Toque numa data para editar a escala e os eventos</div>
         </div>
-        <div class="nav">
-            <button class="btn" id="prevBtn">◀ </button>
-            <div class="month-label" id="monthLabel"></div>
-            <button class="btn" id="nextBtn"> ▶</button>
-            <span class="badge">Privado</span>
-            <button class="btn" id="saveImgBtn" title="Salvar calendário como imagem">💾 Salvar como Imagem</button>
+        <div class="uc-btn-row">
+            <div class="month-nav">
+                <button type="button" class="btn" id="prevBtn" aria-label="Mês anterior"><i class="fas fa-chevron-left"></i></button>
+                <div class="month-label" id="monthLabel"></div>
+                <button type="button" class="btn" id="nextBtn" aria-label="Próximo mês"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button type="button" class="uc-btn uc-btn-secondary" id="saveImgBtn" title="Baixar o calendário do mês como imagem"><i class="fas fa-image"></i> Salvar imagem</button>
         </div>
     </div>
 
-    <div class="card calendar-shell">
-        <div class="month-label" id="monthLabelInner" style="text-align:center;font-weight:800;color:white;letter-spacing:0.03em;"></div>
+    <!-- Este card é o que vira imagem (html2canvas), por isso leva o próprio título do mês. -->
+    <section class="uc-card calendar-shell">
+        <div class="month-label inner-label" id="monthLabelInner"></div>
         <div class="calendar-head" id="calendarHead"></div>
         <div id="calendar" class="calendar-grid"></div>
-        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada em orders.json</div>
-    </div>
+        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada.</div>
+    </section>
 
-    <div class="note">
-        Clique em qualquer data para realizar a edição, se não houver dados cadastrados, o formulário abre vazio.
-        <br>
-        <a class="back-dash" href="/agenda/dashboard">◀ Voltar ao Dashboard da Agenda de Equipes</a>
-    </div>
-</div>
-{% endblock %}
-
-{% block head_extra %}
-<script src="/static/vendor/html2canvas/html2canvas.min.js"></script>
+    <p class="cal-note">Datas sem nada cadastrado abrem o formulário vazio.</p>
+</main>
 {% endblock %}
 
 {% block scripts %}

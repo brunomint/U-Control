@@ -1,97 +1,78 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
 {% block title %}Bíblia - U-Control{% endblock %}
 
 {% block head_extra %}
-<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-roxo.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/bible.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<div class="container">
-    <div class="header">
-        <h1><i class="fas fa-book-bible"></i> Bíblia Sagrada</h1>
-        <p>Navegue pelos livros ou busque por referência e texto</p>
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Bíblia</h1>
+            <div class="uc-page-sub">Busque uma referência ou escolha um livro para exibir no telão</div>
+        </div>
+        <a class="uc-btn uc-btn-secondary" href="/bible/control/"><i class="fas fa-list-ol"></i> Leituras da ordem de hoje</a>
     </div>
 
-    <!-- Barra de Busca -->
-    <div class="search-container">
-        <div class="search-box">
-            <input type="text" class="search-input" id="searchInput"
-                   placeholder="Buscar: 'João 3:16', 'Salmos 23' ou 'amor de Deus'">
-            <select class="translation-select" id="translationSelect">
+    <section class="uc-card search-card">
+        <div class="search-row">
+            <div class="uc-search grow">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="text" class="uc-input" id="searchInput" placeholder="João 3:16, Salmos 23 ou uma palavra como &quot;esperança&quot;" aria-label="Buscar na Bíblia">
+            </div>
+            <select class="uc-input translation-select" id="translationSelect" aria-label="Tradução">
                 {% for key, trans in translations.items() %}
-                <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
-                    {{ trans.name }} ({{ trans.abbrev }})
-                </option>
+                <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.name }} ({{ trans.abbrev }})</option>
                 {% endfor %}
             </select>
-            <button class="search-btn" onclick="searchBible()">
-                <i class="fas fa-search"></i> Buscar
-            </button>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="searchBible()"><i class="fas fa-magnifying-glass"></i> Buscar</button>
         </div>
-        <p class="search-hint">
-            <i class="fas fa-lightbulb"></i> Dica: Digite uma referência como "João 3:16" ou "Sl 23:1-6",
-            ou busque por palavras como "amor", "fé", "esperança"
-        </p>
-    </div>
-
-    <!-- Resultados da Busca -->
-    <div class="search-results" id="searchResults">
-        <h3><i class="fas fa-search"></i> Resultados da Busca</h3>
-        <div id="resultsContainer"></div>
-    </div>
-
-    <!-- Ações Rápidas -->
-    <div class="quick-actions">
-        <h3><i class="fas fa-bolt"></i> Acesso Rápido</h3>
         <div class="quick-links">
-            <a href="/bible/gn?translation={{ current_translation }}" class="quick-link">📖 Gênesis</a>
-            <a href="/bible/sl?translation={{ current_translation }}" class="quick-link">🎵 Salmos</a>
-            <a href="/bible/pv?translation={{ current_translation }}" class="quick-link">💡 Provérbios</a>
-            <a href="/bible/mt?translation={{ current_translation }}" class="quick-link">✝️ Mateus</a>
-            <a href="/bible/jo?translation={{ current_translation }}" class="quick-link">❤️ João</a>
-            <a href="/bible/rm?translation={{ current_translation }}" class="quick-link">📜 Romanos</a>
-            <a href="/bible/ap?translation={{ current_translation }}" class="quick-link">🔮 Apocalipse</a>
+            <span class="uc-muted">Atalhos:</span>
+            {% for abbrev, name in [('gn','Gênesis'),('sl','Salmos'),('pv','Provérbios'),('is','Isaías'),('mt','Mateus'),('jo','João'),('rm','Romanos'),('ap','Apocalipse')] %}
+            <a href="/bible/{{ abbrev }}?translation={{ current_translation }}" class="quick-link">{{ name }}</a>
+            {% endfor %}
         </div>
-    </div>
+    </section>
 
-    <!-- Testamentos -->
+    <section class="uc-card search-results" id="searchResults">
+        <div class="uc-card-head"><h2>Resultados</h2></div>
+        <div id="resultsContainer"></div>
+    </section>
+
     <div class="testaments">
-        <!-- Antigo Testamento -->
-        <div class="testament">
-            <h2><i class="fas fa-scroll"></i> Antigo Testamento</h2>
+        <section class="uc-card testament">
+            <div class="uc-card-head"><h2>Antigo Testamento</h2><span class="uc-muted small">{{ old_testament|length }} livros</span></div>
             <div class="books-grid">
                 {% for book in old_testament %}
                 <a href="/bible/{{ book.abbrev }}?translation={{ current_translation }}" class="book-card">
-                    {{ book.name }}
+                    <span>{{ book.name }}</span>
                     <span class="abbrev">{{ book.abbrev }}</span>
                 </a>
                 {% endfor %}
             </div>
-        </div>
-
-        <!-- Novo Testamento -->
-        <div class="testament">
-            <h2><i class="fas fa-cross"></i> Novo Testamento</h2>
+        </section>
+        <section class="uc-card testament">
+            <div class="uc-card-head"><h2>Novo Testamento</h2><span class="uc-muted small">{{ new_testament|length }} livros</span></div>
             <div class="books-grid">
                 {% for book in new_testament %}
                 <a href="/bible/{{ book.abbrev }}?translation={{ current_translation }}" class="book-card">
-                    {{ book.name }}
+                    <span>{{ book.name }}</span>
                     <span class="abbrev">{{ book.abbrev }}</span>
                 </a>
                 {% endfor %}
             </div>
-        </div>
+        </section>
     </div>
-</div>
+</main>
 {% endblock %}
 
 {% block scripts %}

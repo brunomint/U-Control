@@ -615,11 +615,11 @@ def test_agenda_edit_renders_same_template_as_order_edit(logged_in_client, tmp_p
     order_response = logged_in_client.get("/order/2026-08-09")
     assert agenda_response.status_code == 200
     assert order_response.status_code == 200
-    # Mesmo template (order_edit.html) por trás das duas rotas — o mesmo
-    # título gerado pelo template confirma isso.
-    title = "Editar Ordem - 2026-08-09".encode()
-    assert title in agenda_response.data
-    assert title in order_response.data
+    # Mesmo template (order_edit.html) por trás das duas rotas — o bloco
+    # de dados que só esse template gera confirma isso.
+    marker = b'id="order-edit-data"'
+    assert marker in agenda_response.data
+    assert marker in order_response.data
 
 
 def test_save_route_and_duplicate_home_route_were_removed(client):
@@ -962,10 +962,10 @@ def test_redesigned_pages_render_with_theme_and_nav(logged_in_client):
         assert "site-nav-link live" in html, path  # botão do Controle
 
 
-def test_unmigrated_page_keeps_own_css_but_gets_new_nav(logged_in_client, tmp_path, monkeypatch):
-    # Páginas que ainda não migraram não podem receber o app.css (quebraria
-    # o CSS delas), mas a barra nova vale pra todas.
-    monkeypatch.chdir(tmp_path)
-    html = logged_in_client.get("/order").get_data(as_text=True)
-    assert "css/app.css" not in html
-    assert 'class="site-nav"' in html
+def test_projector_screens_stay_outside_theme_and_nav(client):
+    # Telas de projetor (monitor, cronômetro, relógio) têm visual próprio
+    # e ninguém clica nelas — não recebem o app.css nem a barra.
+    for path in ("/monitor", "/countdown", "/clock"):
+        html = client.get(path).get_data(as_text=True)
+        assert "css/app.css" not in html, path
+        assert 'class="site-nav"' not in html, path

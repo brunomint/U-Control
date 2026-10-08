@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}{{ 'Nova Ordem' if is_new else 'Editar Ordem' }} - {{ date }}{% endblock %}
+{% block title %}{{ 'Nova ordem' if is_new else 'Editar ordem' }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jspdf/jspdf.umd.min.js"></script>
@@ -8,111 +9,120 @@
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/order_edit.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/order_edit.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<div class="container">
-    <div class="page-header">
-        <h1>{{ '📝 Nova Ordem de Culto' if is_new else '✏️ Editar Ordem' }}</h1>
-        <a href="/order" class="back-btn">⬅️ Voltar</a>
-    </div>
-
-    <!-- Metadados -->
-    <div class="metadata-section">
-        <h2>📅 Informações do Culto</h2>
-        <div class="metadata-grid">
-            <div class="form-group">
-                <label for="orderDate">Data</label>
-                <input type="date" id="orderDate" value="{{ date }}">
-            </div>
-            <div class="form-group">
-                <label for="orderTime">Horário</label>
-                <input type="time" id="orderTime" value="{{ order.horario if order else '18:40' }}">
-            </div>
-            <div class="form-group">
-                <label for="orderType">Tipo de Culto</label>
-                <select id="orderType">
-                    <option value="Culto Dominical" {{ 'selected' if order and order.tipo == 'Culto Dominical' else '' }}>Culto Dominical</option>
-                    <option value="Culto de Oração" {{ 'selected' if order and order.tipo == 'Culto de Oração' else '' }}>Culto de Oração</option>
-                    <option value="Culto de Jovens" {{ 'selected' if order and order.tipo == 'Culto de Jovens' else '' }}>Culto de Jovens</option>
-                    <option value="Culto de Ensino" {{ 'selected' if order and order.tipo == 'Culto de Ensino' else '' }}>Culto de Ensino</option>
-                    <option value="Culto Santa Ceia" {{ 'selected' if order and order.tipo == 'Culto Santa Ceia' else '' }}>Culto Santa Ceia</option>
-                    <option value="Culto Especial" {{ 'selected' if order and order.tipo == 'Culto Especial' else '' }}>Culto Especial</option>
-                    <option value="Outro" {{ 'selected' if order and order.tipo == 'Outro' else '' }}>Outro</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="orderDirigente">Dirigente</label>
-                <input type="text" id="orderDirigente" placeholder="Nome do dirigente" value="{{ order.dirigente if order else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="orderPregador">Pregador</label>
-                <input type="text" id="orderPregador" placeholder="Nome do pregador (opcional)" value="{{ order.pregador if order else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="orderTema">Tema</label>
-                <input type="text" id="orderTema" placeholder="Tema do culto (opcional)" value="{{ order.tema if order else '' }}">
-            </div>
+<main class="uc-page order-edit">
+    <div class="uc-page-head">
+        <div>
+            <a href="/order" class="uc-link back-link"><i class="fas fa-arrow-left"></i> Ordens de culto</a>
+            <h1>{{ 'Nova ordem de culto' if is_new else 'Editar ordem de culto' }}</h1>
+        </div>
+        <div class="uc-btn-row">
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="abrirModalTemplates()"><i class="fas fa-clone"></i> Modelos</button>
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="createPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="saveOrder()"><i class="fas fa-floppy-disk"></i> Salvar</button>
         </div>
     </div>
 
-    <!-- Busca de músicas -->
-    <div class="search-section">
-        <h2>🔍 Adicionar Itens</h2>
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Buscar música por título, autor ou letra...">
-            <div id="autocompleteList" class="autocomplete-list"></div>
-        </div>
-
-        <div class="add-inputs">
-            <div class="add-input-group">
-                <input type="text" id="freeTextInput" placeholder="Texto livre (ex: Oração, Anúncios...)">
-                <button class="btn-text" onclick="addToList()">➕ Adicionar</button>
+    <div class="edit-grid">
+        <!-- Coluna esquerda: dados do culto -->
+        <section class="uc-card" aria-labelledby="meta-title">
+            <div class="uc-card-head"><h2 id="meta-title">Culto</h2></div>
+            <div class="uc-form-stack">
+                <div class="row-2">
+                    <div class="uc-field">
+                        <label for="orderDate">Data</label>
+                        <input class="uc-input" type="date" id="orderDate" value="{{ date }}">
+                    </div>
+                    <div class="uc-field">
+                        <label for="orderTime">Horário</label>
+                        <input class="uc-input" type="time" id="orderTime" value="{{ (order.horario or order.horario_culto or '18:40') if order else '18:40' }}">
+                    </div>
+                </div>
+                <div class="uc-field">
+                    <label for="orderType">Tipo de culto</label>
+                    <select class="uc-input" id="orderType">
+                        {% for tipo in ['Culto Dominical', 'Culto de Oração', 'Culto de Jovens', 'Culto de Ensino', 'Culto Santa Ceia', 'Culto Especial', 'Outro'] %}
+                        <option value="{{ tipo }}" {{ 'selected' if order and order.tipo == tipo else '' }}>{{ tipo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="uc-field">
+                    <label for="orderDirigente">Dirigente</label>
+                    <input class="uc-input" type="text" id="orderDirigente" placeholder="Nome do dirigente" value="{{ order.dirigente if order else '' }}">
+                </div>
+                <div class="uc-field">
+                    <label for="orderPregador">Pregação</label>
+                    <input class="uc-input" type="text" id="orderPregador" placeholder="Opcional" value="{{ order.pregador if order else '' }}">
+                </div>
+                <div class="uc-field">
+                    <label for="orderTema">Tema</label>
+                    <input class="uc-input" type="text" id="orderTema" placeholder="Opcional" value="{{ order.tema if order else '' }}">
+                </div>
             </div>
-            <div class="add-input-group">
-                <input type="text" id="bibleRefInput" placeholder="Referência bíblica (ex: João 3:16)">
-                <button class="btn-bible" onclick="addBibleToList()">📖 Adicionar</button>
+            {% if not is_new %}
+            <div class="danger-zone">
+                <button type="button" class="uc-btn uc-btn-ghost uc-danger-text uc-btn-sm" onclick="deleteOrder()"><i class="fas fa-trash-can"></i> Excluir esta ordem</button>
             </div>
-        </div>
-    </div>
+            {% endif %}
+        </section>
 
-    <!-- Lista de itens -->
-    <div class="items-section">
-        <h2>🎵 Ordem do Culto</h2>
-        <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)">
-            <!-- Itens serão inseridos via JavaScript -->
-        </div>
-    </div>
+        <!-- Coluna direita: itens da ordem -->
+        <section class="uc-card" aria-labelledby="items-title">
+            <div class="uc-card-head"><h2 id="items-title">Ordem do culto</h2><span class="uc-muted small">Arraste para reordenar</span></div>
 
-    <!-- Ações -->
-    <div class="actions-container">
-        <button class="action-button save" onclick="saveOrder()">💾 Salvar Ordem</button>
-        <button class="action-button template" onclick="abrirModalTemplates()">📋 Modelos</button>
-        <button class="action-button pdf" onclick="createPDF()">📄 Gerar PDF</button>
-        {% if not is_new %}
-        <button class="action-button delete" onclick="deleteOrder()">🗑️ Excluir</button>
-        {% endif %}
-        <a href="/order" class="action-button secondary">❌ Cancelar</a>
+            <div class="add-area">
+                <div class="search-box uc-search">
+                    <i class="fas fa-music"></i>
+                    <input class="uc-input" type="text" id="searchInput" placeholder="Adicionar música: busque por título, autor ou letra" autocomplete="off">
+                    <div id="autocompleteList" class="autocomplete-list"></div>
+                </div>
+                <div class="add-inputs">
+                    <div class="add-input-group">
+                        <input class="uc-input" type="text" id="freeTextInput" placeholder="Texto livre (ex.: Oração, Avisos)">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addToList()" aria-label="Adicionar texto"><i class="fas fa-plus"></i> Texto</button>
+                    </div>
+                    <div class="add-input-group">
+                        <input class="uc-input" type="text" id="bibleRefInput" placeholder="Leitura bíblica (ex.: João 3:16)">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleToList()" aria-label="Adicionar leitura"><i class="fas fa-plus"></i> Leitura</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <!-- Itens inseridos por order_edit.js -->
+            </div>
+
+            <div class="edit-foot">
+                <a href="/order" class="uc-btn uc-btn-ghost">Cancelar</a>
+                <button type="button" class="uc-btn uc-btn-primary" onclick="saveOrder()"><i class="fas fa-floppy-disk"></i> Salvar ordem</button>
+            </div>
+        </section>
     </div>
-</div>
+</main>
 
 <!-- Modal de modelos reutilizáveis -->
-<div id="modal-templates" onclick="if(event.target===this)fecharModalTemplates()">
-    <div class="modal-box">
-        <h3>📋 Modelos de Culto</h3>
-        <div class="tpl-save-row">
-            <input type="text" id="tpl-nome" placeholder="Nome do modelo (ex: Culto Dominical)">
-            <button onclick="salvarComoModelo()">Salvar atual</button>
+<div id="modal-templates" class="uc-modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalTemplates()">
+    <div class="uc-modal" role="dialog" aria-modal="true" aria-labelledby="tpl-title">
+        <div class="uc-modal-head">
+            <h2 id="tpl-title">Modelos de culto</h2>
+            <button type="button" class="uc-modal-close" onclick="fecharModalTemplates()" aria-label="Fechar">&times;</button>
         </div>
-        <div class="tpl-list" id="tpl-list"></div>
-        <button class="modal-close-btn" onclick="fecharModalTemplates()">Fechar</button>
+        <div class="uc-modal-body">
+            <div class="uc-field">
+                <label for="tpl-nome">Salvar a lista atual como modelo</label>
+                <div class="tpl-save-row">
+                    <input class="uc-input" type="text" id="tpl-nome" placeholder="Nome do modelo (ex.: Culto Dominical)">
+                    <button type="button" class="uc-btn uc-btn-secondary" onclick="salvarComoModelo()">Salvar</button>
+                </div>
+            </div>
+            <div class="tpl-list" id="tpl-list"></div>
+        </div>
     </div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <script id="order-edit-data" type="application/json">{{ {"date": date, "isNew": is_new, "itens": (order.itens if order and order.itens else none)} | tojson }}</script>
 {% endblock %}

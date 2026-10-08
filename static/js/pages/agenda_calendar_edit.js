@@ -65,6 +65,7 @@ function renderCalendar() {
 
         const o = cell.order || {};
         const dayNumber = String(new Date(cell.dateStr + 'T00:00:00').getDate()).padStart(2,'0');
+        const todayCls = cell.dateStr === formatDateISO(new Date()) ? ' today' : '';
 
         const items = [];
 
@@ -106,12 +107,12 @@ function renderCalendar() {
 
         if (items.length === 0) {
             return `
-                <div class="day clickable" data-date="${cell.dateStr}">
+                <div class="day clickable${todayCls}" data-date="${cell.dateStr}">
                     <div class="day-top">
                         <div class="day-date">${dayNumber}</div>
                     </div>
                     <div class="day-body">
-                        <div class="info-line" style="color:#94a3b8;">Sem Eventos</div>
+                        <div class="info-line muted">Sem eventos</div>
                     </div>
                 </div>
             `;
@@ -208,7 +209,7 @@ function renderCalendar() {
         }
 
         return `
-            <div class="day clickable" data-date="${cell.dateStr}">
+            <div class="day clickable${todayCls}" data-date="${cell.dateStr}">
                 <div class="day-top">
                     <div class="day-date">${dayNumber}</div>
                 </div>
@@ -251,8 +252,9 @@ document.getElementById('saveImgBtn').addEventListener('click', async () => {
     const label = document.getElementById('monthLabel')?.textContent || 'agenda';
     const safeLabel = label.toLowerCase().replace(/\s+/g, '-');
     try {
+        calendarShell.classList.add('capturing');
         const canvas = await html2canvas(calendarShell, {
-            backgroundColor: '#0f172a',
+            backgroundColor: '#161a2b',
             scale: 2,
             useCORS: true,
         });
@@ -260,7 +262,9 @@ document.getElementById('saveImgBtn').addEventListener('click', async () => {
         link.download = `${safeLabel}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
+        calendarShell.classList.remove('capturing');
     } catch (err) {
+        calendarShell.classList.remove('capturing');
         console.error('Erro ao salvar imagem do calendário:', err);
         alert('Não foi possível salvar o calendário como imagem.');
     }

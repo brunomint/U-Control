@@ -1,5 +1,5 @@
-const ICONS = { song: '🎵', image: '🖼️', bible: '📖', ticker: '📢' };
-const LABELS = { song: 'Música', image: 'Imagem/Vídeo', bible: 'Bíblia', ticker: 'Aviso' };
+const ICONS = { song: 'fa-music', image: 'fa-image', bible: 'fa-book-bible', ticker: 'fa-bullhorn' };
+const LABELS = { song: 'Música', image: 'Telão', bible: 'Bíblia', ticker: 'Aviso' };
 
 const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -23,8 +23,21 @@ function renderTitle(entry) {
         const name = entry.title.split('/').pop();
         return `<a href="${entry.title}" target="_blank">${escHtml(name)}</a>`;
     }
+    if (entry.type === 'image' && entry.title) {
+        // Troca de tela do telão: display.py loga as rotas cruas (ex. "/lyrics/display + /clock").
+        return escHtml(entry.title.split(' + ').map(p => ROUTE_NAMES[p.trim()] || p.trim()).join(' + '));
+    }
     return escHtml(entry.title || '—');
 }
+
+const ROUTE_NAMES = {
+    '/lyrics/display': 'Cifra',
+    '/lyrics/display/public': 'Letra',
+    '/clock': 'Relógio',
+    '/img': 'Imagem',
+    '/bible/display': 'Bíblia',
+    '/countdown': 'Cronômetro',
+};
 
 function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -51,10 +64,10 @@ function load() {
             let html = '';
             Object.keys(groups).forEach(date => {
                 html += `<div class="day-group">
-                    <div class="day-header">📅 ${formatDate(date)}</div>`;
+                    <div class="day-header">${formatDate(date)}</div>`;
                 groups[date].forEach(entry => {
                     html += `<div class="entry">
-                        <div class="entry-icon">${ICONS[entry.type] || '▶️'}</div>
+                        <div class="entry-icon ${entry.type}"><i class="fas ${ICONS[entry.type] || 'fa-display'}"></i></div>
                         <div class="entry-body">
                             <div class="entry-title">${renderTitle(entry)}</div>
                             <div class="entry-time">${LABELS[entry.type] || entry.type} · ${formatTime(entry.ts)}</div>
@@ -79,10 +92,7 @@ function clearHistory() {
 }
 
 function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
+    window.ucToast(msg);
 }
 
 // ── TABS ──────────────────────────────────────────────────────

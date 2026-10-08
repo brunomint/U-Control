@@ -1,16 +1,24 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Agenda — Próximo Culto{% endblock %}
+{% block title %}Próximo culto - Igreja João XXIII{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agenda_hoje_vazio.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/agenda_hoje_vazio.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="box">
-    <div class="icon">📅</div>
-    <h1>Nenhum culto cadastrado</h1>
-    <p>Não encontramos nenhuma programação nos próximos 30 dias. Assim que for cadastrada, ela aparecerá aqui automaticamente.</p>
-    <a href="/agenda">Ver calendário completo</a>
-</div>
+{% include "_nav.html" %}
+<main class="uc-page empty-page">
+    <section class="uc-card empty-box">
+        <i class="fas fa-calendar-xmark"></i>
+        <h1>Nenhum culto marcado</h1>
+        <p>Não há programação nos próximos 30 dias. Quando houver, ela aparece aqui.</p>
+        <a class="uc-btn uc-btn-secondary" href="/agenda"><i class="fas fa-calendar"></i> Ver o calendário</a>
+    </section>
+</main>
 {% endblock %}

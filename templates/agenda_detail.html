@@ -1,167 +1,134 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Agenda {{ date }}{% endblock %}
+{% block title %}{{ order.get('tipo') or 'Programação' }} · {{ date | data_pt }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agenda_detail.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/agenda_detail.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="page">
-    {% set louvor = order.get('louvor', {}) %}
-
-                {% set has_data =
-                    order.get('horario_culto') or
-                    order.get('dirigente') or
-                    order.get('pregador') or
-                    louvor.get('musicos') or
-                    louvor.get('cantores') or
-                    order.get('itens')
-                %}
-    <div class="header">
+{% include "_nav.html" %}
+{% set louvor = order.get('louvor') or {} %}
+{% set midia = order.get('midia') or {} %}
+{% set eventos = order.get('eventos', []) %}
+{% set has_data = order.get('horario_culto') or order.get('dirigente') or order.get('pregador') or louvor.get('musicos') or louvor.get('cantores') or order.get('itens') %}
+<main class="uc-page detail-page">
+    <div class="uc-page-head">
         <div>
-            <a class="back" href="{% if allow_clicks %}/agenda/edit{% else %}/agenda{% endif %}">◀ Agenda completa</a>
-            <div class="title">
-                {% if order.get('tipo') %}{{ order.tipo }}{% else %}Programação do Culto{% endif %}
-            </div>
-            <div class="meta">{{ date | data_pt }}</div>
+            <a class="uc-link" href="{% if allow_clicks %}/agenda/edit{% else %}/agenda{% endif %}"><i class="fas fa-arrow-left"></i> Calendário</a>
+            <h1>{{ order.get('tipo') or 'Programação do culto' }}</h1>
+            <div class="uc-page-sub">{{ date | data_pt }}{% if order.get('horario_culto') %} · {{ order.get('horario_culto') }}{% endif %}</div>
         </div>
+        {% if allow_clicks %}
+        <a class="uc-btn uc-btn-primary" href="/agenda/{{ date }}/edit"><i class="fas fa-list-ol"></i> Editar ordem do culto</a>
+        {% endif %}
     </div>
 
-    <div class="grid">
-        <div class="card" {% if allow_clicks %}style="cursor:pointer" onclick="window.location='/agenda/{{ date }}/louvor'"{% endif %}>
-            <div class="card-header">
-                <h3>LOUVOR E DIRIGÊNCIA</h3>
+    <div class="detail-grid">
+        <!-- Louvor e dirigência -->
+        <section class="uc-card detail-card{% if allow_clicks %} clickable{% endif %}" {% if allow_clicks %}onclick="window.location='/agenda/{{ date }}/louvor'"{% endif %}>
+            <div class="uc-card-head">
+                <h2><i class="fas fa-music"></i> Louvor e dirigência</h2>
+                {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ date }}/louvor"><i class="fas fa-pen"></i> Editar</a>{% endif %}
             </div>
-            <div class="card-body">
-                {% if not has_data %}
-                    <div class="empty">Nenhuma informação cadastrada</div>
-                {% endif %}
-                {% if order.get('horario_culto') %}
-                    <div class="card-info-item">
-                        <i class="fas fa-clock"></i>
-                        <strong>Horário:</strong> {{ order.get('horario_culto') }}
-                    </div>
-                {% endif %}
-                {% if order.get('dirigente') %}
-                    <div class="card-info-item">
-                        <i class="fas fa-user"></i>
-                        <strong>Dirigente:</strong> {{ order.get('dirigente') }}
-                    </div>
-                {% endif %}
-                {% if order.get('pregador') %}
-                    <div class="card-info-item">
-                        <i class="fas fa-microphone"></i>
-                        <strong>Pregador:</strong> {{ order.get('pregador') }}
-                    </div>
-                {% endif %}
-
-                {% if louvor.get('musicos') %}
-                    <div class="card-info-item"><strong>Músicos:</strong></div>
-                    <div class="chips">
-                        {% for m in louvor.get('musicos', []) %}
-                            <span class="pill">{{ m.get('instrumento', '—') }}: {{ m.get('pessoa', '—') }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                {% if louvor.get('cantores') %}
-                    <div class="card-info-item"><strong>Cantores:</strong></div>
-                    <div class="chips">
-                        {% for c in louvor.get('cantores', []) %}
-                            <span class="pill">{{ c }}</span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                {% if order.get('itens') %}
-                    <div class="card-info-item"><strong>Músicas/itens:</strong></div>
-                    <ul>
-                        {% for item in order.get('itens', []) %}
-                            {% if item.get('isBible') %}
-                                <li>{{ item.get('title') or item.get('reference') or 'Leitura Bíblica' }}</li>
-                            {% elif item.get('anyText') %}
-                                <li>{{ item.get('anyText') }}</li>
-                            {% else %}
-                                <li>{{ item.get('title', 'Item') }}</li>
-                            {% endif %}
-                        {% endfor %}
-                    </ul>
-                {% elif has_data %}
-                    <div class="empty">Nenhuma Música cadastradas</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card" {% if allow_clicks %}style="cursor:pointer" onclick="window.location='/agenda/{{ date }}/midia'"{% endif %}>
-            <div class="card-header">
-                <h3>ESCALA MÍDIA</h3>
-            </div>
-            <div class="card-body">
-                {% set midia = order.get('midia') %}
-                {% if midia %}
-                    <div class="card-info">
-                        {% if midia.get('lider') or midia.get('palco') or midia.get('visual') %}
-                            <div class="card-info-item"><i class="fas fa-crown"></i><strong>Líder:</strong> {{ midia.get('lider', '—') or '—' }}</div>
-                            <div class="card-info-item"><i class="fas fa-desktop"></i><strong>Palco:</strong> {{ midia.get('palco', '—') or '—' }}</div>
-                            <div class="card-info-item"><i class="fas fa-video"></i><strong>Visual:</strong> {{ midia.get('visual', '—') or '—' }}</div>
+            {% if not has_data %}
+                <div class="empty">Nada cadastrado ainda.</div>
+            {% endif %}
+            <dl class="facts">
+                {% if order.get('dirigente') %}<dt>Dirigente</dt><dd>{{ order.get('dirigente') }}</dd>{% endif %}
+                {% if order.get('pregador') %}<dt>Pregação</dt><dd>{{ order.get('pregador') }}</dd>{% endif %}
+            </dl>
+            {% if louvor.get('musicos') %}
+                <div class="group-label">Músicos</div>
+                <div class="chips">
+                    {% for m in louvor.get('musicos', []) %}
+                        <span class="chip"><b>{{ m.get('instrumento', '—') }}</b> {{ m.get('pessoa', '—') }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if louvor.get('cantores') %}
+                <div class="group-label">Vozes</div>
+                <div class="chips">
+                    {% for c in louvor.get('cantores', []) %}<span class="chip">{{ c }}</span>{% endfor %}
+                </div>
+            {% endif %}
+            {% if order.get('itens') %}
+                <div class="group-label">Ordem</div>
+                <ol class="items">
+                    {% for item in order.get('itens', []) %}
+                        {% if item.get('isBible') %}
+                            <li class="bible">{{ item.get('title') or item.get('reference') or 'Leitura bíblica' }}</li>
+                        {% elif item.get('anyText') %}
+                            <li class="text">{{ item.get('anyText') }}</li>
+                        {% else %}
+                            {% set parts = item.get('title', 'Item').split(' | ') %}
+                            <li>{{ parts[0] }}{% if parts|length > 1 %} <span class="artist">{{ parts[1] }}</span>{% endif %}</li>
                         {% endif %}
-                        {% if midia.get('equipe') %}
-                            <div class="card-info-item"><strong>Equipe:</strong></div>
-                            <div class="chips">
-                                {% for m in midia.get('equipe', []) %}
-                                    <span class="pill">{{ m.get('nome', 'Função') }}: {{ m.get('pessoa', '—') }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        {% if midia.get('extras') %}
-                            <div class="card-info-item"><strong>Observações:</strong> {{ midia.get('obs') }}</div>
-                        {% endif %}
-                        {% if not (midia.get('equipe') or midia.get('extras') or midia.get('lider') or midia.get('palco') or midia.get('visual') or midia.get('obs')) %}
-                            <div class="empty">Sem escala de mídia cadastrada</div>
-                        {% endif %}
+                    {% endfor %}
+                </ol>
+            {% elif has_data %}
+                <div class="empty">Nenhuma música na ordem ainda.</div>
+            {% endif %}
+        </section>
+
+        <!-- Mídia -->
+        <section class="uc-card detail-card{% if allow_clicks %} clickable{% endif %}" {% if allow_clicks %}onclick="window.location='/agenda/{{ date }}/midia'"{% endif %}>
+            <div class="uc-card-head">
+                <h2><i class="fas fa-display"></i> Escala de mídia</h2>
+                {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ date }}/midia"><i class="fas fa-pen"></i> Editar</a>{% endif %}
+            </div>
+            {% if midia.get('lider') or midia.get('palco') or midia.get('visual') %}
+            <dl class="facts">
+                <dt>Líder</dt><dd>{{ midia.get('lider') or '—' }}</dd>
+                <dt>Palco</dt><dd>{{ midia.get('palco') or '—' }}</dd>
+                <dt>Visual</dt><dd>{{ midia.get('visual') or '—' }}</dd>
+            </dl>
+            {% endif %}
+            {% if midia.get('equipe') %}
+                <div class="group-label">Equipe</div>
+                <div class="chips">
+                    {% for m in midia.get('equipe', []) %}
+                        <span class="chip"><b>{{ m.get('nome', 'Função') }}</b> {{ m.get('pessoa', '—') }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if midia.get('obs') %}
+                <div class="group-label">Observações</div>
+                <p class="obs">{{ midia.get('obs') }}</p>
+            {% endif %}
+            {% if not (midia.get('equipe') or midia.get('lider') or midia.get('palco') or midia.get('visual') or midia.get('obs')) %}
+                <div class="empty">Sem escala de mídia cadastrada.</div>
+            {% endif %}
+        </section>
+
+        <!-- Eventos -->
+        <section class="uc-card detail-card{% if allow_clicks %} clickable{% endif %}" {% if allow_clicks %}onclick="window.location='/agenda/{{ date }}/eventos'"{% endif %}>
+            <div class="uc-card-head">
+                <h2><i class="fas fa-calendar-day"></i> Eventos</h2>
+                {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ date }}/eventos"><i class="fas fa-pen"></i> Editar</a>{% endif %}
+            </div>
+            {% if eventos %}
+                <div class="eventos-lista">
+                    {% for evento in eventos %}
+                    <div class="evento">
+                        <div class="evento-top">
+                            <span class="evento-titulo">{{ evento.titulo }}</span>
+                            {% if evento.hora %}<span class="evento-hora uc-mono">{{ evento.hora }}</span>{% endif %}
+                        </div>
+                        {% if evento.responsavel %}<div class="evento-meta">Responsável: <b>{{ evento.responsavel }}</b></div>{% endif %}
+                        {% if evento.obs %}<div class="evento-meta">{{ evento.obs }}</div>{% endif %}
                     </div>
-                {% else %}
-                    <div class="empty">Sem escala de mídia cadastrada</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card" {% if allow_clicks %}style="cursor:pointer" onclick="window.location='/agenda/{{ date }}/eventos'"{% endif %}>
-            <div class="card-header">
-                <h3>EVENTOS</h3>
-            </div>
-            <div class="card-body">
-                {% set eventos = order.get('eventos', []) %}
-
-                {% if eventos %}
-                    <div class="eventos-lista">
-                        {% for evento in eventos %}
-                            <div class="evento-card">
-                                <div class="evento-header">
-                                    <span class="evento-titulo">{{ evento.titulo }}</span>
-                                    {% if evento.hora %}
-                                        <span class="evento-hora">{{ evento.hora }}</span>
-                                    {% endif %}
-                                </div>
-
-                                {% if evento.responsavel %}
-                                    <div class="evento-resp">
-                                        <strong>Responsável:</strong> {{ evento.responsavel }}
-                                    </div>
-                                {% endif %}
-
-                                {% if evento.obs %}
-                                    <div class="evento-obs">
-                                        <strong>Obs:</strong> {{ evento.obs }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty">Nenhum evento cadastrado</div>
-                {% endif %}
-            </div>
-        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">Nenhum evento cadastrado.</div>
+            {% endif %}
+        </section>
     </div>
-</div>
+</main>
 {% endblock %}

@@ -2,10 +2,12 @@ async function loadOrders() {
     try {
         const resp = await fetch('/api/orders');
         const data = await resp.json();
-        const dates = Object.keys(data).sort().reverse().slice(0,5);
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const dates = Object.keys(data).filter(d => d >= today).sort().slice(0, 6);
         const container = document.getElementById('recentDates');
         if (!dates.length) {
-            container.innerHTML = '<div class="muted">Nenhuma data cadastrada</div>';
+            container.innerHTML = '<li class="uc-muted">Nenhuma data marcada daqui pra frente</li>';
             return;
         }
         container.innerHTML = dates.map(d => {
@@ -13,10 +15,10 @@ async function loadOrders() {
             const tipo = o.tipo || 'Sem tipo';
             const hora = o.horario ? ` • ${o.horario}` : '';
             const formatted = new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-            return `<div class="item"><div><strong>${formatted}</strong><div class="muted">${tipo}${hora}</div></div><div class="actions"><a class="btn" href="/agenda/${d}/admin">Ver</a><a class="btn" style="background:#10b981; box-shadow:0 8px 20px rgba(16,185,129,0.25);" href="/agenda/${d}/edit">Editar</a></div></div>`;
+            return `<li><div class="grow"><strong>${formatted}</strong><div class="sub">${tipo}${hora}</div></div><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/${d}/admin">Ver</a><a class="uc-btn uc-btn-secondary uc-btn-sm" href="/agenda/${d}/edit"><i class="fas fa-pen"></i> Editar</a></li>`;
         }).join('');
     } catch (e) {
-        document.getElementById('recentDates').innerHTML = '<div class="muted">Erro ao carregar</div>';
+        document.getElementById('recentDates').innerHTML = '<li class="uc-muted">Erro ao carregar as datas</li>';
     }
 }
 

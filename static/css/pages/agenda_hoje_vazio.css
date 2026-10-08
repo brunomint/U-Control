@@ -1,32 +1,7 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-}
-.box {
-    text-align: center;
-    padding: 48px 32px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.1);
-    max-width: 420px;
-    width: 90%;
-}
-.icon { font-size: 56px; margin-bottom: 20px; }
-h1 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
-p { color: rgba(255,255,255,0.65); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
-a {
-    display: inline-block;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #00bcd4, #0097a7);
-    color: white;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 700;
-    box-shadow: 0 8px 20px rgba(0,188,212,0.3);
-}
+/* Nenhum culto nos próximos 30 dias (agenda_hoje_vazio.html). */
+
+.empty-page { max-width: 520px; padding-top: 60px; }
+.empty-box { display: grid; justify-items: center; gap: 12px; text-align: center; padding: 36px 24px; }
+.empty-box > i { font-size: 34px; color: var(--uc-faint); }
+.empty-box h1 { font-size: 20px; font-weight: 800; }
+.empty-box p { margin: 0; color: var(--uc-muted); }

@@ -1,19 +1,9 @@
-* { box-sizing: border-box; }
-body {
-    margin: 0;
+/* Agenda de equipes (agenda_dashboard.html) — base, card, listas e botões vêm do app.css. */
+
+.agenda-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.agenda-grid .side { display: grid; gap: 20px; }
+#recentDates li { gap: 8px; }
+
+@media (max-width: 900px) {
+  .agenda-grid { grid-template-columns: minmax(0, 1fr); }
 }
-.page { max-width: 1100px; margin: 36px auto; padding: 0 16px 80px; }
-.header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
-.title { font-size: 26px; font-weight: 800; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.25); }
-.subtitle { color: rgba(255,255,255,0.75); font-size: 14px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 18px; }
-.card { background: rgba(255,255,255,0.06); border-radius: 14px; padding: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.35); display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px); }
-.card h3 { margin: 0; font-size: 17px; color: white; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; color: white; background: linear-gradient(135deg, #00bcd4, #0097a7); box-shadow: 0 10px 24px rgba(0,188,212,0.35); text-decoration: none; justify-content: center; }
-.btn:hover { box-shadow: 0 14px 28px rgba(0,188,212,0.4); }
-.list { display: flex; flex-direction: column; gap: 8px; }
-.item { padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; gap: 8px; color: white; }
-.item strong { color: white; }
-.pill { padding: 6px 10px; border-radius: 999px; background: rgba(0,188,212,0.18); color: #a5f3fc; font-weight: 700; font-size: 12px; border: 1px solid rgba(0,188,212,0.35); }
-.actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.muted { color: rgba(255,255,255,0.7); font-size: 13px; }

@@ -11,16 +11,16 @@ function initReleaseBanner(socket, kind) {
     const el = document.createElement('div');
     el.id = 'release-banner';
     el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
-        'z-index:9999;display:none;align-items:center;gap:12px;background:#1e1e2e;' +
-        'border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;' +
-        'box-shadow:0 4px 16px rgba(0,0,0,.4);font-family:inherit;color:#fff;';
+        'z-index:9999;display:none;align-items:center;gap:12px;background:var(--uc-surface-3,#262c44);' +
+        'border:1px solid var(--uc-warn,#f2b84b);border-radius:10px;padding:10px 16px;' +
+        'box-shadow:0 12px 30px rgba(0,0,0,.45);font-family:inherit;color:var(--uc-text,#e9ebf4);';
     el.innerHTML =
-        '<span style="font-size:1.1rem;">🔔</span>' +
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--uc-warn,#f2b84b);flex:none;"></span>' +
         '<span id="release-banner-label" style="font-size:.9rem;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
-        '<button id="release-banner-btn" style="background:#f59e0b;color:#1e1e2e;border:none;' +
-            'border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;">Liberar</button>' +
-        '<button id="release-banner-discard" style="background:transparent;color:#94a3b8;' +
-            'border:1px solid #475569;border-radius:6px;padding:6px 10px;cursor:pointer;" ' +
+        '<button id="release-banner-btn" style="background:var(--uc-live,#f04b55);color:#fff;border:none;' +
+            'border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font:inherit;font-weight:700;">Liberar no telão</button>' +
+        '<button id="release-banner-discard" style="background:transparent;color:var(--uc-muted,#9198b3);' +
+            'border:1px solid var(--uc-line,#2a3050);border-radius:6px;padding:6px 10px;cursor:pointer;" ' +
             'title="Descartar sem exibir">✕</button>';
     document.body.appendChild(el);
 

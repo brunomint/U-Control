@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Lista de Músicas{% endblock %}
+{% block title %}Músicas - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
@@ -8,78 +9,93 @@
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/list_songs.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/list_songs.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<h1>Biblioteca de Músicas</h1>
-
-<!-- Barra de Pesquisa -->
-<div class="search-container">
-    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Pesquisar por título ou autor...">
-    <div class="search-info" id="searchInfo">
-        <span id="totalSongs">{{ songs|length }}</span> música(s) encontrada(s)
-    </div>
-</div>
-
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>🆔</th>
-                <th>🎵 Título</th>
-                <th>👤 Autor</th>
-                <th>⚙️ Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for song in songs %}
-            <tr>
-                <td><span class="song-id">{{ song.id }}</span></td>
-                <td><div class="song-title">{{ song.title }}</div></td>
-                <td><div class="song-author">{{ song.author }}</div></td>
-                <td>
-                    <button class="action-btn add-order add-to-order" data-id="{{ song.id }}" data-title="{{ song.title }}" data-author="{{ song.author }}">Adicionar</button>
-                    <a href="/edit_song/{{ song.id }}" class="action-btn edit">Editar</a>
-                    <a href="/view/{{ song.id }}" class="action-btn view">Visualizar</a>
-                    <a href="/lyrics/{{ song.id }}" class="action-btn display">Display</a>
-                    <button class="action-btn delete delete-song" data-id="{{ song.id }}">Remover</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Mensagem quando não há resultados -->
-<div class="no-results" id="noResults">
-    <p>🔍 Nenhuma música encontrada</p>
-    <p>Tente pesquisar com outros termos</p>
-</div>
-
-<!-- Modal para selecionar data da ordem -->
-<div id="orderModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>📅 Adicionar à Ordem do Culto</h3>
-            <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Músicas</h1>
+            <div class="uc-page-sub"><span id="totalSongs">{{ songs|length }}</span> de {{ songs|length }} músicas</div>
         </div>
-        <div class="modal-body">
-            <p id="modalSongTitle" style="font-weight: 600; margin-bottom: 15px;"></p>
-            <label for="orderDateSelect" style="display: block; margin-bottom: 8px; font-weight: 500;">Selecione a data:</label>
-            <select id="orderDateSelect" style="width: 100%; padding: 10px; border: 2px solid #00bcd4; border-radius: 8px; font-size: 14px; margin-bottom: 15px;">
-                <option value="">Carregando ordens...</option>
-            </select>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <input type="date" id="newOrderDate" style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px;">
-                <button onclick="createNewOrder()" style="padding: 10px 15px; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">+ Nova</button>
+        <a class="uc-btn uc-btn-primary" href="{{ url_for('songs.new_song') }}"><i class="fas fa-plus"></i> Nova música</a>
+    </div>
+
+    <section class="uc-card songs-card">
+        <div class="uc-search songs-search">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="search" id="searchInput" class="uc-input" placeholder="Buscar por título ou autor" aria-label="Buscar música" autocomplete="off">
+        </div>
+
+        <div class="uc-table-wrap">
+            <table class="uc-table songs-table">
+                <thead>
+                    <tr>
+                        <th class="col-id">#</th>
+                        <th>Título</th>
+                        <th class="col-author">Autor</th>
+                        <th class="col-actions">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for song in songs %}
+                    <tr>
+                        <td class="col-id"><span class="song-id uc-mono">{{ song.id }}</span></td>
+                        <td>
+                            <div class="song-title">{{ song.title }}</div>
+                            <div class="song-author song-author-inline">{{ song.author }}</div>
+                        </td>
+                        <td class="col-author"><div class="song-author">{{ song.author }}</div></td>
+                        <td class="col-actions">
+                            <div class="song-actions">
+                                <a href="/lyrics/{{ song.id }}" class="uc-btn uc-btn-secondary uc-btn-sm" title="Abrir a letra para exibir no telão"><i class="fas fa-display"></i> Telão</a>
+                                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm add-to-order" data-id="{{ song.id }}" data-title="{{ song.title }}" data-author="{{ song.author }}" title="Adicionar a uma ordem de culto"><i class="fas fa-list-ol"></i> Ordem</button>
+                                <a href="/view/{{ song.id }}" class="uc-btn uc-btn-ghost uc-btn-sm" title="Ver cifra"><i class="fas fa-guitar"></i> Cifra</a>
+                                <a href="/edit_song/{{ song.id }}" class="uc-btn uc-btn-ghost uc-btn-sm" title="Editar"><i class="fas fa-pen"></i> Editar</a>
+                                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text delete-song" data-id="{{ song.id }}" title="Remover" aria-label="Remover {{ song.title }}"><i class="fas fa-trash-can"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="no-results uc-empty" id="noResults">
+            <i class="fas fa-magnifying-glass"></i>
+            Nenhuma música encontrada. Tente outro termo.
+        </div>
+    </section>
+</main>
+
+<!-- Modal: escolher a data da ordem -->
+<div id="orderModal" class="uc-modal-overlay" style="display: none;">
+    <div class="uc-modal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+        <div class="uc-modal-head">
+            <h2 id="orderModalTitle">Adicionar à ordem do culto</h2>
+            <button type="button" class="uc-modal-close" onclick="closeOrderModal()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="uc-modal-body">
+            <p id="modalSongTitle" class="modal-song"></p>
+            <div class="uc-field">
+                <label for="orderDateSelect">Ordem</label>
+                <select id="orderDateSelect" class="uc-input">
+                    <option value="">Carregando ordens…</option>
+                </select>
+            </div>
+            <div class="uc-field">
+                <label for="newOrderDate">Ou crie uma ordem nova</label>
+                <div class="new-order-row">
+                    <input type="date" id="newOrderDate" class="uc-input">
+                    <button type="button" class="uc-btn uc-btn-secondary" onclick="createNewOrder()"><i class="fas fa-plus"></i> Criar</button>
+                </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeOrderModal()" class="modal-btn cancel">Cancelar</button>
-            <button onclick="confirmAddToOrder()" class="modal-btn confirm">Adicionar</button>
+        <div class="uc-modal-foot">
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="closeOrderModal()">Cancelar</button>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="confirmAddToOrder()">Adicionar</button>
         </div>
     </div>
 </div>

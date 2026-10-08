@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Passagens Bíblicas - Ordem do Culto{% endblock %}
+{% block title %}Leituras de hoje - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
@@ -8,65 +9,50 @@
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-roxo.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible_control_list.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/bible_control_list.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="header">
-        <h1><i class="fas fa-book-bible"></i> Passagens Bíblicas</h1>
-        <p>Ordem do Culto</p>
-    </div>
-
-    <div class="nav-links">
-        <a href="/bible"><i class="fas fa-search"></i> Buscar na Bíblia</a>
-        <a href="/order"><i class="fas fa-list-ol"></i> Ordem do Culto</a>
-        <a href="/"><i class="fas fa-home"></i> Início</a>
-    </div>
-
-    <!-- Adicionar nova passagem -->
-    <div class="add-passage" style="background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-        <h3 style="color: #5a4fcf; margin-bottom: 15px;"><i class="fas fa-plus-circle"></i> Adicionar Passagem</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <input type="text" id="newBibleRef" placeholder="Ex: João 3:16, Salmos 23:1-6"
-                style="flex: 1; min-width: 200px; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
-            <button onclick="addBiblePassage()"
-                style="padding: 12px 25px; background: linear-gradient(135deg, #7c3aed, #5a4fcf); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
-                <i class="fas fa-plus"></i> Adicionar
-            </button>
+{% include "_nav.html" %}
+<main class="uc-page list-page">
+    <div class="uc-page-head">
+        <div>
+            <a class="uc-link" href="/bible"><i class="fas fa-arrow-left"></i> Bíblia</a>
+            <h1>Leituras de hoje</h1>
+            <div class="uc-page-sub">Passagens bíblicas da ordem do culto de hoje. Toque numa para abrir o controle.</div>
         </div>
-        <p style="color: #888; font-size: 13px; margin-top: 10px;">
-            <i class="fas fa-info-circle"></i> A passagem será salva na ordem do culto
-        </p>
     </div>
 
-    <div class="bible-list">
-        <h2><i class="fas fa-list"></i> Passagens para Hoje</h2>
-
+    <section class="uc-card">
         {% if bible_items %}
+        <ol class="bible-list">
             {% for item in bible_items %}
-            <div class="bible-item" style="display: flex; align-items: center;">
-                <a href="{{ item.url if item.url else '/bible?search=' + item.reference }}" style="flex: 1; display: flex; align-items: center; text-decoration: none; color: inherit;">
+            <li class="bible-item">
+                <a href="{{ item.url if item.url else '/bible?search=' + item.reference }}">
                     <span class="item-number">{{ loop.index }}</span>
                     <span class="reference">{{ item.reference }}</span>
+                    <i class="fas fa-chevron-right"></i>
                 </a>
-                <button onclick="removeBiblePassage('{{ item.reference }}')"
-                    style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-left: 10px;"
-                    title="Remover">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
+                <button type="button" class="remove-passage" onclick="removeBiblePassage('{{ item.reference }}')" title="Remover da ordem" aria-label="Remover {{ item.reference }}"><i class="fas fa-trash-can"></i></button>
+            </li>
             {% endfor %}
+        </ol>
         {% else %}
-            <div class="empty-message">
-                <i class="fas fa-inbox"></i>
-                <p>Nenhuma passagem bíblica na ordem do culto</p>
-                <a href="/order"><i class="fas fa-plus"></i> Adicionar Passagens</a>
-            </div>
+        <div class="uc-empty">
+            <i class="fas fa-book-bible"></i>
+            Nenhuma leitura na ordem de hoje. Adicione uma abaixo.
+        </div>
         {% endif %}
-    </div>
-</div>
+
+        <div class="add-passage">
+            <div class="uc-field grow">
+                <label for="newBibleRef">Adicionar leitura</label>
+                <input class="uc-input" type="text" id="newBibleRef" placeholder="Ex.: João 3:16, Salmos 23:1-6">
+            </div>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="addBiblePassage()"><i class="fas fa-plus"></i> Adicionar</button>
+        </div>
+    </section>
+</main>
 {% endblock %}
 
 {% block scripts %}

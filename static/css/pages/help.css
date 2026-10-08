@@ -1,67 +1,31 @@
-body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    background-color: #f9f9f9;
-    color: #333;
+/* Ajuda (help.html) — base e card vêm do app.css; o conteúdo de cada
+   tópico é montado por help.js. */
+
+.help-grid { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.help-menu { display: grid; gap: 2px; padding: 8px; position: sticky; top: calc(var(--uc-nav-h) + 16px); }
+.help-menu a {
+  display: block;
+  padding: 9px 12px;
+  border-radius: var(--uc-r-sm);
+  color: var(--uc-muted);
+  text-decoration: none;
+  font-weight: 600;
 }
-h1 {
-    color: #0056b3;
-}
-h2 {
-    color: #007bff;
-}
-ul {
-    margin-left: 20px;
-}
-.highlight {
-    background-color: #e7f3ff;
-    padding: 5px;
-    border-left: 4px solid #007bff;
-}
-code {
-    background-color: #f4f4f4;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: "Courier New", Courier, monospace;
-}
-.menu {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 200px;
-    height: 100%;
-    background-color: #0056b3;
-    color: white;
-    padding: 10px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-}
-.menu h3 {
-    margin-top: 0;
-    color: #f9f9f9;
-}
-.menu a {
-    display: block;
-    color: white;
-    text-decoration: none;
-    margin: 10px 0;
-    font-weight: bold;
-    cursor: pointer;
-}
-.menu a:hover {
-    text-decoration: underline;
-}
-.content {
-    margin-left: 220px;
-    padding: 20px;
-}
-.image-container {
-    display: flex; /* Usar Flexbox para centralizar */
-    justify-content: center; /* Centraliza horizontalmente */
-    align-items: center; /* Centraliza verticalmente, se necessário */
-    margin: 20px 0; /* Espaço acima e abaixo da imagem */
-}
-.centered-image {
-    max-width: 100%; /* Garante que a imagem não ultrapasse a largura do contêiner */
-    height: auto; /* Mantém a proporção da imagem */
+.help-menu a:hover { color: var(--uc-text); background: var(--uc-surface-2); }
+.help-menu a.active { color: var(--uc-text); background: var(--uc-surface-3); }
+
+.help-content { max-width: 760px; line-height: 1.65; scroll-margin-top: calc(var(--uc-nav-h) + 16px); }
+.help-content h2 { font-size: 20px; font-weight: 800; margin-bottom: 12px; }
+.help-content h3 { font-size: 16px; margin: 20px 0 8px; }
+.help-content p { margin: 0 0 12px; color: var(--uc-text); }
+.help-content ul, .help-content ol { padding-left: 20px; margin: 0 0 12px; display: grid; gap: 6px; }
+.help-content a { color: var(--uc-accent-text); }
+.help-content .image-container { margin: 12px 0; }
+.help-content .centered-image { display: block; max-width: 100%; border-radius: var(--uc-r); border: 1px solid var(--uc-line); }
+.help-content .callout { background: var(--uc-accent-soft); border-left: 3px solid var(--uc-accent); border-radius: var(--uc-r-sm); padding: 10px 14px; margin: 12px 0; }
+.help-content .danger { color: var(--uc-danger); }
+
+@media (max-width: 800px) {
+  .help-grid { grid-template-columns: minmax(0, 1fr); }
+  .help-menu { position: static; }
 }

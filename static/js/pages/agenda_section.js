@@ -116,19 +116,16 @@ async function searchSongs(query) {
         if (currentSearchTerm !== query) return;
         list.innerHTML = "";
         if (songs.length === 0) {
-            list.innerHTML = '<div class="autocomplete-item" style="padding:10px 14px; color:#94a3b8;">Nenhuma música encontrada</div>';
+            list.innerHTML = '<div class="autocomplete-item empty">Nenhuma música encontrada</div>';
             list.style.display = 'block';
             return;
         }
         songs.forEach(song => {
             const item = document.createElement("div");
             item.className = "autocomplete-item";
-            item.style.padding = '10px 14px';
-            item.style.cursor = 'pointer';
-            item.style.borderBottom = '1px solid #e2e8f0';
             item.innerHTML = `
-                <div style="font-weight:700; color:#0f172a;">${song.title}</div>
-                <div style="color:#64748b; font-size:12px;">${song.author || 'Autor desconhecido'}</div>
+                <div class="song-title">${song.title}</div>
+                <div class="song-author">${song.author || 'Autor desconhecido'}</div>
             `;
             item.onclick = () => {
                 addSongToList(song);
@@ -159,11 +156,11 @@ function addSongToList(song) {
     const url = baseUrl.includes('/lyrics/') ? `${baseUrl}?order=${date}` : baseUrl;
 
     songItem.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">${displayText}</a>
         </div>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
     `;
 
     songItem.ondragstart = (e) => {
@@ -185,11 +182,11 @@ function addToList() {
     item.id = `text-${Date.now()}`;
 
     item.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
-            <a href="#">📝 ${text}</a>
+            <a href="#">${text}</a>
         </div>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -218,7 +215,7 @@ function addBibleToList() {
         <div class="song-info">
             <a href="${url}" target="_blank">📖 ${ref}</a>
         </div>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -259,11 +256,11 @@ function loadExistingItens() {
             elem.dataset.isBible = "true";
             elem.dataset.reference = item.reference;
             elem.innerHTML = `
-                <span class="drag-handle">⋮⋮</span>
+                <span class="drag-handle" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                 <div class="song-info">
                     <a href="/bible?search=${encodeURIComponent(item.reference)}" target="_blank">${item.title || '📖 ' + item.reference}</a>
                 </div>
-                <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
             `;
             elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
             songList.appendChild(elem);
@@ -275,11 +272,11 @@ function loadExistingItens() {
             elem.id = `song-${Date.now()}-${Math.random()}`;
             const linkUrl = item.url.includes('/lyrics/') ? `${item.url}?order=${date}` : item.url;
             elem.innerHTML = `
-                <span class="drag-handle">⋮⋮</span>
+                <span class="drag-handle" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                 <div class="song-info">
                     <a href="${linkUrl}" target="_blank">${item.title}</a>
                 </div>
-                <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
             `;
             elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
             songList.appendChild(elem);
@@ -291,11 +288,11 @@ function loadExistingItens() {
             elem.id = `text-${Date.now()}-${Math.random()}`;
             const text = item.anyText || item.title;
             elem.innerHTML = `
-                <span class="drag-handle">⋮⋮</span>
+                <span class="drag-handle" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                 <div class="song-info">
                     <a href="#">${text}</a>
                 </div>
-                <button class="remove-btn" onclick="this.parentElement.remove()">🗑️</button>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
             `;
             elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
             songList.appendChild(elem);
@@ -332,6 +329,12 @@ function addEvento() {
             <input name="eventos[${index}][titulo]">
 
             <label>Horário</label>
+            <div class="hour-presets">
+                <button type="button" class="hour-btn" onclick="setHora(this,'18:40')">18:40</button>
+                <button type="button" class="hour-btn" onclick="setHora(this,'19:00')">19:00</button>
+                <button type="button" class="hour-btn" onclick="setHora(this,'19:30')">19:30</button>
+                <button type="button" class="hour-btn" onclick="setHora(this,'20:00')">20:00</button>
+            </div>
             <input name="eventos[${index}][hora]" placeholder="Ex.: 19:30">
 
             <label>Responsáveis</label>
@@ -340,11 +343,7 @@ function addEvento() {
             <label>Observações</label>
             <textarea name="eventos[${index}][obs]"></textarea>
 
-            <button type="button" onclick="this.closest('.evento-bloco').remove()">
-                Remover evento
-            </button>
-
-            <hr>
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text evento-remove" onclick="this.closest('.evento-bloco').remove()"><i class="fas fa-trash-can"></i> Remover evento</button>
         </div>
     `);
 }
@@ -440,7 +439,7 @@ function abrirModalCopiar() {
         .forEach(id => { document.getElementById(id).onchange = onChange; });
 
     renderCopiarGrid();
-    document.getElementById('modal-copiar').style.display = 'block';
+    document.getElementById('modal-copiar').style.display = 'flex';
 }
 
 function fecharModalCopiar() {
@@ -449,7 +448,7 @@ function fecharModalCopiar() {
 
 async function renderCopiarGrid() {
     const grid = document.getElementById('copiar-grid');
-    grid.innerHTML = '<div style="color:#64748b;font-size:0.82rem;padding:8px">Carregando…</div>';
+    grid.innerHTML = '<div style="color:var(--uc-muted);font-size:13px;padding:8px">Carregando…</div>';
     copiarFieldsByDow = {};
 
     const origMes = parseInt(document.getElementById('copiar-orig-mes').value);
@@ -473,7 +472,7 @@ async function renderCopiarGrid() {
             });
 
         if (!Object.keys(copiarFieldsByDow).length) {
-            grid.innerHTML = `<div style="color:#f87171;font-size:0.82rem;padding:8px">Nenhuma escala de ${section} encontrada em ${prefixo.replace('-','/')}.</div>`;
+            grid.innerHTML = `<div style="color:var(--uc-danger);font-size:13px;padding:8px">Nenhuma escala de ${section} encontrada em ${prefixo.replace('-','/')}.</div>`;
             return;
         }
 
@@ -493,9 +492,9 @@ async function renderCopiarGrid() {
                 </div>`;
             });
 
-        grid.innerHTML = html || `<div style="color:#64748b;font-size:0.82rem;padding:8px">Sem datas correspondentes em ${NOMES_MES[destMes]}/${destAno}.</div>`;
+        grid.innerHTML = html || `<div style="color:var(--uc-muted);font-size:13px;padding:8px">Sem datas correspondentes em ${NOMES_MES[destMes]}/${destAno}.</div>`;
     } catch {
-        grid.innerHTML = '<div style="color:#f87171;font-size:0.82rem;padding:8px">Erro ao carregar dados.</div>';
+        grid.innerHTML = '<div style="color:var(--uc-danger);font-size:13px;padding:8px">Erro ao carregar dados.</div>';
     }
 }
 
@@ -503,7 +502,7 @@ async function executarCopiar() {
     const result = document.getElementById('copiar-result');
     const btn = document.querySelector('#modal-copiar .mes-apply-btn');
     const checked = [...document.querySelectorAll('input[name=copiar-date]:checked')];
-    if (!checked.length) { result.textContent = 'Selecione ao menos uma data.'; result.style.color = '#f87171'; return; }
+    if (!checked.length) { result.textContent = 'Selecione ao menos uma data.'; result.style.color = 'var(--uc-danger)'; return; }
 
     // agrupa datas selecionadas por dow
     const porDow = {};
@@ -528,12 +527,12 @@ async function executarCopiar() {
             else erro = true;
         }
         result.textContent = erro
-            ? '❌ Erro ao aplicar em algumas datas.'
-            : `✅ Escala copiada para ${total} data${total !== 1 ? 's' : ''}!`;
-        result.style.color = erro ? '#f87171' : '#34d399';
+            ? 'Erro ao aplicar em algumas datas.'
+            : `Escala copiada para ${total} data${total !== 1 ? 's' : ''}!`;
+        result.style.color = erro ? 'var(--uc-danger)' : 'var(--uc-ok)';
     } catch {
-        result.textContent = '❌ Erro de conexão.';
-        result.style.color = '#f87171';
+        result.textContent = 'Sem conexão com o servidor.';
+        result.style.color = 'var(--uc-danger)';
     }
     btn.disabled = false; btn.textContent = 'Copiar e aplicar';
 }

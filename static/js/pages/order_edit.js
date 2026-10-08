@@ -9,12 +9,7 @@ const isNew = CONFIG.isNew;
 
 // Toast
 function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = 'toast ' + type + ' show';
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    window.ucToast(message, type);
 }
 
 // Busca de músicas
@@ -37,7 +32,7 @@ async function searchSongs(query) {
         list.innerHTML = "";
 
         if (songs.length === 0) {
-            list.innerHTML = '<div class="autocomplete-item" style="color: #999; cursor: default;">Nenhuma música encontrada</div>';
+            list.innerHTML = '<div class="autocomplete-item empty">Nenhuma música encontrada</div>';
             list.classList.add('show');
             return;
         }
@@ -82,12 +77,12 @@ function addSongToList(song) {
     const url = baseUrl.includes('/lyrics/') ? `${baseUrl}?order=${orderDate}` : baseUrl;
 
     songItem.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">${displayText}</a>
         </div>
-        <button class="subst-btn" onclick="substituirMusica(this)">🔄 Substituir</button>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>
+        <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> Substituir</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
     `;
 
     songItem.ondragstart = (e) => {
@@ -116,11 +111,11 @@ function addToList() {
     item.id = `text-${Date.now()}`;
 
     item.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
-            <a href="#">📝 ${text}</a>
+            <a href="#">${text}</a>
         </div>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -155,11 +150,11 @@ function addBibleToList() {
     const url = `/bible?search=${encodeURIComponent(ref)}`;
 
     item.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">📖 ${ref}</a>
         </div>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -209,7 +204,9 @@ async function saveOrder() {
     const itens = items.map(item => {
         const link = item.querySelector("a");
         const title = link ? link.textContent : null;
-        let url = link ? link.href : null;
+        // href="#" é item de texto livre — link.href resolveria pra URL da
+        // própria página e o texto seria salvo como link pra /order/<data>.
+        let url = link && link.getAttribute('href') !== '#' ? link.href : null;
 
         if (item.dataset.isBible === "true") {
             return {
@@ -367,11 +364,11 @@ async function loadExistingOrder() {
                 elem.dataset.reference = item.reference;
 
                 elem.innerHTML = `
-                    <span class="drag-handle">⋮⋮</span>
+                    <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                     <div class="song-info">
                         <a href="/bible?search=${encodeURIComponent(item.reference)}" target="_blank">${item.title || '📖 ' + item.reference}</a>
                     </div>
-                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
                 `;
 
                 elem.ondragstart = (e) => {
@@ -392,12 +389,12 @@ async function loadExistingOrder() {
                 const linkUrl = item.url.includes('/lyrics/') ? `${item.url}?order=${orderDate}` : item.url;
 
                 elem.innerHTML = `
-                    <span class="drag-handle">⋮⋮</span>
+                    <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                     <div class="song-info">
                         <a href="${linkUrl}" target="_blank">${item.title}</a>
                     </div>
-                    <button class="subst-btn" onclick="substituirMusica(this)">🔄 Substituir</button>
-                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>
+                    <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> Substituir</button>
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
                 `;
 
                 elem.ondragstart = (e) => {
@@ -415,11 +412,11 @@ async function loadExistingOrder() {
 
                 const text = item.anyText || item.title;
                 elem.innerHTML = `
-                    <span class="drag-handle">⋮⋮</span>
+                    <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                     <div class="song-info">
                         <a href="#">${text}</a>
                     </div>
-                    <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
                 `;
 
                 elem.ondragstart = (e) => {
@@ -473,7 +470,7 @@ function substituirMusica(btn) {
     searchDiv.innerHTML = `
         <div class="inline-search-wrap">
             <input type="text" class="inline-search-input" placeholder="Buscar música substituta...">
-            <button class="inline-cancel-btn" onclick="this.closest('.inline-search').remove(); this.closest('.song-item').querySelector('.song-info').style.display=''">✕</button>
+            <button type="button" class="inline-cancel-btn" aria-label="Cancelar substituição" onclick="this.closest('.inline-search').remove(); this.closest('.song-item').querySelector('.song-info').style.display=''">✕</button>
         </div>
         <div class="inline-ac"></div>`;
 
@@ -493,7 +490,7 @@ function substituirMusica(btn) {
             const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
             const songs = await res.json();
             if (!songs.length) {
-                ac.innerHTML = '<div class="inline-ac-item" style="color:#999">Nenhuma música encontrada</div>';
+                ac.innerHTML = '<div class="inline-ac-item empty">Nenhuma música encontrada</div>';
                 ac.classList.add('show'); return;
             }
             ac.innerHTML = songs.map(s => {
@@ -525,14 +522,14 @@ function getOrderItems() {
         if (item.dataset.isBible === "true") {
             return { isBible: true, reference: item.dataset.reference, title };
         }
-        let url = link ? link.href : null;
+        let url = link && link.getAttribute('href') !== '#' ? link.href : null;
         if (url) url = new URL(url, window.location.origin).pathname;
         return url ? { url, title } : { anyText: title };
     });
 }
 
 function abrirModalTemplates() {
-    document.getElementById('modal-templates').style.display = 'block';
+    document.getElementById('modal-templates').style.display = 'flex';
     document.getElementById('tpl-nome').value = '';
     renderTemplateList();
 }
@@ -585,6 +582,8 @@ async function carregarModelo(name) {
             addBibleItemToList(item.reference, item.title);
         } else if (item.url) {
             addSongItemToList(item.url, item.title);
+        } else if (item.anyText) {
+            addTextItemToList(item.anyText);
         }
     });
     fecharModalTemplates();
@@ -606,12 +605,12 @@ function addSongItemToList(url, title) {
     const orderDate = document.getElementById("orderDate").value;
     const fullUrl = url.includes('/lyrics/') ? `${url}?order=${orderDate}` : url;
     item.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${fullUrl}" target="_blank">${title || ''}</a>
         </div>
-        <button class="subst-btn" onclick="substituirMusica(this)">🔄 Substituir</button>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>`;
+        <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> Substituir</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>`;
     item.ondragstart = (e) => { draggedElement = item; e.dataTransfer.effectAllowed = "move"; };
     songList.appendChild(item);
 }
@@ -626,11 +625,28 @@ function addBibleItemToList(reference, title) {
     item.dataset.reference = reference;
     const url = `/bible?search=${encodeURIComponent(reference)}`;
     item.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">📖 ${title || reference}</a>
         </div>
-        <button class="remove-btn" onclick="this.parentElement.remove()">🗑️ Remover</button>`;
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>`;
+    item.ondragstart = (e) => { draggedElement = item; e.dataTransfer.effectAllowed = "move"; };
+    songList.appendChild(item);
+}
+
+function addTextItemToList(text) {
+    const songList = document.getElementById("songList");
+    const item = document.createElement("div");
+    item.className = "song-item text-item";
+    item.setAttribute("draggable", "true");
+    item.id = `text-${Date.now()}-${Math.random()}`;
+    item.innerHTML = `
+        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <div class="song-info">
+            <a href="#"></a>
+        </div>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>`;
+    item.querySelector('a').textContent = text;
     item.ondragstart = (e) => { draggedElement = item; e.dataTransfer.effectAllowed = "move"; };
     songList.appendChild(item);
 }

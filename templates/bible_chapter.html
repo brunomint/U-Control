@@ -1,118 +1,78 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}{{ book_name }} {{ chapter }} - Bíblia U-Control{% endblock %}
+{% block title %}{{ book_name }} {{ chapter }} - Bíblia{% endblock %}
 
 {% block head_extra %}
-<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-roxo.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/bible_chapter.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/bible_chapter.css') }}">
 {% endblock %}
 
 {% block content %}
 {% include "_nav.html" %}
-
-<div class="container">
-    <div class="breadcrumb">
-        <a href="/bible?translation={{ current_translation }}"><i class="fas fa-book-bible"></i> Bíblia</a>
-        <span>›</span>
-        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}">{{ book_name }}</a>
-        <span>›</span>
-        <strong>Capítulo {{ chapter }}</strong>
-    </div>
-
-    <div class="chapter-header">
-        <div class="chapter-title">
-            <h1><i class="fas fa-book-open"></i> {{ book_name }} {{ chapter }}</h1>
-            <select class="translation-select" id="translationSelect" onchange="changeTranslation()">
+<main class="uc-page chapter-page">
+    <div class="uc-page-head">
+        <div>
+            <a class="uc-link" href="/bible/{{ book_abbrev }}?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> {{ book_name }}</a>
+            <h1>{{ book_name }} {{ chapter }}</h1>
+            <div class="uc-page-sub">Toque nos versículos para escolher e prepare para o telão</div>
+        </div>
+        <div class="head-controls">
+            <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="Tradução">
                 {% for key, trans in translations.items() %}
-                <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>
-                    {{ trans.name }} ({{ trans.abbrev }})
-                </option>
+                <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.name }} ({{ trans.abbrev }})</option>
                 {% endfor %}
             </select>
-        </div>
-
-        <div class="chapter-nav">
-            {% if prev_chapter %}
-            <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="nav-btn">
-                <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
-            </a>
-            {% else %}
-            <span class="nav-btn disabled"><i class="fas fa-chevron-left"></i> Anterior</span>
-            {% endif %}
-
-            <div class="chapter-selector">
-                <span>Ir para:</span>
-                <select id="chapterSelect" onchange="goToChapter()">
+            <div class="chapter-nav">
+                {% if prev_chapter %}
+                <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="Capítulo {{ prev_chapter }}"><i class="fas fa-chevron-left"></i></a>
+                {% endif %}
+                <select class="uc-input" id="chapterSelect" onchange="goToChapter()" aria-label="Capítulo">
                     {% for i in range(1, num_chapters + 1) %}
                     <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
                     {% endfor %}
                 </select>
+                {% if next_chapter %}
+                <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="Capítulo {{ next_chapter }}"><i class="fas fa-chevron-right"></i></a>
+                {% endif %}
             </div>
-
-            {% if next_chapter %}
-            <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="nav-btn">
-                Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
-            </a>
-            {% else %}
-            <span class="nav-btn disabled">Próximo <i class="fas fa-chevron-right"></i></span>
-            {% endif %}
         </div>
     </div>
 
-    <div class="verses-container">
+    <section class="uc-card verses-container">
         {% for verse in verses %}
         <div class="verse" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="toggleVerse(this)">
             <span class="verse-number">{{ loop.index }}</span>
             <span class="verse-text">{{ verse }}</span>
-            <div class="verse-actions">
-                <button class="verse-action-btn" onclick="event.stopPropagation(); sendSingleVerse({{ loop.index }}, '{{ verse|e }}')">
-                    <i class="fas fa-tv"></i> Exibir
-                </button>
-            </div>
+            <button type="button" class="verse-action-btn" onclick="event.stopPropagation(); sendSingleVerse({{ loop.index }})" title="Preparar só este versículo">
+                <i class="fas fa-display"></i> Exibir
+            </button>
         </div>
         {% endfor %}
-    </div>
+    </section>
 
-    <div class="chapter-nav" style="justify-content: center; margin-bottom: 30px;">
+    <div class="chapter-foot">
         {% if prev_chapter %}
-        <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="nav-btn">
-            <i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}
-        </a>
+        <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary"><i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}</a>
         {% endif %}
-
-        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}" class="nav-btn">
-            <i class="fas fa-list"></i> Todos os Capítulos
-        </a>
-
+        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}" class="uc-btn uc-btn-ghost"><i class="fas fa-table-cells"></i> Todos os capítulos</a>
         {% if next_chapter %}
-        <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="nav-btn">
-            Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i>
-        </a>
+        <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary">Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i></a>
         {% endif %}
     </div>
-</div>
+</main>
 
-<!-- Barra de ações flutuante -->
+<!-- Barra que aparece com versículos selecionados -->
 <div class="action-bar" id="actionBar">
-    <span class="selected-count"><span id="selectedCount">0</span> versículo(s)</span>
-    <button class="btn-display" onclick="sendToDisplay()">
-        <i class="fas fa-tv"></i> Exibir no Telão
-    </button>
-    <button class="btn-copy" onclick="copyVerses()">
-        <i class="fas fa-copy"></i> Copiar
-    </button>
-    <button class="btn-clear" onclick="clearSelection()">
-        <i class="fas fa-times"></i>
-    </button>
+    <span class="selected-count"><span id="selectedCount">0</span> selecionado(s)</span>
+    <button type="button" class="uc-btn uc-btn-live uc-btn-sm" onclick="sendToDisplay()"><i class="fas fa-display"></i> Preparar para o telão</button>
+    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="copyVerses()"><i class="fas fa-copy"></i> Copiar</button>
+    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearSelection()" aria-label="Limpar seleção"><i class="fas fa-xmark"></i></button>
 </div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
 
 <script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev, "translationAbbrev": translation_abbrev, "translationName": translation_name} | tojson }}</script>
 {% endblock %}

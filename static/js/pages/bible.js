@@ -71,7 +71,7 @@ function displayResults(data) {
         container.innerHTML = html;
         resultsDiv.classList.add('active');
     } else {
-        container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Nenhum resultado encontrado</p>';
+        container.innerHTML = '<div class="uc-empty">Nenhum resultado encontrado.</div>';
         resultsDiv.classList.add('active');
     }
 }

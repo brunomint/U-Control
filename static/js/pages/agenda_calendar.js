@@ -62,6 +62,7 @@ function renderCalendar() {
 
         const o = cell.order || {};
         const dayNumber = String(new Date(cell.dateStr + 'T00:00:00').getDate()).padStart(2,'0');
+        const todayCls = cell.dateStr === formatDateISO(new Date()) ? ' today' : '';
 
         const items = [];
 
@@ -103,12 +104,12 @@ function renderCalendar() {
 
         if (items.length === 0) {
             return `
-                <div class="day">
+                <div class="day${todayCls}">
                     <div class="day-top">
                         <div class="day-date">${dayNumber}</div>
                     </div>
                     <div class="day-body">
-                        <div class="info-line" style="color:#94a3b8;">Sem Eventos</div>
+                        <div class="info-line muted">Sem eventos</div>
                     </div>
                 </div>
             `;
@@ -203,7 +204,7 @@ function renderCalendar() {
         }
 
         return `
-            <div class="day has-data" onclick="window.location='/agenda/${cell.dateStr}'">
+            <div class="day has-data${todayCls}" onclick="window.location='/agenda/${cell.dateStr}'">
                 <div class="day-top">
                     <div class="day-date">${dayNumber}</div>
                 </div>

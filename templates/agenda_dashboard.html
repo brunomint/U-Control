@@ -1,65 +1,64 @@
 {% extends "base.html" %}
+{% set app_theme = true %}
 
-{% block title %}Agenda de Equipes - Dashboard{% endblock %}
+{% block title %}Agenda de Equipes - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/theme-noturno.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agenda_dashboard.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/agenda_dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="page">
-    <div class="header">
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
         <div>
-            <div class="title">Agenda de Equipes</div>
-            <div class="subtitle">Atalhos rápidos para calendários e edições</div>
+            <h1>Agenda de equipes</h1>
+            <div class="uc-page-sub">Escalas de louvor e mídia, eventos e calendário do mês</div>
         </div>
-        <div class="actions">
-            <a class="btn" href="/dashboard">← Painel</a>
-            <a class="btn" href="/agenda">📅 Calendário público</a>
-            <a class="btn" href="/agenda/edit">🔒 Calendário privado</a>
-        </div>
-    </div>
-
-    <div class="grid">
-        <div class="card">
-            <h3>Data específica</h3>
-            <div class="muted">Escolha uma data para editar ou ver detalhe admin.</div>
-            <form action="/agenda/edit" method="get" onsubmit="handleDateRedirect(event)">
-                <input type="date" id="dashDate" name="date" style="width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px;" required>
-                <div class="actions" style="margin-top:10px;">
-                    <button type="button" class="btn" onclick="openAdmin()">Ver detalhe admin</button>
-                    <button type="button" class="btn" style="background:#10b981; box-shadow:0 8px 20px rgba(16,185,129,0.25);" onclick="openEdit()">Editar ordem</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3>Atalhos principais</h3>
-            <div class="list">
-                <div class="item">
-                    <span>📅 Calendário público</span>
-                    <a class="btn" href="/agenda">Abrir</a>
-                </div>
-                <div class="item">
-                    <span>🔒 Calendário privado (admin)</span>
-                    <a class="btn" href="/agenda/edit">Abrir</a>
-                </div>
-                <div class="item">
-                    <span>➕ Criar nova ordem (data de hoje)</span>
-                    <a class="btn" href="/order/new">Abrir</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>Últimas datas com escala</h3>
-            <div id="recentDates" class="list">
-                <div class="muted">Carregando...</div>
-            </div>
+        <div class="uc-btn-row">
+            <a class="uc-btn uc-btn-secondary" href="/agenda" target="_blank" rel="noopener"><i class="fas fa-calendar"></i> Calendário público</a>
+            <a class="uc-btn uc-btn-primary" href="/agenda/edit"><i class="fas fa-pen-to-square"></i> Editar calendário</a>
         </div>
     </div>
-</div>
+
+    <div class="agenda-grid">
+        <section class="uc-card" aria-labelledby="next-title">
+            <div class="uc-card-head"><h2 id="next-title">Próximas datas</h2></div>
+            <ul id="recentDates" class="uc-rows">
+                <li class="uc-muted">Carregando…</li>
+            </ul>
+        </section>
+
+        <div class="side">
+            <section class="uc-card" aria-labelledby="date-title">
+                <div class="uc-card-head"><h2 id="date-title">Ir para uma data</h2></div>
+                <form class="uc-form-stack" action="/agenda/edit" method="get" onsubmit="handleDateRedirect(event)">
+                    <div class="uc-field">
+                        <label for="dashDate">Data</label>
+                        <input class="uc-input" type="date" id="dashDate" name="date" required>
+                    </div>
+                    <div class="uc-btn-row">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="openAdmin()"><i class="fas fa-eye"></i> Ver escala</button>
+                        <button type="button" class="uc-btn uc-btn-primary" onclick="openEdit()"><i class="fas fa-pen"></i> Editar</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="uc-card" aria-labelledby="links-title">
+                <div class="uc-card-head"><h2 id="links-title">Atalhos</h2></div>
+                <ul class="uc-rows">
+                    <li><i class="fas fa-calendar"></i><span class="grow">Calendário público</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda" target="_blank" rel="noopener">Abrir</a></li>
+                    <li><i class="fas fa-calendar-check"></i><span class="grow">Próximo culto (link para a equipe)</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/hoje" target="_blank" rel="noopener">Abrir</a></li>
+                    <li><i class="fas fa-plus"></i><span class="grow">Nova ordem de culto</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/order/new">Abrir</a></li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</main>
 {% endblock %}
 
 {% block scripts %}
