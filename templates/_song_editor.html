@@ -28,6 +28,12 @@
                         <div class="tom-widget">
                             <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">Tom <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
                             <div class="tom-popover" id="tomPanel">
+                                <div class="tom-scope" role="group" aria-label="O que transpor">
+                                    <button type="button" class="tom-scope-btn" data-scope="all" aria-pressed="true" onclick="setTransposeScope('all')">Música inteira</button>
+                                    <button type="button" class="tom-scope-btn" data-scope="sections" aria-pressed="false" onclick="setTransposeScope('sections')">Só algumas seções</button>
+                                </div>
+                                <div class="tom-sections" id="tomSections" hidden></div>
+                                <p class="tom-scope-key" id="tomScopeKey"></p>
                                 <div class="tom-popover-row">
                                     <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Voltar ao tom original" aria-label="Voltar ao tom original"><i class="fas fa-rotate-left"></i></button>
                                     <button type="button" class="bto-transpor" onclick="transposeStep(-1)">−½ tom</button>

@@ -39,7 +39,7 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 60;
-  width: 270px;
+  width: 290px;
   padding: 10px;
   background: var(--uc-surface-2);
   border: 1px solid var(--uc-line);
@@ -63,6 +63,22 @@
 .tom-key-btn { padding: 7px 0; }
 .tom-key-btn:hover, .tom-icon-btn:hover, .tom-popover-row .bto-transpor:hover { border-color: var(--uc-accent); }
 .tom-key-btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
+.tom-popover button:disabled { opacity: .35; cursor: default; border-color: var(--uc-line); }
+
+/* Escopo da transposição: música inteira ou só as seções marcadas */
+.tom-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px; margin-bottom: 8px; border-radius: var(--uc-r-sm); background: var(--uc-bg); border: 1px solid var(--uc-line); }
+.tom-scope-btn { padding: 6px 4px; border: 0; border-radius: 5px; background: none; color: var(--uc-muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.tom-scope-btn[aria-pressed="true"] { background: var(--uc-surface-3); color: var(--uc-text); }
+.tom-sections { display: grid; gap: 2px; max-height: 190px; overflow-y: auto; margin-bottom: 6px; padding: 4px; border-radius: var(--uc-r-sm); background: var(--uc-bg); border: 1px solid var(--uc-line); }
+.tom-sections[hidden] { display: none; }
+.tom-section-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.tom-section-item:hover { background: var(--uc-surface-2); }
+.tom-section-item input { accent-color: var(--uc-accent); margin: 0; }
+.tom-section-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; letter-spacing: .03em; }
+.tom-section-item .fa-music { color: var(--uc-faint); font-size: 11px; }
+.tom-empty { margin: 4px; font-size: 12px; color: var(--uc-muted); }
+.tom-scope-key { margin: 0 0 8px; font-size: 12px; font-weight: 700; color: var(--uc-accent-text); }
+.tom-scope-key:empty { display: none; }
 
 /* Barra de ferramentas */
 .toolbar-fixed {

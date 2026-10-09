@@ -1101,10 +1101,14 @@
             let selectionMode = false;
             let selectedBlocks = new Set();
             let currentSheetData = null;
-            // Semitons acumulados desde o carregamento — só serve pro
-            // botão "desfazer" (undoTranspose) voltar exatamente ao tom
-            // original aplicando o delta inverso.
-            let transposeOffset = 0;
+            // Escopo: 'all' (música inteira, como sempre foi) ou 'sections'
+            // (só as seções marcadas no painel do Tom — ex.: subir meio tom
+            // só no último refrão). Cada seção leva junto os blocos de texto
+            // e as partituras dela (título até o próximo título).
+            let transposeScope = 'all';
+            // Seções marcadas, guardadas pelo objeto do título (sobrevive a
+            // subir/descer/renomear); 'inicio' = blocos antes do 1º título
+            const transposeSelected = new Set();
             
             // Expõe o array blocks globalmente para o formulário poder acessá-lo
             window.editorBlocks = blocks;
@@ -1178,12 +1182,9 @@
                 const key = firstChord ? ChordLines.describeKey(firstChord) : null;
                 tomEl.textContent = key || '—';
 
-                // Destaca o botão da grade que corresponde ao tom atual
-                // (ignora o "m" de menor — a grade escolhe só a nota base).
-                const root = key ? key.replace(/m$/, '') : null;
-                document.querySelectorAll('#tomGrid button[data-key]').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.key === root);
-                });
+                // Grade, lista de seções e rótulo do painel do Tom (destaca
+                // o tom da música inteira ou das seções marcadas)
+                renderTomScope();
             }
 
             // Cria botão de inserção entre blocos
@@ -2587,44 +2588,154 @@ Com mais conteúdo musical`;
             // igual o site já faz), um botão "desfazer" volta ao tom
             // original e uma grade de 12 notas pula direto pro tom
             // escolhido (como o seletor de tom do Cifra Club).
+            function transposeGroupKey(g) {
+                return blocks[g.start].type === 'section' ? blocks[g.start] : 'inicio';
+            }
+
+            function transposeTargets() {
+                if (transposeScope === 'all') return blocks.map((_, i) => i);
+                const idx = [];
+                sectionGroups().forEach(g => {
+                    if (!transposeSelected.has(transposeGroupKey(g))) return;
+                    for (let i = g.start; i < g.end; i++) idx.push(i);
+                });
+                return idx;
+            }
+
+            // Tom do que vai ser transposto (música inteira ou seções marcadas)
+            function transposeScopeKey() {
+                if (transposeScope === 'all') {
+                    const t = document.getElementById('tomAtual');
+                    return t && t.textContent !== '—' ? t.textContent : null;
+                }
+                const contents = transposeTargets().map(i => blocks[i])
+                    .filter(b => b.type === 'text').map(b => b.content);
+                const first = ChordLines.detectFirstChordToken(contents);
+                return first ? ChordLines.describeKey(first) : null;
+            }
+
+            // Grade, rótulo e botões conforme o escopo (sem reconstruir a lista)
+            function refreshTransposeControls() {
+                const key = transposeScopeKey();
+                const root = key ? key.replace(/m$/, '') : null;
+                document.querySelectorAll('#tomGrid button[data-key]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.key === root);
+                });
+                const blocked = transposeScope === 'sections' && transposeSelected.size === 0;
+                document.querySelectorAll('#tomPanel .bto-transpor, #tomGrid button').forEach(b => { b.disabled = blocked; });
+                const lbl = document.getElementById('tomScopeKey');
+                if (lbl) {
+                    lbl.textContent = transposeScope !== 'sections' ? ''
+                        : blocked ? 'Marque as seções que vão mudar de tom'
+                        : `Tom das seções marcadas: ${key || '—'}`;
+                }
+            }
+
+            function renderTomScope() {
+                document.querySelectorAll('.tom-scope-btn').forEach(b => {
+                    b.setAttribute('aria-pressed', String(b.dataset.scope === transposeScope));
+                });
+                const box = document.getElementById('tomSections');
+                if (!box) return;
+                const groups = sectionGroups();
+                const alive = new Set(groups.map(transposeGroupKey));
+                [...transposeSelected].forEach(k => { if (!alive.has(k)) transposeSelected.delete(k); });
+                box.hidden = transposeScope !== 'sections';
+                if (transposeScope === 'sections') {
+                    box.innerHTML = '';
+                    groups.forEach(g => {
+                        const key = transposeGroupKey(g);
+                        const part = blocks.slice(g.start, g.end);
+                        if (key === 'inicio' && !part.some(b => b.type === 'sheet' || (b.type === 'text' && (b.content || '').trim()))) return;
+                        const label = document.createElement('label');
+                        label.className = 'tom-section-item';
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.checked = transposeSelected.has(key);
+                        // Só atualiza os controles: reconstruir a lista aqui
+                        // tiraria o checkbox clicado do DOM e o clique-fora
+                        // fecharia o painel
+                        cb.onchange = () => {
+                            if (cb.checked) transposeSelected.add(key); else transposeSelected.delete(key);
+                            refreshTransposeControls();
+                        };
+                        const name = document.createElement('span');
+                        name.textContent = key === 'inicio' ? 'Início (sem título)' : (key.title || 'Seção sem nome');
+                        label.append(cb, name);
+                        if (part.some(b => b.type === 'sheet')) {
+                            const icon = document.createElement('i');
+                            icon.className = 'fas fa-music';
+                            icon.title = 'Tem partitura — vai junto';
+                            label.append(icon);
+                        }
+                        box.appendChild(label);
+                    });
+                    if (!box.children.length) {
+                        box.innerHTML = '<p class="tom-empty">Crie seções para transpor só uma parte da música.</p>';
+                    }
+                }
+                refreshTransposeControls();
+            }
+
+            window.setTransposeScope = function(scope) {
+                transposeScope = scope;
+                renderTomScope();
+            };
+
             window.transposeStep = async function(semitones) {
+                const targets = transposeTargets();
+                if (!targets.length) return;
                 const countRef = { count: 0 };
-                // sheet_render.js é ES module (import/export) — new_song.js
+                // sheet_render.js é ES module (import/export) — este arquivo
                 // é script clássico, então só dá pra acessar via import()
                 // dinâmico, mesmo padrão já usado em createSheetBlock.
                 const { transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
 
-                blocks.forEach((block, index) => {
+                targets.forEach(index => {
+                    const block = blocks[index];
                     if (block.type === 'text' && block.content) {
-                        blocks[index].content = ChordLines.transposeBlockContent(block.content, semitones, countRef);
+                        block.content = ChordLines.transposeBlockContent(block.content, semitones, countRef);
                     } else if (block.type === 'sheet' && block.originalData) {
                         // Muta block.originalData em memória, igual o bloco de
                         // texto já faz — é exatamente esse campo que Salvar
-                        // envia (ver updateHiddenField), então transpor aqui
-                        // muda o que fica salvo, não é só uma prévia.
-                        blocks[index].originalData = transposeSheetData(block.originalData, semitones);
+                        // envia, então transpor aqui muda o que fica salvo.
+                        block.originalData = transposeSheetData(block.originalData, semitones);
+                    } else {
+                        return;
                     }
+                    // Semitons andados por bloco (não vai pro Salvar): o
+                    // "voltar ao tom original" desfaz exatamente o que cada
+                    // bloco andou, mesmo com seções transpostas à parte
+                    block._semi = (block._semi || 0) + semitones;
                 });
 
-                transposeOffset += semitones;
-                renderBlocks(); // já atualiza o rótulo "Tom" (updateTomDisplay no fim de renderBlocks)
+                renderBlocks(true); // já atualiza o rótulo "Tom" (updateTomDisplay no fim de renderBlocks)
             };
 
-            // Volta exatamente ao tom em que a música estava ao carregar a
-            // página, aplicando o delta inverso acumulado — não precisa
-            // guardar uma cópia do texto original porque a transposição é
-            // uma operação reversível (soma módulo 12).
-            window.undoTranspose = function() {
-                if (transposeOffset === 0) return;
-                window.transposeStep(-transposeOffset);
+            // Volta cada bloco exatamente ao tom em que estava ao carregar a
+            // página, aplicando o inverso do que ele andou (soma módulo 12).
+            window.undoTranspose = async function() {
+                const moved = blocks.filter(b => b._semi);
+                if (!moved.length) return;
+                const countRef = { count: 0 };
+                const { transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
+                moved.forEach(block => {
+                    if (block.type === 'text' && block.content) {
+                        block.content = ChordLines.transposeBlockContent(block.content, -block._semi, countRef);
+                    } else if (block.type === 'sheet' && block.originalData) {
+                        block.originalData = transposeSheetData(block.originalData, -block._semi);
+                    }
+                    block._semi = 0;
+                });
+                renderBlocks(true);
             };
 
             // Pula direto pro tom escolhido na grade, calculando o delta
-            // de semitons entre o tom atual e a nota clicada.
+            // de semitons entre o tom atual (da música ou das seções
+            // marcadas) e a nota clicada.
             window.jumpToKey = function(targetRoot) {
-                const tomEl = document.getElementById('tomAtual');
-                const current = tomEl ? tomEl.textContent : null;
-                if (!current || current === '—') return;
+                const current = transposeScopeKey();
+                if (!current) return;
                 const currentRoot = current.replace(/m$/, '');
                 const currentIndex = ChordLines.chordMap[currentRoot];
                 const targetIndex = ChordLines.chordMap[targetRoot];
