@@ -241,10 +241,10 @@
             mediaVideo.play().catch(() => {});
         });
 
+        // Antes só escurecia foto/vídeo: com letra, Bíblia ou relógio no
+        // telão o botão "Tela preta" não fazia nada
         socket.on('blackout', (data) => {
-            const opacity = data.active ? '0' : '1';
-            mediaImg.style.opacity   = opacity;
-            mediaVideo.style.opacity = opacity;
+            document.getElementById('blackout-layer').classList.toggle('active', !!data.active);
         });
 
         // ────────────────────────────────────────────────────────────

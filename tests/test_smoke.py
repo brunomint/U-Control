@@ -4,6 +4,21 @@ import main as ucontrol_main
 from models import DisplayState, User
 
 
+def _operator_socket(app):
+    """Cliente Socket.IO de um operador logado — os eventos de controle
+    do telão exigem login (extensions.OperatorSocketIO)."""
+    with app.app_context():
+        if not User.query.filter_by(username="tester").first():
+            ucontrol_main.db.session.add(User(
+                username="tester",
+                password=generate_password_hash("senha123", method="pbkdf2:sha256"),
+            ))
+            ucontrol_main.db.session.commit()
+    http = app.test_client()
+    http.post("/login", data={"username": "tester", "password": "senha123"})
+    return ucontrol_main.socketio.test_client(app, flask_test_client=http)
+
+
 def test_create_app_uses_in_memory_db_when_testing(app):
     assert app.config["TESTING"] is True
     assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite:///:memory:"
@@ -40,7 +55,7 @@ def test_countdown_page_route_resolves_to_blueprint(client):
 
 
 def test_start_countdown_broadcasts_and_updates_state(app):
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("start_countdown", {"duration_seconds": 60, "label": "Sermão"})
     received = socket_client.get_received()
     events = [msg["name"] for msg in received]
@@ -52,7 +67,7 @@ def test_start_countdown_broadcasts_and_updates_state(app):
 
 
 def test_set_ticker_broadcasts_and_updates_state(app):
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("set_ticker", {"text": "Bem-vindos!", "target": "all"})
     received = socket_client.get_received()
     events = [msg["name"] for msg in received]
@@ -134,7 +149,7 @@ def test_bible_search_by_reference_resolves_to_joao_3_16(logged_in_client):
 
 
 def test_update_bible_broadcasts_and_appends_to_display_log(app):
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("update_bible", {"reference": "João 3:16", "text": "..."})
     received = socket_client.get_received()
     events = [msg["name"] for msg in received]
@@ -393,7 +408,7 @@ def test_connect_and_disconnect_update_client_tracking(app):
     import connections
 
     before = connections.socketio_clients_connected
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     assert connections.socketio_clients_connected == before + 1
 
     socket_client.disconnect()
@@ -403,7 +418,7 @@ def test_connect_and_disconnect_update_client_tracking(app):
 def test_identify_as_monitor_is_returned_by_get_monitor_sids(app):
     import connections
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("identify", {"role": "monitor"})
 
     monitor_sids = connections._get_monitor_sids()
@@ -637,7 +652,7 @@ def test_show_image_updates_display_state_module_live(app):
     # momento do import (mesma pegadinha do connections.py).
     import display_state
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("show_image", {"image_url": "/static/imagens/teste.jpg"})
 
     assert display_state._current_display_mode == "image"
@@ -648,7 +663,7 @@ def test_show_image_updates_display_state_module_live(app):
 def test_show_video_updates_display_state_module_live(app):
     import display_state
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("show_video", {"video_url": "/static/videos/teste.mp4"})
 
     assert display_state._current_display_mode == "video"
@@ -658,7 +673,7 @@ def test_show_video_updates_display_state_module_live(app):
 
 
 def test_api_current_display_reflects_last_shown_image(app, client):
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("show_image", {"image_url": "/static/imagens/atual.jpg"})
     socket_client.disconnect()
 
@@ -670,10 +685,10 @@ def test_api_current_display_reflects_last_shown_image(app, client):
 
 
 def test_api_monitor_sync_forwards_current_video_to_monitor_sids(app, client):
-    monitor_client = ucontrol_main.socketio.test_client(app)
+    monitor_client = ucontrol_main.socketio.test_client(app)  # tela, sem login
     monitor_client.emit("identify", {"role": "monitor"})
 
-    presenter_client = ucontrol_main.socketio.test_client(app)
+    presenter_client = _operator_socket(app)
     presenter_client.emit("show_video", {"video_url": "/static/videos/sync.mp4"})
     presenter_client.disconnect()
 
@@ -697,9 +712,9 @@ def test_screen_share_offer_relays_to_target_sid(app):
     # request.sid que os handlers usam — pega o sid de verdade via
     # connections.socketio_clients_by_sid (populado pelo handler connect),
     # conectando o receiver sozinho primeiro pra identificar sem ambiguidade.
-    receiver = ucontrol_main.socketio.test_client(app)
+    receiver = ucontrol_main.socketio.test_client(app)  # tela, sem login
     receiver_sid = next(iter(connections.socketio_clients_by_sid))
-    sender = ucontrol_main.socketio.test_client(app)
+    sender = _operator_socket(app)
 
     sender.emit("screen_share_offer", {"sdp": "fake-sdp", "target_sid": receiver_sid})
 
@@ -716,7 +731,7 @@ def test_screen_share_offer_relays_to_target_sid(app):
 def test_update_lyrics_broadcasts_and_updates_display_state(app):
     import display_state
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("update_lyrics", {"title": "Seção 1", "text": "Letra de teste"})
 
     received = socket_client.get_received()
@@ -753,7 +768,7 @@ def test_stage_content_persists_and_broadcasts(app):
     from extensions import db
     from models import StagedContent
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {
         "kind": "image",
         "payload": {"image_url": "/static/imagens/preparada.jpg"},
@@ -778,7 +793,7 @@ def test_release_staged_content_dispatches_to_real_handler_and_clears_staging(ap
     from extensions import db
     from models import StagedContent
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {
         "kind": "image",
         "payload": {"image_url": "/static/imagens/liberar.jpg"},
@@ -808,7 +823,7 @@ def test_discard_staged_content_clears_without_going_live(app):
     from extensions import db
     from models import StagedContent
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {
         "kind": "lyrics",
         "payload": {"title": "Nunca vai ao ar", "text": "..."},
@@ -842,7 +857,7 @@ def test_staged_content_kinds_do_not_clobber_each_other(app):
     # atropela um ao outro).
     display_state._live_follow_kind = None
 
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {"kind": "image", "payload": {"image_url": "/foto.jpg"}, "label": "foto"})
     socket_client.emit("stage_content", {"kind": "lyrics", "payload": {"title": "Refrão"}, "label": "letra"})
     socket_client.get_received()
@@ -855,7 +870,7 @@ def test_staged_content_kinds_do_not_clobber_each_other(app):
 
 
 def test_api_staged_content_reflects_current_state(app, client):
-    socket_client = ucontrol_main.socketio.test_client(app)
+    socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {
         "kind": "bible",
         "payload": {"reference": "João 3:16", "text": "..."},
@@ -985,3 +1000,78 @@ def test_public_pages_use_theme_without_operator_menu(client):
         assert 'class="uc-app"' in html, path
         assert "site-nav-link live" not in html, path
 
+
+
+def test_anonymous_socket_cannot_control_screens(app):
+    """Sem login, comandos de controle do telão são ignorados — antes
+    qualquer visitante do site podia trocar o que aparece no projetor."""
+    screen = ucontrol_main.socketio.test_client(app)
+    screen.emit("identify", {"role": "public"})
+    screen.get_received()
+
+    intruder = ucontrol_main.socketio.test_client(app)
+    for event, data in (("show_image", {"image_url": "https://exemplo.com"}),
+                        ("set_ticker", {"text": "invasão", "target": "all"}),
+                        ("blackout", {"active": True}),
+                        ("show_two_urls", {"url1": "/clock", "url2": "/img"}),
+                        ("start_countdown", {"duration_seconds": 60}),
+                        ("toggle_video_pause", {"paused": False})):
+        intruder.emit(event, data)
+
+    events = [msg["name"] for msg in screen.get_received()]
+    for blocked in ("display_image", "ticker_update", "blackout", "display_two_urls",
+                    "countdown_start", "video_pause"):
+        assert blocked not in events, blocked
+
+    intruder.disconnect()
+    screen.disconnect()
+
+
+def test_screens_without_login_can_still_sync_video_reset(app):
+    """/monitor e /img não têm login e pedem "pausado no início" ao
+    carregar um vídeo — essa forma específica continua aceita."""
+    screen = ucontrol_main.socketio.test_client(app)
+    screen.emit("identify", {"role": "monitor"})
+    screen.emit("toggle_video_pause", {"paused": True})
+    events = [msg["name"] for msg in screen.get_received()]
+    assert "video_pause" in events
+    screen.disconnect()
+
+
+def test_logged_operator_socket_controls_screens(app):
+    screen = ucontrol_main.socketio.test_client(app)
+    operator = _operator_socket(app)
+    operator.emit("blackout", {"active": False})
+    events = [msg["name"] for msg in screen.get_received()]
+    assert "blackout" in events
+    operator.disconnect()
+    screen.disconnect()
+
+
+def test_presenter_requires_login(client):
+    response = client.get("/presenter")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_blackout_state_is_sent_to_screen_that_connects_later(app):
+    operator = _operator_socket(app)
+    operator.emit("blackout", {"active": True})
+
+    late_screen = ucontrol_main.socketio.test_client(app)
+    late_screen.emit("identify", {"role": "public"})
+    received = late_screen.get_received()
+    assert any(m["name"] == "blackout" and m["args"][0]["active"] for m in received)
+
+    operator.emit("blackout", {"active": False})
+    other = ucontrol_main.socketio.test_client(app)
+    other.emit("identify", {"role": "public"})
+    assert not any(m["name"] == "blackout" for m in other.get_received())
+
+    for c in (operator, late_screen, other):
+        c.disconnect()
+
+
+def test_display_public_has_full_screen_blackout_layer(client):
+    html = client.get("/lyrics/display/public").get_data(as_text=True)
+    assert 'id="blackout-layer"' in html

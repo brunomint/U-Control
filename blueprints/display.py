@@ -474,7 +474,8 @@ def api_monitor_sync():
 @socketio.on('blackout')
 def handle_blackout(data):
     """Escurece ou restaura a tela de exibição"""
-    emit('blackout', {'active': data.get('active', True)}, broadcast=True)
+    display_state._blackout_active = bool(data.get('active', True))
+    emit('blackout', {'active': display_state._blackout_active}, broadcast=True)
 
 @socketio.on('show_image_zoom')
 def handle_show_image_zoom(data):

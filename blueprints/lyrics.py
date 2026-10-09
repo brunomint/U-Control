@@ -145,6 +145,7 @@ def lyrics_display_obs():
 
 
 @lyrics_bp.route('/presenter')
+@login_required
 def presenter():
     return render_template('presenter.html')
 

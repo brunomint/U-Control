@@ -27,11 +27,15 @@ socket.on('display_image', function(data) {
     console.log('📡 Recebido display_image de outro PC:', data);
     
     // Se a URL é uma rota (começa com /), atualiza os iframes
-    // Se é um caminho de imagem estática, NÃO atualiza (deixa /img receber via WebSocket)
     if (data.image_url.startsWith('/') && !data.image_url.startsWith('/static/')) {
         updateIframes(data.image_url, '');
+    } else if (document.getElementById('iframe1').getAttribute('src') !== '/img'
+               || document.getElementById('iframe2').getAttribute('src') !== 'about:blank') {
+        // Foto/vídeo da galeria: a prévia passa a mostrar o /img (que
+        // troca a foto sozinho via WebSocket). Só recarrega se a prévia
+        // estava em outra coisa — antes ela ficava parada na fonte anterior.
+        updateIframes(data.image_url, '');
     }
-    // Se for imagem estática, o /img já vai receber via WebSocket e exibir
 });
 
 // Escuta o evento para mostrar/esconder letras
@@ -402,8 +406,17 @@ function deleteImage(imageUrl) {
 let blackoutActive = false;
 
 function toggleBlackout() {
-    blackoutActive = !blackoutActive;
-    socket.emit('blackout', { active: blackoutActive });
+    socket.emit('blackout', { active: !blackoutActive });
+    setBlackoutButton(!blackoutActive);
+}
+
+// O servidor guarda o estado: ao abrir o /control (identify) ou quando
+// outro operador/o /presenter liga a tela preta, o botão acompanha
+socket.on('connect', () => socket.emit('identify', { role: 'control' }));
+socket.on('blackout', data => setBlackoutButton(!!data.active));
+
+function setBlackoutButton(active) {
+    blackoutActive = active;
     const btn = document.getElementById('blackoutBtn');
     btn.classList.toggle('active', blackoutActive);
     btn.querySelector('i').className = blackoutActive ? 'fas fa-sun' : 'fas fa-moon';
@@ -1176,10 +1189,14 @@ function sourceFromUrl(url) {
     if (!url || url === 'about:blank') return null;
     let path = url;
     try { path = new URL(url, window.location.origin).pathname; } catch (e) { /* mantém */ }
-    const fixed = SOURCES.find(src => src.route && src.route === path);
-    if (fixed) return fixed.id;
+    // URL personalizada primeiro (comparação exata), senão uma URL 1–3
+    // como "/clock?x" acendia o Relógio em vez dela
     const custom = SOURCES.find(src => !src.route && urlInputValue(src) && urlInputValue(src) === url);
-    return custom ? custom.id : null;
+    if (custom) return custom.id;
+    // Foto/vídeo da galeria vai pra prévia como /img (ver updateIframes)
+    if (path.startsWith('/static/')) return 'imagem';
+    const fixed = SOURCES.find(src => src.route && src.route === path);
+    return fixed ? fixed.id : null;
 }
 
 function renderSourceButtons() {

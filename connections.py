@@ -5,8 +5,9 @@ quem excluir de um broadcast)."""
 import logging
 
 from flask import request
-from flask_socketio import join_room
+from flask_socketio import emit, join_room
 
+import display_state
 from extensions import socketio
 
 logger = logging.getLogger('ucontrol')
@@ -49,6 +50,9 @@ def handle_identify(data):
         socketio_clients_by_sid[sid]['role'] = role
     if role in ('public', 'monitor'):
         join_room(role)
+    # Telão público ou /control abrindo com a tela preta já ligada
+    if role in ('public', 'control') and display_state._blackout_active:
+        emit('blackout', {'active': True})
 
 
 def _get_monitor_sids():

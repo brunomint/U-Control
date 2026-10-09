@@ -18,6 +18,9 @@ _last_lyrics_payload = None
 
 # Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
 _current_display_mode = 'blank'
+# Tela preta ligada no telão público (blackout do /control ou /presenter) —
+# guardado pra tela que recarregar/conectar no meio continuar preta.
+_blackout_active = False
 _last_image_url = None
 
 # "Live-follow" do preparar/liberar (ver blueprints/display.py,
