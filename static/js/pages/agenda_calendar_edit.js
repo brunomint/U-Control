@@ -246,29 +246,7 @@ document.getElementById('nextBtn').addEventListener('click', () => {
     renderCalendar();
 });
 
-document.getElementById('saveImgBtn').addEventListener('click', async () => {
-    const calendarShell = document.querySelector('.calendar-shell');
-    if (!calendarShell) return;
-    const label = document.getElementById('monthLabel')?.textContent || 'agenda';
-    const safeLabel = label.toLowerCase().replace(/\s+/g, '-');
-    try {
-        calendarShell.classList.add('capturing');
-        const canvas = await html2canvas(calendarShell, {
-            backgroundColor: '#161a2b',
-            scale: 2,
-            useCORS: true,
-        });
-        const link = document.createElement('a');
-        link.download = `${safeLabel}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        calendarShell.classList.remove('capturing');
-    } catch (err) {
-        calendarShell.classList.remove('capturing');
-        console.error('Erro ao salvar imagem do calendário:', err);
-        alert('Não foi possível salvar o calendário como imagem.');
-    }
-});
+// Salvar/compartilhar imagem e copiar texto: agenda_share.js
 document.addEventListener('click', e => {
     const day = e.target.closest('.clickable');
     if (!day) return;
