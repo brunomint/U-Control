@@ -1,5 +1,3 @@
-import time
-
 from werkzeug.security import generate_password_hash
 
 import main as ucontrol_main
@@ -1097,7 +1095,6 @@ def test_control_switching_to_other_source_ends_photo_live_follow(app):
 
     op.emit("show_image", {"image_url": "/clock"})
     assert display_state._live_follow_kind is None
-    time.sleep(0.3)  # show_image grava o estado numa thread; espera antes do próximo commit
 
     op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/b.jpg"}, "label": "b"})
     events = [m["name"] for m in op.get_received()]
@@ -1115,7 +1112,6 @@ def test_control_staying_on_photos_keeps_live_follow(app):
     op.emit("show_image", {"image_url": "/static/imagens/galeria.jpg"})
     op.emit("show_image", {"image_url": "/img"})
     assert display_state._live_follow_kind == "image"
-    time.sleep(0.3)
 
     op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/c.jpg"}, "label": "c"})
     assert display_state._last_image_url == "/static/imagens/c.jpg"

@@ -42,3 +42,25 @@ def logged_in_client(app):
     test_client = app.test_client()
     test_client.post("/login", data={"username": "tester", "password": "senha123"})
     return test_client
+
+
+class _InlineThread:
+    """Roda o alvo na hora, na mesma thread. Os handlers de show_image/
+    show_video/show_two_urls gravam o DisplayState numa thread de fundo;
+    nos testes (SQLite em memória, conexão compartilhada) essa gravação
+    disputava o banco com o teste seguinte e derrubava testes ao acaso
+    ("cannot rollback - no transaction is active")."""
+
+    def __init__(self, target=None, args=(), kwargs=None, daemon=None, **_):
+        self._target, self._args, self._kwargs = target, args, kwargs or {}
+
+    def start(self):
+        if self._target:
+            self._target(*self._args, **self._kwargs)
+
+
+@pytest.fixture(autouse=True)
+def _display_saves_inline(monkeypatch):
+    import types
+    from blueprints import display
+    monkeypatch.setattr(display, "threading", types.SimpleNamespace(Thread=_InlineThread))
