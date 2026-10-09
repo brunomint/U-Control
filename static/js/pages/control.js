@@ -356,8 +356,11 @@ function renderModes() {
 }
 
 function applyServerMode(mode) {
+    const was = monitorOnlyMode ? 'monitor' : publicOnlyMode ? 'public' : 'all';
     monitorOnlyMode = mode === 'monitor';
     publicOnlyMode = mode === 'public';
+    // Entrou ou saiu do Só monitor: a prévia acompanha a tela que está mudando
+    if (mode !== was) previewView = monitorOnlyMode ? 'monitor' : 'public';
     renderModes();
 }
 
@@ -367,7 +370,10 @@ function applyServerMode(mode) {
 function setModeChoice(mode) {
     monitorOnlyMode = mode === 'monitor';
     publicOnlyMode = mode === 'public';
+    // A prévia passa a mostrar a tela que vai mudar
+    previewView = monitorOnlyMode ? 'monitor' : 'public';
     renderModes();
+    renderPreview();
     // Manda o modo pro servidor — fonte única de verdade que _release_kind
     // usa pra QUALQUER liberação (card do /control ou banner nas próprias
     // páginas, ver display_state._active_mode). Também reseta o
@@ -402,32 +408,61 @@ function syncMonitor() {
 // mudava com fontes escolhidas aqui e ficava na fonte anterior). O que
 // muda só no monitor (Modo monitor, tela dividida) aparece na linha de
 // baixo, não na prévia.
+// Qual tela a prévia mostra: 'public' ou 'monitor' (seletor acima dela)
+let previewView = 'public';
+let lastTelaoStatus = null;
+
 function applyTelaoStatus(st) {
     if (!st || !st.live) return;
+    lastTelaoStatus = st;
     applyServerMode(st.mode);
     setBlackoutButton(!!st.blackout);
-    const url = st.live.url || '';
-    const target = url.startsWith('/static/') ? '/img' : (url || 'about:blank');
+    renderPreview();
+}
+
+function renderPreview() {
+    const st = lastTelaoStatus;
+    if (!st) return;
+    const showMonitor = previewView === 'monitor';
+    document.querySelectorAll('.preview-view-seg [data-preview]').forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.preview === previewView)));
+    document.getElementById('preview-screen-label').hidden = !showMonitor;
+
+    // Endereços da tela escolhida (monitor sem nada diferente = o mesmo do público)
+    let url1 = st.live.url || '';
+    let url2 = '';
+    if (showMonitor && st.monitor) {
+        if (st.monitor.kind === 'split') { url1 = st.monitor.url1; url2 = st.monitor.url2; }
+        else url1 = st.monitor.url || url1;
+    }
+    const norm = u => (u && u.startsWith('/static/') ? '/img' : (u || 'about:blank'));
     const f1 = document.getElementById('iframe1');
     const f2 = document.getElementById('iframe2');
-    if (url && (f1.getAttribute('src') !== target || f2.getAttribute('src') !== 'about:blank')) {
-        updateIframes(url, '');
+    if (url1 && (f1.getAttribute('src') !== norm(url1) || f2.getAttribute('src') !== norm(url2))) {
+        updateIframes(url1, url2);
     }
-    // Cifra: o público vê a letra e o palco a cifra — acende o botão
-    // Cifra (o que o operador escolheu), não o Letra
-    if (st.live.kind === 'lyrics' && st.monitor && st.monitor.kind === 'cifra') {
+    // Cifra (vista do público): o público vê a letra e o palco a cifra —
+    // acende o botão Cifra (o que o operador escolheu), não o Letra
+    if (!showMonitor && st.live.kind === 'lyrics' && st.monitor && st.monitor.kind === 'cifra') {
         onAir = ['cifra'];
         refreshSourceButtons();
     }
+    // A linha de baixo mostra sempre a OUTRA tela
     const note = document.getElementById('preview-monitor-note');
     if (note) {
-        note.hidden = !st.monitor;
-        if (st.monitor) {
-            note.innerHTML = '<i class="fas fa-tv"></i> Monitor de palco: <b></b>';
-            note.querySelector('b').textContent = st.monitor.label;
+        const other = showMonitor ? (st.monitor ? st.live : null) : st.monitor;
+        note.hidden = !other;
+        if (other) {
+            note.innerHTML = showMonitor ? '<i class="fas fa-users"></i> Público: <b></b>' : '<i class="fas fa-tv"></i> Monitor de palco: <b></b>';
+            note.querySelector('b').textContent = other.label;
         }
     }
 }
+
+document.querySelectorAll('.preview-view-seg [data-preview]').forEach(b => b.addEventListener('click', () => {
+    previewView = b.dataset.preview;
+    renderPreview();
+}));
 socket.on('telao_status', applyTelaoStatus);
 socket.on('connect', () => {
     fetch('/api/telao-status').then(r => (r.ok ? r.json() : null)).then(applyTelaoStatus).catch(() => {});

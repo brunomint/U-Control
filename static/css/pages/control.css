@@ -360,3 +360,14 @@
   .url-row .uc-field:first-child { width: 100%; }
   body.panel-sheet-open { overflow: hidden; }
 }
+
+/* Seletor da prévia: Público | Monitor de palco */
+.preview-view-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 10px; }
+.preview-view-seg button { justify-content: center; }
+.preview-view-seg [data-preview="monitor"][aria-pressed="true"] { background: var(--uc-live); color: #fff; }
+.preview-screen-label {
+  position: absolute; left: 8px; bottom: 8px; z-index: 4; padding: 3px 9px; border-radius: 999px;
+  background: rgba(240, 75, 85, .9); color: #fff; font-size: 11.5px; font-weight: 700; pointer-events: none;
+}
+.preview-screen-label[hidden] { display: none; }
+.ctl.panel-expanded .ctl-live .preview-view-seg { margin-bottom: 8px; }

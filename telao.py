@@ -209,7 +209,9 @@ def build_status():
         staged = []
     return {
         'live': {**describe(_public_entry()), 'url': public_url()},
-        'monitor': describe(_monitor) if _monitor else None,
+        # url/url1/url2: a prévia do /control mostra o monitor quando pedem
+        'monitor': {**describe(_monitor), 'url': _monitor.get('url', ''),
+                    'url1': _monitor.get('url1', ''), 'url2': _monitor.get('url2', '')} if _monitor else None,
         'staged': staged,
         'mode': 'monitor' if mode.get('monitor_only') else 'public' if mode.get('exclude_monitor') else 'all',
         'follow': follow,

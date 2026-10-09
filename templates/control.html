@@ -25,6 +25,12 @@
             <h2 id="live-title">Telão agora</h2>
             <span class="uc-pill uc-pill-live" id="mode-pill"><span class="dot"></span>Público e monitor</span>
         </div>
+        <!-- Qual tela a prévia mostra. Troca sozinho pra Monitor no modo
+             "Só monitor" (o que se muda vai pro palco) — control.js -->
+        <div class="uc-seg preview-view-seg" role="group" aria-label="Tela mostrada na prévia">
+            <button type="button" data-preview="public" aria-pressed="true"><i class="fas fa-users"></i> Público</button>
+            <button type="button" data-preview="monitor" aria-pressed="false"><i class="fas fa-tv"></i> Monitor de palco</button>
+        </div>
 
         <!-- "Preparar vs. liberar": conteúdo preparado em /lyrics/<id>,
              /bible/control, /bible/<book>/<chapter> ou /presenter espera
@@ -42,6 +48,7 @@
                 <iframe id="iframe1" src="about:blank" title="Prévia do telão (esquerda)"></iframe>
                 <iframe id="iframe2" src="about:blank" title="Prévia do telão (direita)"></iframe>
             </div>
+            <div class="preview-screen-label" id="preview-screen-label" hidden><i class="fas fa-tv"></i> Monitor de palco</div>
             <div class="preview-blackout" id="preview-blackout" hidden><i class="fas fa-moon"></i> Tela preta: o público vê tudo preto</div>
         </div>
         <!-- O que o monitor de palco mostra quando é diferente do público

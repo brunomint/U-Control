@@ -1353,3 +1353,15 @@ def test_cifra_shows_lyrics_to_public_and_cifra_on_monitor(app):
     op.emit("show_image", {"image_url": "/lyrics/display/public"})
     assert _telao_status_events(op)[-1]["monitor"] is None
     op.disconnect()
+
+
+def test_telao_status_gives_monitor_urls_for_preview(app):
+    op = _operator_socket(app)
+    op.emit("show_image", {"image_url": "/clock"})
+    op.emit("show_monitor_content", {"url": "/lyrics/display"})
+    mon = _telao_status_events(op)[-1]["monitor"]
+    assert mon["kind"] == "cifra" and mon["url"] == "/lyrics/display"
+    op.emit("show_two_urls", {"url1": "/lyrics/display", "url2": "/clock"})
+    mon = _telao_status_events(op)[-1]["monitor"]
+    assert (mon["url1"], mon["url2"]) == ("/lyrics/display", "/clock")
+    op.disconnect()
