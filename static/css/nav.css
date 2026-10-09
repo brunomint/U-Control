@@ -157,7 +157,11 @@ body.has-telao-bar { --uc-nav-h: calc(var(--uc-navbar-h) + var(--uc-telao-h)); }
 }
 .telao-bar::-webkit-scrollbar { display: none; }
 .telao-bar * { box-sizing: border-box; }
-.telao-bar.is-offline { opacity: .55; }
+.telao-bar.is-offline { background: var(--uc-danger, #f0707a); color: #1b0507; border-bottom-color: transparent; }
+.tb-offline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.tb-offline b { font-weight: 800; }
+/* Sem conexão: a área de comandos da página fica apagada e sem clique */
+body.uc-offline [data-telao-commands] { opacity: .45; pointer-events: none; filter: grayscale(.5); transition: opacity .2s; }
 .tb-loading { color: var(--uc-faint); }
 .tb-label { min-width: 0; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
 .tb-live { display: inline-flex; align-items: center; gap: 7px; min-width: 0; color: var(--uc-text); text-decoration: none; font-weight: 600; }

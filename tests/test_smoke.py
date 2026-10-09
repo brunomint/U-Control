@@ -1231,3 +1231,15 @@ def test_bible_display_can_fetch_current_verse(app, client):
     data = client.get("/api/bible/current").get_json()  # tela sem login
     assert data["reference"] == "João 3:16"
     op.disconnect()
+
+
+def test_telao_ping_acks_for_operator(app):
+    op = _operator_socket(app)
+    assert op.emit("telao_ping", {}, callback=True) == {"ok": True}
+    op.disconnect()
+
+
+def test_command_pages_mark_their_command_area(logged_in_client):
+    for path in ("/control", "/presenter", "/lyrics/1", "/bible/jo/3", "/bible/control/jo/3/16-16"):
+        html = logged_in_client.get(path).get_data(as_text=True)
+        assert "data-telao-commands" in html, path

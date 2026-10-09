@@ -712,6 +712,13 @@ def handle_set_display_mode(data):
     telao.broadcast_status()
 
 
+@socketio.on('telao_ping')
+def handle_telao_ping(data=None):
+    """Batimento da barrinha do telão (telao_bar.js): responder em até 4s
+    = servidor alcançável. Sem resposta, a página avisa "Sem conexão"."""
+    return {'ok': True}
+
+
 @socketio.on('stop_live_follow')
 def handle_stop_live_follow(data=None):
     """Botão "parar" da barrinha do telão: o próximo preparar volta a

@@ -25,6 +25,8 @@
 
     function render(st) {
         if (!st || !st.live) return;
+        lastStatus = st;
+        if (offline) return;
         const parts = [];
         parts.push(
             `<a class="tb-live" href="/control" title="No ar na tela pública — abrir o Controle">` +
@@ -66,17 +68,72 @@
             .catch(() => {});
     }
 
+    // ── Conexão com o servidor ───────────────────────────────────────
+    // Wi-Fi da igreja cai → antes nada avisava (a barra só ficava meio
+    // apagada) e o navegador podia levar ~45s pra notar. Agora: pergunta
+    // ao servidor a cada 5s (sem resposta em 4s = sem conexão), escuta o
+    // aviso de rede do próprio aparelho, deixa a barra vermelha e apaga a
+    // área de comandos ([data-telao-commands]) até voltar.
+    let offline = false;
+    let lastStatus = null;
+    let pingTimer = null;
+
+    function setOffline(value) {
+        if (value === offline) return;
+        offline = value;
+        window.__ucOffline = value;
+        document.body.classList.toggle('uc-offline', value);
+        if (value) {
+            bar.classList.add('is-offline');
+            bar.innerHTML =
+                '<span class="tb-offline"><i class="fas fa-triangle-exclamation"></i> ' +
+                '<b>Sem conexão com o servidor</b> — reconectando… Os comandos estão pausados.</span>';
+        } else {
+            bar.classList.remove('is-offline');
+            if (lastStatus) render(lastStatus);
+            refresh();
+            if (window.ucToast) window.ucToast('Conexão com o servidor restabelecida.');
+        }
+    }
+
+    function ping() {
+        if (!socket || !socket.connected) return;
+        socket.timeout(4000).emit('telao_ping', {}, (err) => setOffline(!!err));
+    }
+
+    // Comando tentado sem conexão é DESCARTADO, com aviso: o Socket.IO
+    // guardaria e mandaria tudo de uma vez quando a rede voltasse (três
+    // fontes clicadas durante a queda entrariam no telão em sequência)
+    function guardEmits() {
+        const proto = window.io && window.io.Socket && window.io.Socket.prototype;
+        if (!proto || proto.__ucGuarded) return;
+        const original = proto.emit;
+        proto.emit = function (event, ...args) {
+            // Só com a queda detectada: na abertura da página o socket ainda
+            // está conectando e o buffer normal do Socket.IO é o certo
+            if (window.__ucOffline && event !== 'telao_ping') {
+                if (window.ucToast) window.ucToast('Sem conexão com o servidor — o comando não foi enviado.', 'error');
+                return this;
+            }
+            return original.call(this, event, ...args);
+        };
+        proto.__ucGuarded = true;
+    }
+
     function start() {
+        guardEmits();
         socket = window.io();
-        socket.on('connect', refresh);
+        socket.on('connect', () => { setOffline(false); refresh(); });
         socket.on('telao_status', render);
-        socket.on('disconnect', () => bar.classList.add('is-offline'));
-        socket.on('connect', () => bar.classList.remove('is-offline'));
+        socket.on('disconnect', () => setOffline(true));
+        window.addEventListener('offline', () => setOffline(true));
+        window.addEventListener('online', ping);
+        pingTimer = setInterval(ping, 5000);
     }
 
     bar.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-act]');
-        if (!btn || !socket) return;
+        if (!btn || !socket || offline) return;
         e.preventDefault();
         const kind = btn.dataset.kind;
         if (btn.dataset.act === 'release') socket.emit('release_staged_content', { kind });
