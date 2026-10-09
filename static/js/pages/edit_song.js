@@ -1187,18 +1187,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 button.type = 'button'; // Importante: evita submit do formulário
                 button.innerHTML = '<i class="fas fa-plus"></i>';
                 button.title = 'Inserir bloco aqui';
-                button.style.cssText = `
-                    background: #7350ea; 
-                    color: white; 
-                    border: none; 
-                    border-radius: 50%; 
-                    width: 30px; 
-                    height: 30px; 
-                    cursor: pointer; 
-                    font-size: 14px;
-                    opacity: 0.7;
-                    transition: all 0.2s ease;
-                `;
+                button.className = 'insert-btn';
                 
                 // Menu de opções (inicialmente oculto)
                 const menu = document.createElement('div');
@@ -1336,7 +1325,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 
                 const div = document.createElement('textarea');
                 div.className = 'text-block';
-                div.style.cssText = `padding: ${selectionMode ? '10px 10px 10px 35px' : '10px'}; min-height: 50px; outline: none; border: none; border-bottom: 1px dashed var(--uc-line); background: var(--uc-bg); border-radius: 6px; white-space: pre; overflow-x: auto; overflow-y: hidden; width: 100%; resize: none; line-height: 1.4; box-sizing: border-box; color: var(--uc-text);`;
+                div.style.cssText = `padding: ${selectionMode ? '10px 10px 10px 35px' : '10px'}; min-height: 50px; outline: none; border: none; background: var(--uc-surface-2); border: 1px solid var(--uc-line); border-radius: 6px; white-space: pre; overflow-x: auto; overflow-y: hidden; width: 100%; resize: none; line-height: 1.4; box-sizing: border-box; color: var(--uc-text);`;
                 div.setAttribute('placeholder', 'Digite a letra da música...');
                 div.setAttribute('wrap', 'off');
                 div.value = block.content || '';
@@ -1546,7 +1535,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             function createSectionBlock(block, index) {
                 const div = document.createElement('div');
                 div.className = 'section-block';
-                div.style.cssText = `background: var(--uc-surface-3); color: var(--uc-text); padding: 9px 14px; margin: 18px 0 8px 0; border-radius: 8px; font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; position: relative; border: ${selectedBlocks.has(index) ? '3px solid #f2b84b' : 'none'};`;
+                div.style.cssText = `background: var(--uc-accent-soft); color: var(--uc-accent-text); padding: 9px 14px; margin: 18px 0 8px 0; border-radius: 8px; font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; position: relative; border: ${selectedBlocks.has(index) ? '3px solid #f2b84b' : 'none'}; border-left: 3px solid var(--uc-accent);`;
                 
                 // Checkbox de seleção
                 const checkbox = document.createElement('input');
@@ -1560,7 +1549,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 input.type = 'text';
                 input.placeholder = 'Nome da seção (ex: Verso 1, Coro, Estrofe...)';
                 input.value = block.title || '';
-                input.style.cssText = `background: transparent; border: none; color: white; font-weight: bold; font-size: 16px; width: calc(100% - ${selectionMode ? '120px' : '80px'}); outline: none; margin-left: ${selectionMode ? '25px' : '0'};`;
+                input.style.cssText = `background: transparent; border: none; color: var(--uc-accent-text); font-weight: bold; font-size: 16px; width: calc(100% - ${selectionMode ? '120px' : '80px'}); outline: none; margin-left: ${selectionMode ? '25px' : '0'};`;
                 
                 // Event listener para atualizar título
                 input.addEventListener('input', () => {
@@ -2103,11 +2092,12 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             function divideLyricsIntoBlocks(lyrics) {
                 console.log('🔄 Dividindo letra em blocos...');
                 
-                // Remove título/artista (primeiras linhas)
-                const lines = lyrics.split('\n');
-                const lyricsStart = lines.findIndex(line => 
-                    line.includes('[') || line.match(/^[A-G]/) || line.trim().length > 50
-                ) || 3;
+                // A resposta de /cifra e /cifra_com_video sempre começa com
+                // "título\n\ncompositor\n\n" (blueprints/cifras.py) — pula os
+                // dois primeiros parágrafos. Antes procurava a primeira linha
+                // que começasse com A–G, e compositor como "Gloria Gaither"
+                // virava uma seção "VERSO 1".
+                const semCabecalho = lyrics.split(/\n\s*\n/).slice(2).join('\n\n');
                 
                 // Junta marcador [Nome] com o conteúdo seguinte quando tem
                 // linha em branco entre os dois (padrão comum do Cifra Club:
@@ -2115,7 +2105,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 // linha em branco logo abaixo separava o marcador do próprio
                 // conteúdo, virando uma seção fantasma vazia (só o título) e
                 // a seção seguinte com o conteúdo sem título nenhum.
-                const cleanLyrics = lines.slice(lyricsStart).join('\n')
+                const cleanLyrics = semCabecalho
                     .replace(/(\[[^\]]+\])\n\s*\n/g, '$1\n');
 
                 // Divide por parágrafos (linhas vazias)
@@ -2123,13 +2113,30 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
 
                 const blocks = [];
                 let verseCount = 1;
+                let lastFromMarker = false;
                 
                 paragraphs.forEach((paragraph, index) => {
                     let sectionName = 'VERSO ' + verseCount;
                     
-                    // Detecta tipo de seção
+                    // Usa o marcador do próprio Cifra Club quando o parágrafo
+                    // começa com um ("[Tab - Solo Intro]", "[Primeira Parte]").
+                    // Parágrafo sem marcador logo depois de uma seção marcada é
+                    // a continuação dela (2ª estrofe do refrão etc.): entra como
+                    // mais um bloco de texto, sem abrir seção nova.
+                    const marker = paragraph.trim().match(/^\[([^\]]+)\]/);
+                    if (!marker && lastFromMarker) {
+                        blocks.push({
+                            type: 'text',
+                            content: apararPreservandoIndentacao(paragraph),
+                            id: Date.now() + index * 2 + 1
+                        });
+                        return;
+                    }
+                    lastFromMarker = !!marker;
                     const text = paragraph.toLowerCase();
-                    if (text.includes('refrão') || text.includes('coro')) {
+                    if (marker) {
+                        sectionName = marker[1].trim().toUpperCase();
+                    } else if (text.includes('refrão') || text.includes('coro')) {
                         sectionName = 'REFRÃO';
                     } else if (text.includes('intro')) {
                         sectionName = 'INTRO';

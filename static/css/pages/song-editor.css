@@ -104,7 +104,6 @@
 
 /* Folha de edição */
 #blockEditor {
-  min-height: 360px;
   padding: 18px 22px;
   border-radius: var(--uc-r-lg);
   background: var(--uc-surface);
@@ -127,8 +126,8 @@
   color: var(--uc-text);
 }
 .text-block:empty::before { content: attr(data-placeholder); color: var(--uc-faint); font-style: italic; }
-.text-block:hover { border-color: var(--uc-line); }
-.text-block:focus { background: var(--uc-surface-2) !important; border-color: var(--uc-accent); }
+.text-block:hover { border-color: var(--uc-faint) !important; }
+.text-block:focus { border-color: var(--uc-accent) !important; }
 
 .section-block {
   position: relative;
@@ -150,7 +149,7 @@
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-.section-block input::placeholder { color: rgba(255, 255, 255, .6); }
+.section-block input::placeholder { color: var(--uc-accent-text); opacity: .55; }
 .section-block .section-controls { position: absolute; top: 6px; right: 8px; opacity: 0; transition: opacity .15s; }
 .section-block:hover .section-controls { opacity: 1; }
 .section-controls button { background: rgba(255, 255, 255, .15); color: #fff; border: 0; border-radius: 4px; padding: 4px 8px; margin-left: 4px; cursor: pointer; font-size: 12px; }
@@ -164,6 +163,18 @@
 .sheet-controls button:hover { background: #1d2236; }
 .block-placeholder { padding: 20px; text-align: center; color: var(--uc-faint); font-style: italic; border: 2px dashed var(--uc-line); border-radius: 8px; margin: 10px 0; }
 .insert-menu { color: var(--uc-text); }
+#blockEditor .insert-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px dashed var(--uc-faint);
+  background: var(--uc-surface);
+  color: var(--uc-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+#blockEditor .insert-btn:hover, #blockEditor .insert-btn:focus-visible { color: #fff; background: var(--uc-accent); border: 1px solid var(--uc-accent); }
 .block-add-buttons { display: none; position: absolute; left: -40px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 4px; }
 .text-block:hover + .block-add-buttons, .sheet-block:hover + .block-add-buttons { display: flex; }
 
