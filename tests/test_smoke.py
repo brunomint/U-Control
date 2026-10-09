@@ -1365,3 +1365,8 @@ def test_telao_status_gives_monitor_urls_for_preview(app):
     mon = _telao_status_events(op)[-1]["monitor"]
     assert (mon["url1"], mon["url2"]) == ("/lyrics/display", "/clock")
     op.disconnect()
+
+
+def test_screens_load_shared_zoom_fit(client):
+    for path in ("/monitor", "/lyrics/display/public", "/img"):
+        assert "js/zoom_fit.js" in client.get(path).get_data(as_text=True), path

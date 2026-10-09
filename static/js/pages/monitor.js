@@ -196,9 +196,7 @@
         // a foto, pra não furar o Preparar/Liberar).
         socket.on('display_image_zoom', function(data) {
             if (!data || displayImage.style.display === 'none' || displayImage.getAttribute('src') !== data.image_url) return;
-            const pan = data.pan || { x: 0, y: 0 };
-            displayImage.style.transformOrigin = '50% 50%';
-            displayImage.style.transform = `translate(${pan.x || 0}%, ${pan.y || 0}%) scale(${parseFloat(data.zoom) || 1})`;
+            window.ucApplyZoom(displayImage, data);  // static/js/zoom_fit.js
         });
 
         socket.on('display_image', function(data) {

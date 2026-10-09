@@ -253,9 +253,7 @@
         // a foto, pra não furar o Preparar/Liberar).
         socket.on('display_image_zoom', (data) => {
             if (!data || mediaImg.style.display === 'none' || mediaImg.getAttribute('src') !== data.image_url) return;
-            const pan = data.pan || { x: 0, y: 0 };
-            mediaImg.style.transformOrigin = '50% 50%';
-            mediaImg.style.transform = `translate(${pan.x || 0}%, ${pan.y || 0}%) scale(${parseFloat(data.zoom) || 1})`;
+            window.ucApplyZoom(mediaImg, data);  // static/js/zoom_fit.js
         });
 
         // Antes só escurecia foto/vídeo: com letra, Bíblia ou relógio no
