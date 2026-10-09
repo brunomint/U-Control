@@ -40,6 +40,12 @@ _last_image_url = None
 # voltaria a ser possível — uma aba de foto esquecida rodando depois do
 # relógio ainda precisa de confirmação, porque o relógio não "confirma"
 # o tipo imagem.
+#
+# Mas ações nativas do /control ENCERRAM o live-follow quando trocam o
+# telão pra outro tipo (ver _end_live_follow_unless em
+# blueprints/display.py): antes, depois de liberar uma foto do
+# /presenter, colocar o relógio ou a letra no telão não bastava — a
+# próxima foto clicada no presenter entrava por cima na hora.
 _live_follow_kind = None
 
 # Modo Público/Monitor atual (control.js: publicOnlyMode/monitorOnlyMode)

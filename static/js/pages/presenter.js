@@ -126,6 +126,7 @@
                             }
                             gallery.appendChild(imgContainer);
                         });
+                    markGallery();
                     if (typeof updateVideoOverlayIcons === 'function') updateVideoOverlayIcons();
                 })
                 .catch(error => console.error('Erro ao carregar as imagens:', error));
@@ -359,10 +360,24 @@
             updateVideoOverlayIcons();
             ensureProgressPolling();
         });
-        socket.on('display_image', function() {
+        socket.on('display_image', function(data) {
             currentVideoUrl = null;
             currentVideoPaused = false;
             updateVideoOverlayIcons();
+            const url = (data && data.image_url) || '';
+            if (isStaticMedia(url)) {
+                liveImageUrl = url;
+                if (stagedImageUrl === url) stagedImageUrl = null;
+            } else if (url !== '/img') {
+                liveImageUrl = null;  // telão foi pra letra, relógio etc.
+            }
+            markGallery();
+        });
+        socket.on('content_discarded', function(data) {
+            if (data && data.kind === 'image') {
+                stagedImageUrl = null;
+                markGallery();
+            }
         });
         socket.on('video_pause', function(data) {
             currentVideoPaused = !!data.paused;
@@ -437,13 +452,29 @@
             }
         }
 
+        // Na galeria: amarelo = preparada aqui (espera o /control liberar),
+        // vermelho = no ar (igual ao /control). Antes adicionava a classe
+        // 'selected', que não tinha estilo, e comparava img.src (absoluto,
+        // com %20) com a URL relativa — nunca marcava nada.
+        let liveImageUrl = null;
+        let stagedImageUrl = null;
+
+        function markGallery() {
+            document.querySelectorAll('#imageGallery img').forEach(img => {
+                const url = img.getAttribute('src');
+                const live = !!liveImageUrl && url === liveImageUrl;
+                img.classList.toggle('selecionada', live);
+                img.closest('.thumb-wrap').classList.toggle('is-preparada', !live && url === stagedImageUrl);
+            });
+        }
+
+        function isStaticMedia(url) {
+            return !!url && (url.startsWith('/static/') || /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(url));
+        }
+
         function showImageInMonitor(imageUrl) {
-            const allImages = document.querySelectorAll('.foto-lista img');
-            allImages.forEach(img => img.classList.remove('selected'));
-            const clickedImage = Array.from(allImages).find(img => img.src === imageUrl);
-            if (clickedImage) {
-                clickedImage.classList.add('selected');
-            }
+            stagedImageUrl = imageUrl;
+            markGallery();
             // Vídeo deixou de estar no monitor: zera estado e atualiza ícones para ▶️
             currentVideoUrl = null;
             currentVideoPaused = false;
@@ -673,4 +704,13 @@
             zoomImage.style.transform = `translate(${pan.x}%, ${pan.y}%) scale(${val})`;
         }
 
-        window.onload = loadFolders;
+        window.onload = () => {
+            // Foto que já está no ar ao abrir a página
+            fetch('/api/current-display')
+                .then(r => r.json())
+                .then(d => {
+                    if (d.mode === 'image' && d.is_static) { liveImageUrl = d.image_url; markGallery(); }
+                })
+                .catch(() => {});
+            loadFolders();
+        };

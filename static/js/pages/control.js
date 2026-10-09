@@ -27,6 +27,11 @@ socket.on('display_image', function(data) {
     console.log('📡 Recebido display_image de outro PC:', data);
     
     // Se a URL é uma rota (começa com /), atualiza os iframes
+    if (data.image_url.startsWith('/static/')) {
+        // Foto ao ar vinda do /presenter ou de outro PC: marca na galeria
+        document.querySelectorAll('#imageGallery img').forEach(img =>
+            img.classList.toggle('selecionada', img.getAttribute('src') === data.image_url));
+    }
     if (data.image_url.startsWith('/') && !data.image_url.startsWith('/static/')) {
         updateIframes(data.image_url, '');
     } else if (document.getElementById('iframe1').getAttribute('src') !== '/img'

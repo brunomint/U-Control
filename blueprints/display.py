@@ -245,6 +245,7 @@ def load_urls_route():
 @socketio.on('show_image')
 def handle_show_image(data):
     image_url = data['image_url']
+    _end_live_follow_unless(image_url)
     real_app = current_app._get_current_object()
 
     # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
@@ -309,6 +310,7 @@ def handle_preload_image(data):
 @socketio.on('show_video')
 def handle_show_video(data):
     video_url = data.get('video_url')
+    _end_live_follow_unless(video_url)
     real_app = current_app._get_current_object()
     current_app.logger.debug(f'🎬 [show_video] recebido: {video_url}')
     if not video_url:
@@ -412,6 +414,7 @@ def video_state():
 def handle_show_monitor_content(data):
     """Exibe URL/imagem apenas no /monitor, sem afetar o público."""
     url = data.get('url', '')
+    _end_live_follow_unless(url)
     # O botão "Letra" manda o /monitor recarregar '/lyrics/display/public' num
     # iframe. Essa página, ao carregar do zero, busca /api/current-display pra
     # saber o que mostrar — e sem isto aqui, ela mostra o que foi exibido por
@@ -514,6 +517,29 @@ def handle_show_image_zoom(data):
 # futura neles também vale pro conteúdo liberado, e os testes de
 # handler existentes continuam passando sem alteração nenhuma.
 _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
+
+
+def _kind_of_url(url):
+    """Tipo de preparar/liberar a que uma URL mandada ao telão pertence."""
+    path = (url or '').split('?')[0]
+    if path.startswith('/static/') or path == '/img' or \
+            re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)$', path, re.I):
+        return 'image'
+    if path.startswith('/lyrics/display'):
+        return 'lyrics'
+    if path.startswith('/bible/display'):
+        return 'bible'
+    return None
+
+
+def _end_live_follow_unless(*urls):
+    """Ação direta no telão (fonte do /control, galeria, tela dividida):
+    se ela leva o telão pra fora do tipo em live-follow, o próximo
+    preparar desse tipo volta a pedir Liberar. _release_kind chama os
+    mesmos handlers, mas regrava o live-follow logo depois."""
+    kind = display_state._live_follow_kind
+    if kind and any(_kind_of_url(u) != kind for u in urls):
+        display_state._live_follow_kind = None
 
 
 def _release_kind(kind, payload):
@@ -688,6 +714,7 @@ def handle_show_two_urls(data):
 
     url1 = data['url1'] or ''
     url2 = data['url2'] or ''
+    _end_live_follow_unless(url1, url2)
 
     # Detecta media_type de url1 pela extensão
     url1_lower = url1.lower().split('?')[0]

@@ -1,3 +1,5 @@
+import time
+
 from werkzeug.security import generate_password_hash
 
 import main as ucontrol_main
@@ -1075,3 +1077,49 @@ def test_blackout_state_is_sent_to_screen_that_connects_later(app):
 def test_display_public_has_full_screen_blackout_layer(client):
     html = client.get("/lyrics/display/public").get_data(as_text=True)
     assert 'id="blackout-layer"' in html
+
+
+def _release_photo(op, url):
+    op.emit("stage_content", {"kind": "image", "payload": {"image_url": url}, "label": "foto"})
+    op.emit("release_staged_content", {"kind": "image"})
+    op.get_received()
+
+
+def test_control_switching_to_other_source_ends_photo_live_follow(app):
+    """Depois de liberar uma foto do /presenter, pôr o relógio no telão
+    pelo /control faz a próxima foto voltar a esperar o Liberar — antes
+    ela entrava por cima do relógio na hora."""
+    import display_state
+
+    op = _operator_socket(app)
+    _release_photo(op, "/static/imagens/a.jpg")
+    assert display_state._live_follow_kind == "image"
+
+    op.emit("show_image", {"image_url": "/clock"})
+    assert display_state._live_follow_kind is None
+    time.sleep(0.3)  # show_image grava o estado numa thread; espera antes do próximo commit
+
+    op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/b.jpg"}, "label": "b"})
+    events = [m["name"] for m in op.get_received()]
+    assert "content_staged" in events
+    assert display_state._last_image_url == "/clock"
+    op.emit("discard_staged_content", {"kind": "image"})
+    op.disconnect()
+
+
+def test_control_staying_on_photos_keeps_live_follow(app):
+    import display_state
+
+    op = _operator_socket(app)
+    _release_photo(op, "/static/imagens/a.jpg")
+    op.emit("show_image", {"image_url": "/static/imagens/galeria.jpg"})
+    op.emit("show_image", {"image_url": "/img"})
+    assert display_state._live_follow_kind == "image"
+    time.sleep(0.3)
+
+    op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/c.jpg"}, "label": "c"})
+    assert display_state._last_image_url == "/static/imagens/c.jpg"
+
+    op.emit("show_two_urls", {"url1": "/lyrics/display", "url2": "/clock"})
+    assert display_state._live_follow_kind is None
+    op.disconnect()

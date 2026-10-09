@@ -42,6 +42,20 @@
 }
 .image-container img:hover { border-color: var(--uc-faint); }
 .image-container img.selecionada { border-color: var(--uc-live); }
+.thumb-wrap.is-preparada img { border-color: var(--uc-warn); }
+.thumb-wrap.is-preparada::after {
+  content: "Preparada";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--uc-warn);
+  color: #1a1400;
+  font-size: 11px;
+  font-weight: 800;
+  pointer-events: none;
+}
 .zoom-btn {
   position: absolute;
   right: 8px;
