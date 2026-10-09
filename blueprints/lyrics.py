@@ -172,6 +172,9 @@ def handle_update_lyrics(data):
     except Exception:
         logger.exception('Falha ao persistir last_payload de update_lyrics')
     emit('update_lyrics', data, broadcast=True, skip_sid=_skip_sids(data))
+    import telao
+    telao.set_public('lyrics', '/lyrics/display/public')
+    telao.broadcast_status()
 
 # Evento WebSocket para mudança de seção
 @socketio.on('section_changed')

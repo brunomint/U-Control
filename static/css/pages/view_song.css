@@ -374,7 +374,7 @@
 }
 /* Tema único: a barra de navegação também não vai pro papel. */
 @media print {
-  .site-nav, .site-nav-spacer, #release-banner, .uc-toast { display: none !important; }
+  .site-nav, .site-nav-spacer, .telao-bar, .uc-toast { display: none !important; }
   /* Mesmo tamanho que saía antes (a largura da A4 caía na regra de celular, 11px). */
   .content pre, .content pre * { font-size: 11px !important; line-height: 1.4 !important; }
   .song-content-card { display: block; }

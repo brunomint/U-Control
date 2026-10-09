@@ -20,6 +20,7 @@ from flask_login import login_required
 from flask_socketio import emit
 
 import display_state
+import telao
 from blueprints.bible import handle_update_bible
 from blueprints.gallery import get_current_image_path
 from blueprints.lyrics import handle_update_lyrics
@@ -261,6 +262,12 @@ def handle_show_image(data):
     # Envia para clientes primeiro (não espera banco)
     emit('display_image', {'image_url': image_url}, broadcast=True, skip_sid=_skip_sids(data))
     append_display_log({'type': 'image', 'title': image_url})
+    if data.get('exclude_monitor'):
+        telao.diverge_monitor_from_public()
+    else:
+        telao.set_monitor(None)
+    telao.set_public_url(image_url)
+    telao.broadcast_status()
 
     is_static_file = image_url.startswith('/static/') or \
         bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', image_url, re.I))
@@ -332,6 +339,12 @@ def handle_show_video(data):
     # quebrando o vídeo no /monitor ("interrupted by a new load request").
     emit('display_video', {'video_url': video_url}, broadcast=True, skip_sid=_skip_sids(data))
     append_display_log({'type': 'image', 'title': video_url})
+    if data.get('exclude_monitor'):
+        telao.diverge_monitor_from_public()
+    else:
+        telao.set_monitor(None)
+    telao.set_public('video', video_url)
+    telao.broadcast_status()
 
     def save_async():
         with real_app.app_context():
@@ -415,6 +428,8 @@ def handle_show_monitor_content(data):
     """Exibe URL/imagem apenas no /monitor, sem afetar o público."""
     url = data.get('url', '')
     _end_live_follow_unless(url)
+    telao.set_monitor_url(url)
+    telao.broadcast_status()
     # O botão "Letra" manda o /monitor recarregar '/lyrics/display/public' num
     # iframe. Essa página, ao carregar do zero, busca /api/current-display pra
     # saber o que mostrar — e sem isto aqui, ela mostra o que foi exibido por
@@ -439,6 +454,8 @@ def handle_show_monitor_content(data):
 @socketio.on('show_monitor_video')
 def handle_show_monitor_video(data):
     """Exibe vídeo apenas no /monitor."""
+    telao.set_monitor('video', data.get('video_url', ''))
+    telao.broadcast_status()
     for sid in _get_monitor_sids():
         emit('display_monitor_video', {'video_url': data.get('video_url', '')}, to=sid)
 
@@ -451,6 +468,8 @@ def handle_show_monitor_pause(data):
 @socketio.on('show_monitor_two_urls')
 def handle_show_monitor_two_urls(data):
     """Exibe tela dividida apenas no /monitor."""
+    telao.set_monitor_split(data.get('url1', ''), data.get('url2', ''))
+    telao.broadcast_status()
     for sid in _get_monitor_sids():
         emit('display_two_urls', {'url1': data.get('url1', ''), 'url2': data.get('url2', '')}, to=sid)
 
@@ -458,6 +477,8 @@ def handle_show_monitor_two_urls(data):
 def api_monitor_sync():
     """Sincroniza o /monitor com o estado público atual (vídeo ou display)."""
     sids = _get_monitor_sids()
+    telao.set_monitor(None)
+    telao.broadcast_status()
     if display_state._video_state['url']:
         pos = display_state._video_current_position()
         for sid in sids:
@@ -479,6 +500,7 @@ def handle_blackout(data):
     """Escurece ou restaura a tela de exibição"""
     display_state._blackout_active = bool(data.get('active', True))
     emit('blackout', {'active': display_state._blackout_active}, broadcast=True)
+    telao.broadcast_status()
 
 @socketio.on('show_image_zoom')
 def handle_show_image_zoom(data):
@@ -609,6 +631,7 @@ def _release_kind(kind, payload):
 
     display_state._live_follow_kind = kind
     emit('content_released', {'kind': kind}, broadcast=True)
+    telao.broadcast_status()
 
 
 @socketio.on('stage_content')
@@ -647,6 +670,7 @@ def handle_stage_content(data):
         staged.label = label
         db.session.commit()
     emit('content_staged', {'kind': kind, 'label': label}, broadcast=True)
+    telao.broadcast_status()
 
 
 @socketio.on('release_staged_content')
@@ -681,6 +705,22 @@ def handle_set_display_mode(data):
         'monitor_only': bool(data.get('monitor_only')),
     }
     display_state._live_follow_kind = None
+    telao.broadcast_status()
+
+
+@socketio.on('stop_live_follow')
+def handle_stop_live_follow(data=None):
+    """Botão "parar" da barrinha do telão: o próximo preparar volta a
+    pedir Liberar, mesmo do tipo que estava acompanhando ao vivo."""
+    display_state._live_follow_kind = None
+    telao.broadcast_status()
+
+
+@display_bp.route('/api/telao-status')
+@login_required
+def api_telao_status():
+    """Resumo do telão pra barrinha "No ar / Preparado" (telao.py)."""
+    return jsonify(telao.build_status())
 
 
 @socketio.on('discard_staged_content')
@@ -692,6 +732,7 @@ def handle_discard_staged_content(data):
             db.session.delete(staged)
             db.session.commit()
     emit('content_discarded', {'kind': kind}, broadcast=True)
+    telao.broadcast_status()
 
 
 # Pro /control buscar o que já estiver preparado ao carregar a página —
@@ -731,6 +772,9 @@ def handle_show_two_urls(data):
     # Envia para clientes primeiro (não espera banco)
     emit('display_two_urls', {'url1': url1, 'url2': url2}, broadcast=True, skip_sid=_skip_sids(data))
     append_display_log({'type': 'image', 'title': url1 + (' + ' + url2 if url2 else '')})
+    if not data.get('exclude_monitor'):
+        telao.set_monitor_split(url1, url2)  # a tela pública não divide
+        telao.broadcast_status()
 
     # Para salvar no banco, substitui '/img' pela URL real da última imagem salva
     def _resolve_img_url(u):

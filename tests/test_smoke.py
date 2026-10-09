@@ -1119,3 +1119,79 @@ def test_control_staying_on_photos_keeps_live_follow(app):
     op.emit("show_two_urls", {"url1": "/lyrics/display", "url2": "/clock"})
     assert display_state._live_follow_kind is None
     op.disconnect()
+
+
+def _telao_status_events(client):
+    return [m["args"][0] for m in client.get_received() if m["name"] == "telao_status"]
+
+
+def test_telao_status_describes_live_staged_and_follow(app):
+    import display_state
+
+    op = _operator_socket(app)
+    op.emit("show_image", {"image_url": "/clock"})
+    status = _telao_status_events(op)[-1]
+    assert status["live"]["label"] == "Relógio"
+    assert status["monitor"] is None
+
+    op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/Culto%20Jovem.jpg"},
+                              "label": "Culto Jovem.jpg"})
+    status = _telao_status_events(op)[-1]
+    assert {"kind": "image", "label": "Culto Jovem.jpg"} in status["staged"]
+
+    op.emit("release_staged_content", {"kind": "image"})
+    status = _telao_status_events(op)[-1]
+    assert status["live"]["label"] == "Foto · Culto Jovem.jpg"
+    assert not any(item["kind"] == "image" for item in status["staged"])
+    assert status["follow"] == "image" and status["follow_label"] == "Fotos"
+
+    op.emit("stop_live_follow", {})
+    status = _telao_status_events(op)[-1]
+    assert status["follow"] is None
+    assert display_state._live_follow_kind is None
+    op.disconnect()
+
+
+def test_telao_status_shows_monitor_when_split_or_public_only(app):
+    op = _operator_socket(app)
+    op.emit("show_image", {"image_url": "/clock"})
+    op.emit("show_two_urls", {"url1": "/lyrics/display", "url2": "/clock"})
+    status = _telao_status_events(op)[-1]
+    assert status["live"]["label"] == "Relógio"  # a tela pública não divide
+    assert status["monitor"]["label"] == "Tela dividida · Cifra + Relógio"
+
+    op.emit("show_image", {"image_url": "/bible/display"})
+    assert _telao_status_events(op)[-1]["monitor"] is None
+
+    op.emit("show_image", {"image_url": "/clock", "exclude_monitor": True})
+    status = _telao_status_events(op)[-1]
+    assert status["live"]["label"] == "Relógio"
+    assert status["monitor"]["label"].startswith("Bíblia")
+    op.disconnect()
+
+
+def test_telao_status_route_requires_login(client, logged_in_client):
+    assert client.get("/api/telao-status").status_code == 302
+    data = logged_in_client.get("/api/telao-status").get_json()
+    assert set(data) >= {"live", "monitor", "staged", "mode", "follow", "blackout"}
+
+
+def test_telao_bar_only_for_logged_operator(client, logged_in_client):
+    assert 'id="telao-bar"' in logged_in_client.get("/dashboard").get_data(as_text=True)
+    assert 'id="telao-bar"' not in client.get("/agenda").get_data(as_text=True)
+    assert 'id="telao-bar"' not in client.get("/lyrics/display/public").get_data(as_text=True)
+
+
+def test_anonymous_cannot_stop_live_follow(app):
+    import display_state
+
+    op = _operator_socket(app)
+    op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/x.jpg"}, "label": "x"})
+    op.emit("release_staged_content", {"kind": "image"})
+    assert display_state._live_follow_kind == "image"
+    intruder = ucontrol_main.socketio.test_client(app)
+    intruder.emit("stop_live_follow", {})
+    assert display_state._live_follow_kind == "image"
+    op.emit("stop_live_follow", {})
+    intruder.disconnect()
+    op.disconnect()

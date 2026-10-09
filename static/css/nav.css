@@ -10,7 +10,7 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  height: var(--uc-nav-h);
+  height: var(--uc-navbar-h);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -127,3 +127,62 @@
 @media (max-width: 640px) {
   .site-nav-brand span { display: none; }
 }
+
+/* ── Barrinha do telão (static/js/telao_bar.js) ───────────────────────
+   Segunda faixa fixa embaixo do menu, só pra operador logado. Com ela,
+   --uc-nav-h passa a valer menu + barra: o espaçador e todo elemento
+   sticky das páginas descem junto, sem nada ficar escondido. */
+body.has-telao-bar { --uc-nav-h: calc(var(--uc-navbar-h) + var(--uc-telao-h)); }
+.telao-bar {
+  position: fixed;
+  top: var(--uc-navbar-h);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  height: var(--uc-telao-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  background: var(--uc-surface);
+  border-bottom: 1px solid var(--uc-line);
+  font-family: var(--uc-font);
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--uc-text);
+  box-sizing: border-box;
+}
+.telao-bar::-webkit-scrollbar { display: none; }
+.telao-bar * { box-sizing: border-box; }
+.telao-bar.is-offline { opacity: .55; }
+.tb-loading { color: var(--uc-faint); }
+.tb-label { min-width: 0; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+.tb-live { display: inline-flex; align-items: center; gap: 7px; min-width: 0; color: var(--uc-text); text-decoration: none; font-weight: 600; }
+.tb-live:hover .tb-label { text-decoration: underline; }
+.tb-live b { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-live); }
+.tb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--uc-live); box-shadow: 0 0 0 3px var(--uc-live-soft); flex: none; animation: tb-pulse 2s ease-in-out infinite; }
+@keyframes tb-pulse { 50% { box-shadow: 0 0 0 6px transparent; } }
+@media (prefers-reduced-motion: reduce) { .tb-dot { animation: none; } }
+.telao-bar.is-black .tb-live .tb-label { color: var(--uc-muted); text-decoration: line-through; }
+.tb-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 4px 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; flex: none; }
+.tb-chip b { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.tb-staged { background: var(--uc-warn-soft); color: var(--uc-warn); }
+.tb-staged .tb-label { color: var(--uc-text); font-weight: 600; max-width: 26vw; }
+.tb-follow { background: var(--uc-accent-soft); color: var(--uc-accent-text); }
+.tb-mode, .tb-monitor { background: var(--uc-surface-2); color: var(--uc-muted); padding-right: 10px; }
+.tb-monitor .tb-label { color: var(--uc-text); max-width: 22vw; }
+.tb-black { background: #000; color: #fff; border: 1px solid var(--uc-line); padding-right: 10px; }
+.telao-bar .tb-btn { height: 20px; padding: 0 9px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .1); color: inherit; font: inherit; font-size: 11.5px; font-weight: 800; cursor: pointer; }
+.telao-bar .tb-btn:hover { background: rgba(255, 255, 255, .2); }
+.telao-bar .tb-release { background: var(--uc-warn); color: #1a1400; }
+.telao-bar .tb-release:hover { background: #ffcc66; }
+.telao-bar .tb-x { width: 20px; padding: 0; font-size: 15px; line-height: 1; }
+@media (max-width: 640px) {
+  .telao-bar { padding: 0 10px; gap: 6px; }
+  .tb-label { max-width: 46vw; }
+  .tb-staged .tb-label, .tb-monitor .tb-label { max-width: 32vw; }
+}
+@media print { .telao-bar { display: none !important; } body.has-telao-bar { --uc-nav-h: var(--uc-navbar-h); } }

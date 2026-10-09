@@ -563,6 +563,10 @@ def handle_update_bible(data):
     if ref:
         append_display_log({'type': 'bible', 'title': ref})
     emit('update_bible', data, broadcast=True)
+    import telao
+    telao.set_bible_ref(ref)
+    telao.set_public('bible', '/bible/display')
+    telao.broadcast_status()
 
 @bible_bp.route('/bible/display')
 def bible_display():

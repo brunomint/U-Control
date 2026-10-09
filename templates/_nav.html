@@ -54,6 +54,13 @@
     <a class="site-nav-link" href="{{ url_for('auth.login', next=request.path) }}"><i class="fas fa-right-to-bracket"></i> Entrar</a>
     {% endif %}
 </nav>
+{% if current_user.is_authenticated %}
+{#- Barrinha "No ar / Preparado" (static/js/telao_bar.js): o que está no
+    telão e o que espera Liberar, em qualquer página de operador. #}
+<div class="telao-bar" id="telao-bar" role="status" aria-live="polite" aria-label="Telão"><span class="tb-loading">Telão…</span></div>
+<script>document.body.classList.add('has-telao-bar');</script>
+<script src="{{ versioned_static('js/telao_bar.js') }}" defer></script>
+{% endif %}
 <div class="site-nav-spacer"></div>
 <script>
 // Menus suspensos: a lista é position:fixed (a faixa de links tem

@@ -57,5 +57,9 @@
   --uc-r-sm: 6px;
   --uc-r: 10px;
   --uc-r-lg: 14px;
-  --uc-nav-h: 56px;
+  --uc-navbar-h: 56px;
+  --uc-telao-h: 38px;
+  /* Altura total do cabeçalho fixo: só o menu, ou menu + barrinha do
+     telão (body.has-telao-bar, ver nav.css). Elementos sticky usam esta. */
+  --uc-nav-h: var(--uc-navbar-h);
 }

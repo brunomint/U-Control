@@ -69,4 +69,3 @@
   .verse { grid-template-columns: 26px minmax(0, 1fr); }
   .verse-action-btn { grid-column: 2; justify-self: start; }
 }
-#release-banner { bottom: 92px !important; } /* não cobrir a barra de seleção */

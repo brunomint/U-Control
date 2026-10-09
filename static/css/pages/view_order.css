@@ -31,7 +31,7 @@ a.item-title:hover { color: var(--uc-accent-text); }
 .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
 @media print {
-  .site-nav, .site-nav-spacer, .actions, #release-banner, .uc-toast { display: none !important; }
+  .site-nav, .site-nav-spacer, .telao-bar, .actions, .uc-toast { display: none !important; }
   body.uc-app { background: #fff; color: #000; }
   .uc-card, .item { background: #fff; border-color: #ccc; color: #000; }
   .item-title, .order-meta b, .order-tema, .stats b { color: #000; }
