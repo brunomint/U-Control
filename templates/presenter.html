@@ -21,20 +21,50 @@
         </div>
         <div class="toolbar">
             <select class="uc-input" id="folderSelect" onchange="onFolderChange()" aria-label="Pasta"></select>
-            <button type="button" class="uc-btn uc-btn-secondary menu-toggle" onclick="toggleMenu()"><i class="fas fa-upload"></i> Enviar arquivos</button>
+            <button type="button" class="uc-btn uc-btn-secondary menu-toggle" onclick="toggleMenu()"><i class="fas fa-folder-open"></i> Arquivos e pastas</button>
+            <button type="button" class="uc-btn uc-btn-secondary" id="toggleSelectBtn" onclick="toggleSelectMode()"><i class="fas fa-square-check"></i> Selecionar</button>
             <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> Tela preta</button>
         </div>
     </div>
 
-    <!-- Envio de arquivos (abre/fecha pelo botão "Enviar arquivos") -->
-    <section class="uc-card menu" aria-label="Enviar arquivos">
-        <div class="upload-row">
-            <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/webm,video/quicktime" aria-label="Arquivos">
-            <button type="button" class="uc-btn uc-btn-primary" id="uploadBtn" onclick="uploadImages()"><i class="fas fa-upload"></i> Enviar</button>
+    <!-- Slideshow: as fotos da pasta trocam sozinhas no telão (aparece na
+         barrinha do telão, com parar) -->
+    <div class="slideshow-row">
+        <i class="fas fa-images"></i>
+        <span class="slideshow-label">Slideshow</span>
+        <label class="slideshow-interval">a cada <input class="uc-input" type="number" id="slideshowInterval" value="5" min="1" max="300" aria-label="Segundos entre as fotos"> s</label>
+        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="btnSlideshow" onclick="toggleSlideshow()"><i class="fas fa-play"></i> Iniciar</button>
+    </div>
+
+    <!-- Seleção pra excluir -->
+    <div class="select-bar" id="selectBar" hidden>
+        <span><b id="selectedCount">0</b> selecionada(s)</span>
+        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="selectAllBtn" onclick="selectAllImages()">Todas</button>
+        <span class="grow"></span>
+        <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="deleteSelectedBtn" onclick="deleteSelectedImages()"><i class="fas fa-trash-can"></i> Excluir</button>
+        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="toggleSelectMode()">Cancelar</button>
+    </div>
+
+    <!-- Arquivos e pastas (abre/fecha pelo botão) -->
+    <section class="uc-card menu" aria-label="Arquivos e pastas">
+        <div class="menu-group">
+            <div class="menu-title">Enviar fotos e vídeos para a pasta</div>
+            <div class="upload-row">
+                <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/webm,video/quicktime" aria-label="Arquivos">
+                <button type="button" class="uc-btn uc-btn-primary" id="uploadBtn" onclick="uploadImages()"><i class="fas fa-upload"></i> Enviar</button>
+            </div>
+            <div id="uploadProgressWrap" style="display:none">
+                <div class="progress"><div id="uploadProgressBar"></div><span id="uploadProgressText">0%</span></div>
+                <div id="uploadStatusText" class="uc-muted"></div>
+            </div>
         </div>
-        <div id="uploadProgressWrap" style="display:none">
-            <div class="progress"><div id="uploadProgressBar"></div><span id="uploadProgressText">0%</span></div>
-            <div id="uploadStatusText" class="uc-muted"></div>
+        <div class="menu-group">
+            <div class="menu-title">Pastas</div>
+            <div class="upload-row">
+                <input class="uc-input" type="text" id="newFolderName" maxlength="60" placeholder="Nome da nova pasta" aria-label="Nome da nova pasta">
+                <button type="button" class="uc-btn uc-btn-secondary" onclick="createFolder()"><i class="fas fa-folder-plus"></i> Criar</button>
+                <button type="button" class="uc-btn uc-btn-danger" id="deleteFolderBtn" onclick="deleteCurrentFolder()" hidden><i class="fas fa-trash-can"></i> <span>Excluir esta pasta</span></button>
+            </div>
         </div>
     </section>
 

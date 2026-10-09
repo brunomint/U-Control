@@ -252,6 +252,13 @@ def load_urls_route():
 @socketio.on('show_image')
 def handle_show_image(data):
     image_url = data['image_url']
+    # use_active_mode: quem manda não sabe o modo (slideshow do /presenter)
+    # — aplica o modo atual do servidor, como o Liberar já faz
+    if data.get('use_active_mode'):
+        if display_state._active_mode.get('monitor_only'):
+            handle_show_monitor_content({'url': image_url})
+            return
+        data = {**data, 'exclude_monitor': bool(display_state._active_mode.get('exclude_monitor'))}
     _end_live_follow_unless(image_url)
     real_app = current_app._get_current_object()
 

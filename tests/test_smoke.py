@@ -1305,3 +1305,30 @@ def test_save_urls_requires_login_and_keeps_names(app, client, logged_in_client)
                                                   "url2": "", "url3": ""})
     assert r.get_json()["status"] == "success"
     assert logged_in_client.get("/load_urls").get_json()["name1"] == "Câmera"
+
+
+def test_single_gallery_lives_in_presenter(logged_in_client):
+    control = logged_in_client.get("/control").get_data(as_text=True)
+    assert 'id="imageGallery"' not in control  # galeria do Controle saiu
+    assert 'data-open-page="fotos"' in control
+    presenter = logged_in_client.get("/presenter").get_data(as_text=True)
+    for marker in ('id="imageGallery"', 'id="btnSlideshow"', 'id="slideshowInterval"', 'id="newFolderName"',
+                   'id="deleteFolderBtn"', 'id="toggleSelectBtn"', 'id="deleteSelectedBtn"', 'id="fileInput"'):
+        assert marker in presenter, marker
+
+
+def test_slideshow_show_image_respects_server_mode(app):
+    import display_state
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    op = _operator_socket(app)
+    op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
+    before = display_state._last_image_url
+    monitor.get_received()
+    op.emit("show_image", {"image_url": "/static/imagens/slide.jpg", "use_active_mode": True})
+    got = [m for m in monitor.get_received() if m["name"] == "display_monitor_content"]
+    assert got and got[0]["args"][0]["url"] == "/static/imagens/slide.jpg"
+    assert display_state._last_image_url == before  # tela pública não mudou
+    op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+    op.disconnect()
+    monitor.disconnect()

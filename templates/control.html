@@ -73,7 +73,7 @@
 
         <h3 class="tools-title">Ferramentas</h3>
         <div class="tool-buttons">
-            <button type="button" class="tool-btn" data-open-tool="images" title="Galeria e slideshow"><i class="fas fa-images"></i><span>Galeria</span></button>
+            <button type="button" class="tool-btn" data-open-page="fotos" title="Fotos, vídeos e slideshow (aba Fotos do painel)"><i class="fas fa-images"></i><span>Fotos e slideshow</span></button>
             <button type="button" class="tool-btn" data-open-tool="timer" title="Cronômetro"><i class="fas fa-hourglass-half"></i><span>Cronômetro</span></button>
             <button type="button" class="tool-btn" data-open-tool="ticker" title="Avisos em faixa"><i class="fas fa-bullhorn"></i><span>Avisos</span></button>
             <button type="button" class="tool-btn" data-open-tool="split" title="Monitor dividido (só no retorno de palco)"><i class="fas fa-table-columns"></i><span>Monitor dividido</span></button>
@@ -124,42 +124,6 @@
                     <button type="button" class="uc-btn uc-btn-live" id="split-send" disabled><i class="fas fa-play"></i> Mostrar no monitor</button>
                 </div>
             </div>
-
-        <!-- Imagens e vídeos -->
-        <div class="tool panel-pane" data-panel="images" hidden>
-            <div class="tool-row">
-                <div class="uc-field grow">
-                    <label for="folderSelect">Pasta</label>
-                    <select class="uc-input" id="folderSelect" onchange="onFolderChange()"><option value="Geral">Geral</option></select>
-                </div>
-                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="promptNewFolder()"><i class="fas fa-folder-plus"></i> Nova</button>
-                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="deleteFolderBtn" onclick="deleteCurrentFolder()" style="display:none"><i class="fas fa-trash-can"></i> Excluir</button>
-            </div>
-
-            <div class="upload">
-                <input type="file" id="fileInput" multiple aria-label="Arquivos para enviar">
-                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="uploadBtn" onclick="uploadImages()"><i class="fas fa-upload"></i> Enviar</button>
-            </div>
-            <div id="uploadProgressWrap" style="display:none">
-                <div class="progress"><div id="uploadProgressBar"></div><span id="uploadProgressText">0%</span></div>
-                <div id="uploadStatusText" class="uc-muted small"></div>
-            </div>
-
-            <div class="tool-row">
-                <label class="uc-muted small" for="slideshowInterval">A cada</label>
-                <input class="uc-input interval" type="number" id="slideshowInterval" value="5" min="1" max="300">
-                <span class="uc-muted small">s</span>
-                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" id="btnSlideshow" onclick="toggleSlideshow()">▶ Slideshow</button>
-            </div>
-
-            <div class="tool-row">
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="toggleSelectBtn" onclick="toggleSelectMode()">☑ Selecionar</button>
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="selectAllBtn" onclick="selectAllImages()" style="display:none">Todas</button>
-                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="deleteSelectedBtn" onclick="deleteSelectedImages()" style="display:none"><i class="fas fa-trash-can"></i> <span id="selectedCount">0</span> selecionadas</button>
-            </div>
-
-            <div id="imageGallery"></div>
-        </div>
 
         <!-- Cronômetro -->
         <div class="tool panel-pane" data-panel="timer" hidden>

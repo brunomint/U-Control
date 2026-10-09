@@ -4,7 +4,6 @@
     setupSourcePicker();
     setupPreviewScaling();
     loadUrls();
-    loadFolders();
     loadDisplayState(); // Carrega estado salvo ao iniciar
     loadStagedContent(); // Carrega o que já estiver preparado, se algo estiver
     fetch('/api/countdown/config')
@@ -23,34 +22,9 @@
 
 const socket = io.connect(`${window.location.protocol}//${window.location.host}`);
 
-// Foto no ar marcada de vermelho na galeria — mesma lógica do /presenter,
-// então os dois mostram a mesma foto, venha ela de onde vier (daqui, do
-// presenter, do slideshow ou de outro PC). Some quando o telão vai pra
-// letra, relógio etc.
-let liveImageUrl = null;
-
-function markLiveImage() {
-    document.querySelectorAll('#imageGallery img').forEach(img =>
-        img.classList.toggle('selecionada', !!liveImageUrl && img.getAttribute('src') === liveImageUrl));
-}
-
-fetch('/api/current-display')
-    .then(r => r.json())
-    .then(d => {
-        if (d.mode === 'image' && d.is_static) { liveImageUrl = d.image_url; markLiveImage(); }
-    })
-    .catch(() => {});
-
 // Escuta eventos WebSocket para sincronizar iframes entre PCs
 socket.on('display_image', function(data) {
     console.log('📡 Recebido display_image de outro PC:', data);
-
-    if (data.image_url.startsWith('/static/')) {
-        liveImageUrl = data.image_url;
-    } else if (data.image_url !== '/img') {
-        liveImageUrl = null;
-    }
-    markLiveImage();
 
     // Se a URL é uma rota (começa com /), atualiza os iframes
     if (data.image_url.startsWith('/') && !data.image_url.startsWith('/static/')) {
@@ -195,249 +169,13 @@ function loadDisplayState() {
         .catch(err => console.error('❌ Erro ao carregar estado:', err));
 }
 
-function getCurrentFolder() {
-    return document.getElementById('folderSelect').value;
-}
 
-function loadFolders() {
-    fetch('/api/image_folders')
-        .then(res => res.json())
-        .then(folders => {
-            const select = document.getElementById('folderSelect');
-            const saved = localStorage.getItem('controlFolder') || 'Geral';
-            select.innerHTML = '';
-            folders.forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f;
-                opt.textContent = f;
-                if (f === saved) opt.selected = true;
-                select.appendChild(opt);
-            });
-            onFolderChange();
-        });
-}
 
-function onFolderChange() {
-    const folder = getCurrentFolder();
-    localStorage.setItem('controlFolder', folder);
-    document.getElementById('deleteFolderBtn').style.display = folder === 'Geral' ? 'none' : 'inline-block';
-    if (selectMode) toggleSelectMode();
-    loadImageGallery();
-}
 
-function promptNewFolder() {
-    const name = prompt('Nome da nova pasta:');
-    if (!name || !name.trim()) return;
-    fetch('/api/image_folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() })
-    }).then(res => res.json())
-      .then(data => {
-          if (data.status === 'success') {
-              loadFolders();
-              setTimeout(() => {
-                  document.getElementById('folderSelect').value = data.name;
-                  onFolderChange();
-              }, 300);
-          } else {
-              alert('Erro: ' + data.message);
-          }
-      });
-}
 
-function deleteCurrentFolder() {
-    const folder = getCurrentFolder();
-    if (folder === 'Geral') return;
-    if (!confirm(`Excluir a pasta "${folder}" e todas as imagens dentro dela?`)) return;
-    fetch(`/api/image_folders/${encodeURIComponent(folder)}`, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('Pasta excluída!');
-                document.getElementById('folderSelect').value = 'Geral';
-                loadFolders();
-            } else {
-                alert('Erro: ' + data.message);
-            }
-        });
-}
 
-function uploadImages() {
-    const fileInput = document.getElementById('fileInput');
-    if (!fileInput.files.length) return alert('Selecione arquivos primeiro.');
-    const formData = new FormData();
-    [...fileInput.files].forEach(file => formData.append('images', file));
-    formData.append('folder', getCurrentFolder());
 
-    const wrap = document.getElementById('uploadProgressWrap');
-    const bar = document.getElementById('uploadProgressBar');
-    const pctText = document.getElementById('uploadProgressText');
-    const statusText = document.getElementById('uploadStatusText');
-    const btn = document.getElementById('uploadBtn');
 
-    wrap.style.display = 'block';
-    bar.style.width = '0%';
-    pctText.textContent = '0%';
-    statusText.textContent = 'Enviando...';
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload');
-
-    xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            bar.style.width = pct + '%';
-            pctText.textContent = pct + '%';
-            const mb = (e.loaded / 1048576).toFixed(1);
-            const totalMb = (e.total / 1048576).toFixed(1);
-            statusText.textContent = `${mb} MB / ${totalMb} MB`;
-        }
-    };
-
-    xhr.onload = function() {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            if (data.status === 'success') {
-                bar.style.width = '100%';
-                bar.style.background = 'linear-gradient(90deg,#4caf50,#81c784)';
-                pctText.textContent = '100%';
-                statusText.textContent = '✅ Enviado! Processando imagens...';
-                loadImageGallery();
-                fileInput.value = '';
-                setTimeout(() => { wrap.style.display = 'none'; }, 3000);
-            }
-        } else {
-            bar.style.background = '#e53935';
-            statusText.textContent = '❌ Erro no envio.';
-        }
-    };
-
-    xhr.onerror = function() {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        bar.style.background = '#e53935';
-        statusText.textContent = '❌ Erro de conexão.';
-    };
-
-    xhr.send(formData);
-}
-
-function loadImageGallery() {
-    const folder = getCurrentFolder();
-    fetch(`/lista-fotos?folder=${encodeURIComponent(folder)}`)
-        .then(res => res.json())
-        .then(data => {
-            const items = (data.fotos || []).slice()
-                .sort((a, b) => a.url.localeCompare(b.url, undefined, { numeric: true, sensitivity: 'base' }));
-            _galleryItems = items.map(i => ({ url: i.url, type: i.type }));
-            stopSlideshow();
-            const gallery = document.getElementById('imageGallery');
-            gallery.innerHTML = '';
-            items.forEach((item, index) => {
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'image-container';
-                const url = item.url;
-                const isVideo = item.type === 'video';
-                const name = decodeURIComponent(url.split('/').pop());
-
-                if (selectMode) {
-                    const isSelected = selectedImages.has(name);
-                    if (isSelected) imgContainer.classList.add('selected-for-delete');
-                    if (isVideo) {
-                        imgContainer.innerHTML = `
-                            <div onclick="toggleImageSelection('${url}', this.closest('.image-container'))"
-                                 style="position:relative; display:block; cursor:pointer; width:100%;">
-                                <video src="${url}" preload="metadata" muted playsinline
-                                    style="max-width:100%; height:auto; border-radius:6px; display:block; pointer-events:none;"></video>
-                                <div style="position:absolute; inset:0; border-radius:6px;
-                                            background:${isSelected ? 'rgba(229,57,53,0.25)' : 'rgba(0,0,0,0.05)'};
-                                            display:flex; align-items:center; justify-content:center; font-size:32px;">
-                                    ${isSelected ? '✔' : '🎬'}
-                                </div>
-                            </div>
-                            <div style="text-align:center; font-size:0.8em; color:${isSelected ? '#e53935' : '#999'};">${isSelected ? '✔ Selecionado' : 'Toque para selecionar'}</div>
-                        `;
-                    } else {
-                        imgContainer.innerHTML = `
-                            <img src="${url}" alt="Imagem ${index + 1}" onclick="toggleImageSelection('${url}', this.parentElement)">
-                            <div style="text-align:center; font-size:0.8em; color:${isSelected ? '#e53935' : '#999'};">${isSelected ? '✔ Selecionada' : 'Toque para selecionar'}</div>
-                        `;
-                    }
-                } else {
-                    if (isVideo) {
-                        imgContainer.innerHTML = `
-                            <div style="position:relative; display:inline-block; width:100%;">
-                                <video src="${url}" preload="metadata" muted playsinline
-                                    style="max-width:100%; height:auto; border-radius:6px; display:block; pointer-events:none;"></video>
-                                <div onclick="showVideoInMonitor('${url}')" data-video-url="${url}"
-                                     style="position:absolute; inset:0; cursor:pointer; border-radius:6px;
-                                            display:flex; align-items:center; justify-content:center;
-                                            background:rgba(0,0,0,0.2); transition:background 0.2s;"
-                                     onmouseenter="this.style.background='rgba(0,0,0,0.45)'"
-                                     onmouseleave="this.style.background='rgba(0,0,0,0.2)'">
-                                    <div class="video-play-icon" style="background:rgba(0,0,0,0.6); border-radius:50%; width:44px; height:44px;
-                                                display:flex; align-items:center; justify-content:center; font-size:22px;">▶️</div>
-                                </div>
-                                <button class="video-restart-btn" data-restart-url="${url}"
-                                        onclick="event.stopPropagation(); restartVideoInMonitor('${url}')"
-                                        title="Reiniciar vídeo"
-                                        style="display:none; position:absolute; top:6px; right:6px;
-                                               background:rgba(0,0,0,0.65); color:white; border:none;
-                                               border-radius:50%; width:32px; height:32px; cursor:pointer;
-                                               font-size:16px; align-items:center; justify-content:center; z-index:2;">⏮️</button>
-                            </div>
-                            <div class="video-progress-wrap" data-progress-url="${url}"
-                                 style="display:none; margin-top:6px; width:100%;">
-                                <div class="video-progress-bar"
-                                     onclick="seekVideoFromBar(event, '${url}')"
-                                     style="position:relative; height:14px; background:#555; border-radius:7px;
-                                            cursor:pointer; overflow:hidden; touch-action:none; user-select:none;">
-                                    <div class="video-progress-fill"
-                                         style="height:100%; width:0%; background:#2c7be5; transition:width 0.2s linear;"></div>
-                                </div>
-                                <div class="video-progress-time"
-                                     style="display:flex; justify-content:space-between; font-size:0.75em; color:#aaa; margin-top:3px;">
-                                    <span class="vp-current">0:00</span>
-                                    <span class="vp-duration">0:00</span>
-                                </div>
-                            </div>
-                            <button onclick="deleteImage('${url}')">Excluir</button>
-                        `;
-                    } else {
-                        imgContainer.innerHTML = `
-                            <img src="${url}" alt="Imagem ${index + 1}" onclick="showImageInMonitor('${url}')">
-                            <button onclick="deleteImage('${url}')">Excluir</button>
-                        `;
-                    }
-                }
-                gallery.appendChild(imgContainer);
-            });
-            markLiveImage();
-            if (typeof updateVideoOverlayIcons === 'function') updateVideoOverlayIcons();
-        });
-}
-
-function deleteImage(imageUrl) {
-    if (!confirm('Você tem certeza que deseja excluir esta imagem?')) return;
-    fetch('/delete_image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_name: decodeURIComponent(imageUrl.split('?')[0].split('/').pop()), folder: getCurrentFolder() })
-    }).then(res => res.json())
-      .then(data => {
-          if (data.status === 'success') {
-              alert('Imagem excluída com sucesso!');
-              loadImageGallery();
-          } else {
-              alert('Erro ao excluir imagem: ' + data.message);
-          }
-      }).catch(err => console.error('Erro ao excluir a imagem:', err));
-}
 
 let blackoutActive = false;
 
@@ -459,418 +197,6 @@ function setBlackoutButton(active) {
     btn.querySelector('span').textContent = blackoutActive ? 'Voltar a imagem' : 'Tela preta';
     const overlay = document.getElementById('preview-blackout');
     if (overlay) overlay.hidden = !blackoutActive;
-}
-
-let selectMode = false;
-let selectedImages = new Set();
-let _galleryItems = [];
-let slideshowTimer = null;
-let slideshowIndex = 0;
-let _slideshowVideoWaiting = false;
-let _lastVideoEndHandled = 0;
-
-function toggleSelectMode() {
-    selectMode = !selectMode;
-    selectedImages.clear();
-    const btn = document.getElementById('toggleSelectBtn');
-    btn.textContent = selectMode ? '✖ Cancelar' : '☑ Selecionar';
-    document.getElementById('deleteSelectedBtn').style.display = selectMode ? 'inline-block' : 'none';
-    document.getElementById('selectAllBtn').style.display = selectMode ? 'inline-block' : 'none';
-    updateSelectedCount();
-    loadImageGallery();
-}
-
-function toggleImageSelection(imageUrl, container) {
-    const name = decodeURIComponent(imageUrl.split('?')[0].split('/').pop());
-    if (selectedImages.has(name)) {
-        selectedImages.delete(name);
-        container.classList.remove('selected-for-delete');
-    } else {
-        selectedImages.add(name);
-        container.classList.add('selected-for-delete');
-    }
-    updateSelectedCount();
-}
-
-function selectAllImages() {
-    const containers = document.querySelectorAll('#imageGallery .image-container');
-    const allSelected = selectedImages.size === containers.length;
-    selectedImages.clear();
-    containers.forEach(c => {
-        const media = c.querySelector('img, video');
-        if (!media) return;
-        const src = media.getAttribute('src') || media.src;
-        const name = decodeURIComponent(src.split('?')[0].split('/').pop());
-        if (!allSelected) {
-            selectedImages.add(name);
-            c.classList.add('selected-for-delete');
-        } else {
-            c.classList.remove('selected-for-delete');
-        }
-    });
-    document.getElementById('selectAllBtn').textContent = allSelected ? 'Selecionar Todas' : 'Desmarcar Todas';
-    updateSelectedCount();
-}
-
-function updateSelectedCount() {
-    document.getElementById('selectedCount').textContent = selectedImages.size;
-    document.getElementById('deleteSelectedBtn').style.display = selectMode ? 'inline-block' : 'none';
-}
-
-function deleteSelectedImages() {
-    if (selectedImages.size === 0) return alert('Nenhuma imagem selecionada.');
-    if (!confirm(`Excluir ${selectedImages.size} imagem(ns)?`)) return;
-    fetch('/delete_images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_names: Array.from(selectedImages), folder: getCurrentFolder() })
-    }).then(res => res.json())
-      .then(data => {
-          if (data.status === 'success') {
-              alert(`${data.deleted.length} imagem(ns) excluída(s)!`);
-              selectedImages.clear();
-              updateSelectedCount();
-              loadImageGallery();
-          } else {
-              alert('Erro: ' + data.message);
-          }
-      }).catch(err => console.error('Erro ao excluir imagens:', err));
-}
-
-function showImageInMonitor(imageUrl) {
-    stopSlideshow();
-    liveImageUrl = imageUrl;
-    markLiveImage();
-
-    // Vídeo deixou de estar no monitor: zera estado e atualiza ícones para ▶️
-    currentVideoUrl = null;
-    currentVideoPaused = false;
-    updateVideoOverlayIcons();
-
-    // Envia a imagem via WebSocket (para /img receber)
-    socket.emit('show_image', { image_url: imageUrl, exclude_monitor: publicOnlyMode });
-
-    // Salva o caminho da imagem em JSON
-    saveImagePath(imageUrl);
-}
-
-// ===== Slideshow automático =====
-function _slideshowEmit(item) {
-    if (item.type === 'video') {
-        socket.emit('show_video', { video_url: item.url });
-    } else {
-        socket.emit('show_image', { image_url: item.url });
-    }
-}
-
-function _slideshowScheduleNext() {
-    const item = _galleryItems[slideshowIndex];
-    _slideshowEmit(item);
-
-    // Pré-carrega a PRÓXIMA foto nas telas (não a atual, que acabou de ser
-    // mandada) — quando a troca de verdade acontecer, o navegador já tem o
-    // arquivo em cache, sem esperar o download. Só pra foto, não vídeo (não
-    // faz sentido pré-carregar vídeo do mesmo jeito, e costuma ser maior).
-    const nextItem = _galleryItems[(slideshowIndex + 1) % _galleryItems.length];
-    if (nextItem && nextItem.type !== 'video') {
-        socket.emit('preload_image', { url: nextItem.url });
-    }
-
-    if (item.type === 'video') {
-        // Aguarda video_ended; fallback de 5 min caso o evento não chegue
-        _slideshowVideoWaiting = true;
-        slideshowTimer = setTimeout(function() {
-            _slideshowVideoWaiting = false;
-            _slideshowNext();
-        }, 5 * 60 * 1000);
-    } else {
-        _slideshowVideoWaiting = false;
-        const secs = parseInt(document.getElementById('slideshowInterval').value) || 5;
-        slideshowTimer = setTimeout(_slideshowNext, secs * 1000);
-    }
-}
-
-function _slideshowNext() {
-    slideshowIndex = (slideshowIndex + 1) % _galleryItems.length;
-    _slideshowScheduleNext();
-}
-
-function startSlideshow() {
-    if (_galleryItems.length === 0) return;
-    slideshowIndex = 0;
-    _slideshowVideoWaiting = false;
-    const btn = document.getElementById('btnSlideshow');
-    if (btn) btn.textContent = '⏹ Parar Slideshow';
-    // Avisa o servidor: a barrinha do telão mostra "Slideshow" com parar
-    // (foi um slideshow esquecido que motivou o Preparar/Liberar)
-    socket.emit('slideshow_state', {
-        running: true,
-        interval: parseInt(document.getElementById('slideshowInterval').value) || 5,
-        count: _galleryItems.length,
-    });
-    _slideshowScheduleNext();
-}
-
-function stopSlideshow() {
-    if (!slideshowTimer && !_slideshowVideoWaiting) return;
-    if (slideshowTimer) { clearTimeout(slideshowTimer); slideshowTimer = null; }
-    _slideshowVideoWaiting = false;
-    const btn = document.getElementById('btnSlideshow');
-    if (btn) btn.textContent = '▶ Slideshow';
-    socket.emit('slideshow_state', { running: false });
-}
-
-// "parar" na barrinha do telão (de qualquer página/PC)
-socket.on('slideshow_stop', () => stopSlideshow());
-
-function toggleSlideshow() {
-    if (slideshowTimer || _slideshowVideoWaiting) stopSlideshow();
-    else startSlideshow();
-}
-
-// ===== Controles de vídeo na galeria =====
-let currentVideoUrl = null;
-let currentVideoPaused = false;
-
-function showVideoInMonitor(videoUrl) {
-    if (currentVideoUrl === videoUrl) {
-        // Mesmo vídeo: alterna pausa/retomada
-        currentVideoPaused = !currentVideoPaused;
-        console.log(currentVideoPaused ? '⏸️ Pausando vídeo:' : '▶️ Retomando vídeo:', videoUrl);
-        socket.emit('toggle_video_pause', { paused: currentVideoPaused, exclude_monitor: publicOnlyMode });
-    } else {
-        // Novo vídeo: troca e marca como tocando
-        console.log('🎬 Enviando show_video:', videoUrl);
-        currentVideoUrl = videoUrl;
-        currentVideoPaused = false;
-        socket.emit('show_video', { video_url: videoUrl, exclude_monitor: publicOnlyMode });
-        updateIframes('/img', ''); // mostra preview do vídeo no iframe
-    }
-    updateVideoOverlayIcons();
-    if (typeof ensureProgressPolling === 'function') ensureProgressPolling();
-}
-
-function restartVideoInMonitor(videoUrl) {
-    console.log('⏮️ Reiniciando vídeo:', videoUrl);
-    currentVideoUrl = videoUrl;
-    currentVideoPaused = false;
-    updateVideoOverlayIcons();
-    // Reset visual imediato da barra de progresso
-    const wrap = document.querySelector(`.video-progress-wrap[data-progress-url="${videoUrl}"]`);
-    if (wrap) _updateBarUI(wrap, 0, 0);
-    socket.emit('restart_video', { video_url: videoUrl });
-}
-
-function updateVideoOverlayIcons() {
-    document.querySelectorAll('[data-video-url]').forEach(el => {
-        const url = el.getAttribute('data-video-url');
-        const icon = el.querySelector('.video-play-icon');
-        if (!icon) return;
-        icon.textContent = (url === currentVideoUrl && !currentVideoPaused) ? '⏸️' : '▶️';
-    });
-    document.querySelectorAll('.video-restart-btn').forEach(btn => {
-        const url = btn.getAttribute('data-restart-url');
-        btn.style.display = (url === currentVideoUrl) ? 'flex' : 'none';
-    });
-    // Barra de progresso só no vídeo atual
-    document.querySelectorAll('.video-progress-wrap').forEach(wrap => {
-        const url = wrap.getAttribute('data-progress-url');
-        wrap.style.display = (url === currentVideoUrl) ? 'block' : 'none';
-        if (url === currentVideoUrl) {
-            const container = wrap.parentElement;
-            const vidEl = container && container.querySelector('video');
-            if (vidEl) {
-                const setDur = () => {
-                    const dur = vidEl.duration;
-                    if (dur && isFinite(dur)) {
-                        const durSpan = wrap.querySelector('.vp-duration');
-                        if (durSpan) durSpan.textContent = formatTime(dur);
-                        wrap.setAttribute('data-duration', dur);
-                    }
-                };
-                if (vidEl.readyState >= 1) setDur();
-                else vidEl.addEventListener('loadedmetadata', setDur, { once: true });
-            }
-        }
-    });
-}
-
-function formatTime(s) {
-    if (!isFinite(s) || s < 0) s = 0;
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60).toString().padStart(2, '0');
-    return `${m}:${sec}`;
-}
-
-// Estado global de arrasto da barra (mouse ou toque)
-let _dragging = false;
-let _draggingUrl = null;
-
-function _computePctFromEvent(bar, event) {
-    const rect = bar.getBoundingClientRect();
-    const x = (event.clientX !== undefined) ? event.clientX
-            : (event.touches && event.touches[0] ? event.touches[0].clientX : 0);
-    return Math.min(1, Math.max(0, (x - rect.left) / rect.width));
-}
-
-function _updateBarUI(wrap, pct, target) {
-    const fill = wrap.querySelector('.video-progress-fill');
-    if (fill) fill.style.width = (pct * 100) + '%';
-    const cur = wrap.querySelector('.vp-current');
-    if (cur) cur.textContent = formatTime(target);
-}
-
-function seekVideoFromBar(event, videoUrl) {
-    if (_dragging) return; // drag já cuidou
-    if (videoUrl !== currentVideoUrl) return;
-    const wrap = document.querySelector(`.video-progress-wrap[data-progress-url="${videoUrl}"]`);
-    if (!wrap) return;
-    const duration = Number(wrap.getAttribute('data-duration')) || 0;
-    if (!duration) return;
-    const bar = wrap.querySelector('.video-progress-bar');
-    const pct = _computePctFromEvent(bar, event);
-    const target = pct * duration;
-    _updateBarUI(wrap, pct, target);
-    socket.emit('seek_video', { time: target });
-}
-
-document.addEventListener('pointerdown', (e) => {
-    const bar = e.target.closest('.video-progress-bar');
-    if (!bar) return;
-    const wrap = bar.closest('.video-progress-wrap');
-    const url = wrap && wrap.getAttribute('data-progress-url');
-    if (!url || url !== currentVideoUrl) return;
-    _dragging = true;
-    _draggingUrl = url;
-    try { bar.setPointerCapture(e.pointerId); } catch (_) {}
-    const duration = Number(wrap.getAttribute('data-duration')) || 0;
-    if (duration) {
-        const pct = _computePctFromEvent(bar, e);
-        _updateBarUI(wrap, pct, pct * duration);
-    }
-});
-document.addEventListener('pointermove', (e) => {
-    if (!_dragging || !_draggingUrl) return;
-    const wrap = document.querySelector(`.video-progress-wrap[data-progress-url="${_draggingUrl}"]`);
-    if (!wrap) return;
-    const duration = Number(wrap.getAttribute('data-duration')) || 0;
-    if (!duration) return;
-    const bar = wrap.querySelector('.video-progress-bar');
-    const pct = _computePctFromEvent(bar, e);
-    _updateBarUI(wrap, pct, pct * duration);
-    e.preventDefault();
-}, { passive: false });
-const _finishDrag = (e) => {
-    if (!_dragging || !_draggingUrl) return;
-    const wrap = document.querySelector(`.video-progress-wrap[data-progress-url="${_draggingUrl}"]`);
-    _dragging = false;
-    const url = _draggingUrl;
-    _draggingUrl = null;
-    if (!wrap) return;
-    const duration = Number(wrap.getAttribute('data-duration')) || 0;
-    if (!duration) return;
-    const bar = wrap.querySelector('.video-progress-bar');
-    const pct = _computePctFromEvent(bar, e);
-    const target = pct * duration;
-    _updateBarUI(wrap, pct, target);
-    console.log(`⏩ Drag-seek para ${target.toFixed(2)}s`);
-    socket.emit('seek_video', { time: target });
-};
-document.addEventListener('pointerup', _finishDrag);
-document.addEventListener('pointercancel', _finishDrag);
-
-// Sincronização via Socket.IO (sem polling)
-socket.on('display_video', function(data) {
-    currentVideoUrl = data.video_url;
-    currentVideoPaused = false;
-    updateVideoOverlayIcons();
-    ensureProgressPolling();
-    updateIframes('/img', ''); // sincroniza preview quando outro dispositivo inicia vídeo
-});
-socket.on('display_image', function() {
-    currentVideoUrl = null;
-    currentVideoPaused = false;
-    updateVideoOverlayIcons();
-    stopProgressPolling();
-});
-// Tela dividida só aparece no monitor de palco: a tela pública (e a
-// prévia, que mostra ela) não muda — ver applyTelaoStatus
-socket.on('display_two_urls', function(data) {
-    console.log('📡 Recebido display_two_urls de outro PC:', data);
-    currentVideoUrl = null;
-    currentVideoPaused = false;
-    updateVideoOverlayIcons();
-    stopProgressPolling();
-});
-socket.on('video_pause', function(data) {
-    currentVideoPaused = !!data.paused;
-    updateVideoOverlayIcons();
-});
-socket.on('video_restart', function() {
-    const wrap = currentVideoUrl
-        ? document.querySelector(`.video-progress-wrap[data-progress-url="${currentVideoUrl}"]`)
-        : null;
-    if (wrap) _updateBarUI(wrap, 0, 0);
-});
-
-// Polling otimizado: só roda quando há vídeo e aba está visível
-let _progressPollId = null;
-function ensureProgressPolling() {
-    if (_progressPollId) return;
-    if (!currentVideoUrl) return;
-    if (document.hidden) return;
-    _progressPollId = setInterval(() => {
-        if (_dragging) return;
-        if (!currentVideoUrl) { stopProgressPolling(); return; }
-        fetch('/video_state').then(r => r.json()).then(state => {
-            if (!state.url) {
-                currentVideoUrl = null;
-                currentVideoPaused = false;
-                updateVideoOverlayIcons();
-                stopProgressPolling();
-                return;
-            }
-            currentVideoPaused = !!state.paused;
-            const wrap = document.querySelector(`.video-progress-wrap[data-progress-url="${state.url}"]`);
-            if (!wrap) return;
-            const duration = Number(wrap.getAttribute('data-duration')) || 0;
-            if (!duration) return;
-            const pct = Math.min(1, Math.max(0, state.position / duration));
-            _updateBarUI(wrap, pct, state.position);
-        }).catch(() => {});
-    }, 500);
-}
-function stopProgressPolling() {
-    if (_progressPollId) {
-        clearInterval(_progressPollId);
-        _progressPollId = null;
-    }
-}
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stopProgressPolling();
-    else ensureProgressPolling();
-});
-// Sincronização inicial (caso já haja vídeo tocando)
-fetch('/video_state').then(r => r.json()).then(state => {
-    if (state.url) {
-        currentVideoUrl = state.url;
-        currentVideoPaused = !!state.paused;
-        updateVideoOverlayIcons();
-        ensureProgressPolling();
-    }
-}).catch(() => {});
-
-function saveImagePath(imageUrl) {
-    fetch('/save_image_path', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_path: imageUrl })
-    }).then(res => res.json())
-      .then(data => {
-          if (data.status === 'success') {
-              console.log('Caminho da imagem salvo com sucesso!');
-          }
-      });
 }
 
 // Funções do Ticker
@@ -987,17 +313,6 @@ function resetCountdown() {
     socket.emit('reset_countdown', {});
 }
 
-// Avança o slideshow quando o vídeo termina em qualquer tela de exibição
-socket.on('video_ended', function() {
-    if (!_slideshowVideoWaiting) return;
-    const now = Date.now();
-    if (now - _lastVideoEndHandled < 1000) return; // debounce: ignora duplicatas
-    _lastVideoEndHandled = now;
-    if (slideshowTimer) { clearTimeout(slideshowTimer); slideshowTimer = null; }
-    _slideshowVideoWaiting = false;
-    _slideshowNext();
-});
-
 // Funções para Bíblia
 function showBibleInIframe() {
     const iframe1 = document.getElementById('iframe1');
@@ -1111,34 +426,6 @@ socket.on('telao_status', applyTelaoStatus);
 socket.on('connect', () => {
     fetch('/api/telao-status').then(r => (r.ok ? r.json() : null)).then(applyTelaoStatus).catch(() => {});
 });
-
-// Intercepta show_image: em modo monitor, envia só ao /monitor
-const _origShowImageInMonitor = showImageInMonitor;
-showImageInMonitor = function(imageUrl) {
-    if (monitorOnlyMode) {
-        socket.emit('show_monitor_content', { url: imageUrl });
-        return;
-    }
-    _origShowImageInMonitor(imageUrl);
-};
-
-// Intercepta show_video: em modo monitor, envia só ao /monitor
-const _origShowVideoInMonitor = showVideoInMonitor;
-showVideoInMonitor = function(videoUrl) {
-    if (monitorOnlyMode) {
-        if (currentVideoUrl === videoUrl) {
-            currentVideoPaused = !currentVideoPaused;
-            socket.emit('show_monitor_pause', { paused: currentVideoPaused });
-        } else {
-            currentVideoUrl = videoUrl;
-            currentVideoPaused = false;
-            socket.emit('show_monitor_video', { video_url: videoUrl });
-        }
-        updateVideoOverlayIcons();
-        return;
-    }
-    _origShowVideoInMonitor(videoUrl);
-};
 
 // Intercepta sendUrl: em modo monitor, envia só ao /monitor
 const _origSendUrl = sendUrl;
@@ -1406,7 +693,7 @@ function updateModePill() {
 // salvo neste navegador.
 const PANEL_PAGES = { musica: 'Música', biblia: 'Bíblia', fotos: 'Fotos', ordem: 'Ordem do culto' };
 const PANEL_TOOLS = {
-    images: 'Galeria e slideshow', timer: 'Cronômetro', ticker: 'Avisos', split: 'Monitor dividido',
+    timer: 'Cronômetro', ticker: 'Avisos', split: 'Monitor dividido',
     urls: 'URLs', share: 'Tela do PC', links: 'Abrir telas',
 };
 const panelState = { open: true, expanded: false, view: 'musica' };
@@ -1482,7 +769,8 @@ function panelShow(view, url) {
     const title = document.getElementById('panel-tool-title');
     title.hidden = isPage;
     title.textContent = isPage ? '' : PANEL_TOOLS[view] || '';
-    document.querySelectorAll('[data-open-tool]').forEach(b => b.classList.toggle('active', b.dataset.openTool === view));
+    document.querySelectorAll('[data-open-tool], [data-open-page]').forEach(b =>
+        b.classList.toggle('active', (b.dataset.openTool || b.dataset.openPage) === view));
     document.getElementById('panel-newtab').hidden = !isPage || view === 'ordem';
     if (view === 'ordem') panelLoadOrder();
     else if (isPage) panelOpenPage(view, url);
@@ -1540,6 +828,11 @@ function setupPanel() {
         panelState.open = true;
         panelApply();
         panelShow(b.dataset.openTool);
+    }));
+    document.querySelectorAll('[data-open-page]').forEach(b => b.addEventListener('click', () => {
+        panelState.open = true;
+        panelApply();
+        panelShow(b.dataset.openPage);
     }));
     document.getElementById('panel-close').addEventListener('click', () => { panelState.open = false; panelApply(); });
     document.getElementById('panel-back').addEventListener('click', () => { panelState.open = false; panelApply(); });

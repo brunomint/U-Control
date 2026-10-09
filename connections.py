@@ -52,8 +52,8 @@ def handle_identify(data):
         socketio_clients_by_sid[sid]['role'] = role
     if role in ('public', 'monitor'):
         join_room(role)
-    # Telão público ou /control abrindo com a tela preta já ligada
-    if role in ('public', 'control') and display_state._blackout_active:
+    # Telão público, /control ou /presenter abrindo com a tela preta já ligada
+    if role in ('public', 'control', 'presenter') and display_state._blackout_active:
         emit('blackout', {'active': True})
 
 

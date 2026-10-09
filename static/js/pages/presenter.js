@@ -22,8 +22,14 @@
 
         let blackoutActive = false;
         function toggleBlackout() {
-            blackoutActive = !blackoutActive;
-            socket.emit('blackout', { active: blackoutActive });
+            socket.emit('blackout', { active: !blackoutActive });
+            setBlackoutButton(!blackoutActive);
+        }
+        // Acompanha o estado do servidor (outro operador, o Controle, ou
+        // esta página aberta com a tela preta já ligada — identify)
+        socket.on('blackout', data => setBlackoutButton(!!data.active));
+        function setBlackoutButton(active) {
+            blackoutActive = active;
             const btn = document.getElementById('blackoutBtn');
             btn.classList.toggle('active', blackoutActive);
             btn.innerHTML = blackoutActive
@@ -53,12 +59,16 @@
                         if (f === saved) opt.selected = true;
                         select.appendChild(opt);
                     });
-                    loadImageGallery();
+                    onFolderChange();
                 });
         }
 
         function onFolderChange() {
             localStorage.setItem('presenterFolder', getCurrentFolder());
+            document.getElementById('deleteFolderBtn').hidden = getCurrentFolder() === 'Geral';
+            resetConfirm(document.getElementById('deleteFolderBtn'));
+            stopSlideshow();
+            if (selectMode) toggleSelectMode();
             loadImageGallery();
         }
 
@@ -70,10 +80,12 @@
                     const gallery = document.getElementById('imageGallery');
                     gallery.innerHTML = '';
                     const items = data.fotos;
+                    _galleryItems = items;
                     items.sort((a, b) => a.url.localeCompare(b.url, undefined, { numeric: true, sensitivity: 'base' }))
                         .forEach((item, index) => {
                             const imgContainer = document.createElement('div');
                             imgContainer.className = 'image-container';
+                            imgContainer.dataset.url = item.url;
                             if (item.type === 'video') {
                                 imgContainer.innerHTML = `
                                     <div class="thumb-wrap">
@@ -134,7 +146,7 @@
 
         function uploadImages() {
             const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) return alert('Selecione arquivos primeiro.');
+            if (!fileInput.files.length) { if (window.ucToast) window.ucToast('Escolha os arquivos primeiro.', 'error'); return; }
             const formData = new FormData();
             for (let i = 0; i < fileInput.files.length; i++) {
                 formData.append('images', fileInput.files[i]);
@@ -203,6 +215,7 @@
         let currentVideoPaused = false;
 
         function showVideoInMonitor(videoUrl) {
+            if (currentVideoUrl !== videoUrl) stopSlideshow();
             if (currentVideoUrl === videoUrl) {
                 // Mesmo vídeo: alterna pausa/retomada
                 currentVideoPaused = !currentVideoPaused;
@@ -474,6 +487,7 @@
         }
 
         function showImageInMonitor(imageUrl) {
+            stopSlideshow();
             stagedImageUrl = imageUrl;
             markGallery();
             // Vídeo deixou de estar no monitor: zera estado e atualiza ícones para ▶️
@@ -744,6 +758,186 @@
             zoomPan = { x: 0, y: 0 };
             renderZoom();
         }
+
+        // ── Vindo da galeria do Controle (que saiu): pastas, seleção pra
+        // excluir e slideshow. Confirmação em dois cliques no próprio botão,
+        // sem janelinha do navegador.
+        let _galleryItems = [];
+        let selectMode = false;
+        const selectedImages = new Set();
+        const _confirmTimers = new WeakMap();
+
+        function askConfirm(btn, text) {
+            if (btn.classList.contains('confirming')) { resetConfirm(btn); return true; }
+            btn.dataset.label = btn.dataset.label || btn.innerHTML;
+            btn.classList.add('confirming');
+            btn.innerHTML = `<i class="fas fa-triangle-exclamation"></i> ${text}`;
+            clearTimeout(_confirmTimers.get(btn));
+            _confirmTimers.set(btn, setTimeout(() => resetConfirm(btn), 4000));
+            return false;
+        }
+        function resetConfirm(btn) {
+            if (!btn || !btn.classList.contains('confirming')) return;
+            btn.classList.remove('confirming');
+            btn.innerHTML = btn.dataset.label;
+            clearTimeout(_confirmTimers.get(btn));
+        }
+        function toast(msg, type) { if (window.ucToast) window.ucToast(msg, type); }
+        function fileName(url) { return decodeURIComponent(url.split('?')[0].split('/').pop()); }
+
+        function createFolder() {
+            const input = document.getElementById('newFolderName');
+            const name = input.value.trim();
+            if (!name) { input.focus(); return; }
+            fetch('/api/image_folders', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
+            }).then(r => r.json()).then(data => {
+                if (data.status !== 'success') { toast('Não deu pra criar a pasta: ' + (data.message || ''), 'error'); return; }
+                input.value = '';
+                localStorage.setItem('presenterFolder', data.name);
+                loadFolders();
+                toast(`Pasta "${data.name}" criada.`);
+            }).catch(() => toast('Não deu pra criar a pasta.', 'error'));
+        }
+
+        function deleteCurrentFolder() {
+            const folder = getCurrentFolder();
+            const btn = document.getElementById('deleteFolderBtn');
+            if (folder === 'Geral' || !askConfirm(btn, `Confirmar: excluir "${folder}" e as fotos dela`)) return;
+            fetch(`/api/image_folders/${encodeURIComponent(folder)}`, { method: 'DELETE' })
+                .then(r => r.json()).then(data => {
+                    if (data.status !== 'success') { toast('Não deu pra excluir a pasta: ' + (data.message || ''), 'error'); return; }
+                    localStorage.setItem('presenterFolder', 'Geral');
+                    loadFolders();
+                    toast(`Pasta "${folder}" excluída.`);
+                }).catch(() => toast('Não deu pra excluir a pasta.', 'error'));
+        }
+
+        function toggleSelectMode() {
+            selectMode = !selectMode;
+            selectedImages.clear();
+            document.getElementById('selectBar').hidden = !selectMode;
+            document.getElementById('toggleSelectBtn').classList.toggle('active', selectMode);
+            document.getElementById('imageGallery').classList.toggle('selecting', selectMode);
+            document.querySelectorAll('#imageGallery .image-container').forEach(c => c.classList.remove('selected-for-delete'));
+            resetConfirm(document.getElementById('deleteSelectedBtn'));
+            updateSelectedCount();
+        }
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedImages.size;
+            document.getElementById('deleteSelectedBtn').disabled = selectedImages.size === 0;
+        }
+        // No modo Selecionar, clicar numa foto/vídeo marca em vez de preparar
+        // (captura: roda antes dos onclick dos itens)
+        document.getElementById('imageGallery').addEventListener('click', (e) => {
+            if (!selectMode) return;
+            const c = e.target.closest('.image-container');
+            if (!c) return;
+            e.stopPropagation();
+            e.preventDefault();
+            const name = fileName(c.dataset.url);
+            if (selectedImages.has(name)) selectedImages.delete(name); else selectedImages.add(name);
+            c.classList.toggle('selected-for-delete', selectedImages.has(name));
+            updateSelectedCount();
+        }, true);
+        function selectAllImages() {
+            const all = document.querySelectorAll('#imageGallery .image-container');
+            const every = selectedImages.size === all.length;
+            selectedImages.clear();
+            all.forEach(c => {
+                if (!every) selectedImages.add(fileName(c.dataset.url));
+                c.classList.toggle('selected-for-delete', !every);
+            });
+            updateSelectedCount();
+        }
+        function deleteSelectedImages() {
+            const n = selectedImages.size;
+            if (!n || !askConfirm(document.getElementById('deleteSelectedBtn'), `Confirmar: excluir ${n}`)) return;
+            fetch('/delete_images', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_names: Array.from(selectedImages), folder: getCurrentFolder() }),
+            }).then(r => r.json()).then(data => {
+                if (data.status !== 'success') { toast('Não deu pra excluir: ' + (data.message || ''), 'error'); return; }
+                toast(`${(data.deleted || []).length} arquivo(s) excluído(s).`);
+                toggleSelectMode();
+                loadImageGallery();
+            }).catch(() => toast('Não deu pra excluir.', 'error'));
+        }
+
+        // Slideshow: troca as fotos da pasta sozinho, no telão (vai direto
+        // ao ar, respeitando o modo Só público/Só monitor do servidor —
+        // use_active_mode). Avisa o servidor pra aparecer na barrinha do
+        // telão com "parar".
+        let slideshowTimer = null;
+        let slideshowIndex = 0;
+        let _slideshowVideoWaiting = false;
+        let _lastVideoEndHandled = 0;
+
+        function _slideshowEmit(item) {
+            if (item.type === 'video') socket.emit('show_video', { video_url: item.url });
+            else socket.emit('show_image', { image_url: item.url, use_active_mode: true });
+        }
+        function _slideshowScheduleNext() {
+            const item = _galleryItems[slideshowIndex];
+            if (!item) { stopSlideshow(); return; }
+            _slideshowEmit(item);
+            // Pré-carrega a próxima foto nas telas (troca sem esperar download)
+            const next = _galleryItems[(slideshowIndex + 1) % _galleryItems.length];
+            if (next && next.type !== 'video') socket.emit('preload_image', { url: next.url });
+            if (item.type === 'video') {
+                // Espera o vídeo acabar (video_ended); 5 min de segurança
+                _slideshowVideoWaiting = true;
+                slideshowTimer = setTimeout(() => { _slideshowVideoWaiting = false; _slideshowNext(); }, 5 * 60 * 1000);
+            } else {
+                _slideshowVideoWaiting = false;
+                const secs = parseInt(document.getElementById('slideshowInterval').value, 10) || 5;
+                slideshowTimer = setTimeout(_slideshowNext, secs * 1000);
+            }
+        }
+        function _slideshowNext() {
+            slideshowIndex = (slideshowIndex + 1) % _galleryItems.length;
+            _slideshowScheduleNext();
+        }
+        function renderSlideshowButton(running) {
+            const btn = document.getElementById('btnSlideshow');
+            btn.innerHTML = running ? '<i class="fas fa-stop"></i> Parar' : '<i class="fas fa-play"></i> Iniciar';
+            document.querySelector('.slideshow-row').classList.toggle('running', running);
+        }
+        function startSlideshow() {
+            if (!_galleryItems.length) { toast('Esta pasta não tem fotos.', 'error'); return; }
+            if (selectMode) toggleSelectMode();
+            slideshowIndex = 0;
+            _slideshowVideoWaiting = false;
+            renderSlideshowButton(true);
+            socket.emit('slideshow_state', {
+                running: true,
+                interval: parseInt(document.getElementById('slideshowInterval').value, 10) || 5,
+                count: _galleryItems.length,
+            });
+            _slideshowScheduleNext();
+        }
+        function stopSlideshow() {
+            if (!slideshowTimer && !_slideshowVideoWaiting) return;
+            if (slideshowTimer) { clearTimeout(slideshowTimer); slideshowTimer = null; }
+            _slideshowVideoWaiting = false;
+            renderSlideshowButton(false);
+            socket.emit('slideshow_state', { running: false });
+        }
+        function toggleSlideshow() {
+            if (slideshowTimer || _slideshowVideoWaiting) stopSlideshow();
+            else startSlideshow();
+        }
+        // "parar" na barrinha do telão (de qualquer página/PC)
+        socket.on('slideshow_stop', () => stopSlideshow());
+        socket.on('video_ended', () => {
+            if (!_slideshowVideoWaiting) return;
+            const now = Date.now();
+            if (now - _lastVideoEndHandled < 1000) return;  // ignora duplicatas
+            _lastVideoEndHandled = now;
+            if (slideshowTimer) { clearTimeout(slideshowTimer); slideshowTimer = null; }
+            _slideshowVideoWaiting = false;
+            _slideshowNext();
+        });
 
         window.onload = () => {
             // Foto que já está no ar ao abrir a página

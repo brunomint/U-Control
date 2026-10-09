@@ -144,3 +144,39 @@
 @media (max-width: 560px) {
   .foto-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
+
+/* Arquivos e pastas */
+.menu { gap: 16px; }
+.menu-group { display: grid; gap: 8px; }
+.menu-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-muted); }
+.upload-row .uc-input[type="text"] { flex: 1 1 200px; min-width: 0; }
+#deleteFolderBtn.confirming { background: var(--uc-danger); color: #fff; }
+
+/* Slideshow */
+.slideshow-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--uc-r); background: var(--uc-surface); border: 1px solid var(--uc-line);
+}
+.slideshow-row > i { color: var(--uc-faint); }
+.slideshow-label { font-weight: 700; }
+.slideshow-interval { display: inline-flex; align-items: center; gap: 6px; color: var(--uc-muted); font-size: 13px; }
+.slideshow-interval .uc-input { width: 64px; text-align: center; padding: 6px; }
+.slideshow-row.running { border-color: #3a8fd0; background: rgba(80, 180, 255, .08); }
+.slideshow-row.running .slideshow-label::after { content: " · rodando"; color: #8fd0ff; font-weight: 600; }
+
+/* Seleção pra excluir */
+.select-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: var(--uc-r); background: var(--uc-danger-soft); border: 1px solid var(--uc-danger);
+}
+.select-bar[hidden] { display: none; }
+.select-bar .grow { flex: 1; }
+#deleteSelectedBtn.confirming { background: var(--uc-danger); color: #fff; }
+#toggleSelectBtn.active { border-color: var(--uc-danger); color: var(--uc-danger); }
+.selecting .image-container { cursor: pointer; }
+.image-container.selected-for-delete .thumb-wrap { outline: 3px solid var(--uc-danger); border-radius: var(--uc-r); }
+.image-container.selected-for-delete .thumb-wrap::before {
+  content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+  position: absolute; top: 8px; right: 8px; z-index: 2; width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; background: var(--uc-danger); color: #fff; font-size: 12px;
+}

@@ -200,39 +200,6 @@
 .launcher-link { color: var(--uc-text); text-decoration: none; font-weight: 600; }
 .launcher-link:hover { color: var(--uc-accent-text); }
 
-/* Galeria (itens montados por control.js:loadImageGallery) */
-#imageGallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.image-container {
-  display: grid;
-  gap: 4px;
-  align-content: start;
-  min-width: 0;
-  padding: 4px;
-  border-radius: var(--uc-r-sm);
-  border: 1.5px solid transparent;
-  background: var(--uc-surface-2);
-}
-.image-container img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.image-container img.selecionada { outline: 2px solid var(--uc-live); outline-offset: 1px; }
-.image-container button {
-  border: 0;
-  background: none;
-  color: var(--uc-faint);
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 2px;
-  cursor: pointer;
-}
-.image-container button:hover { color: var(--uc-danger); }
-.image-container .video-restart-btn:hover { color: #fff; }
-.image-container.selected-for-delete { border-color: var(--uc-danger); background: var(--uc-danger-soft); }
 
 /* Tela preta ligada: a prévia também fica preta (antes continuava
    mostrando o conteúdo e parecia que o botão não tinha funcionado) */
