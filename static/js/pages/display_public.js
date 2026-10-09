@@ -153,6 +153,7 @@
             lyricsLayer.style.display = 'none';
             mediaImg.src = url;
             mediaImg.style.transform = '';
+            mediaImg.classList.add('photo');
             mediaImg.style.display = 'block';
         }
 
@@ -273,6 +274,7 @@
                 mediaVideo.pause();
                 mediaVideo.style.display = 'none';
                 mediaImg.src = theme.url;
+                mediaImg.classList.remove('photo');
                 mediaImg.style.display = 'block';
                 document.getElementById('media-layer').style.background = '';
             } else if (theme && theme.type === 'video' && theme.url) {

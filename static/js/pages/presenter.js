@@ -502,8 +502,8 @@
         }
 
         // ===== Modal de Zoom =====
-        // O quadro do modal é 16:9 com a foto em "cover", como a tela
-        // pública: o operador vê exatamente o enquadramento do telão.
+        // O quadro do modal é 16:9 com a foto inteira ("contain"), como em
+        // todas as telas: o operador vê exatamente o enquadramento do telão.
         // Estado: zoom (1–4x) + deslocamento em % do tamanho da foto,
         // aplicado como translate(pan) scale(zoom) com origem no centro —
         // as telas (/lyrics/display/public, /monitor, /img) aplicam a mesma
@@ -557,6 +557,13 @@
             zoomSlider = document.getElementById('zoom-range');
             zoomValueLabel = document.getElementById('zoom-value');
             zoomStatus = document.getElementById('zoom-status');
+            // Limites dependem do tamanho real da foto — recalcula quando carrega
+            zoomImage.addEventListener('load', () => {
+                if (zoomModal.classList.contains('open')) {
+                    zoomPan = clampPan(zoomPan, zoomLevel);
+                    renderZoom();
+                }
+            });
 
             zoomSlider.addEventListener('input', () => zoomAt(parseFloat(zoomSlider.value)));
             document.getElementById('zoom-in').addEventListener('click', () => zoomAt(zoomLevel * 1.25));
@@ -630,12 +637,26 @@
             zoomStage.classList.toggle('dragging', pts.length > 0);
         }
 
-        // Não deixa a borda da foto entrar no quadro
+        // Tamanho da foto dentro do quadro, em % do quadro ("contain": uma
+        // foto em pé ocupa 100% da altura e menos da largura)
+        function zoomContentSize() {
+            const nw = zoomImage.naturalWidth, nh = zoomImage.naturalHeight;
+            const r = zoomStage.getBoundingClientRect();
+            if (!nw || !nh || !r.width || !r.height) return { w: 100, h: 100 };
+            const ar = nw / nh, boxAr = r.width / r.height;
+            return ar > boxAr ? { w: 100, h: 100 * boxAr / ar } : { w: 100 * ar / boxAr, h: 100 };
+        }
+
+        // Arrastar respeita as bordas reais da foto: só move num eixo
+        // quando a foto ampliada passa do quadro nele, e nunca deixa
+        // aparecer preto além da borda
         function clampPan(pan, zoom) {
-            const max = (zoom - 1) / 2 * 100;
+            const c = zoomContentSize();
+            const maxX = Math.max(0, (zoom * c.w - 100) / 2);
+            const maxY = Math.max(0, (zoom * c.h - 100) / 2);
             return {
-                x: Math.max(-max, Math.min(max, pan.x)),
-                y: Math.max(-max, Math.min(max, pan.y)),
+                x: Math.max(-maxX, Math.min(maxX, pan.x)),
+                y: Math.max(-maxY, Math.min(maxY, pan.y)),
             };
         }
 

@@ -16,10 +16,14 @@ html, body {
 }
 #media-layer img {
   width: 100%; height: 100%;
+  /* cover = fundo de tema da letra; foto da galeria usa .photo (abaixo) */
   object-fit: cover;
   display: none;
   transition: transform .12s ease-out; /* zoom do /presenter */
 }
+/* Foto da galeria inteira, como no monitor e no /img — com "cover" a tela
+   pública cortava a foto e o zoom do /presenter caía em lugar diferente */
+#media-layer img.photo { object-fit: contain; }
 #media-layer video {
   width: 100%; height: 100%;
   object-fit: cover;
