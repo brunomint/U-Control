@@ -374,11 +374,6 @@
             markGallery();
             onLivePhotoChanged();
         });
-        socket.on('display_two_urls', function() {
-            liveImageUrl = null;  // tela dividida no telão
-            markGallery();
-            onLivePhotoChanged();
-        });
         socket.on('content_discarded', function(data) {
             if (data && data.kind === 'image') {
                 stagedImageUrl = null;

@@ -684,7 +684,7 @@ def test_api_current_display_reflects_last_shown_image(app, client):
     assert data["image_url"] == "/static/imagens/atual.jpg"
 
 
-def test_api_monitor_sync_forwards_current_video_to_monitor_sids(app, client):
+def test_api_monitor_sync_forwards_current_video_to_monitor_sids(app, logged_in_client):
     monitor_client = ucontrol_main.socketio.test_client(app)  # tela, sem login
     monitor_client.emit("identify", {"role": "monitor"})
 
@@ -693,7 +693,7 @@ def test_api_monitor_sync_forwards_current_video_to_monitor_sids(app, client):
     presenter_client.disconnect()
 
     monitor_client.get_received()  # limpa os eventos já recebidos até aqui
-    response = client.post("/api/monitor/sync")
+    response = logged_in_client.post("/api/monitor/sync")
     assert response.status_code == 200
 
     received = monitor_client.get_received()
@@ -1195,3 +1195,30 @@ def test_anonymous_cannot_stop_live_follow(app):
     op.emit("stop_live_follow", {})
     intruder.disconnect()
     op.disconnect()
+
+
+def test_monitor_sync_copies_lyrics_released_from_other_page(app, client, logged_in_client):
+    """Letra liberada pela página da música em Modo Público: o Sincronizar
+    leva a letra pro monitor (antes mandava a última fonte do /control)."""
+    monitor = ucontrol_main.socketio.test_client(app)  # tela, sem login
+    monitor.emit("identify", {"role": "monitor"})
+    op = _operator_socket(app)
+    op.emit("show_image", {"image_url": "/bible/display"})
+    op.emit("set_display_mode", {"exclude_monitor": True, "monitor_only": False})
+    op.emit("stage_content", {"kind": "lyrics", "label": "Teu Povo — Coro",
+                              "payload": {"songId": 1, "sectionIndex": 0, "title": "Coro", "text": "x", "type": "text"}})
+    op.emit("release_staged_content", {"kind": "lyrics"})
+    status = [m["args"][0] for m in op.get_received() if m["name"] == "telao_status"][-1]
+    assert status["live"]["kind"] == "lyrics"
+    assert status["monitor"]["label"].startswith("Bíblia")  # monitor congelado
+
+    monitor.get_received()
+    assert client.post("/api/monitor/sync").status_code in (302, 401)  # exige login
+    assert logged_in_client.post("/api/monitor/sync").status_code == 200
+    sent = [m["args"][0]["url"] for m in monitor.get_received() if m["name"] == "display_monitor_content"]
+    assert sent == ["/lyrics/display/public"]
+
+    op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+    op.emit("stop_live_follow", {})
+    op.disconnect()
+    monitor.disconnect()

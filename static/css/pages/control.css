@@ -264,3 +264,31 @@
 @media (max-width: 420px) {
   .sources { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Tela preta ligada: a prévia também fica preta (antes continuava
+   mostrando o conteúdo e parecia que o botão não tinha funcionado) */
+.preview-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #000;
+  color: rgba(255, 255, 255, .75);
+  font-size: 13px;
+  font-weight: 700;
+}
+.preview-blackout[hidden] { display: none; }
+.preview-monitor-note {
+  margin: 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--uc-muted);
+}
+.preview-monitor-note[hidden] { display: none; }
+.preview-monitor-note i { color: var(--uc-faint); }
+.preview-monitor-note b { color: var(--uc-text); font-weight: 700; }

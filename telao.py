@@ -147,6 +147,20 @@ def _public_entry():
     return None
 
 
+def public_url():
+    """URL que mostra na tela o que o público vê agora — usada pela
+    prévia "Telão agora" do /control e pelo Sincronizar monitor."""
+    entry = _public_entry()
+    if not entry:
+        return ''
+    kind, url = entry.get('kind'), entry.get('url', '')
+    if kind == 'lyrics':
+        return '/lyrics/display/public'
+    if kind == 'bible':
+        return '/bible/display'
+    return url
+
+
 def build_status():
     from models import StagedContent
     mode = display_state._active_mode
@@ -156,7 +170,7 @@ def build_status():
     except Exception:
         staged = []
     return {
-        'live': describe(_public_entry()),
+        'live': {**describe(_public_entry()), 'url': public_url()},
         'monitor': describe(_monitor) if _monitor else None,
         'staged': staged,
         'mode': 'monitor' if mode.get('monitor_only') else 'public' if mode.get('exclude_monitor') else 'all',

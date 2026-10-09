@@ -42,7 +42,11 @@
                 <iframe id="iframe1" src="about:blank" title="Prévia do telão (esquerda)"></iframe>
                 <iframe id="iframe2" src="about:blank" title="Prévia do telão (direita)"></iframe>
             </div>
+            <div class="preview-blackout" id="preview-blackout" hidden><i class="fas fa-moon"></i> Tela preta: o público vê tudo preto</div>
         </div>
+        <!-- O que o monitor de palco mostra quando é diferente do público
+             (Modo monitor, Modo público, tela dividida) — vem de telao.py -->
+        <p class="preview-monitor-note" id="preview-monitor-note" hidden></p>
 
         <div class="live-actions">
             <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> <span>Tela preta</span></button>

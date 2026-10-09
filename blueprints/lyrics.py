@@ -173,6 +173,8 @@ def handle_update_lyrics(data):
         logger.exception('Falha ao persistir last_payload de update_lyrics')
     emit('update_lyrics', data, broadcast=True, skip_sid=_skip_sids(data))
     import telao
+    if data.get('exclude_monitor'):
+        telao.diverge_monitor_from_public()
     telao.set_public('lyrics', '/lyrics/display/public')
     telao.broadcast_status()
 

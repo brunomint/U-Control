@@ -474,6 +474,7 @@ def handle_show_monitor_two_urls(data):
         emit('display_two_urls', {'url1': data.get('url1', ''), 'url2': data.get('url2', '')}, to=sid)
 
 @display_bp.route('/api/monitor/sync', methods=['POST'])
+@login_required
 def api_monitor_sync():
     """Sincroniza o /monitor com o estado público atual (vídeo ou display)."""
     sids = _get_monitor_sids()
@@ -486,13 +487,16 @@ def api_monitor_sync():
             socketio.emit('video_seek', {'time': pos}, to=sid)
             if display_state._video_state['paused']:
                 socketio.emit('video_pause', {'paused': True}, to=sid)
-    elif display_state._display_state_cache.get('data'):
-        state = display_state._display_state_cache['data']
-        url = state.get('url1', '')
+    else:
+        # Copia o que o público está vendo de verdade (telao.py) — antes
+        # usava o cache da última fonte escolhida no /control, então uma
+        # letra ou Bíblia liberada por outra página não entrava e o
+        # monitor recebia a coisa errada
+        url = telao.public_url()
         if url:
             for sid in sids:
                 socketio.emit('display_monitor_content', {'url': url}, to=sid)
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'monitors': len(sids)})
 
 
 @socketio.on('blackout')

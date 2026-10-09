@@ -124,7 +124,8 @@ function showTwoUrls(urlNum1, urlNum2) {
     if (!url1 || !url2) return console.error("Uma ou ambas as URLs não foram definidas.");
 
     socket.emit('show_two_urls', { url1, url2, exclude_monitor: publicOnlyMode });
-    updateIframes(url1, url2);
+    // Prévia não muda: a tela dividida só aparece no monitor de palco
+    // (aparece na linha "Monitor de palco" embaixo da prévia)
 }
 
 function updateIframes(url1, url2) {
@@ -447,6 +448,8 @@ function setBlackoutButton(active) {
     btn.classList.toggle('active', blackoutActive);
     btn.querySelector('i').className = blackoutActive ? 'fas fa-sun' : 'fas fa-moon';
     btn.querySelector('span').textContent = blackoutActive ? 'Voltar a imagem' : 'Tela preta';
+    const overlay = document.getElementById('preview-blackout');
+    if (overlay) overlay.hidden = !blackoutActive;
 }
 
 let selectMode = false;
@@ -770,11 +773,10 @@ socket.on('display_image', function() {
     updateVideoOverlayIcons();
     stopProgressPolling();
 });
+// Tela dividida só aparece no monitor de palco: a tela pública (e a
+// prévia, que mostra ela) não muda — ver applyTelaoStatus
 socket.on('display_two_urls', function(data) {
-    liveImageUrl = null;
-    markLiveImage();
     console.log('📡 Recebido display_two_urls de outro PC:', data);
-    updateIframes(data.url1, data.url2);
     currentVideoUrl = null;
     currentVideoPaused = false;
     updateVideoOverlayIcons();
@@ -1003,12 +1005,29 @@ function showBibleDisplay() {
 let monitorOnlyMode = false;
 let publicOnlyMode = false;
 
+// Mostra os modos nos interruptores, nas faixas da prévia e no selo.
+// O servidor é a fonte da verdade (telao_status): assim o /control
+// recarregado ou aberto em outro PC mostra o modo que está valendo — antes
+// voltava "desligado" enquanto o servidor seguia em Só monitor, e o
+// próximo clique saía como se não houvesse modo.
+function renderModes() {
+    document.getElementById('monitor-mode-btn').setAttribute('aria-checked', String(monitorOnlyMode));
+    document.getElementById('monitor-mode-indicator').style.display = monitorOnlyMode ? 'flex' : 'none';
+    document.getElementById('public-mode-btn').setAttribute('aria-checked', String(publicOnlyMode));
+    document.getElementById('public-mode-indicator').style.display = publicOnlyMode ? 'flex' : 'none';
+    updateModePill();
+}
+
+function applyServerMode(mode) {
+    monitorOnlyMode = mode === 'monitor';
+    publicOnlyMode = mode === 'public';
+    renderModes();
+}
+
 function toggleMonitorMode() {
     monitorOnlyMode = !monitorOnlyMode;
     if (monitorOnlyMode && publicOnlyMode) togglePublicMode();
-    document.getElementById('monitor-mode-btn').setAttribute('aria-checked', String(monitorOnlyMode));
-    document.getElementById('monitor-mode-indicator').style.display = monitorOnlyMode ? 'flex' : 'none';
-    updateModePill();
+    renderModes();
     // Manda o modo pro servidor — fonte única de verdade que _release_kind
     // usa pra QUALQUER liberação (card do /control ou banner nas próprias
     // páginas, ver display_state._active_mode). Também reseta o
@@ -1023,25 +1042,61 @@ function toggleMonitorMode() {
 function togglePublicMode() {
     publicOnlyMode = !publicOnlyMode;
     if (publicOnlyMode && monitorOnlyMode) toggleMonitorMode();
-    document.getElementById('public-mode-btn').setAttribute('aria-checked', String(publicOnlyMode));
-    document.getElementById('public-mode-indicator').style.display = publicOnlyMode ? 'flex' : 'none';
-    updateModePill();
+    renderModes();
     // Ver comentário equivalente em toggleMonitorMode().
     socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
 }
 
 function syncMonitor() {
     fetch('/api/monitor/sync', { method: 'POST' })
-        .then(() => console.log('✅ Monitor sincronizado com estado público'))
-        .catch(e => console.error('Erro ao sincronizar monitor:', e));
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => {
+            if (!window.ucToast) return;
+            if (d.monitors === 0) window.ucToast('Nenhum monitor de palco conectado agora.', 'error');
+            else window.ucToast('Monitor de palco sincronizado com o público.');
+        })
+        .catch(e => {
+            console.error('Erro ao sincronizar monitor:', e);
+            if (window.ucToast) window.ucToast('Não deu pra sincronizar o monitor.', 'error');
+        });
 }
+
+// ── Prévia "Telão agora" = tela pública ─────────────────────────────────
+// Segue o estado do servidor (telao.py): mostra o que o público vê,
+// inclusive letra/Bíblia liberadas por outras páginas (antes a prévia só
+// mudava com fontes escolhidas aqui e ficava na fonte anterior). O que
+// muda só no monitor (Modo monitor, tela dividida) aparece na linha de
+// baixo, não na prévia.
+function applyTelaoStatus(st) {
+    if (!st || !st.live) return;
+    applyServerMode(st.mode);
+    setBlackoutButton(!!st.blackout);
+    const url = st.live.url || '';
+    const target = url.startsWith('/static/') ? '/img' : (url || 'about:blank');
+    const f1 = document.getElementById('iframe1');
+    const f2 = document.getElementById('iframe2');
+    if (url && (f1.getAttribute('src') !== target || f2.getAttribute('src') !== 'about:blank')) {
+        updateIframes(url, '');
+    }
+    const note = document.getElementById('preview-monitor-note');
+    if (note) {
+        note.hidden = !st.monitor;
+        if (st.monitor) {
+            note.innerHTML = '<i class="fas fa-tv"></i> Monitor de palco: <b></b>';
+            note.querySelector('b').textContent = st.monitor.label;
+        }
+    }
+}
+socket.on('telao_status', applyTelaoStatus);
+socket.on('connect', () => {
+    fetch('/api/telao-status').then(r => (r.ok ? r.json() : null)).then(applyTelaoStatus).catch(() => {});
+});
 
 // Intercepta show_image: em modo monitor, envia só ao /monitor
 const _origShowImageInMonitor = showImageInMonitor;
 showImageInMonitor = function(imageUrl) {
     if (monitorOnlyMode) {
         socket.emit('show_monitor_content', { url: imageUrl });
-        updateIframes(imageUrl.startsWith('/static/') ? '/img' : imageUrl, '');
         return;
     }
     _origShowImageInMonitor(imageUrl);
@@ -1058,7 +1113,6 @@ showVideoInMonitor = function(videoUrl) {
             currentVideoUrl = videoUrl;
             currentVideoPaused = false;
             socket.emit('show_monitor_video', { video_url: videoUrl });
-            updateIframes('/img', '');
         }
         updateVideoOverlayIcons();
         return;
@@ -1074,7 +1128,6 @@ sendUrl = function(urlNumber) {
         const url = fixedRoutes[urlNumber] || document.getElementById(`url${urlNumber}`)?.value;
         if (!url) return;
         socket.emit('show_monitor_content', { url });
-        updateIframes(url, '');
         return;
     }
     _origSendUrl(urlNumber);
@@ -1089,7 +1142,6 @@ showTwoUrls = function(urlNum1, urlNum2) {
         const url2 = fixedRoutes[urlNum2] || document.getElementById(`url${urlNum2}`)?.value;
         if (!url1 || !url2) return;
         socket.emit('show_monitor_two_urls', { url1, url2 });
-        updateIframes(url1, url2);
         return;
     }
     _origShowTwoUrls(urlNum1, urlNum2);
