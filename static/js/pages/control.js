@@ -22,16 +22,36 @@
 
 const socket = io.connect(`${window.location.protocol}//${window.location.host}`);
 
+// Foto no ar marcada de vermelho na galeria — mesma lógica do /presenter,
+// então os dois mostram a mesma foto, venha ela de onde vier (daqui, do
+// presenter, do slideshow ou de outro PC). Some quando o telão vai pra
+// letra, relógio etc.
+let liveImageUrl = null;
+
+function markLiveImage() {
+    document.querySelectorAll('#imageGallery img').forEach(img =>
+        img.classList.toggle('selecionada', !!liveImageUrl && img.getAttribute('src') === liveImageUrl));
+}
+
+fetch('/api/current-display')
+    .then(r => r.json())
+    .then(d => {
+        if (d.mode === 'image' && d.is_static) { liveImageUrl = d.image_url; markLiveImage(); }
+    })
+    .catch(() => {});
+
 // Escuta eventos WebSocket para sincronizar iframes entre PCs
 socket.on('display_image', function(data) {
     console.log('📡 Recebido display_image de outro PC:', data);
-    
-    // Se a URL é uma rota (começa com /), atualiza os iframes
+
     if (data.image_url.startsWith('/static/')) {
-        // Foto ao ar vinda do /presenter ou de outro PC: marca na galeria
-        document.querySelectorAll('#imageGallery img').forEach(img =>
-            img.classList.toggle('selecionada', img.getAttribute('src') === data.image_url));
+        liveImageUrl = data.image_url;
+    } else if (data.image_url !== '/img') {
+        liveImageUrl = null;
     }
+    markLiveImage();
+
+    // Se a URL é uma rota (começa com /), atualiza os iframes
     if (data.image_url.startsWith('/') && !data.image_url.startsWith('/static/')) {
         updateIframes(data.image_url, '');
     } else if (document.getElementById('iframe1').getAttribute('src') !== '/img'
@@ -387,6 +407,7 @@ function loadImageGallery() {
                 }
                 gallery.appendChild(imgContainer);
             });
+            markLiveImage();
             if (typeof updateVideoOverlayIcons === 'function') updateVideoOverlayIcons();
         });
 }
@@ -506,9 +527,8 @@ function deleteSelectedImages() {
 
 function showImageInMonitor(imageUrl) {
     stopSlideshow();
-    document.querySelectorAll('#imageGallery img').forEach(img => img.classList.remove('selecionada'));
-    const matchEl = document.querySelector(`img[src="${imageUrl}"]`);
-    if (matchEl) matchEl.classList.add('selecionada');
+    liveImageUrl = imageUrl;
+    markLiveImage();
 
     // Vídeo deixou de estar no monitor: zera estado e atualiza ícones para ▶️
     currentVideoUrl = null;
@@ -751,6 +771,8 @@ socket.on('display_image', function() {
     stopProgressPolling();
 });
 socket.on('display_two_urls', function(data) {
+    liveImageUrl = null;
+    markLiveImage();
     console.log('📡 Recebido display_two_urls de outro PC:', data);
     updateIframes(data.url1, data.url2);
     currentVideoUrl = null;
