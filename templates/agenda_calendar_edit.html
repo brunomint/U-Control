@@ -29,7 +29,15 @@
                 <button type="button" class="btn" id="nextBtn" aria-label="Próximo mês"><i class="fas fa-chevron-right"></i></button>
             </div>
             <button type="button" class="uc-btn uc-btn-primary" id="copyWhatsBtn" title="Texto do mês pronto pra colar no WhatsApp"><i class="fab fa-whatsapp"></i> Copiar para WhatsApp</button>
-            <button type="button" class="uc-btn uc-btn-secondary" id="shareImgBtn" title="No celular abre o compartilhar; no computador copia a imagem pra colar com Ctrl+V"><i class="fas fa-share-nodes"></i> Compartilhar imagem</button>
+            <!-- No celular abre o compartilhar; no computador copia a imagem pra colar com Ctrl+V (agenda_share.js) -->
+            <details class="share-menu" id="shareMenu">
+                <summary class="uc-btn uc-btn-secondary"><i class="fas fa-share-nodes"></i> Compartilhar imagem <i class="fas fa-chevron-down"></i></summary>
+                <div class="share-menu-list" role="menu">
+                    <button type="button" role="menuitem" data-format="grid"><i class="fas fa-calendar-days"></i><span>Grade do mês<small>o calendário como na tela</small></span></button>
+                    <button type="button" role="menuitem" data-format="light"><i class="fas fa-list"></i><span>Lista · fundo claro<small>só os dias com algo, letra grande</small></span></button>
+                    <button type="button" role="menuitem" data-format="dark"><i class="fas fa-list"></i><span>Lista · fundo escuro<small>só os dias com algo, letra grande</small></span></button>
+                </div>
+            </details>
             <button type="button" class="uc-btn uc-btn-ghost" id="saveImgBtn" title="Baixar o calendário do mês como imagem"><i class="fas fa-download"></i> Salvar imagem</button>
         </div>
     </div>

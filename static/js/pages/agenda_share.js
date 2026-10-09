@@ -2,8 +2,9 @@
 // /agenda/edit). Usa ordersData/currentMonth/monthLong/formatDateISO de
 // agenda_calendar_edit.js.
 //   - Copiar para WhatsApp: texto formatado (*negrito*), só os dias com algo
-//   - Compartilhar imagem: no celular abre o menu de compartilhar do
-//     aparelho; no computador copia a imagem (Ctrl+V no WhatsApp Web)
+//   - Compartilhar imagem (menu: grade do mês, lista clara, lista escura):
+//     no celular abre o menu de compartilhar do aparelho; no computador
+//     copia a imagem (Ctrl+V no WhatsApp Web)
 //   - Salvar imagem: baixa o PNG (como antes)
 (function () {
     const WEEKDAY = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -97,7 +98,7 @@
         }
     }
 
-    // Lista vertical pro celular (opção em avaliação): só os dias com algo,
+    // Lista vertical pro celular: só os dias com algo,
     // letra grande, 1080 px de largura. theme: 'light' | 'dark'
     const THEMES = {
         light: { bg: '#ffffff', card: '#f4f2fb', text: '#1d1a2e', muted: '#5f5a78', accent: '#5b3fd6', line: '#e4e0f3', day: '#5b3fd6' },
@@ -147,26 +148,80 @@
         link.click();
     }
 
-    async function shareImage() {
-        let canvas;
-        try { canvas = await gridCanvas(); } catch (e) { toast('Não deu pra gerar a imagem.', 'error'); return; }
-        const blob = await toBlob(canvas);
-        const file = new File([blob], fileName(), { type: 'image/png' });
-        // Celular: menu de compartilhar do aparelho, com a imagem
-        if (isTouch() && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try { await navigator.share({ files: [file], title: `Agenda de ${monthTitle()}` }); return; }
-            catch (e) { if (e.name === 'AbortError') return; }
+    // Formatos: grade do mês ou lista vertical (clara/escura). O navegador
+    // só deixa copiar/compartilhar logo após o clique, e gerar a imagem
+    // leva 1–2 s — por isso as três começam a ser geradas quando o menu
+    // abre e ficam guardadas (por mês) pro clique.
+    const FORMATS = {
+        grid: { label: 'grade', make: () => gridCanvas() },
+        light: { label: 'lista clara', make: () => listCanvas('light') },
+        dark: { label: 'lista escura', make: () => listCanvas('dark') },
+    };
+    const cache = new Map();
+    const monthKey = () => `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
+
+    function render(format) {
+        const key = `${format}|${monthKey()}`;
+        if (!cache.has(key)) {
+            const entry = { ready: false };
+            entry.promise = (async () => {
+                const canvas = await FORMATS[format].make();
+                const blob = await toBlob(canvas);
+                entry.ready = true;
+                entry.canvas = canvas;
+                entry.blob = blob;
+                return entry;
+            })();
+            entry.promise.catch(() => cache.delete(key));
+            cache.set(key, entry);
         }
-        // Computador: copia a imagem (Ctrl+V no WhatsApp Web)
+        return cache.get(key);
+    }
+
+    // Gera uma de cada vez (a grade usa a própria página, não dá pra
+    // misturar com outra captura ao mesmo tempo)
+    async function prepareAll() {
+        for (const format of Object.keys(FORMATS)) {
+            try { await render(format).promise; } catch (e) { /* tenta de novo no clique */ }
+        }
+    }
+
+    async function shareImage(format) {
+        const entry = render(format);
+        const name = fileName();
+        // Celular: menu de compartilhar do aparelho, com a imagem
+        if (isTouch() && navigator.share) {
+            try {
+                const { blob } = await entry.promise;
+                const file = new File([blob], name, { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: `Agenda de ${monthTitle()}` });
+                    return;
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                if (e.name === 'NotAllowedError' && !entry.ready) {
+                    toast('A imagem ainda estava sendo preparada. Toque de novo.', 'error');
+                    return;
+                }
+            }
+        }
+        // Computador: copia a imagem (Ctrl+V no WhatsApp Web). A promessa
+        // vai direto pro ClipboardItem, assim a cópia vale mesmo se a
+        // imagem terminar de ser gerada depois do clique.
         if (navigator.clipboard && window.ClipboardItem) {
             try {
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                toast('Imagem copiada. Cole com Ctrl+V no WhatsApp.');
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': entry.promise.then(r => r.blob) })]);
+                toast(`Imagem (${FORMATS[format].label}) copiada. Cole com Ctrl+V no WhatsApp.`);
                 return;
             } catch (e) { /* sem permissão: baixa */ }
         }
-        download(canvas);
-        toast('Imagem baixada. Anexe no WhatsApp.');
+        try {
+            download((await entry.promise).canvas);
+            toast('Imagem baixada. Anexe no WhatsApp.');
+        } catch (e) {
+            toast('Não deu pra gerar a imagem.', 'error');
+        }
     }
 
     async function saveImage() {
@@ -175,9 +230,14 @@
     }
 
     document.getElementById('copyWhatsBtn').addEventListener('click', copyText);
-    document.getElementById('shareImgBtn').addEventListener('click', shareImage);
+    const menu = document.getElementById('shareMenu');
+    menu.addEventListener('toggle', () => { if (menu.open) prepareAll(); });
+    menu.querySelectorAll('[data-format]').forEach(btn => btn.addEventListener('click', () => {
+        menu.open = false;
+        shareImage(btn.dataset.format);
+    }));
+    document.addEventListener('click', (e) => { if (!menu.contains(e.target)) menu.open = false; });
     document.getElementById('saveImgBtn').addEventListener('click', saveImage);
 
-    // Usado pra avaliar a imagem em lista (ainda não ligada a um botão)
     window.agendaShare = { buildText, listCanvas, gridCanvas };
 })();

@@ -3,3 +3,22 @@
 .cal-head h1 { display: flex; align-items: center; gap: 10px; }
 .inner-label { display: none; width: 100%; font-size: 18px; padding-bottom: 4px; }
 .capturing .inner-label { display: block; }
+
+/* Compartilhar imagem: menu de formatos */
+.share-menu { position: relative; }
+.share-menu > summary { list-style: none; cursor: pointer; }
+.share-menu > summary::-webkit-details-marker { display: none; }
+.share-menu > summary .fa-chevron-down { font-size: 10px; opacity: .7; }
+.share-menu-list {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 260px; padding: 6px;
+  display: grid; gap: 2px; border-radius: var(--uc-r); background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line); box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+}
+.share-menu-list button {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border: 0; border-radius: var(--uc-r-sm);
+  background: transparent; color: var(--uc-text); font: inherit; font-weight: 700; text-align: left; cursor: pointer;
+}
+.share-menu-list button:hover { background: var(--uc-surface-3); }
+.share-menu-list i { width: 16px; margin-top: 3px; color: var(--uc-accent-text); }
+.share-menu-list span { display: grid; gap: 2px; }
+.share-menu-list small { font-size: 12px; font-weight: 500; color: var(--uc-muted); }
