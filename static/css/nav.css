@@ -176,6 +176,10 @@ body.uc-offline [data-telao-commands] { opacity: .45; pointer-events: none; filt
 .tb-staged { background: var(--uc-warn-soft); color: var(--uc-warn); }
 .tb-staged .tb-label { color: var(--uc-text); font-weight: 600; max-width: 26vw; }
 .tb-follow { background: var(--uc-accent-soft); color: var(--uc-accent-text); }
+/* Coisas rodando sozinhas (slideshow, aviso, cronômetro) */
+.tb-running { background: rgba(80, 180, 255, .13); color: #8fd0ff; }
+.tb-running .tb-label { color: var(--uc-text); font-weight: 600; max-width: 22vw; }
+.tb-clock { font-variant-numeric: tabular-nums; color: var(--uc-text); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .tb-mode, .tb-monitor { background: var(--uc-surface-2); color: var(--uc-muted); padding-right: 10px; }
 .tb-monitor .tb-label { color: var(--uc-text); max-width: 22vw; }
 .tb-black { background: #000; color: #fff; border: 1px solid var(--uc-line); padding-right: 10px; }

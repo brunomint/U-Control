@@ -23,6 +23,10 @@ _public = None
 # None = monitor mostrando o mesmo que o público
 _monitor = None
 _last_bible_ref = None
+# Slideshow roda no navegador do /control (timer em control.js); a aba
+# avisa o servidor (slideshow_state) e o servidor guarda quem está rodando
+# pra mostrar na barra — e esquece se essa aba fechar/cair.
+_slideshow = None  # {'sid', 'interval', 'count'}
 
 _FOLLOW_LABELS = {'image': 'Fotos', 'lyrics': 'Letra', 'bible': 'Bíblia'}
 _MEDIA_RE = re.compile(r'\.(jpe?g|png|gif|bmp|webp)(\?|$)', re.I)
@@ -161,6 +165,40 @@ def public_url():
     return url
 
 
+def set_slideshow(sid, running, interval=None, count=None):
+    global _slideshow
+    if running:
+        _slideshow = {'sid': sid, 'interval': interval, 'count': count}
+    elif _slideshow and (sid is None or _slideshow['sid'] == sid):
+        _slideshow = None
+
+
+def forget_client(sid):
+    """Aba desconectou: se era ela que rodava o slideshow, ele parou."""
+    if _slideshow and _slideshow['sid'] == sid:
+        set_slideshow(sid, False)
+        broadcast_status()
+
+
+def _extras():
+    """Coisas que rodam sozinhas e o operador pode esquecer ligadas."""
+    import time
+    from blueprints import countdown, ticker
+    targets = sorted(ticker._ticker_targets)
+    cd = countdown._countdown_state
+    return {
+        'ticker': {'text': ticker._ticker_text, 'targets': targets} if targets and ticker._ticker_text else None,
+        'countdown': {
+            'label': cd.get('label') or '',
+            'paused': bool(cd.get('paused')),
+            'end_ms': cd.get('end_timestamp'),
+            'remaining_ms': cd.get('paused_remaining'),
+        } if cd.get('active') else None,
+        'slideshow': {'interval': _slideshow['interval'], 'count': _slideshow['count']} if _slideshow else None,
+        'server_now_ms': time.time() * 1000,
+    }
+
+
 def build_status():
     from models import StagedContent
     mode = display_state._active_mode
@@ -177,6 +215,7 @@ def build_status():
         'follow': follow,
         'follow_label': _FOLLOW_LABELS.get(follow) if follow else None,
         'blackout': bool(display_state._blackout_active),
+        **_extras(),
     }
 
 

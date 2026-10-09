@@ -34,6 +34,8 @@ def handle_disconnect():
         del socketio_clients_by_sid[sid]
     socketio_clients_connected = len(socketio_clients_by_sid)
     logger.info('Cliente desconectado')
+    import telao
+    telao.forget_client(sid)
 
 
 @socketio.on('identify')

@@ -592,6 +592,13 @@ function startSlideshow() {
     _slideshowVideoWaiting = false;
     const btn = document.getElementById('btnSlideshow');
     if (btn) btn.textContent = '⏹ Parar Slideshow';
+    // Avisa o servidor: a barrinha do telão mostra "Slideshow" com parar
+    // (foi um slideshow esquecido que motivou o Preparar/Liberar)
+    socket.emit('slideshow_state', {
+        running: true,
+        interval: parseInt(document.getElementById('slideshowInterval').value) || 5,
+        count: _galleryItems.length,
+    });
     _slideshowScheduleNext();
 }
 
@@ -601,7 +608,11 @@ function stopSlideshow() {
     _slideshowVideoWaiting = false;
     const btn = document.getElementById('btnSlideshow');
     if (btn) btn.textContent = '▶ Slideshow';
+    socket.emit('slideshow_state', { running: false });
 }
+
+// "parar" na barrinha do telão (de qualquer página/PC)
+socket.on('slideshow_stop', () => stopSlideshow());
 
 function toggleSlideshow() {
     if (slideshowTimer || _slideshowVideoWaiting) stopSlideshow();

@@ -1243,3 +1243,37 @@ def test_command_pages_mark_their_command_area(logged_in_client):
     for path in ("/control", "/presenter", "/lyrics/1", "/bible/jo/3", "/bible/control/jo/3/16-16"):
         html = logged_in_client.get(path).get_data(as_text=True)
         assert "data-telao-commands" in html, path
+
+
+def test_telao_status_shows_slideshow_ticker_countdown_and_stops_them(app):
+    op = _operator_socket(app)
+    control = _operator_socket(app)
+    op.emit("stop_ticker", {"target": "all"})  # outro teste pode ter deixado aviso ligado
+    control.emit("slideshow_state", {"running": True, "interval": 7, "count": 12})
+    op.emit("set_ticker", {"text": "Bem-vindos", "target": "public"})
+    op.emit("start_countdown", {"duration_seconds": 300, "label": "Culto"})
+    status = _telao_status_events(op)[-1]
+    assert status["slideshow"] == {"interval": 7, "count": 12}
+    assert status["ticker"] == {"text": "Bem-vindos", "targets": ["public"]}
+    assert status["countdown"]["label"] == "Culto" and not status["countdown"]["paused"]
+
+    control.get_received()
+    op.emit("stop_slideshow", {})
+    assert any(m["name"] == "slideshow_stop" for m in control.get_received())
+    op.emit("stop_ticker", {"target": "all"})
+    op.emit("reset_countdown", {})
+    status = _telao_status_events(op)[-1]
+    assert status["slideshow"] is None and status["ticker"] is None and status["countdown"] is None
+    op.disconnect()
+    control.disconnect()
+
+
+def test_slideshow_forgotten_when_its_control_tab_closes(app):
+    op = _operator_socket(app)
+    control = _operator_socket(app)
+    control.emit("slideshow_state", {"running": True, "interval": 5, "count": 3})
+    control.disconnect()
+    op.emit("telao_ping", {})
+    import telao
+    assert telao.build_status()["slideshow"] is None
+    op.disconnect()

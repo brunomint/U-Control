@@ -712,6 +712,24 @@ def handle_set_display_mode(data):
     telao.broadcast_status()
 
 
+@socketio.on('slideshow_state')
+def handle_slideshow_state(data=None):
+    """O /control avisa quando o slideshow começa/para (o timer roda no
+    navegador dele) — pra barrinha do telão mostrar e poder parar."""
+    data = data or {}
+    telao.set_slideshow(request.sid, bool(data.get('running')),
+                        interval=data.get('interval'), count=data.get('count'))
+    telao.broadcast_status()
+
+
+@socketio.on('stop_slideshow')
+def handle_stop_slideshow(data=None):
+    """Botão "parar" da barrinha: manda o /control que roda o slideshow parar."""
+    telao.set_slideshow(None, False)
+    emit('slideshow_stop', {}, broadcast=True)
+    telao.broadcast_status()
+
+
 @socketio.on('telao_ping')
 def handle_telao_ping(data=None):
     """Batimento da barrinha do telão (telao_bar.js): responder em até 4s

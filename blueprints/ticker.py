@@ -39,6 +39,9 @@ def _save_ticker_config(text):
 
 _ticker_text = ''
 _ticker_active = False  # nunca ativo no boot; exige comando explícito
+# Telas com o aviso rodando agora ('public'/'monitor') — pra barrinha do
+# telão mostrar e parar (telao.py)
+_ticker_targets = set()
 
 
 def init_ticker_state():
@@ -65,6 +68,11 @@ def handle_set_ticker(data):
     _ticker_text = str(data.get('text', '')).strip()
     target = str(data.get('target', 'all'))
     _ticker_active = bool(_ticker_text)
+    sent_to = {'public', 'monitor'} if target not in ('public', 'monitor') else {target}
+    if _ticker_text:
+        _ticker_targets.update(sent_to)
+    else:
+        _ticker_targets.difference_update(sent_to)
     _save_ticker_config(_ticker_text)
     if _ticker_text:
         append_display_log({'type': 'ticker', 'title': _ticker_text})
@@ -78,6 +86,8 @@ def handle_set_ticker(data):
     # Preview no /control (não é room-scoped como o acima — o operador
     # precisa ver o texto mandado independente de qual alvo escolheu).
     emit('ticker_preview_update', payload, broadcast=True)
+    import telao
+    telao.broadcast_status()
 
 
 @socketio.on('stop_ticker')
@@ -86,6 +96,7 @@ def handle_stop_ticker(data):
     target = str(data.get('target', 'all'))
     if target == 'all':
         _ticker_active = False
+    _ticker_targets.difference_update({'public', 'monitor'} if target not in ('public', 'monitor') else {target})
     payload = {'text': ''}
     if target == 'public':
         emit('ticker_update', payload, to='public')
@@ -94,3 +105,5 @@ def handle_stop_ticker(data):
     else:
         emit('ticker_update', payload, broadcast=True)
     emit('ticker_preview_update', payload, broadcast=True)
+    import telao
+    telao.broadcast_status()

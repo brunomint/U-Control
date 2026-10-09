@@ -95,6 +95,8 @@ def handle_start_countdown(data):
         'duration_ms': duration_ms,
         'label': label,
     }, broadcast=True)
+    import telao
+    telao.broadcast_status()
 
 
 @socketio.on('pause_countdown')
@@ -105,6 +107,8 @@ def handle_pause_countdown(data):
         _countdown_state['paused_remaining'] = max(0, remaining)
         _countdown_state['paused'] = True
         emit('countdown_pause', {'remaining_ms': _countdown_state['paused_remaining']}, broadcast=True)
+        import telao
+        telao.broadcast_status()
 
 
 @socketio.on('resume_countdown')
@@ -118,6 +122,8 @@ def handle_resume_countdown(data):
             'paused_remaining': None,
         })
         emit('countdown_resume', {'end_timestamp': new_end}, broadcast=True)
+        import telao
+        telao.broadcast_status()
 
 
 @socketio.on('reset_countdown')
@@ -131,3 +137,5 @@ def handle_reset_countdown(data):
         'label': '',
     })
     emit('countdown_reset', {}, broadcast=True)
+    import telao
+    telao.broadcast_status()

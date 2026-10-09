@@ -51,6 +51,25 @@
                 `<button type="button" class="tb-btn tb-x" data-act="discard" data-kind="${esc(item.kind)}" title="Descartar" aria-label="Descartar">&times;</button>` +
                 `</span>`);
         });
+        if (st.slideshow) {
+            parts.push(
+                `<span class="tb-chip tb-running" title="Fotos trocando sozinhas no telão">` +
+                `<i class="fas fa-images"></i> Slideshow · a cada ${esc(st.slideshow.interval)}s` +
+                `<button type="button" class="tb-btn" data-act="stop-slideshow">parar</button></span>`);
+        }
+        if (st.ticker) {
+            const where = st.ticker.targets.length === 2 ? '' : st.ticker.targets[0] === 'public' ? ' (público)' : ' (monitor)';
+            parts.push(
+                `<span class="tb-chip tb-running" title="Aviso rolando na base da tela${esc(where)}">` +
+                `<i class="fas fa-bullhorn"></i> Aviso${esc(where)}: <span class="tb-label">${esc(st.ticker.text)}</span>` +
+                `<button type="button" class="tb-btn" data-act="stop-ticker">parar</button></span>`);
+        }
+        if (st.countdown) {
+            parts.push(
+                `<span class="tb-chip tb-running" title="Cronômetro ${esc(st.countdown.label)}">` +
+                `<i class="fas fa-stopwatch"></i> Cronômetro <b class="tb-clock" data-countdown></b>` +
+                `<button type="button" class="tb-btn" data-act="stop-countdown">parar</button></span>`);
+        }
         if (st.follow) {
             parts.push(
                 `<span class="tb-chip tb-follow" title="Depois de um Liberar, o que for preparado desse tipo vai direto ao telão">` +
@@ -59,7 +78,27 @@
         }
         bar.innerHTML = parts.join('');
         bar.classList.toggle('is-black', !!st.blackout);
+        // Relógio do servidor como referência (o PC do operador pode estar
+        // com a hora diferente da do Pi)
+        clockSkew = st.server_now_ms ? st.server_now_ms - Date.now() : 0;
+        tickCountdown();
     }
+
+    let clockSkew = 0;
+    function fmt(ms) {
+        const s = Math.max(0, Math.round(ms / 1000));
+        const m = Math.floor(s / 60);
+        return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }
+    function tickCountdown() {
+        const el = bar.querySelector('[data-countdown]');
+        const cd = lastStatus && lastStatus.countdown;
+        if (!el || !cd) return;
+        if (cd.paused) { el.textContent = `${fmt(cd.remaining_ms || 0)} · pausado`; return; }
+        const left = (cd.end_ms || 0) - (Date.now() + clockSkew);
+        el.textContent = left > 0 ? fmt(left) : '00:00 · terminou';
+    }
+    setInterval(tickCountdown, 1000);
 
     function refresh() {
         fetch('/api/telao-status', { credentials: 'same-origin' })
@@ -139,6 +178,9 @@
         if (btn.dataset.act === 'release') socket.emit('release_staged_content', { kind });
         else if (btn.dataset.act === 'discard') socket.emit('discard_staged_content', { kind });
         else if (btn.dataset.act === 'stop-follow') socket.emit('stop_live_follow', {});
+        else if (btn.dataset.act === 'stop-slideshow') socket.emit('stop_slideshow', {});
+        else if (btn.dataset.act === 'stop-ticker') socket.emit('stop_ticker', { target: 'all' });
+        else if (btn.dataset.act === 'stop-countdown') socket.emit('reset_countdown', {});
     });
 
     if (window.io) {
