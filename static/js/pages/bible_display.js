@@ -1,7 +1,19 @@
 const socket = io();
 
+let shownOnce = false;
+
+// Ao abrir (ou reconectar) mostra o versículo que já está no telão — a
+// página só recebia versículos NOVOS, então aberta depois do envio (prévia
+// do /control, monitor, tela recarregada) ficava em "Aguardando versículos..."
 socket.on('connect', function() {
     console.log('📖 Conectado ao servidor de Bíblia');
+    if (shownOnce) return;
+    fetch('/api/bible/current')
+        .then(r => (r.ok ? r.json() : null))
+        .then(data => {
+            if (!shownOnce && data && (data.reference || data.text)) displayVerse(data);
+        })
+        .catch(() => {});
 });
 
 socket.on('update_bible', function(data) {
@@ -10,6 +22,7 @@ socket.on('update_bible', function(data) {
 });
 
 function displayVerse(data) {
+    shownOnce = true;
     const waiting = document.getElementById('waiting');
     const content = document.getElementById('content');
     const reference = document.getElementById('reference');

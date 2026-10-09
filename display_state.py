@@ -15,6 +15,11 @@ _last_static_media_url = None
 
 # Último payload de update_lyrics recebido (para display_public carregar ao abrir)
 _last_lyrics_payload = None
+# Último versículo enviado ao telão (update_bible) — /bible/display busca
+# ao abrir (/api/bible/current); sem isto, a prévia do /control, o monitor
+# ou uma tela recarregada ficavam em "Aguardando versículos..." com o
+# versículo no ar
+_last_bible_payload = None
 
 # Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
 _current_display_mode = 'blank'

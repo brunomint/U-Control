@@ -1222,3 +1222,12 @@ def test_monitor_sync_copies_lyrics_released_from_other_page(app, client, logged
     op.emit("stop_live_follow", {})
     op.disconnect()
     monitor.disconnect()
+
+
+def test_bible_display_can_fetch_current_verse(app, client):
+    op = _operator_socket(app)
+    op.emit("update_bible", {"reference": "João 3:16", "text": "16 Porque Deus amou o mundo",
+                             "verses": [{"num": 16, "text": "Porque Deus amou o mundo"}]})
+    data = client.get("/api/bible/current").get_json()  # tela sem login
+    assert data["reference"] == "João 3:16"
+    op.disconnect()

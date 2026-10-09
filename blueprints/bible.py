@@ -563,10 +563,21 @@ def handle_update_bible(data):
     if ref:
         append_display_log({'type': 'bible', 'title': ref})
     emit('update_bible', data, broadcast=True)
+    import display_state
+    display_state._last_bible_payload = data
     import telao
     telao.set_bible_ref(ref)
     telao.set_public('bible', '/bible/display')
     telao.broadcast_status()
+
+@bible_bp.route('/api/bible/current')
+def api_bible_current():
+    """Versículo que está no telão agora (pra /bible/display ao abrir). Sem
+    login: as telas do projetor/monitor não têm login, e é só o texto
+    bíblico que já está sendo exibido publicamente."""
+    import display_state
+    return jsonify(display_state._last_bible_payload or {})
+
 
 @bible_bp.route('/bible/display')
 def bible_display():
