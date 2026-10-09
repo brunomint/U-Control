@@ -195,7 +195,16 @@ const fitSheetsToScreen = () => {
                 .then(res => res.json())
                 .then(song => {
                     console.log('✅ Display: Música carregada:', song);
-                    const section = song.sections[sectionIndex || 0];
+                    const idx = parseInt(sectionIndex || 0, 10);
+                    const section = song.sections[idx];
+                    const next = song.sections[idx + 1];
+                    const nextText = next ? (Array.isArray(next.text) ? next.text.join('\n') : (next.text || '')) : null;
+                    renderFooter({
+                        sectionTitles: song.sections.map(s => s.title),
+                        sectionIndex: idx,
+                        nextTitle: next ? next.title : null,
+                        nextText: nextText,
+                    });
                     console.log('📄 Display: Seção selecionada:', section);
                     
                     if (section) {
@@ -268,7 +277,25 @@ const fitSheetsToScreen = () => {
             return; // Não carrega do localStorage
         }
         
-        // PRIORIDADE 2: localStorage (cache local)
+        // PRIORIDADE 2: o que está no ar agora, segundo o servidor (com o
+        // rodapé). Antes ia direto pro localStorage, que só funciona no
+        // mesmo navegador — o Pi recarregado ou a prévia do Controle ficavam
+        // com outra letra, ou sem rodapé.
+        fetch('/api/current-display')
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.mode === 'lyrics' && (data.text || data.sheetData || data.sheets)) {
+                    onUpdateLyrics(data);
+                    shrink();
+                } else {
+                    loadFromLocalCache();
+                }
+            })
+            .catch(loadFromLocalCache);
+    };
+
+    // PRIORIDADE 3: localStorage (cache local, sem rede)
+    const loadFromLocalCache = () => {
         const savedSongId = localStorage.getItem('currentSongId');
         const savedTitle = localStorage.getItem('currentTitle');
         const savedText = localStorage.getItem('currentText');
@@ -386,8 +413,12 @@ const fitSheetsToScreen = () => {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    socket.on('section_changed', (data) => {
-        if (data.sectionTitles) _mapTitles = data.sectionTitles;
+    // Rodapé (mapa da música + "A seguir: …") vem junto com a seção que
+    // entrou no ar (update_lyrics, ou /api/current-display ao abrir) — não
+    // mais de section_changed, que a página da música emite ao PREPARAR (o
+    // rodapé avançava antes da seção entrar e sumia em tela recarregada).
+    function renderFooter(data) {
+        _mapTitles = data.sectionTitles || [];
         _mapCurrent = data.sectionIndex ?? -1;
         renderSongMap();
 
@@ -413,8 +444,7 @@ const fitSheetsToScreen = () => {
         } else {
             nextBox.style.display = 'none';
         }
-
-    });
+    }
     // Restaura preferência salva no servidor ao carregar
     fetch('/api/display-bg').then(r => r.json()).then(d => applyDisplayBg(d.dark !== false));
 
@@ -423,8 +453,10 @@ const fitSheetsToScreen = () => {
     });
 
     // Escuta eventos do servidor via WebSocket
-    socket.on('update_lyrics', (data) => {
+    socket.on('update_lyrics', (data) => onUpdateLyrics(data));
+    const onUpdateLyrics = (data) => {
         console.log('📨 Display recebeu update_lyrics:', data);
+        renderFooter(data);
         // Suprime tema no monitor interno se a seção tem linhas de acorde
         const theme = (data.type === 'text' && data.text && temCifra(data.text)) ? null : data.theme;
         const mediaImg   = document.getElementById('media-img');
@@ -472,7 +504,7 @@ const fitSheetsToScreen = () => {
             console.log('📝 Detectado tipo: text, chamando updateLyricsDisplay()');
             updateLyricsDisplay(data.title, data.text, data.id);
         }
-    });
+    };
     
     // Função para renderizar partitura — desenho delegado a
     // static/js/sheet_render.js, compartilhado com o editor e as outras

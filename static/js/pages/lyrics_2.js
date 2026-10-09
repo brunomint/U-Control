@@ -518,6 +518,26 @@ $('#clear-lyrics').click(function() {
         // reemissão local de verdade (o tom mudou, precisa preparar de novo),
         // só evitando reemitir section_changed (a seção em si não mudou) —
         // por isso os dois flags são independentes.
+        // Informações do rodapé do retorno de palco (mapa da música e "A
+        // seguir: …") vão JUNTO com a seção — chegam ao /lyrics/display
+        // quando ela vai ao ar de verdade (update_lyrics), e o servidor
+        // guarda, então uma tela aberta depois também mostra. Antes iam só
+        // em section_changed, emitido ao PREPARAR: o rodapé avançava antes
+        // da seção entrar e sumia de qualquer tela recarregada.
+        function withFooter(payload, index) {
+            const nextSec = sections[index + 1] || null;
+            const nextRaw = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
+            let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
+            if (nextClean && transposeOffset !== 0) nextClean = ChordLines.transposeBlockContent(nextClean, transposeOffset);
+            return {
+                ...payload,
+                sectionTitles: sections.map(s => s.title),
+                total: sections.length,
+                nextTitle: nextSec ? nextSec.title : null,
+                nextText: nextClean,
+            };
+        }
+
         async function loadSection(index, fromRemote = false, silent = false, isRemoteSync = false) {
             if (index < 0 || index >= sections.length) {
                 alert("Seção inválida.");
@@ -565,7 +585,7 @@ $('#clear-lyrics').click(function() {
                 if (!silent && !isRemoteSync) {
                     socket.emit('stage_content', {
                         kind: 'lyrics',
-                        payload: dataToSend,
+                        payload: withFooter(dataToSend, index),
                         label: `${document.title} — ${dataToSend.title}`
                     });
                 }
@@ -582,14 +602,14 @@ $('#clear-lyrics').click(function() {
                         const sheetTitle = section.title || '🎼 Partitura';
                         socket.emit('stage_content', {
                             kind: 'lyrics',
-                            payload: {
+                            payload: withFooter({
                                 title: sheetTitle,
                                 type: 'sheet',
                                 sheetData: sheet,
                                 theme: null,
                                 songId: songId,
                                 sectionIndex: index
-                            },
+                            }, index),
                             label: `${document.title} — ${sheetTitle}`
                         });
                     }
@@ -607,14 +627,14 @@ $('#clear-lyrics').click(function() {
                     const textTitle = section.title || `Seção ${index + 1}`;
                     socket.emit('stage_content', {
                         kind: 'lyrics',
-                        payload: {
+                        payload: withFooter({
                             title: textTitle,
                             type: 'text',
                             text: sectionText,
                             theme: currentTheme || null,
                             songId: songId,
                             sectionIndex: index
-                        },
+                        }, index),
                         label: `${document.title} — ${textTitle}`
                     });
                 }
