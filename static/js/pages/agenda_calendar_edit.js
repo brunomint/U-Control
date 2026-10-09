@@ -247,7 +247,7 @@ document.getElementById('nextBtn').addEventListener('click', () => {
 });
 
 document.getElementById('saveImgBtn').addEventListener('click', async () => {
-    const calendarShell = document.querySelector('.card.calendar-shell');
+    const calendarShell = document.querySelector('.calendar-shell');
     if (!calendarShell) return;
     const label = document.getElementById('monthLabel')?.textContent || 'agenda';
     const safeLabel = label.toLowerCase().replace(/\s+/g, '-');
