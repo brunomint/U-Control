@@ -84,6 +84,9 @@
                         updateLyricsDisplay(data.title, data.text || '', data.id || null);
                     } else if (data && data.mode === 'image' && data.image_url) {
                         if (data.is_static) { showImage(data.image_url); }
+                        // Rota da letra/cifra: mostra a letra aqui mesmo (abrir
+                        // a própria página num iframe deixava a tela em branco)
+                        else if (data.image_url.includes('/lyrics/display')) { showLyricsView(); }
                         else { showRoute(data.image_url); }
                     } else if (data && data.mode === 'video' && data.video_url) {
                         showVideo(data.video_url);

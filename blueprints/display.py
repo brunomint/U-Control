@@ -279,7 +279,14 @@ def handle_show_image(data):
         telao.diverge_monitor_from_public()
     else:
         telao.set_monitor(None)
-    telao.set_public_url(image_url)
+    if telao.kind_of_url(image_url) == 'cifra':
+        # A tela pública nunca mostra acordes (display_public.js troca a
+        # rota da cifra pela letra limpa): público = letra, palco = cifra
+        telao.set_public('lyrics', '/lyrics/display/public')
+        if not data.get('exclude_monitor'):
+            telao.set_monitor('cifra', image_url)
+    else:
+        telao.set_public_url(image_url)
     telao.broadcast_status()
 
     is_static_file = image_url.startswith('/static/') or \
@@ -861,6 +868,14 @@ def handle_send_url(url):
 
 @display_bp.route('/api/current-display')
 def api_current_display():
+    # Botão Letra/Cifra do /control manda a ROTA da letra (show_image com
+    # /lyrics/display…): quem abre do zero (monitor, prévia, telão
+    # recarregado) precisa da letra atual, não da própria rota — senão a
+    # página tentava abrir a si mesma num iframe e ficava em branco
+    if display_state._current_display_mode == 'image' and \
+            (display_state._last_image_url or '').startswith('/lyrics/display') and \
+            display_state._last_lyrics_payload:
+        return jsonify({'mode': 'lyrics', **display_state._last_lyrics_payload})
     if display_state._current_display_mode == 'image' and display_state._last_image_url:
         is_static = display_state._last_image_url.startswith('/static/') or \
             bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', display_state._last_image_url, re.I))
@@ -884,7 +899,7 @@ def api_current_display():
     display = DisplayState.query.first()
     url1 = (display.url1 if display else '') or ''
 
-    if url1.startswith('/lyrics/display') and 'song_id=' in url1:
+    if url1.startswith('/lyrics/display'):
         # LyricsState.last_payload guarda o payload exato do último
         # update_lyrics (JSON), reconstrução fiel (inclusive
         # partitura/tipo mixed) — a reconstrução antiga a partir só de

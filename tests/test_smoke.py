@@ -1332,3 +1332,24 @@ def test_slideshow_show_image_respects_server_mode(app):
     op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
     op.disconnect()
     monitor.disconnect()
+
+
+def test_letra_route_gives_current_lyrics_to_screens_opening_later(app, client):
+    op = _operator_socket(app)
+    op.emit("update_lyrics", {"title": "Coro", "text": "Santo, santo", "songId": 1, "type": "text"})
+    op.emit("show_image", {"image_url": "/lyrics/display/public"})
+    data = client.get("/api/current-display").get_json()
+    assert data["mode"] == "lyrics" and data["text"] == "Santo, santo"
+    op.disconnect()
+
+
+def test_cifra_shows_lyrics_to_public_and_cifra_on_monitor(app):
+    op = _operator_socket(app)
+    op.emit("show_image", {"image_url": "/lyrics/display"})
+    status = _telao_status_events(op)[-1]
+    assert status["live"]["kind"] == "lyrics"
+    assert status["live"]["url"] == "/lyrics/display/public"
+    assert status["monitor"]["kind"] == "cifra"
+    op.emit("show_image", {"image_url": "/lyrics/display/public"})
+    assert _telao_status_events(op)[-1]["monitor"] is None
+    op.disconnect()

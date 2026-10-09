@@ -413,6 +413,12 @@ function applyTelaoStatus(st) {
     if (url && (f1.getAttribute('src') !== target || f2.getAttribute('src') !== 'about:blank')) {
         updateIframes(url, '');
     }
+    // Cifra: o público vê a letra e o palco a cifra — acende o botão
+    // Cifra (o que o operador escolheu), não o Letra
+    if (st.live.kind === 'lyrics' && st.monitor && st.monitor.kind === 'cifra') {
+        onAir = ['cifra'];
+        refreshSourceButtons();
+    }
     const note = document.getElementById('preview-monitor-note');
     if (note) {
         note.hidden = !st.monitor;
@@ -543,7 +549,7 @@ socket.on('content_discarded', function(data) {
 
 const SOURCES = [
     { id: 'letra',   num: 8, label: 'Letra',   icon: 'fa-align-left',  sub: 'texto da música', route: '/lyrics/display/public' },
-    { id: 'cifra',   num: 4, label: 'Cifra',   icon: 'fa-guitar',      sub: 'acordes + letra', route: '/lyrics/display' },
+    { id: 'cifra',   num: 4, label: 'Cifra',   icon: 'fa-guitar',      sub: 'cifra no palco', route: '/lyrics/display' },
     { id: 'biblia',  num: 7, label: 'Bíblia',  icon: 'fa-book-bible',  sub: 'versículo',       route: '/bible/display' },
     { id: 'imagem',  num: 6, label: 'Imagem',  icon: 'fa-image',       sub: 'galeria',         route: '/img' },
     { id: 'relogio', num: 5, label: 'Relógio', icon: 'fa-clock',       sub: 'hora atual',      route: '/clock' },
