@@ -67,7 +67,7 @@ function updateSongList(song) {
     }
     songLink.textContent = song.author ? `${song.title} | ${song.author}` : song.title || "Título Desconhecido";
 
-    // Item bíblico: clicar manda ao vivo (sendBibleListItem) em vez de
+    // Item bíblico: clicar prepara pro telão (sendBibleListItem) em vez de
     // navegar pra /bible/control/... — busca e edição continuam por lá,
     // mas usar a passagem durante o culto acontece sem sair do /lyrics.
     if (song.isBible) {
@@ -223,9 +223,9 @@ async function saveList() {
     }
 }
 
-// ── Busca rápida de Bíblia — busca e envia pro display sem sair da página,
-// reusando a mesma API (/api/bible/search) e o mesmo evento socket
-// (update_bible) que a página /bible já usa pra mandar versículo. ──
+// ── Busca rápida de Bíblia — busca sem sair da página, reusando a mesma
+// API (/api/bible/search). Mandar pro telão passa pelo Preparar/Liberar,
+// igual às páginas da Bíblia (ver sendSingleBibleVerse). ──
 let bibleSearchTimeout = null;
 
 async function searchBibleQuick(query) {
@@ -324,7 +324,7 @@ let currentBibleVerses = [];
 let currentBibleReference = '';
 let currentBibleVersion = '';
 
-// Manda um item bíblico da Ordem do Culto ao vivo. Busca o texto de novo em
+// Prepara um item bíblico da Ordem do Culto pro telão. Busca o texto de novo em
 // vez de guardar no momento de adicionar (um item pode ter vindo de uma
 // ordem salva de outro dia — loadList() só reconstrói a referência, não o
 // texto) — os dois casos passam pelo mesmo caminho, sem duplicar lógica.
@@ -355,7 +355,7 @@ async function sendBibleListItem(reference, songItemEl) {
         document.querySelectorAll('#songList .current-live').forEach(el => el.classList.remove('current-live'));
         if (songItemEl) songItemEl.classList.add('current-live');
 
-        // Manda o primeiro verso ao vivo — nunca junta vários versos na
+        // Prepara o primeiro verso — nunca junta vários versos na
         // mesma tela; os demais ficam disponíveis pra clicar no painel.
         sendSingleBibleVerse(0);
     } catch (error) {
@@ -387,20 +387,28 @@ function closeBibleReadAlong() {
     document.getElementById('bibleReadAlongModal').style.display = 'none';
 }
 
-// Manda só UM verso (por índice em currentBibleVerses) ao vivo, e destaca
-// qual está no ar dentro do próprio painel de leitura.
+// Prepara só UM verso (por índice em currentBibleVerses) pro telão, e
+// destaca o último escolhido dentro do próprio painel de leitura.
 function sendSingleBibleVerse(index) {
     const v = currentBibleVerses[index];
     if (!v) return;
 
     const reference = `${v.book_name} ${v.chapter}:${v.verse}`;
-    socket.emit('update_bible', {
-        reference: reference,
-        text: `${v.verse} ${v.text}`,
-        book: v.book_name,
-        chapter: v.chapter,
-        verses: [{ num: v.verse, text: v.text }],
-        version: currentBibleVersion
+    // Prepara, igual às páginas da Bíblia (/bible/<livro>/<cap> e
+    // /bible/control) — antes esta era a única entrada que ia direto ao
+    // telão. Liberar pela barrinha do telão; depois do primeiro Liberar
+    // os próximos versos entram direto ("Bíblia entra direta").
+    socket.emit('stage_content', {
+        kind: 'bible',
+        payload: {
+            reference: reference,
+            text: `${v.verse} ${v.text}`,
+            book: v.book_name,
+            chapter: v.chapter,
+            verses: [{ num: v.verse, text: v.text }],
+            version: currentBibleVersion
+        },
+        label: reference
     });
 
     document.querySelectorAll('#bibleReadAlongText .bible-read-along-verse.active').forEach(el => el.classList.remove('active'));

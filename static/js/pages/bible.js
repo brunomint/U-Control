@@ -82,10 +82,3 @@ function goToVerse(bookAbbrev, chapter, verse) {
     window.location.href = `/bible/control/${bookAbbrev}/${chapter}?translation=${translation}`;
 }
 
-// Enviar versículo para o display
-function sendToDisplay(reference, text) {
-    socket.emit('update_bible', {
-        reference: reference,
-        text: text
-    });
-}
