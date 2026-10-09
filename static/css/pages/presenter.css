@@ -75,28 +75,71 @@
 /* Zoom (modal criado por presenter.js) */
 #zoom-modal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; padding: 16px; }
 #zoom-modal.open { display: flex; }
-.zoom-backdrop { position: absolute; inset: 0; background: rgba(5, 6, 12, .75); }
+.zoom-backdrop { position: absolute; inset: 0; background: rgba(5, 6, 12, .8); }
 .zoom-content {
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  max-width: 92vw;
-  max-height: 92vh;
-  padding: 18px;
+  display: grid;
+  gap: 12px;
+  /* Quadro 16:9 do maior tamanho que couber na janela */
+  width: min(1100px, 100%, calc((100vh - 230px) * 16 / 9));
+  min-width: min(320px, 100%);
+  padding: 16px;
   border-radius: var(--uc-r-lg);
   background: var(--uc-surface);
   border: 1px solid var(--uc-line);
   box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
 }
-.zoom-close { position: absolute; top: 8px; right: 8px; z-index: 2; border: 0; background: rgba(10, 12, 22, .7); color: #fff; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; }
-.zoom-image-wrapper { display: flex; justify-content: center; align-items: center; max-height: 62vh; overflow: hidden; background: #000; border-radius: var(--uc-r); }
-.zoom-image-wrapper img { max-width: 100%; max-height: 62vh; transition: transform .1s ease-out; user-select: none; touch-action: none; cursor: grab; }
-.zoom-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; font-weight: 600; }
-.zoom-controls input[type="range"] { width: 200px; accent-color: var(--uc-accent); }
-.zoom-apply { border: 0; border-radius: var(--uc-r-sm); padding: 8px 14px; background: var(--uc-accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-.zoom-apply:hover { background: var(--uc-accent-strong); }
+.zoom-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-right: 40px; }
+.zoom-head h3 { margin: 0; font-size: 16px; font-weight: 800; }
+.zoom-head h3 i { color: var(--uc-accent-text); margin-right: 4px; }
+.zoom-status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.zoom-status.live { background: var(--uc-live-soft, rgba(240, 80, 90, .15)); color: var(--uc-live); }
+.zoom-status.live .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.zoom-status.off { background: var(--uc-warn-soft); color: var(--uc-warn); }
+.zoom-close { position: absolute; top: 12px; right: 12px; border: 0; background: var(--uc-surface-2); color: var(--uc-text); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; }
+.zoom-close:hover { background: var(--uc-surface-3); }
+
+/* Mesmo enquadramento da tela pública (16:9, foto em cover) */
+.zoom-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--uc-r);
+  background: #000;
+  touch-action: none;
+  user-select: none;
+  cursor: zoom-in;
+}
+.zoom-stage.zoomed { cursor: grab; }
+.zoom-stage.zoomed.dragging { cursor: grabbing; }
+.zoom-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.zoom-hint { margin: 0; font-size: 12.5px; color: var(--uc-muted); text-align: center; }
+.zoom-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.zoom-step {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface-2);
+  color: var(--uc-text);
+  cursor: pointer;
+}
+.zoom-step:hover { border-color: var(--uc-accent); }
+.zoom-controls input[type="range"] { flex: 1 1 160px; min-width: 120px; accent-color: var(--uc-accent); }
+.zoom-value { min-width: 42px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.zoom-spacer { flex: 1 1 0; }
+@media (max-width: 560px) {
+  .zoom-spacer { display: none; }
+  .zoom-controls .uc-btn { flex: 1; justify-content: center; }
+}
 
 @media (max-width: 560px) {
   .foto-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

@@ -152,6 +152,7 @@
             routeLayer.style.display = 'none';
             lyricsLayer.style.display = 'none';
             mediaImg.src = url;
+            mediaImg.style.transform = '';
             mediaImg.style.display = 'block';
         }
 
@@ -161,6 +162,7 @@
             mediaVideo.load();
             mediaVideo.style.display = 'none';
             mediaImg.style.display = 'none';
+            mediaImg.style.transform = '';
             routeLayer.src = 'about:blank';
             routeLayer.style.display = 'none';
             lyricsLayer.style.display = lyricsHidden ? 'none' : 'flex';
@@ -239,6 +241,17 @@
             if (!mediaVideo.src) return;
             mediaVideo.currentTime = 0;
             mediaVideo.play().catch(() => {});
+        });
+
+        // Zoom do /presenter: translate(pan%) scale(zoom), origem no centro —
+        // a mesma transformação que o modal de zoom aplica na prévia. Só vale
+        // pra foto que está na tela: zoom de outra foto é ignorado (não troca
+        // a foto, pra não furar o Preparar/Liberar).
+        socket.on('display_image_zoom', (data) => {
+            if (!data || mediaImg.style.display === 'none' || mediaImg.getAttribute('src') !== data.image_url) return;
+            const pan = data.pan || { x: 0, y: 0 };
+            mediaImg.style.transformOrigin = '50% 50%';
+            mediaImg.style.transform = `translate(${pan.x || 0}%, ${pan.y || 0}%) scale(${parseFloat(data.zoom) || 1})`;
         });
 
         // Antes só escurecia foto/vídeo: com letra, Bíblia ou relógio no

@@ -40,6 +40,7 @@
                 iframe1.style.display = 'none';
                 iframe2.style.display = 'none';
                 displayImage.src = imageUrl;
+                displayImage.style.transform = '';
                 displayImage.style.display = 'block';
             } else {
                 // Se não for uma imagem, mostra o iframe padrão com uma URL de backup
@@ -189,6 +190,17 @@
         });
 
         // Escuta o evento 'display_image' do servidor e exibe a imagem se for válida
+        // Zoom do /presenter: translate(pan%) scale(zoom), origem no centro —
+        // a mesma transformação que o modal de zoom aplica na prévia. Só vale
+        // pra foto que está na tela: zoom de outra foto é ignorado (não troca
+        // a foto, pra não furar o Preparar/Liberar).
+        socket.on('display_image_zoom', function(data) {
+            if (!data || displayImage.style.display === 'none' || displayImage.getAttribute('src') !== data.image_url) return;
+            const pan = data.pan || { x: 0, y: 0 };
+            displayImage.style.transformOrigin = '50% 50%';
+            displayImage.style.transform = `translate(${pan.x || 0}%, ${pan.y || 0}%) scale(${parseFloat(data.zoom) || 1})`;
+        });
+
         socket.on('display_image', function(data) {
             const imageUrl = data.image_url;
             hideVideo();

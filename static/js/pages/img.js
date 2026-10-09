@@ -240,25 +240,14 @@ socket.on('blackout', function(data) {
     document.getElementById('videoEl').style.opacity = opacity;
 });
 
+// Zoom do /presenter: translate(pan%) scale(zoom), origem no centro —
+// a mesma transformação que o modal de zoom aplica na prévia. Só vale
+// pra foto que está na tela: zoom de outra foto é ignorado (não troca
+// a foto, pra não furar o Preparar/Liberar).
 socket.on('display_image_zoom', function(data) {
-    const { image_url, zoom, origin, pan } = data;
-    if (currentImageUrl !== image_url) {
-        loadImage(image_url);
-    }
+    if (!data || currentImageUrl !== data.image_url) return;
     const img = document.getElementById('imageUr');
-    const factor = parseFloat(zoom) || 1;
-    if (origin && typeof origin.x === 'number' && typeof origin.y === 'number') {
-        img.style.transformOrigin = `${origin.x}% ${origin.y}%`;
-    } else {
-        img.style.transformOrigin = '50% 50%';
-    }
-    let translateX = 0;
-    let translateY = 0;
-    if (pan && typeof pan.x === 'number' && typeof pan.y === 'number') {
-        const imgRect = img.getBoundingClientRect();
-        translateX = (pan.x / 100) * imgRect.width;
-        translateY = (pan.y / 100) * imgRect.height;
-    }
-    console.log('🎯 zoom/pan recebido', { image_url, zoom: factor, origin, pan, translateX, translateY });
-    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${factor})`;
+    const pan = data.pan || { x: 0, y: 0 };
+    img.style.transformOrigin = '50% 50%';
+    img.style.transform = `translate(${pan.x || 0}%, ${pan.y || 0}%) scale(${parseFloat(data.zoom) || 1})`;
 });

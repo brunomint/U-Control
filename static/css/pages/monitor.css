@@ -62,5 +62,6 @@
             aspect-ratio: auto;
             object-fit: contain; /* Ajusta a imagem para caber no espaço sem cortar */
             display: none; /* Oculta a imagem por padrão */
+            transition: transform .12s ease-out; /* zoom do /presenter */
 }
 

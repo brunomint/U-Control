@@ -372,10 +372,12 @@
                 liveImageUrl = null;  // telão foi pra letra, relógio etc.
             }
             markGallery();
+            onLivePhotoChanged();
         });
         socket.on('display_two_urls', function() {
             liveImageUrl = null;  // tela dividida no telão
             markGallery();
+            onLivePhotoChanged();
         });
         socket.on('content_discarded', function(data) {
             if (data && data.kind === 'image') {
@@ -495,41 +497,32 @@
         }
 
         function resetView(imageUrl) {
-            // Seleciona a imagem (preparar) e zera zoom/pan só localmente
-            // aqui no presenter. NÃO emite show_image_zoom aqui: o handler
-            // display_image_zoom no /img troca a imagem exibida sozinho
-            // quando a URL muda (loadImage()), o que ia ao ar a foto na
-            // hora — exatamente o que preparar deveria evitar. Zoom/pan
-            // via slider continua instantâneo (ver zoomSlider abaixo),
-            // mas só faz sentido ajustar depois que a foto já estiver no
-            // ar de verdade (liberada pelo /control).
+            // Só prepara a foto — não mexe em zoom (ver Modal de Zoom)
             showImageInMonitor(imageUrl);
-            panOffset = { x: 0, y: 0 };
-            zoomOrigin = { x: 50, y: 50 };
-            zoomSlider.value = 1;
-            zoomValueLabel.textContent = '1.0x';
-            applyLocalTransform(1, panOffset);
         }
 
         // ===== Modal de Zoom =====
-        let zoomModal;
-        let zoomImage;
-        let zoomSlider;
-        let zoomValueLabel;
+        // O quadro do modal é 16:9 com a foto em "cover", como a tela
+        // pública: o operador vê exatamente o enquadramento do telão.
+        // Estado: zoom (1–4x) + deslocamento em % do tamanho da foto,
+        // aplicado como translate(pan) scale(zoom) com origem no centro —
+        // as telas (/lyrics/display/public, /monitor, /img) aplicam a mesma
+        // transformação, então o que aparece aqui é o que aparece lá.
+        // O zoom só vai ao telão se a foto estiver no ar: dar zoom numa
+        // foto só preparada não pode furar o Preparar/Liberar.
+        const ZOOM_MIN = 1;
+        const ZOOM_MAX = 4;
+        let zoomModal, zoomStage, zoomImage, zoomSlider, zoomValueLabel, zoomStatus;
         let zoomCurrentImageUrl = null;
-        let zoomEmitTimeout = null;
-        let zoomOrigin = { x: 50, y: 50 }; // porcentagem
-        let panOffset = { x: 0, y: 0 }; // em %
-        let isDragging = false;
-        let dragStart = { x: 0, y: 0 };
-        let panBase = { x: 0, y: 0 };
-        const DRAG_MULTIPLIER = 1.0; // sensibilidade em porcentagem do tamanho da imagem
-
-        // Suporte a pinch (multi-touch)
-        const pointers = new Map();
-        let pinchStartDistance = null;
-        let pinchStartZoom = 1;
-        let pinchCenter = null;
+        let zoomLevel = 1;
+        let zoomPan = { x: 0, y: 0 };
+        // Último zoom mandado ao telão (pra reabrir o modal onde parou);
+        // zera quando o telão troca de foto, que volta a 1x
+        let telaoZoom = { url: null, zoom: 1, pan: { x: 0, y: 0 } };
+        let zoomEmitTimer = null;
+        let zoomLastEmit = 0;
+        const zoomPointers = new Map();
+        let zoomGesture = null;
 
         function ensureZoomElements() {
             if (zoomModal) return;
@@ -537,175 +530,203 @@
             zoomModal.id = 'zoom-modal';
             zoomModal.innerHTML = `
                 <div class="zoom-backdrop" onclick="closeZoomModal()"></div>
-                <div class="zoom-content">
-                    <button type="button" class="zoom-close" onclick="closeZoomModal()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
-                    <div class="zoom-image-wrapper">
-                        <img id="zoom-image" src="" alt="Zoom preview" title="Clique no ponto que deseja aproximar. Clique duplo ou toque duplo para reset.">
+                <div class="zoom-content" role="dialog" aria-modal="true" aria-label="Zoom da foto no telão">
+                    <div class="zoom-head">
+                        <h3><i class="fas fa-magnifying-glass"></i> Zoom no telão</h3>
+                        <span class="zoom-status" id="zoom-status"></span>
+                        <button type="button" class="zoom-close" onclick="closeZoomModal()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
                     </div>
+                    <div class="zoom-stage" id="zoom-stage">
+                        <img id="zoom-image" src="" alt="Foto em zoom" draggable="false">
+                    </div>
+                    <p class="zoom-hint">Arraste para mover · roda do mouse ou pinça para aproximar · duplo clique alterna 2x</p>
                     <div class="zoom-controls">
-                        <label for="zoom-range">Zoom: <span id="zoom-value">1.0x</span></label>
-                        <input type="range" id="zoom-range" min="1" max="3" step="0.1" value="1">
-                        <button type="button" class="zoom-apply" onclick="closeZoomModal()">Sair do zoom</button>
+                        <button type="button" class="zoom-step" id="zoom-out" aria-label="Diminuir zoom"><i class="fas fa-minus"></i></button>
+                        <input type="range" id="zoom-range" min="${ZOOM_MIN}" max="${ZOOM_MAX}" step="0.05" value="1" aria-label="Nível de zoom">
+                        <button type="button" class="zoom-step" id="zoom-in" aria-label="Aumentar zoom"><i class="fas fa-plus"></i></button>
+                        <span class="zoom-value" id="zoom-value">1.0x</span>
+                        <span class="zoom-spacer"></span>
+                        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="zoom-reset"><i class="fas fa-expand"></i> Foto inteira</button>
+                        <button type="button" class="uc-btn uc-btn-primary uc-btn-sm" onclick="closeZoomModal()">Fechar</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(zoomModal);
+            zoomStage = document.getElementById('zoom-stage');
             zoomImage = document.getElementById('zoom-image');
             zoomSlider = document.getElementById('zoom-range');
             zoomValueLabel = document.getElementById('zoom-value');
-            zoomSlider.addEventListener('input', () => {
-                const val = parseFloat(zoomSlider.value);
-                zoomValueLabel.textContent = `${val.toFixed(1)}x`;
-                applyLocalTransform(val, panOffset);
-                // Emite em tempo real com debounce curto
-                if (zoomEmitTimeout) clearTimeout(zoomEmitTimeout);
-                zoomEmitTimeout = setTimeout(() => {
-                    if (zoomCurrentImageUrl) {
-                        socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: val, origin: zoomOrigin, pan: panOffset });
-                    }
-                }, 80);
-            });
+            zoomStatus = document.getElementById('zoom-status');
 
-            // Define origem do zoom ao clicar na imagem
-            // Clique único: define origem
-            zoomImage.addEventListener('click', (ev) => {
-                const rect = zoomImage.getBoundingClientRect();
-                const x = ((ev.clientX - rect.left) / rect.width) * 100;
-                const y = ((ev.clientY - rect.top) / rect.height) * 100;
-                zoomOrigin = { x, y };
-                applyLocalTransform(parseFloat(zoomSlider.value), panOffset);
-                if (zoomCurrentImageUrl) {
-                    socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: parseFloat(zoomSlider.value), origin: zoomOrigin, pan: panOffset });
-                }
-            });
+            zoomSlider.addEventListener('input', () => zoomAt(parseFloat(zoomSlider.value)));
+            document.getElementById('zoom-in').addEventListener('click', () => zoomAt(zoomLevel * 1.25));
+            document.getElementById('zoom-out').addEventListener('click', () => zoomAt(zoomLevel / 1.25));
+            document.getElementById('zoom-reset').addEventListener('click', resetZoomPan);
 
-            // Duplo clique/toque para resetar zoom/pan e refletir no /img
-            zoomImage.addEventListener('dblclick', () => {
-                resetZoomPan();
-            });
-            zoomImage.addEventListener('touchend', (ev) => {
-                if (ev.detail === 2) {
-                    resetZoomPan();
-                }
-            });
-
-            // Toque/mouse move segurado para origem dinâmica (experiência mobile)
-            zoomImage.addEventListener('pointerdown', (ev) => {
-                isDragging = true;
-                dragStart = { x: ev.clientX, y: ev.clientY };
-                panBase = { ...panOffset };
-                zoomImage.setPointerCapture(ev.pointerId || 0);
-                zoomImage.style.cursor = 'grabbing';
-
-                // Armazena pointer para pinch
-                pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-                if (pointers.size === 2) {
-                    const pts = Array.from(pointers.values());
-                    pinchStartDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-                    pinchStartZoom = parseFloat(zoomSlider.value) || 1;
-                    pinchCenter = {
-                        x: (pts[0].x + pts[1].x) / 2,
-                        y: (pts[0].y + pts[1].y) / 2
-                    };
-                }
-            });
-            zoomImage.addEventListener('pointerup', (ev) => {
-                isDragging = false;
-                zoomImage.releasePointerCapture(ev.pointerId || 0);
-                zoomImage.style.cursor = 'grab';
-                pointers.delete(ev.pointerId);
-                if (pointers.size < 2) {
-                    pinchStartDistance = null;
-                }
-            });
-            zoomImage.addEventListener('pointerleave', () => {
-                isDragging = false;
-                zoomImage.style.cursor = 'grab';
-            });
-            zoomImage.addEventListener('pointermove', (ev) => {
-                // Atualiza pointer
-                pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-
-                // Pinch (dois dedos)
-                if (pointers.size >= 2 && pinchStartDistance) {
-                    ev.preventDefault();
-                    const pts = Array.from(pointers.values());
-                    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-                    if (dist > 0) {
-                        const scale = dist / pinchStartDistance;
-                        const newZoom = Math.min(3, Math.max(1, pinchStartZoom * scale));
-                        zoomSlider.value = newZoom;
-                        zoomValueLabel.textContent = `${newZoom.toFixed(1)}x`;
-                        // Centro do pinch vira origem
-                        const rect = zoomImage.getBoundingClientRect();
-                        const centerX = ((pts[0].x + pts[1].x) / 2 - rect.left) / rect.width * 100;
-                        const centerY = ((pts[0].y + pts[1].y) / 2 - rect.top) / rect.height * 100;
-                        zoomOrigin = { x: centerX, y: centerY };
-                        applyLocalTransform(newZoom, panOffset);
-                        if (zoomCurrentImageUrl) {
-                            socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: newZoom, origin: zoomOrigin, pan: panOffset });
-                        }
-                    }
-                    return;
-                }
-
-                // Pan (1 dedo)
-                if (!isDragging) return;
+            zoomStage.addEventListener('wheel', (ev) => {
                 ev.preventDefault();
-                const rect = zoomImage.getBoundingClientRect();
-                const dx = ((ev.clientX - dragStart.x) / rect.width) * 100 * DRAG_MULTIPLIER;
-                const dy = ((ev.clientY - dragStart.y) / rect.height) * 100 * DRAG_MULTIPLIER;
-                panOffset = { x: panBase.x + dx, y: panBase.y + dy };
-                // Limita para evitar perder a imagem (%)
-                panOffset.x = Math.max(-150, Math.min(150, panOffset.x));
-                panOffset.y = Math.max(-150, Math.min(150, panOffset.y));
-                applyLocalTransform(parseFloat(zoomSlider.value), panOffset);
-                if (zoomCurrentImageUrl) {
-                    socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: parseFloat(zoomSlider.value), origin: zoomOrigin, pan: panOffset });
-                }
-                console.log('drag pan', panOffset);
+                zoomAt(zoomLevel * Math.exp(-ev.deltaY * 0.0015), ev.clientX, ev.clientY);
+            }, { passive: false });
+
+            zoomStage.addEventListener('dblclick', (ev) => {
+                if (zoomLevel > 1.01) resetZoomPan();
+                else zoomAt(2, ev.clientX, ev.clientY);
             });
+
+            zoomStage.addEventListener('pointerdown', (ev) => {
+                zoomStage.setPointerCapture(ev.pointerId);
+                zoomPointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+                startZoomGesture();
+            });
+            zoomStage.addEventListener('pointermove', (ev) => {
+                if (!zoomPointers.has(ev.pointerId)) return;
+                zoomPointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+                const pts = [...zoomPointers.values()];
+                const rect = zoomStage.getBoundingClientRect();
+                if (pts.length >= 2 && zoomGesture.dist) {
+                    const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+                    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                    zoomAt(zoomGesture.zoom * dist / zoomGesture.dist, mid.x, mid.y);
+                } else if (pts.length === 1 && zoomLevel > 1) {
+                    zoomPan = clampPan({
+                        x: zoomGesture.pan.x + (pts[0].x - zoomGesture.x) / rect.width * 100,
+                        y: zoomGesture.pan.y + (pts[0].y - zoomGesture.y) / rect.height * 100,
+                    }, zoomLevel);
+                    renderZoom();
+                }
+            });
+            const endPointer = (ev) => {
+                zoomPointers.delete(ev.pointerId);
+                startZoomGesture();
+            };
+            zoomStage.addEventListener('pointerup', endPointer);
+            zoomStage.addEventListener('pointercancel', endPointer);
+
+            document.addEventListener('keydown', (ev) => {
+                if (!zoomModal.classList.contains('open')) return;
+                const step = { ArrowLeft: [5, 0], ArrowRight: [-5, 0], ArrowUp: [0, 5], ArrowDown: [0, -5] }[ev.key];
+                if (ev.key === 'Escape') closeZoomModal();
+                else if (ev.key === '+' || ev.key === '=') zoomAt(zoomLevel * 1.25);
+                else if (ev.key === '-') zoomAt(zoomLevel / 1.25);
+                else if (ev.key === '0') resetZoomPan();
+                else if (step) {
+                    zoomPan = clampPan({ x: zoomPan.x + step[0], y: zoomPan.y + step[1] }, zoomLevel);
+                    renderZoom();
+                } else return;
+                ev.preventDefault();
+            });
+        }
+
+        // Base do gesto atual (arrastar com 1 dedo/mouse, pinça com 2)
+        function startZoomGesture() {
+            const pts = [...zoomPointers.values()];
+            zoomGesture = {
+                x: pts[0] ? pts[0].x : 0,
+                y: pts[0] ? pts[0].y : 0,
+                pan: { ...zoomPan },
+                zoom: zoomLevel,
+                dist: pts.length >= 2 ? Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) : 0,
+            };
+            zoomStage.classList.toggle('dragging', pts.length > 0);
+        }
+
+        // Não deixa a borda da foto entrar no quadro
+        function clampPan(pan, zoom) {
+            const max = (zoom - 1) / 2 * 100;
+            return {
+                x: Math.max(-max, Math.min(max, pan.x)),
+                y: Math.max(-max, Math.min(max, pan.y)),
+            };
+        }
+
+        // Muda o zoom mantendo parado o ponto sob o cursor/dedos (ou o
+        // centro do quadro, sem coordenadas)
+        function zoomAt(newZoom, clientX, clientY) {
+            newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom || 1));
+            const rect = zoomStage.getBoundingClientRect();
+            const cx = clientX === undefined ? 0 : ((clientX - rect.left) / rect.width - 0.5) * 100;
+            const cy = clientY === undefined ? 0 : ((clientY - rect.top) / rect.height - 0.5) * 100;
+            const k = newZoom / zoomLevel;
+            zoomPan = clampPan({ x: cx - k * (cx - zoomPan.x), y: cy - k * (cy - zoomPan.y) }, newZoom);
+            zoomLevel = newZoom;
+            renderZoom();
+        }
+
+        function renderZoom() {
+            zoomImage.style.transform = `translate(${zoomPan.x}%, ${zoomPan.y}%) scale(${zoomLevel})`;
+            zoomSlider.value = zoomLevel;
+            zoomValueLabel.textContent = `${zoomLevel.toFixed(1)}x`;
+            zoomStage.classList.toggle('zoomed', zoomLevel > 1.001);
+            queueZoomEmit();
+        }
+
+        function zoomIsLive() {
+            return !!zoomCurrentImageUrl && zoomCurrentImageUrl === liveImageUrl;
+        }
+
+        function updateZoomStatus() {
+            if (!zoomStatus) return;
+            const live = zoomIsLive();
+            zoomStatus.className = 'zoom-status ' + (live ? 'live' : 'off');
+            zoomStatus.innerHTML = live
+                ? '<span class="dot"></span> No ar · o telão acompanha'
+                : '<i class="fas fa-circle-info"></i> Não está no ar · o zoom vai ao telão quando ela for liberada';
+        }
+
+        // Manda ao telão no máximo ~15x por segundo, sempre com o estado final
+        function queueZoomEmit() {
+            if (!zoomIsLive()) return;
+            clearTimeout(zoomEmitTimer);
+            const wait = Math.max(0, 66 - (Date.now() - zoomLastEmit));
+            zoomEmitTimer = setTimeout(() => {
+                if (!zoomIsLive()) return;
+                zoomLastEmit = Date.now();
+                telaoZoom = { url: zoomCurrentImageUrl, zoom: zoomLevel, pan: { ...zoomPan } };
+                socket.emit('show_image_zoom', {
+                    image_url: zoomCurrentImageUrl,
+                    zoom: zoomLevel,
+                    origin: { x: 50, y: 50 },
+                    pan: { ...zoomPan },
+                });
+            }, wait);
+        }
+
+        // Chamado quando a foto no ar muda (display_image)
+        function onLivePhotoChanged() {
+            if (telaoZoom.url !== liveImageUrl) telaoZoom = { url: null, zoom: 1, pan: { x: 0, y: 0 } };
+            if (!zoomModal || !zoomModal.classList.contains('open')) return;
+            updateZoomStatus();
+            // A foto do modal acabou de entrar no ar: leva o zoom atual
+            if (zoomIsLive()) queueZoomEmit();
         }
 
         function openZoomModal(imageUrl) {
             ensureZoomElements();
             zoomCurrentImageUrl = imageUrl;
             zoomImage.src = imageUrl;
-            zoomSlider.value = 1;
-            zoomValueLabel.textContent = '1.0x';
-            zoomOrigin = { x: 50, y: 50 };
-            panOffset = { x: 0, y: 0 };
-            applyLocalTransform(1, panOffset);
+            const resume = telaoZoom.url === imageUrl && imageUrl === liveImageUrl;
+            zoomLevel = resume ? telaoZoom.zoom : 1;
+            zoomPan = resume ? { ...telaoZoom.pan } : { x: 0, y: 0 };
             zoomModal.classList.add('open');
+            updateZoomStatus();
+            zoomImage.style.transform = `translate(${zoomPan.x}%, ${zoomPan.y}%) scale(${zoomLevel})`;
+            zoomSlider.value = zoomLevel;
+            zoomValueLabel.textContent = `${zoomLevel.toFixed(1)}x`;
+            zoomStage.classList.toggle('zoomed', zoomLevel > 1.001);
         }
 
+        // Fechar mantém o zoom no telão (use "Foto inteira" pra voltar)
         function closeZoomModal() {
             if (!zoomModal) return;
             zoomModal.classList.remove('open');
+            zoomPointers.clear();
             zoomCurrentImageUrl = null;
         }
 
-        function applyZoom() {
-            if (!zoomCurrentImageUrl) return;
-            const zoom = parseFloat(zoomSlider.value) || 1;
-            // Emite evento dedicado de zoom com origem
-            socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom, origin: zoomOrigin, pan: panOffset });
-            closeZoomModal();
-        }
-
         function resetZoomPan() {
-            panOffset = { x: 0, y: 0 };
-            zoomSlider.value = 1;
-            zoomValueLabel.textContent = '1.0x';
-            applyLocalTransform(1, panOffset);
-            if (zoomCurrentImageUrl) {
-                socket.emit('show_image_zoom', { image_url: zoomCurrentImageUrl, zoom: 1, origin: { x: 50, y: 50 }, pan: { x: 0, y: 0 } });
-            }
-        }
-
-        function applyLocalTransform(val, pan) {
-            zoomImage.style.transformOrigin = `${zoomOrigin.x}% ${zoomOrigin.y}%`;
-            zoomImage.style.transform = `translate(${pan.x}%, ${pan.y}%) scale(${val})`;
+            zoomLevel = 1;
+            zoomPan = { x: 0, y: 0 };
+            renderZoom();
         }
 
         window.onload = () => {
@@ -713,7 +734,7 @@
             fetch('/api/current-display')
                 .then(r => r.json())
                 .then(d => {
-                    if (d.mode === 'image' && d.is_static) { liveImageUrl = d.image_url; markGallery(); }
+                    if (d.mode === 'image' && d.is_static) { liveImageUrl = d.image_url; markGallery(); onLivePhotoChanged(); }
                 })
                 .catch(() => {});
             loadFolders();
