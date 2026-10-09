@@ -17,7 +17,7 @@
 <!-- Três zonas: o que está no telão (esquerda), o que mostrar (centro) e
      ferramentas em abas (direita). Os ids usados pelo control.js são os
      mesmos do layout antigo de sidebar — só a disposição mudou. -->
-<main class="ctl" data-telao-commands>
+<main class="ctl panel-open" id="ctl" data-telao-commands>
 
     <!-- ═══ 1. Telão agora ═══ -->
     <section class="uc-card ctl-live" aria-labelledby="live-title">
@@ -53,20 +53,12 @@
             <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="Copia o que está no público para o monitor de palco"><i class="fas fa-rotate"></i> Sincronizar monitor</button>
         </div>
 
-        <div class="mode-toggles">
-            <div class="mode-row">
-                <div>
-                    <div class="mode-name">Modo monitor</div>
-                    <div class="mode-desc">Só o retorno de palco muda</div>
-                </div>
-                <button type="button" class="uc-switch" id="monitor-mode-btn" role="switch" aria-checked="false" aria-label="Modo monitor" onclick="toggleMonitorMode()"></button>
-            </div>
-            <div class="mode-row">
-                <div>
-                    <div class="mode-name">Modo público</div>
-                    <div class="mode-desc">Só a tela do público muda</div>
-                </div>
-                <button type="button" class="uc-switch" id="public-mode-btn" role="switch" aria-checked="false" aria-label="Modo público" onclick="togglePublicMode()"></button>
+        <div class="mode-choice">
+            <div class="mode-choice-label">O que as ações mudam</div>
+            <div class="uc-seg mode-seg" role="group" aria-label="O que as ações mudam">
+                <button type="button" data-mode="all" aria-pressed="true" title="Público e monitor de palco">Os dois</button>
+                <button type="button" data-mode="public" aria-pressed="false" title="Só a tela do público muda; o monitor de palco fica como está">Só público</button>
+                <button type="button" data-mode="monitor" aria-pressed="false" title="Só o monitor de palco muda; o público fica como está">Só monitor</button>
             </div>
         </div>
     </section>
@@ -75,39 +67,66 @@
     <section class="uc-card ctl-show" aria-labelledby="show-title">
         <div class="uc-card-head show-head">
             <h2 id="show-title">O que mostrar</h2>
-            <div class="uc-seg" role="group" aria-label="Layout do telão">
-                <button type="button" data-layout="full" aria-pressed="true"><i class="fas fa-square"></i> Tela inteira</button>
-                <button type="button" data-layout="split" aria-pressed="false"><i class="fas fa-table-columns"></i> Dividida</button>
-            </div>
         </div>
-
-        <div class="side-label" id="side-label-a">Fonte <span class="hint">· um toque já envia ao telão</span></div>
+        <p class="show-hint">Um toque já envia ao telão</p>
         <div class="sources" data-slot="a"></div>
 
-        <div id="split-b" hidden>
-            <div class="side-label">Lado direito</div>
-            <div class="sources" data-slot="b"></div>
-            <p class="split-warn"><i class="fas fa-triangle-exclamation"></i> Tela dividida aparece só no retorno de palco (/monitor).</p>
-            <div class="send-row">
-                <span class="uc-muted" id="split-desc">Escolha os dois lados e envie.</span>
-                <button type="button" class="uc-btn uc-btn-live" id="split-send" disabled><i class="fas fa-play"></i> Mostrar no telão</button>
-            </div>
+        <h3 class="tools-title">Ferramentas</h3>
+        <div class="tool-buttons">
+            <button type="button" class="tool-btn" data-open-tool="images" title="Galeria e slideshow"><i class="fas fa-images"></i><span>Galeria</span></button>
+            <button type="button" class="tool-btn" data-open-tool="timer" title="Cronômetro"><i class="fas fa-hourglass-half"></i><span>Cronômetro</span></button>
+            <button type="button" class="tool-btn" data-open-tool="ticker" title="Avisos em faixa"><i class="fas fa-bullhorn"></i><span>Avisos</span></button>
+            <button type="button" class="tool-btn" data-open-tool="split" title="Monitor dividido (só no retorno de palco)"><i class="fas fa-table-columns"></i><span>Monitor dividido</span></button>
+            <button type="button" class="tool-btn" data-open-tool="urls" title="URLs com nome"><i class="fas fa-globe"></i><span>URLs</span></button>
+            <button type="button" class="tool-btn" data-open-tool="share" title="Mostrar a tela deste computador"><i class="fas fa-desktop"></i><span>Tela do PC</span></button>
+            <button type="button" class="tool-btn" data-open-tool="links" title="Abrir telas em outra aba"><i class="fas fa-up-right-from-square"></i><span>Abrir telas</span></button>
         </div>
+        <button type="button" class="uc-btn uc-btn-secondary panel-reopen" id="panel-reopen"><i class="fas fa-table-columns"></i> Abrir painel</button>
     </section>
 
-    <!-- ═══ 3. Ferramentas ═══ -->
-    <section class="uc-card ctl-tools" aria-label="Ferramentas">
-        <div class="tools-tabs" role="tablist">
-            <button type="button" role="tab" data-tool="images" aria-selected="true"><i class="fas fa-images"></i> Imagens</button>
-            <button type="button" role="tab" data-tool="timer" aria-selected="false"><i class="fas fa-hourglass-half"></i> Cronômetro</button>
-            <button type="button" role="tab" data-tool="ticker" aria-selected="false"><i class="fas fa-bullhorn"></i> Avisos</button>
-            <button type="button" role="tab" data-tool="urls" aria-selected="false"><i class="fas fa-globe"></i> URLs</button>
-            <button type="button" role="tab" data-tool="share" aria-selected="false"><i class="fas fa-desktop"></i> Tela</button>
-            <button type="button" role="tab" data-tool="links" aria-selected="false"><i class="fas fa-up-right-from-square"></i> Abrir</button>
+    <!-- ═══ 3. Painel: páginas de comando (música, Bíblia, fotos) e
+         ferramentas sem sair do Controle. Páginas abrem em iframe e
+         escondem o próprio menu (html.uc-embed, ver _nav.html). ═══ -->
+    <section class="uc-card ctl-panel" id="ctl-panel" aria-label="Painel">
+        <div class="panel-head">
+            <button type="button" class="panel-back" id="panel-back" aria-label="Voltar ao Controle"><i class="fas fa-chevron-left"></i> Controle</button>
+            <div class="panel-tabs" role="tablist" aria-label="Páginas do painel">
+                <button type="button" role="tab" class="panel-tab" data-page="musica" aria-selected="false">Música</button>
+                <button type="button" role="tab" class="panel-tab" data-page="biblia" aria-selected="false">Bíblia</button>
+                <button type="button" role="tab" class="panel-tab" data-page="fotos" aria-selected="false">Fotos</button>
+                <button type="button" role="tab" class="panel-tab" data-page="ordem" aria-selected="false">Ordem do culto</button>
+            </div>
+            <span class="panel-tool-title" id="panel-tool-title" hidden></span>
+            <span class="panel-spacer"></span>
+            <a class="panel-icon" id="panel-newtab" href="#" target="_blank" rel="noopener" title="Abrir em nova aba" aria-label="Abrir em nova aba"><i class="fas fa-up-right-from-square"></i></a>
+            <button type="button" class="panel-icon" id="panel-expand" title="Expandir" aria-label="Expandir painel"><i class="fas fa-expand"></i></button>
+            <button type="button" class="panel-icon" id="panel-close" title="Fechar painel" aria-label="Fechar painel"><i class="fas fa-xmark"></i></button>
         </div>
+        <div class="panel-body">
+            <div class="panel-pane page-pane" data-pane="musica" hidden></div>
+            <div class="panel-pane page-pane" data-pane="biblia" hidden></div>
+            <div class="panel-pane page-pane" data-pane="fotos" hidden></div>
+            <div class="panel-pane" data-pane="ordem" hidden>
+                <div class="ordem-head"><h3 id="ordem-title">Ordem do culto</h3></div>
+                <ol class="ordem-list" id="ordem-list"></ol>
+                <p class="uc-note">Clique numa música ou leitura para abrir no painel.</p>
+            </div>
+
+            <!-- Monitor dividido: só o retorno de palco divide -->
+            <div class="tool panel-pane" data-panel="split" hidden>
+                <p class="split-warn"><i class="fas fa-triangle-exclamation"></i> Aparece só no monitor de palco. A tela do público não divide.</p>
+                <div class="side-label">Lado esquerdo</div>
+                <div class="sources" data-slot="left"></div>
+                <div class="side-label">Lado direito</div>
+                <div class="sources" data-slot="right"></div>
+                <div class="send-row">
+                    <span class="uc-muted" id="split-desc">Escolha os dois lados e envie.</span>
+                    <button type="button" class="uc-btn uc-btn-live" id="split-send" disabled><i class="fas fa-play"></i> Mostrar no monitor</button>
+                </div>
+            </div>
 
         <!-- Imagens e vídeos -->
-        <div class="tool" data-panel="images">
+        <div class="tool panel-pane" data-panel="images" hidden>
             <div class="tool-row">
                 <div class="uc-field grow">
                     <label for="folderSelect">Pasta</label>
@@ -143,7 +162,7 @@
         </div>
 
         <!-- Cronômetro -->
-        <div class="tool" data-panel="timer" hidden>
+        <div class="tool panel-pane" data-panel="timer" hidden>
             <div class="uc-field">
                 <label for="countdownLabel">Texto acima do relógio (opcional)</label>
                 <input class="uc-input" type="text" id="countdownLabel" placeholder="Ex.: O culto começa em">
@@ -167,7 +186,7 @@
         </div>
 
         <!-- Avisos em faixa -->
-        <div class="tool" data-panel="ticker" hidden>
+        <div class="tool panel-pane" data-panel="ticker" hidden>
             <div class="uc-field">
                 <label for="tickerText">Aviso em faixa rolante</label>
                 <textarea class="uc-input" id="tickerText" rows="3" placeholder="Texto do aviso…"></textarea>
@@ -187,16 +206,25 @@
         </div>
 
         <!-- URLs -->
-        <div class="tool" data-panel="urls" hidden>
-            <div class="uc-field"><label for="url1">URL 1</label><input class="uc-input uc-mono" type="text" id="url1" placeholder="Cole um link"></div>
-            <div class="uc-field"><label for="url2">URL 2</label><input class="uc-input uc-mono" type="text" id="url2" placeholder="Cole um link"></div>
-            <div class="uc-field"><label for="url3">URL 3</label><input class="uc-input uc-mono" type="text" id="url3" placeholder="Cole um link"></div>
+        <div class="tool panel-pane" data-panel="urls" hidden>
+            <div class="url-row">
+                <div class="uc-field"><label for="name1">Nome</label><input class="uc-input" type="text" id="name1" maxlength="80" placeholder="URL 1"></div>
+                <div class="uc-field grow"><label for="url1">Endereço</label><input class="uc-input uc-mono" type="text" id="url1" placeholder="Cole um link"></div>
+            </div>
+            <div class="url-row">
+                <div class="uc-field"><label for="name2">Nome</label><input class="uc-input" type="text" id="name2" maxlength="80" placeholder="URL 2"></div>
+                <div class="uc-field grow"><label for="url2">Endereço</label><input class="uc-input uc-mono" type="text" id="url2" placeholder="Cole um link"></div>
+            </div>
+            <div class="url-row">
+                <div class="uc-field"><label for="name3">Nome</label><input class="uc-input" type="text" id="name3" maxlength="80" placeholder="URL 3"></div>
+                <div class="uc-field grow"><label for="url3">Endereço</label><input class="uc-input uc-mono" type="text" id="url3" placeholder="Cole um link"></div>
+            </div>
             <button type="button" class="uc-btn uc-btn-primary" onclick="saveUrls()">Salvar URLs</button>
-            <p class="uc-note">Para mostrar uma URL no telão, use URL 1, 2 ou 3 em "O que mostrar".</p>
+            <p class="uc-note">Cada URL vira um botão em "O que mostrar", com o nome que você der (ex.: Câmera, Slides do pastor).</p>
         </div>
 
         <!-- Compartilhar tela -->
-        <div class="tool" data-panel="share" hidden>
+        <div class="tool panel-pane" data-panel="share" hidden>
             <p class="uc-muted small">Mostra a tela deste computador no telão.</p>
             <div class="tool-row">
                 <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('public')">Público</button>
@@ -208,7 +236,7 @@
         </div>
 
         <!-- Abrir telas em nova aba (itens de nav_config com contexto "launcher") -->
-        <div class="tool" data-panel="links" hidden>
+        <div class="tool panel-pane" data-panel="links" hidden>
             <p class="uc-muted small">Abre em outra aba, sem sair do Controle.</p>
             <ul class="uc-rows">
                 {% for item in launcher_items %}
@@ -219,6 +247,7 @@
                 </li>
                 {% endfor %}
             </ul>
+        </div>
         </div>
     </section>
 </main>

@@ -70,6 +70,31 @@ def api_culto_status():
     })
 
 
+@orders_bp.route('/api/painel/musica', methods=['GET'])
+@login_required
+def api_painel_musica():
+    """Qual música abrir na aba Música do painel do Controle: a que está
+    (ou esteve por último) no telão; senão a primeira do próximo culto."""
+    import display_state
+    from models import LyricsState
+    today = date.today().isoformat()
+    order_date, order = get_next_order(today)
+    song_id = (display_state._last_lyrics_payload or {}).get('songId')
+    if song_id is None:
+        try:
+            state = LyricsState.query.first()
+            song_id = state.song_id if state else None
+        except Exception:
+            song_id = None
+    if song_id is None and order:
+        for item in order.get('itens', []):
+            url = item.get('url') or ''
+            if url.startswith('/lyrics/'):
+                song_id = url.split('/lyrics/')[1].split('?')[0]
+                break
+    return jsonify({'song_id': song_id, 'order_date': order_date})
+
+
 @orders_bp.route('/api/culto/proximo', methods=['GET'])
 @login_required
 def api_culto_proximo():
@@ -84,7 +109,9 @@ def api_culto_proximo():
     itens = []
     for item in order.get('itens', []):
         if item.get('isBible'):
-            itens.append({'kind': 'bible', 'title': item.get('reference') or item.get('title') or 'Leitura'})
+            ref = item.get('reference') or item.get('title') or 'Leitura'
+            itens.append({'kind': 'bible', 'title': ref,
+                          'url': item.get('bible_url') or item.get('url') or f'/bible?search={ref}'})
         elif 'anyText' in item:
             text = (item.get('anyText') or '').strip()
             if text:

@@ -39,8 +39,9 @@ display_bp = Blueprint('display', __name__)
 def load_urls():
     row = SavedUrls.query.first()
     if not row:
-        return {'url1': '', 'url2': '', 'url3': ''}
-    return {'url1': row.url1 or '', 'url2': row.url2 or '', 'url3': row.url3 or ''}
+        return {'url1': '', 'url2': '', 'url3': '', 'name1': '', 'name2': '', 'name3': ''}
+    return {'url1': row.url1 or '', 'url2': row.url2 or '', 'url3': row.url3 or '',
+            'name1': row.name1 or '', 'name2': row.name2 or '', 'name3': row.name3 or ''}
 
 
 def save_urls(urls):
@@ -51,6 +52,10 @@ def save_urls(urls):
     row.url1 = urls.get('url1', '')
     row.url2 = urls.get('url2', '')
     row.url3 = urls.get('url3', '')
+    for i in (1, 2, 3):
+        key = f'name{i}'
+        if key in urls:
+            setattr(row, key, (urls.get(key) or '').strip()[:80])
     try:
         db.session.commit()
     except Exception:
@@ -231,6 +236,7 @@ def handle_video_ended(data):
 
 # Rota para salvar URLs no servidor
 @display_bp.route('/save_urls', methods=['POST'])
+@login_required
 def save_urls_route():
     urls = request.json
     save_urls(urls)

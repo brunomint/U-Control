@@ -1,5 +1,6 @@
  document.addEventListener('DOMContentLoaded', function () {
-    setupToolTabs();
+    setupPanel();
+    setupModeChoice();
     setupSourcePicker();
     setupPreviewScaling();
     loadUrls();
@@ -144,26 +145,34 @@ function updateIframes(url1, url2) {
 }
 
 function saveUrls() {
-    const urls = {
-        url1: document.getElementById('url1').value,
-        url2: document.getElementById('url2').value,
-        url3: document.getElementById('url3').value
-    };
+    const urls = {};
+    [1, 2, 3].forEach(i => {
+        urls[`url${i}`] = document.getElementById(`url${i}`).value.trim();
+        urls[`name${i}`] = document.getElementById(`name${i}`).value.trim();
+    });
+    // Uma página do próprio Controle no telão mostraria o Controle pro público
+    const selfPage = [1, 2, 3].find(i => /\/control(\b|$|\?)/.test(urls[`url${i}`]));
     fetch('/save_urls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(urls)
     }).then(res => res.json())
-      .then(data => data.status === 'success' && alert('URLs salvas com sucesso!'));
+      .then(data => {
+          if (data.status !== 'success' || !window.ucToast) return;
+          window.ucToast('URLs salvas.');
+          if (selfPage) window.ucToast(`Atenção: a URL ${selfPage} é a página do Controle — no telão, o público veria o Controle.`, 'error');
+      })
+      .catch(() => window.ucToast && window.ucToast('Não deu pra salvar as URLs.', 'error'));
 }
 
 function loadUrls() {
     fetch('/load_urls')
         .then(res => res.json())
         .then(urls => {
-            document.getElementById('url1').value = urls.url1;
-            document.getElementById('url2').value = urls.url2;
-            document.getElementById('url3').value = urls.url3;
+            [1, 2, 3].forEach(i => {
+                document.getElementById(`url${i}`).value = urls[`url${i}`] || '';
+                document.getElementById(`name${i}`).value = urls[`name${i}`] || '';
+            });
             refreshSourceButtons();
         });
 }
@@ -1022,9 +1031,11 @@ let publicOnlyMode = false;
 // voltava "desligado" enquanto o servidor seguia em Só monitor, e o
 // próximo clique saía como se não houvesse modo.
 function renderModes() {
-    document.getElementById('monitor-mode-btn').setAttribute('aria-checked', String(monitorOnlyMode));
+    const mode = monitorOnlyMode ? 'monitor' : publicOnlyMode ? 'public' : 'all';
+    document.querySelectorAll('.mode-seg [data-mode]').forEach(btn => {
+        btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
+    });
     document.getElementById('monitor-mode-indicator').style.display = monitorOnlyMode ? 'flex' : 'none';
-    document.getElementById('public-mode-btn').setAttribute('aria-checked', String(publicOnlyMode));
     document.getElementById('public-mode-indicator').style.display = publicOnlyMode ? 'flex' : 'none';
     updateModePill();
 }
@@ -1035,9 +1046,12 @@ function applyServerMode(mode) {
     renderModes();
 }
 
-function toggleMonitorMode() {
-    monitorOnlyMode = !monitorOnlyMode;
-    if (monitorOnlyMode && publicOnlyMode) togglePublicMode();
+// "O que as ações mudam": Os dois | Só público | Só monitor — uma escolha
+// só (antes eram dois interruptores que se desligavam um ao outro).
+// Só público: o monitor de palco fica congelado no que já mostrava.
+function setModeChoice(mode) {
+    monitorOnlyMode = mode === 'monitor';
+    publicOnlyMode = mode === 'public';
     renderModes();
     // Manda o modo pro servidor — fonte única de verdade que _release_kind
     // usa pra QUALQUER liberação (card do /control ou banner nas próprias
@@ -1047,15 +1061,10 @@ function toggleMonitorMode() {
     socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
 }
 
-// ── Modo Público ────────────────────────────────────────────────────────
-// Inverso do Modo Monitor: ações afetam só o público, o monitor de palco
-// fica congelado no que já estava exibindo.
-function togglePublicMode() {
-    publicOnlyMode = !publicOnlyMode;
-    if (publicOnlyMode && monitorOnlyMode) toggleMonitorMode();
-    renderModes();
-    // Ver comentário equivalente em toggleMonitorMode().
-    socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
+function setupModeChoice() {
+    document.querySelectorAll('.mode-seg [data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => setModeChoice(btn.dataset.mode));
+    });
 }
 
 function syncMonitor() {
@@ -1215,7 +1224,7 @@ function loadStagedContent() {
 function releaseStagedContent(kind) {
     // Modo Público/Monitor não precisa ser mandado aqui — o servidor já
     // sabe (display_state._active_mode, atualizado por set_display_mode
-    // em toggleMonitorMode/togglePublicMode) e aplica pra qualquer
+    // em setModeChoice) e aplica pra qualquer
     // liberação, venha daqui ou do banner nas próprias páginas.
     socket.emit('release_staged_content', { kind });
 }
@@ -1257,8 +1266,8 @@ const SOURCES = [
 ];
 const SOURCE_BY_ID = Object.fromEntries(SOURCES.map(src => [src.id, src]));
 
-let screenLayout = 'full';            // 'full' | 'split'
-let splitPick = { a: null, b: null };  // escolha em andamento na tela dividida
+// Escolha em andamento no "Monitor dividido" (ferramenta no painel)
+let splitPick = { left: null, right: null };
 let onAir = [];                        // fontes no ar, derivadas dos iframes da prévia
 
 function urlInputValue(src) {
@@ -1289,11 +1298,18 @@ function sourceFromUrl(url) {
     return fixed ? fixed.id : null;
 }
 
+// Nome do botão: URL 1–3 usam o nome dado na ferramenta URLs
+function sourceLabel(src) {
+    if (src.route) return src.label;
+    const el = document.getElementById(src.id.replace('url', 'name'));
+    return (el && el.value.trim()) || src.label;
+}
+
 function renderSourceButtons() {
     document.querySelectorAll('.sources').forEach(box => {
         box.innerHTML = SOURCES.map(src => `
             <button type="button" class="src-btn" data-src="${src.id}" aria-pressed="false">
-                <i class="fas ${src.icon}"></i>${src.label}<small></small>
+                <i class="fas ${src.icon}"></i><span class="src-label"></span><small></small>
             </button>`).join('');
     });
     refreshSourceButtons();
@@ -1304,28 +1320,25 @@ function refreshSourceButtons() {
         const slot = box.dataset.slot;
         box.querySelectorAll('.src-btn').forEach(btn => {
             const src = SOURCE_BY_ID[btn.dataset.src];
+            btn.querySelector('.src-label').textContent = sourceLabel(src);
             btn.querySelector('small').textContent = sourceSubLabel(src);
             btn.disabled = !src.route && !urlInputValue(src);
-            const picked = screenLayout === 'split' && splitPick[slot] === src.id;
-            const live = screenLayout === 'full'
-                ? onAir.length === 1 && onAir[0] === src.id
-                : onAir.length === 2 && onAir[slot === 'a' ? 0 : 1] === src.id;
-            btn.setAttribute('aria-pressed', String(picked));
-            btn.classList.toggle('on-air', live && !picked);
-            btn.title = live ? 'No ar agora' : '';
+            if (slot === 'a') {
+                // Fontes da tela cheia: destaca o que está na tela pública
+                const live = onAir.length === 1 && onAir[0] === src.id;
+                btn.classList.toggle('on-air', live);
+                btn.title = live ? 'No ar agora' : sourceLabel(src);
+            } else {
+                btn.setAttribute('aria-pressed', String(splitPick[slot] === src.id));
+            }
         });
     });
 
-    const split = screenLayout === 'split';
-    document.getElementById('split-b').hidden = !split;
-    document.getElementById('side-label-a').innerHTML = split
-        ? 'Lado esquerdo'
-        : 'Fonte <span class="hint">· um toque já envia ao telão</span>';
-    const ready = splitPick.a && splitPick.b && splitPick.a !== splitPick.b;
+    const ready = splitPick.left && splitPick.right && splitPick.left !== splitPick.right;
     document.getElementById('split-send').disabled = !ready;
     document.getElementById('split-desc').textContent = ready
-        ? `${SOURCE_BY_ID[splitPick.a].label} à esquerda, ${SOURCE_BY_ID[splitPick.b].label} à direita.`
-        : (splitPick.a && splitPick.a === splitPick.b ? 'Escolha fontes diferentes para cada lado.' : 'Escolha os dois lados e envie.');
+        ? `${sourceLabel(SOURCE_BY_ID[splitPick.left])} à esquerda, ${sourceLabel(SOURCE_BY_ID[splitPick.right])} à direita.`
+        : (splitPick.left && splitPick.left === splitPick.right ? 'Escolha fontes diferentes para cada lado.' : 'Escolha os dois lados e envie.');
 }
 
 function setupSourcePicker() {
@@ -1336,7 +1349,7 @@ function setupSourcePicker() {
             const btn = e.target.closest('.src-btn');
             if (!btn || btn.disabled) return;
             const src = SOURCE_BY_ID[btn.dataset.src];
-            if (screenLayout === 'full') {
+            if (box.dataset.slot === 'a') {
                 sendUrl(src.num);
             } else {
                 splitPick[box.dataset.slot] = src.id;
@@ -1345,21 +1358,14 @@ function setupSourcePicker() {
         });
     });
 
-    document.querySelectorAll('[data-layout]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            screenLayout = btn.dataset.layout;
-            document.querySelectorAll('[data-layout]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
-            splitPick = { a: onAir[0] || null, b: onAir[1] || null };
-            refreshSourceButtons();
-        });
-    });
-
     document.getElementById('split-send').addEventListener('click', () => {
-        if (!(splitPick.a && splitPick.b && splitPick.a !== splitPick.b)) return;
-        showTwoUrls(SOURCE_BY_ID[splitPick.a].num, SOURCE_BY_ID[splitPick.b].num);
+        if (!(splitPick.left && splitPick.right && splitPick.left !== splitPick.right)) return;
+        showTwoUrls(SOURCE_BY_ID[splitPick.left].num, SOURCE_BY_ID[splitPick.right].num);
+        if (window.ucToast) window.ucToast('Monitor de palco dividido.');
     });
 
-    ['url1', 'url2', 'url3'].forEach(id => document.getElementById(id).addEventListener('input', refreshSourceButtons));
+    ['url1', 'url2', 'url3', 'name1', 'name2', 'name3'].forEach(id =>
+        document.getElementById(id).addEventListener('input', refreshSourceButtons));
 }
 
 // Toda troca de tela (daqui, de outro PC via socket ou do estado salvo)
@@ -1391,17 +1397,165 @@ function updateModePill() {
     else pill.innerHTML = '<span class="dot"></span>Público e monitor';
 }
 
-// Abas das ferramentas; lembra a última aberta neste navegador.
-function setupToolTabs() {
-    const tabs = document.querySelectorAll('.tools-tabs [data-tool]');
-    const show = name => {
-        tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.tool === name)));
-        document.querySelectorAll('.tool[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== name; });
-        try { localStorage.setItem('uc-control-tool', name); } catch (e) { /* sem storage */ }
+// ── Painel ──────────────────────────────────────────────────────────────
+// Páginas de comando (música, Bíblia, fotos) e ferramentas abertas ao lado
+// do Controle, sem trocar de aba. As páginas carregam em iframe e escondem
+// o próprio menu (html.uc-embed, ver _nav.html); cada uma é criada na
+// primeira vez que a aba é aberta e fica viva ao trocar de aba (não perde
+// a música ou o capítulo aberto). Estado (aberto, expandido, aba) fica
+// salvo neste navegador.
+const PANEL_PAGES = { musica: 'Música', biblia: 'Bíblia', fotos: 'Fotos', ordem: 'Ordem do culto' };
+const PANEL_TOOLS = {
+    images: 'Galeria e slideshow', timer: 'Cronômetro', ticker: 'Avisos', split: 'Monitor dividido',
+    urls: 'URLs', share: 'Tela do PC', links: 'Abrir telas',
+};
+const panelState = { open: true, expanded: false, view: 'musica' };
+const panelFrames = {};
+
+function panelSave() {
+    try { localStorage.setItem('uc-control-panel', JSON.stringify(panelState)); } catch (e) { /* sem storage */ }
+}
+
+function panelIsMobile() { return window.matchMedia('(max-width: 900px)').matches; }
+
+function panelApply() {
+    const ctl = document.getElementById('ctl');
+    ctl.classList.toggle('panel-open', panelState.open);
+    ctl.classList.toggle('panel-closed', !panelState.open);
+    ctl.classList.toggle('panel-expanded', panelState.open && panelState.expanded && !panelIsMobile());
+    document.body.classList.toggle('panel-sheet-open', panelState.open && panelIsMobile());
+    const exp = document.getElementById('panel-expand');
+    exp.title = panelState.expanded ? 'Recolher ao lado do Controle' : 'Expandir';
+    exp.setAttribute('aria-label', exp.title);
+    exp.querySelector('i').className = panelState.expanded ? 'fas fa-compress' : 'fas fa-expand';
+    panelSave();
+}
+
+function panelFrameUrl(page) {
+    if (page === 'biblia') return Promise.resolve('/bible');
+    if (page === 'fotos') return Promise.resolve('/presenter');
+    // Música: a que está (ou esteve por último) no telão, senão a 1ª do
+    // próximo culto (/api/painel/musica)
+    return fetch('/api/painel/musica').then(r => r.json()).then(d => {
+        if (!d.song_id) return null;
+        return `/lyrics/${d.song_id}` + (d.order_date ? `?order=${d.order_date}` : '');
+    }).catch(() => null);
+}
+
+function panelOpenPage(page, url) {
+    const pane = document.querySelector(`.panel-pane[data-pane="${page}"]`);
+    if (!pane) return;
+    const load = (src) => {
+        if (!src) {
+            pane.innerHTML = '<div class="panel-empty"><i class="fas fa-music"></i><p>Nenhuma música no próximo culto.</p>' +
+                '<p class="uc-muted">Abra uma pela aba <b>Ordem do culto</b> ou pela lista de Músicas.</p></div>';
+            return;
+        }
+        let frame = panelFrames[page];
+        if (!frame) {
+            pane.innerHTML = '';
+            frame = document.createElement('iframe');
+            frame.className = 'panel-frame';
+            frame.title = PANEL_PAGES[page];
+            frame.addEventListener('load', () => {
+                // Página nova dentro do painel: herda o "sem conexão" atual
+                try { frame.contentDocument.body.classList.toggle('uc-offline', !!window.__ucOffline); } catch (e) { /* outra origem */ }
+            });
+            pane.appendChild(frame);
+            panelFrames[page] = frame;
+        }
+        if (src !== frame.getAttribute('src')) frame.setAttribute('src', src);
     };
-    tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.tool)));
-    let saved = null;
-    try { saved = localStorage.getItem('uc-control-tool'); } catch (e) { /* sem storage */ }
-    if (saved && document.querySelector(`.tool[data-panel="${saved}"]`)) show(saved);
+    if (url) load(url);
+    else if (!panelFrames[page]) panelFrameUrl(page).then(load);
+}
+
+// url: abrir esta página na aba (ex.: música clicada na Ordem do culto)
+// em vez da padrão
+function panelShow(view, url) {
+    panelState.view = view;
+    const isPage = view in PANEL_PAGES;
+    document.querySelectorAll('.panel-tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.page === view)));
+    document.querySelectorAll('.panel-pane').forEach(p => {
+        p.hidden = (p.dataset.pane || p.dataset.panel) !== view;
+    });
+    const title = document.getElementById('panel-tool-title');
+    title.hidden = isPage;
+    title.textContent = isPage ? '' : PANEL_TOOLS[view] || '';
+    document.querySelectorAll('[data-open-tool]').forEach(b => b.classList.toggle('active', b.dataset.openTool === view));
+    document.getElementById('panel-newtab').hidden = !isPage || view === 'ordem';
+    if (view === 'ordem') panelLoadOrder();
+    else if (isPage) panelOpenPage(view, url);
+    panelSave();
+}
+
+function panelLoadOrder() {
+    const list = document.getElementById('ordem-list');
+    fetch('/api/culto/proximo').then(r => r.json()).then(d => {
+        list.innerHTML = '';
+        if (d.status === 'none' || !d.itens) {
+            list.innerHTML = '<li class="ordem-empty">Nenhum culto com ordem cadastrada.</li>';
+            return;
+        }
+        const when = d.date ? d.date.split('-').reverse().slice(0, 2).join('/') : '';
+        const label = [d.tipo, when, d.horario].filter(Boolean).join(' · ');
+        document.getElementById('ordem-title').textContent = 'Ordem do culto' + (label ? ` · ${label}` : '');
+        if (!d.itens.length) {
+            list.innerHTML = `<li class="ordem-empty">Esta ordem ainda não tem itens. <a href="/order/${d.date}" target="_blank" rel="noopener">Montar a ordem</a></li>`;
+            return;
+        }
+        const KIND = { song: 'Música', bible: 'Bíblia', text: 'Momento' };
+        d.itens.forEach((item, i) => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ordem-item kind-' + item.kind;
+            btn.disabled = !item.url;
+            btn.innerHTML = '<span class="n"></span><span class="t"></span><span class="k"></span>';
+            btn.querySelector('.n').textContent = String(i + 1).padStart(2, '0');
+            btn.querySelector('.t').textContent = item.title + (item.artist ? ` · ${item.artist}` : '');
+            btn.querySelector('.k').textContent = KIND[item.kind] || '';
+            btn.addEventListener('click', () => {
+                if (item.kind === 'song') {
+                    const url = item.url + (d.date ? (item.url.includes('?') ? '&' : '?') + `order=${d.date}` : '');
+                    panelShow('musica', url);
+                } else if (item.kind === 'bible') {
+                    panelShow('biblia', item.url);
+                }
+            });
+            li.appendChild(btn);
+            list.appendChild(li);
+        });
+    }).catch(() => { list.innerHTML = '<li class="ordem-empty">Não deu pra carregar a ordem do culto.</li>'; });
+}
+
+function setupPanel() {
+    try { Object.assign(panelState, JSON.parse(localStorage.getItem('uc-control-panel') || '{}')); } catch (e) { /* sem storage */ }
+    if (!(panelState.view in PANEL_PAGES) && !(panelState.view in PANEL_TOOLS)) panelState.view = 'musica';
+    // No celular o painel começa fechado (cobre a tela inteira)
+    if (panelIsMobile()) panelState.open = false;
+
+    document.querySelectorAll('.panel-tab').forEach(t => t.addEventListener('click', () => panelShow(t.dataset.page)));
+    document.querySelectorAll('[data-open-tool]').forEach(b => b.addEventListener('click', () => {
+        panelState.open = true;
+        panelApply();
+        panelShow(b.dataset.openTool);
+    }));
+    document.getElementById('panel-close').addEventListener('click', () => { panelState.open = false; panelApply(); });
+    document.getElementById('panel-back').addEventListener('click', () => { panelState.open = false; panelApply(); });
+    document.getElementById('panel-reopen').addEventListener('click', () => { panelState.open = true; panelApply(); panelShow(panelState.view); });
+    document.getElementById('panel-expand').addEventListener('click', () => { panelState.expanded = !panelState.expanded; panelApply(); });
+    // "Abrir em nova aba": a página como está agora no painel
+    document.getElementById('panel-newtab').addEventListener('click', (e) => {
+        const frame = panelFrames[panelState.view];
+        let href = frame && frame.getAttribute('src');
+        try { href = frame.contentWindow.location.href; } catch (err) { /* usa o src */ }
+        if (!href) { e.preventDefault(); return; }
+        e.currentTarget.href = href;
+    });
+    window.addEventListener('resize', panelApply);
+
+    panelApply();
+    if (panelState.open) panelShow(panelState.view);
 }
 

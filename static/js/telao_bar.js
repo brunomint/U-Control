@@ -9,6 +9,30 @@
     const bar = document.getElementById('telao-bar');
     if (!bar) return;
 
+    // Dentro do painel do Controle: a barra e a vigia de conexão são as do
+    // Controle. Aqui só não deixa comando sair enquanto ele estiver sem
+    // conexão (o Controle marca window.__ucOffline e a classe uc-offline
+    // no <body> deste iframe).
+    if (document.documentElement.classList.contains('uc-embed')) {
+        const guard = () => {
+            const proto = window.io && window.io.Socket && window.io.Socket.prototype;
+            if (!proto || proto.__ucGuarded) return;
+            const original = proto.emit;
+            proto.emit = function (event, ...args) {
+                let off = false;
+                try { off = !!window.top.__ucOffline; } catch (e) { /* sem acesso */ }
+                if (off) {
+                    try { (window.top.ucToast || window.ucToast)('Sem conexão com o servidor — o comando não foi enviado.', 'error'); } catch (e) { /* sem aviso */ }
+                    return this;
+                }
+                return original.call(this, event, ...args);
+            };
+            proto.__ucGuarded = true;
+        };
+        guard();
+        return;
+    }
+
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const STAGED_NAMES = { image: 'Foto', lyrics: 'Letra', bible: 'Bíblia' };
@@ -122,6 +146,10 @@
         offline = value;
         window.__ucOffline = value;
         document.body.classList.toggle('uc-offline', value);
+        // Páginas abertas no painel do Controle também ficam travadas
+        document.querySelectorAll('iframe').forEach((f) => {
+            try { f.contentDocument.body.classList.toggle('uc-offline', value); } catch (e) { /* outra origem */ }
+        });
         if (value) {
             bar.classList.add('is-offline');
             bar.innerHTML =

@@ -1,15 +1,20 @@
-/* Controle (control.html) — três zonas: telão agora | o que mostrar |
-   ferramentas. Base, cards, botões, switch e formulários vêm do app.css. */
+/* Controle (control.html) — telão agora | o que mostrar | painel (páginas
+   de comando e ferramentas). Base, cards, botões e formulários vêm do
+   app.css. Estados do painel em .ctl: panel-open, panel-closed,
+   panel-expanded (control.js: panelApply). */
 
 .ctl {
+  --panel-h: calc(100vh - var(--uc-nav-h) - 40px);
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 372px) minmax(210px, 264px) minmax(0, 1fr);
   gap: 16px;
-  max-width: 1500px;
+  max-width: 1880px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 20px 16px;
   align-items: start;
 }
+.ctl.panel-closed { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); max-width: 1200px; }
+.ctl.panel-closed .ctl-panel { display: none; }
 .ctl .uc-card { padding: 16px; }
 .ctl .uc-card-head { margin-bottom: 12px; }
 .small { font-size: 12.5px; }
@@ -80,13 +85,12 @@
 .live-actions .uc-btn { width: 100%; }
 #blackoutBtn.active { background: var(--uc-live); border-color: var(--uc-live); color: #fff; }
 
-.mode-toggles { margin-top: 12px; }
-.mode-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
-.mode-row + .mode-row { border-top: 1px solid var(--uc-line); }
-.mode-name { font-weight: 700; }
-.mode-desc { color: var(--uc-muted); font-size: 12.5px; }
-#monitor-mode-btn[aria-checked="true"] { background: var(--uc-live); }
-#public-mode-btn[aria-checked="true"] { background: #208c5c; }
+.mode-choice { margin-top: 14px; display: grid; gap: 6px; }
+.mode-choice-label { font-size: 12px; font-weight: 700; color: var(--uc-muted); }
+.mode-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mode-seg button { justify-content: center; }
+.mode-seg [data-mode="public"][aria-pressed="true"] { background: #208c5c; color: #fff; }
+.mode-seg [data-mode="monitor"][aria-pressed="true"] { background: var(--uc-live); color: #fff; }
 
 /* Preparado, esperando liberação */
 .staged-panel { display: grid; gap: 8px; }
@@ -129,13 +133,15 @@
 }
 .side-label .hint { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--uc-faint); }
 #split-b .side-label { margin-top: 16px; }
-.sources { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ctl.panel-closed .ctl-show .sources { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ctl-panel .sources { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .src-btn {
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 6px;
-  min-height: 84px;
+  gap: 4px;
+  min-height: 74px;
   padding: 12px 6px;
   border-radius: var(--uc-r);
   background: var(--uc-surface-2);
@@ -168,31 +174,7 @@
 }
 .send-row .uc-muted { flex: 1 1 180px; font-size: 13px; }
 
-/* ── 3. Ferramentas ── */
-.tools-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  margin: -4px -4px 14px;
-  border-bottom: 1px solid var(--uc-line);
-}
-.tools-tabs button {
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  background: none;
-  padding: 8px 8px;
-  color: var(--uc-muted);
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-.tools-tabs button:hover { color: var(--uc-text); }
-.tools-tabs button[aria-selected="true"] { color: var(--uc-text); border-bottom-color: var(--uc-accent); }
+/* ── 3. Painel ── */
 .tool { display: grid; gap: 12px; }
 .tool > .uc-btn { justify-self: stretch; }
 .tool-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
@@ -252,19 +234,6 @@
 .image-container .video-restart-btn:hover { color: #fff; }
 .image-container.selected-for-delete { border-color: var(--uc-danger); background: var(--uc-danger-soft); }
 
-/* ── Responsivo ── */
-@media (max-width: 1180px) {
-  .ctl { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .ctl-tools { grid-column: 1 / -1; }
-  #imageGallery { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-}
-@media (max-width: 760px) {
-  .ctl { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 420px) {
-  .sources { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
 /* Tela preta ligada: a prévia também fica preta (antes continuava
    mostrando o conteúdo e parecia que o botão não tinha funcionado) */
 .preview-blackout {
@@ -292,3 +261,135 @@
 .preview-monitor-note[hidden] { display: none; }
 .preview-monitor-note i { color: var(--uc-faint); }
 .preview-monitor-note b { color: var(--uc-text); font-weight: 700; }
+
+/* ── 2. O que mostrar: dica e ferramentas ── */
+.show-hint { margin: -6px 0 10px; font-size: 12px; color: var(--uc-faint); }
+.tools-title { margin: 18px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-muted); }
+.tool-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.tool-btn {
+  display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 10px;
+  border-radius: var(--uc-r-sm); border: 1px solid var(--uc-line); background: transparent;
+  color: var(--uc-muted); font: inherit; font-size: 12.5px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.tool-btn i { width: 16px; text-align: center; color: var(--uc-faint); }
+.tool-btn:hover { color: var(--uc-text); border-color: var(--uc-faint); }
+.tool-btn.active { color: var(--uc-text); border-color: var(--uc-accent); background: var(--uc-accent-soft); }
+.tool-btn.active i { color: var(--uc-accent-text); }
+.ctl.panel-closed .tool-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.panel-reopen { width: 100%; margin-top: 14px; display: none; }
+.ctl.panel-closed .panel-reopen { display: inline-flex; justify-content: center; }
+
+/* ── 3. Painel ── */
+.ctl .ctl-panel {
+  position: sticky;
+  top: calc(var(--uc-nav-h) + 20px);
+  height: var(--panel-h);
+  min-height: 420px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-color: var(--uc-accent);
+}
+.panel-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--uc-line); background: var(--uc-surface-2); }
+.panel-tabs { display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.panel-tabs::-webkit-scrollbar { display: none; }
+.panel-tab {
+  height: 34px; padding: 0 14px; flex: none; border-radius: var(--uc-r-sm); border: 1px solid transparent;
+  background: transparent; color: var(--uc-muted); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.panel-tab:hover { color: var(--uc-text); }
+.panel-tab[aria-selected="true"] { color: var(--uc-text); border-color: var(--uc-accent); background: var(--uc-accent-soft); }
+.panel-tool-title { padding-left: 8px; margin-left: 4px; border-left: 1px solid var(--uc-line); font-weight: 800; white-space: nowrap; }
+.panel-spacer { flex: 1; }
+.panel-icon {
+  width: 34px; height: 34px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--uc-r-sm); background: transparent; color: var(--uc-muted); cursor: pointer; text-decoration: none;
+}
+.panel-icon:hover { color: var(--uc-text); background: var(--uc-surface-3); }
+.panel-icon[hidden] { display: none; }
+.panel-back { display: none; }
+.panel-body { flex: 1; min-height: 0; position: relative; }
+.panel-pane { height: 100%; box-sizing: border-box; }
+.panel-pane[hidden] { display: none !important; }
+.page-pane { display: flex; }
+.panel-frame { flex: 1; width: 100%; height: 100%; border: 0; background: var(--uc-bg); }
+.ctl-panel .tool { padding: 18px; overflow-y: auto; align-content: start; }
+.panel-empty { margin: auto; text-align: center; color: var(--uc-text); padding: 24px; }
+.panel-empty i { font-size: 28px; color: var(--uc-faint); }
+.panel-empty p { margin: 8px 0 0; }
+.panel-pane[data-pane="ordem"] { padding: 18px; overflow-y: auto; display: grid; align-content: start; gap: 10px; }
+.ordem-head h3 { margin: 0; font-size: 20px; font-weight: 800; }
+.ordem-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ordem-item {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--uc-r);
+  border: 1px solid var(--uc-line); background: var(--uc-surface-2); color: var(--uc-text); font: inherit; text-align: left; cursor: pointer;
+}
+.ordem-item:hover:not(:disabled) { border-color: var(--uc-accent); }
+.ordem-item:disabled { cursor: default; color: var(--uc-muted); background: transparent; }
+.ordem-item .n { width: 24px; color: var(--uc-faint); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ordem-item .t { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ordem-item .k { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-faint); }
+.ordem-item.kind-bible .k { color: var(--uc-warn); }
+.ordem-empty { color: var(--uc-muted); padding: 12px 0; }
+.url-row { display: flex; gap: 8px; align-items: flex-end; }
+.url-row .uc-field:first-child { width: 150px; flex: none; }
+.ctl-panel .side-label { margin-top: 10px; }
+
+/* Painel expandido: só o painel; o "Telão agora" vira um cartão flutuante
+   no canto (prévia, tela preta e Liberar à mão) */
+.ctl.panel-expanded { grid-template-columns: minmax(0, 1fr); max-width: none; }
+.ctl.panel-expanded .ctl-show { display: none; }
+.ctl.panel-expanded .ctl-panel { grid-row: 1; }
+.ctl.panel-expanded .ctl-live {
+  position: fixed; right: 24px; bottom: 24px; z-index: 50; width: 300px; padding: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .5);
+}
+.ctl.panel-expanded .ctl-live .mode-choice,
+.ctl.panel-expanded .ctl-live .preview-monitor-note,
+.ctl.panel-expanded .ctl-live .uc-pill { display: none; }
+.ctl.panel-expanded .ctl-live .uc-card-head { margin-bottom: 8px; }
+.ctl.panel-expanded .ctl-live .live-actions { margin-top: 8px; }
+.ctl.panel-expanded .ctl-live .live-actions .uc-btn { font-size: 12px; padding: 6px 8px; }
+.ctl.panel-expanded .ctl-live .staged-panel:not(:empty) { margin-bottom: 8px; }
+
+/* Notebook (≤1500px) com o painel aberto: "O que mostrar" vira uma coluna
+   estreita de botões, pra sobrar espaço pro painel */
+@media (max-width: 1500px) {
+  .ctl.panel-open:not(.panel-expanded) { grid-template-columns: minmax(280px, 320px) 84px minmax(0, 1fr); gap: 12px; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show { padding: 8px 6px; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .uc-card-head,
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .show-hint,
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .tools-title { display: none; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .sources,
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .tool-buttons { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .src-btn { min-height: 54px; padding: 6px 2px; font-size: 10.5px; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .src-btn > i { font-size: 16px; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .src-btn small { display: none; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .src-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .tool-buttons { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--uc-line); }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .tool-btn { justify-content: center; padding: 6px 0; }
+  .ctl.panel-open:not(.panel-expanded) .ctl-show .tool-btn span { display: none; }
+}
+
+/* Celular/tablet: uma coluna; o painel abre por cima de tudo, com
+   "‹ Controle" pra voltar */
+@media (max-width: 900px) {
+  .ctl, .ctl.panel-closed, .ctl.panel-open:not(.panel-expanded) { grid-template-columns: minmax(0, 1fr); }
+  .ctl.panel-closed .ctl-show .sources, .ctl.panel-closed .tool-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ctl.panel-open .ctl-panel {
+    position: fixed; top: var(--uc-nav-h); left: 0; right: 0; bottom: 0; z-index: 900;
+    height: auto; min-height: 0; border-radius: 0; border: 0;
+  }
+  .panel-back {
+    display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 10px 0 4px; flex: none;
+    border: 0; background: transparent; color: var(--uc-text); font: inherit; font-weight: 700; cursor: pointer;
+  }
+  .panel-head { flex-wrap: wrap; }
+  .panel-tabs { order: 5; flex-basis: 100%; }
+  .panel-tab { border-radius: 999px; border-color: var(--uc-line); }
+  #panel-expand, #panel-close { display: none; }
+  .url-row { flex-wrap: wrap; }
+  .url-row .uc-field:first-child { width: 100%; }
+  body.panel-sheet-open { overflow: hidden; }
+}

@@ -385,12 +385,13 @@ def test_image_path_and_saved_urls_round_trip(app):
 
     with app.app_context():
         save_image_path("/static/imagens/foo.jpg")
-        save_urls({"url1": "http://a", "url2": "http://b", "url3": ""})
+        save_urls({"url1": "http://a", "url2": "http://b", "url3": "", "name1": "Câmera"})
         image = load_image_path()
         urls = load_urls()
 
     assert image == {"image": "/static/imagens/foo.jpg"}
-    assert urls == {"url1": "http://a", "url2": "http://b", "url3": ""}
+    assert urls == {"url1": "http://a", "url2": "http://b", "url3": "",
+                    "name1": "Câmera", "name2": "", "name3": ""}
 
 
 def test_download_monitor_launcher_invalid_os_returns_400(client):
@@ -1277,3 +1278,30 @@ def test_slideshow_forgotten_when_its_control_tab_closes(app):
     import telao
     assert telao.build_status()["slideshow"] is None
     op.disconnect()
+
+
+def test_panel_song_api_and_order_bible_urls(logged_in_client):
+    data = logged_in_client.get("/api/painel/musica").get_json()
+    assert set(data) == {"song_id", "order_date"}
+
+
+def test_embedded_pages_hide_nav_via_client_detection(logged_in_client):
+    html = logged_in_client.get("/presenter").get_data(as_text=True)
+    assert "uc-embed" in html  # script que detecta iframe e esconde menu/barra
+
+
+def test_control_has_panel_tools_and_mode_choice(logged_in_client):
+    html = logged_in_client.get("/control").get_data(as_text=True)
+    for marker in ('id="ctl-panel"', 'data-page="musica"', 'data-page="biblia"', 'data-page="fotos"',
+                   'data-page="ordem"', 'data-open-tool="timer"', 'data-open-tool="split"',
+                   'data-mode="public"', 'data-mode="monitor"', 'id="name1"', 'data-slot="left"'):
+        assert marker in html, marker
+    assert "monitor-mode-btn" not in html  # interruptores antigos saíram
+
+
+def test_save_urls_requires_login_and_keeps_names(app, client, logged_in_client):
+    assert client.post("/save_urls", json={"url1": "x"}).status_code in (302, 400, 401)
+    r = logged_in_client.post("/save_urls", json={"url1": "http://cam", "name1": "Câmera",
+                                                  "url2": "", "url3": ""})
+    assert r.get_json()["status"] == "success"
+    assert logged_in_client.get("/load_urls").get_json()["name1"] == "Câmera"

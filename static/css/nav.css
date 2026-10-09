@@ -194,3 +194,10 @@ body.uc-offline [data-telao-commands] { opacity: .45; pointer-events: none; filt
   .tb-staged .tb-label, .tb-monitor .tb-label { max-width: 32vw; }
 }
 @media print { .telao-bar { display: none !important; } body.has-telao-bar { --uc-nav-h: var(--uc-navbar-h); } }
+
+/* Página dentro do painel do Controle (html.uc-embed, ver _nav.html) */
+html.uc-embed .site-nav,
+html.uc-embed .site-nav-spacer,
+html.uc-embed .telao-bar { display: none !important; }
+html.uc-embed body,
+html.uc-embed body.has-telao-bar { --uc-nav-h: 0px; }

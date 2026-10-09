@@ -6,6 +6,13 @@
      nas páginas que ainda não migraram pro app.css. -->
 <link rel="stylesheet" href="{{ versioned_static('css/tokens.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/nav.css') }}">
+<script>
+// Aberta dentro do painel do Controle (iframe da mesma origem): esconde
+// menu e barrinha do telão — que já estão no Controle. Detectado aqui, e
+// não por parâmetro na URL, pra valer também quando se navega dentro do
+// painel (ex.: da busca da Bíblia pro capítulo).
+try { if (window.self !== window.top && window.top.location.origin === location.origin) document.documentElement.classList.add('uc-embed'); } catch (e) { /* outra origem */ }
+</script>
 <nav class="site-nav" aria-label="Navegação principal">
     <a class="site-nav-brand" href="{{ url_for('auth.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
         <img src="{{ url_for('static', filename='U-Control_Icon.png') }}" alt="">

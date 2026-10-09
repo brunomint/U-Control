@@ -108,3 +108,7 @@ class SavedUrls(db.Model):
     url1 = db.Column(db.String(500), nullable=True)
     url2 = db.Column(db.String(500), nullable=True)
     url3 = db.Column(db.String(500), nullable=True)
+    # Nome que aparece no botão da fonte no Controle ("Câmera", "Slides")
+    name1 = db.Column(db.String(80), nullable=True)
+    name2 = db.Column(db.String(80), nullable=True)
+    name3 = db.Column(db.String(80), nullable=True)
