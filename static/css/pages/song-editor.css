@@ -230,3 +230,27 @@ textarea[name="texts[]"], #entrada { display: none; }
   #blockEditor { padding: 12px; }
   .tool-btn { padding: 7px 9px; }
 }
+
+/* Botões das seções (subir, descer, duplicar, excluir) — sempre visíveis,
+   discretos, acendem no hover; funcionam em tablet sem hover */
+#blockEditor .section-controls { gap: 2px; opacity: 1 !important; }
+#blockEditor .sec-btn {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--uc-accent-text);
+  opacity: .6;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity .15s, background .15s;
+}
+#blockEditor .section-block:hover .sec-btn,
+#blockEditor .sec-btn:focus-visible { opacity: 1; }
+#blockEditor .sec-btn:hover { background: rgba(255, 255, 255, .08); opacity: 1; }
+#blockEditor .sec-btn.danger { color: var(--uc-danger); }
+#blockEditor .sec-btn.danger:hover { background: var(--uc-danger-soft); }
+#blockEditor .sec-btn:disabled { opacity: .2 !important; cursor: default; background: transparent; }
+#blockEditor .section-flash { box-shadow: 0 0 0 2px var(--uc-accent); transition: box-shadow .3s; }

@@ -1549,7 +1549,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 input.type = 'text';
                 input.placeholder = 'Nome da seção (ex: Verso 1, Coro, Estrofe...)';
                 input.value = block.title || '';
-                input.style.cssText = `background: transparent; border: none; color: var(--uc-accent-text); font-weight: bold; font-size: 16px; width: calc(100% - ${selectionMode ? '120px' : '80px'}); outline: none; margin-left: ${selectionMode ? '25px' : '0'};`;
+                input.style.cssText = `background: transparent; border: none; color: var(--uc-accent-text); font-weight: bold; font-size: 16px; width: calc(100% - ${selectionMode ? '120px' : '180px'}); outline: none; margin-left: ${selectionMode ? '25px' : '0'};`;
                 
                 // Event listener para atualizar título
                 input.addEventListener('input', () => {
@@ -1557,8 +1557,14 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     updateHiddenField();
                 });
                 
-                // Enter no nome da seção pula pro texto logo abaixo
+                // Enter no nome da seção pula pro texto logo abaixo;
+                // Alt+↑/↓ move a seção inteira
                 input.addEventListener('keydown', (e) => {
+                    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                        e.preventDefault();
+                        moveSection(index, e.key === 'ArrowUp' ? -1 : 1);
+                        return;
+                    }
                     if (e.key !== 'Enter') return;
                     e.preventDefault();
                     const ta = document.querySelector(`#blockEditor [data-block-index="${index + 1}"] textarea`);
@@ -1568,27 +1574,35 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 // Controles
                 const controls = document.createElement('div');
                 controls.className = 'section-controls';
-                controls.style.cssText = `position: absolute; top: 8px; right: 10px; opacity: 1; display: ${selectionMode ? 'none' : 'block'};`;
+                controls.style.cssText = `position: absolute; top: 50%; transform: translateY(-50%); right: 8px; display: ${selectionMode ? 'none' : 'flex'};`;
                 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button'; // Evita submit do formulário
-                deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
-                deleteBtn.title = 'Excluir Seção';
-                deleteBtn.style.cssText = 'background: var(--uc-danger-soft); color: var(--uc-danger); border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
-                deleteBtn.onclick = (e) => {
-                    e.preventDefault(); // Evita submit do formulário
-                    e.stopPropagation();
-                    deleteBlock(index);
+                // Subir / descer / duplicar a seção inteira (título + blocos
+                // até a próxima seção) e excluir só o título
+                const groups = sectionGroups();
+                const groupPos = groups.findIndex(g => g.start === index);
+                const addBtn = (icon, title, onClick, extraClass, disabled) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button'; // Evita submit do formulário
+                    btn.className = 'sec-btn' + (extraClass ? ' ' + extraClass : '');
+                    btn.innerHTML = `<i class="fas ${icon}"></i>`;
+                    btn.title = title;
+                    btn.setAttribute('aria-label', title);
+                    btn.disabled = !!disabled;
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onClick();
+                    };
+                    controls.appendChild(btn);
                 };
+                addBtn('fa-arrow-up', 'Subir seção (Alt+↑)', () => moveSection(index, -1), '', groupPos <= 0);
+                addBtn('fa-arrow-down', 'Descer seção (Alt+↓)', () => moveSection(index, 1), '', groupPos === groups.length - 1);
+                addBtn('fa-clone', 'Duplicar seção', () => duplicateSection(index));
+                addBtn('fa-trash-can', 'Excluir título da seção', () => deleteBlock(index), 'danger');
                 
-                controls.appendChild(deleteBtn);
                 div.appendChild(checkbox);
                 div.appendChild(input);
                 div.appendChild(controls);
-                
-                // Mostra controles no hover
-                div.addEventListener('mouseenter', () => controls.style.opacity = '1');
-                div.addEventListener('mouseleave', () => controls.style.opacity = '0');
                 
                 return div;
             }
@@ -1873,6 +1887,58 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             }
             
             // Deleta bloco
+            // Seções como grupos: cada uma vai do seu título até antes do
+            // próximo título. Blocos antes do primeiro título formam um
+            // grupo sem título (fica onde está, mas conta pra subir/descer).
+            function sectionGroups() {
+                const groups = [];
+                blocks.forEach((b, i) => {
+                    if (b.type === 'section' || groups.length === 0) groups.push({ start: i, end: i + 1 });
+                    else groups[groups.length - 1].end = i + 1;
+                });
+                return groups;
+            }
+
+            // Re-renderiza e leva a seção pra vista, com um destaque rápido
+            function showSectionAt(start) {
+                renderBlocks(true);
+                const el = document.querySelector(`#blockEditor [data-block-index="${start}"]`);
+                if (!el) return;
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                el.classList.add('section-flash');
+                setTimeout(() => el.classList.remove('section-flash'), 900);
+                const input = el.querySelector('input[type="text"]');
+                if (input) input.focus({ preventScroll: true });
+            }
+
+            function moveSection(index, dir) {
+                const groups = sectionGroups();
+                const pos = groups.findIndex(g => g.start === index);
+                const other = pos + dir;
+                if (pos < 0 || other < 0 || other >= groups.length) return;
+                const [a, b] = dir < 0 ? [groups[other], groups[pos]] : [groups[pos], groups[other]];
+                const first = blocks.slice(a.start, a.end);
+                const second = blocks.slice(b.start, b.end);
+                blocks.splice(a.start, b.end - a.start, ...second, ...first);
+                updateHiddenField();
+                updateTomDisplay();
+                showSectionAt(dir < 0 ? a.start : a.start + second.length);
+            }
+
+            // Cópia logo abaixo da original (ex.: repetir o refrão); depois
+            // é só subir/descer a cópia até o lugar certo
+            function duplicateSection(index) {
+                const group = sectionGroups().find(g => g.start === index);
+                if (!group) return;
+                const now = Date.now();
+                const copy = blocks.slice(group.start, group.end)
+                    .map((b, i) => ({ ...JSON.parse(JSON.stringify(b)), id: now + i }));
+                blocks.splice(group.end, 0, ...copy);
+                updateHiddenField();
+                updateTomDisplay();
+                showSectionAt(group.end);
+            }
+
             function deleteBlock(index) {
                 const block = blocks[index];
                 const blockType = block.type === 'section' ? 'seção' : 
