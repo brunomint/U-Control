@@ -1491,3 +1491,47 @@ def test_view_order_marks_items_done(app, client, logged_in_client):
         assert client.get("/api/orders/2031-08-02/feitos").get_json()["feitos"] == []
     finally:
         logged_in_client.delete("/api/orders/2031-08-02")
+
+
+def test_items_going_on_screen_are_marked_done(app):
+    from datetime import date
+
+    import display_state
+    import orders_store
+    from blueprints import display
+
+    today = date.today().isoformat()
+    itens = [{"title": "Hino | A", "url": "/lyrics/7"},
+             {"isBible": True, "reference": "Romanos 10:14-17", "title": "📖 Romanos 10:14-17"},
+             {"anyText": "Oração"}, {"title": "Hino | A", "url": "/lyrics/7"}]
+    with app.app_context():
+        antes = orders_store.get_order(today)
+        orders_store.save_order(today, {"tipo": "Culto Dominical", "itens": itens})
+    display_state._live_follow_kind = None
+    display._ultimo_feito_auto = None
+    sock = _operator_socket(app)
+
+    def no_ar(kind, payload):
+        sock.emit("stage_content", {"kind": kind, "payload": payload, "label": "x"})
+        sock.emit("release_staged_content", {"kind": kind})
+        sock.get_received()
+        with app.app_context():
+            return orders_store.get_feitos(today)
+
+    try:
+        assert no_ar("lyrics", {"songId": 7, "sectionIndex": 0, "title": "V1"}) == ["url:/lyrics/7#1"]
+        # Outra seção da mesma música não marca a 2ª vez que ela aparece na ordem
+        assert no_ar("lyrics", {"songId": 7, "sectionIndex": 1, "title": "Refrão"}) == ["url:/lyrics/7#1"]
+        # Versículo dentro da passagem da ordem marca a leitura
+        assert no_ar("bible", {"reference": "Romanos 10:15", "text": "..."})[-1] == "biblia:Romanos 10:14-17#1"
+        # A música volta depois de outra coisa: agora é a 2ª ocorrência
+        assert no_ar("lyrics", {"songId": 7, "sectionIndex": 0, "title": "V1"})[-1] == "url:/lyrics/7#2"
+        # Música fora da ordem não marca nada
+        assert len(no_ar("lyrics", {"songId": 999, "sectionIndex": 0, "title": "X"})) == 3
+    finally:
+        sock.disconnect()
+        display_state._live_follow_kind = None
+        with app.app_context():
+            orders_store.save_order(today, {})
+            if antes:
+                orders_store.save_order(today, antes)

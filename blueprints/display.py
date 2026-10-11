@@ -21,7 +21,7 @@ from flask_socketio import emit
 
 import display_state
 import telao
-from blueprints.bible import handle_update_bible
+from blueprints.bible import handle_update_bible, parse_reference
 from blueprints.gallery import get_current_image_path
 from blueprints.lyrics import handle_update_lyrics
 from connections import _get_monitor_sids, _skip_sids
@@ -30,6 +30,7 @@ from extensions import db, socketio
 from models import DisplayState, ImagePath, LyricsState, SavedUrls, StagedContent
 from settings_store import load_settings, save_settings
 from songs_store import get_song
+from orders_store import current_key, mark_first_matching
 
 display_bp = Blueprint('display', __name__)
 
@@ -588,6 +589,52 @@ def _end_live_follow_unless(*urls):
         display_state._live_follow_kind = None
 
 
+# (culto, item) marcado sozinho por último (ver _marcar_feito_no_ar): cada
+# seção da música / versículo que vai ao ar chama de novo, e não pode
+# marcar a 2ª vez que a mesma música aparece na ordem.
+_ultimo_feito_auto = None
+
+
+def _mesma_passagem(item, ref_no_ar):
+    """Item bíblico da ordem cobre o versículo que foi ao ar? ('Romanos
+    10:14-17' cobre 'Romanos 10:15'; 'Salmos 23' cobre qualquer verso)."""
+    if not (item.get('isBible') or '/bible/control/' in (item.get('url') or '')):
+        return False
+    texto = item.get('reference') or re.sub(r'^\W+', '', item.get('title') or '')
+    ref_item = parse_reference(texto) if texto else None
+    if not ref_item or (ref_item['book_abbrev'], ref_item['chapter']) != (ref_no_ar['book_abbrev'], ref_no_ar['chapter']):
+        return False
+    if ref_item['verse_start'] is None or ref_no_ar['verse_start'] is None:
+        return True
+    return ref_item['verse_start'] <= ref_no_ar['verse_start'] <= ref_item['verse_end']
+
+
+def _marcar_feito_no_ar(kind, payload):
+    """Música ou leitura foi ao telão: marca o item na ordem do culto atual
+    de hoje (view/order). Nunca derruba o telão se der errado."""
+    global _ultimo_feito_auto
+    try:
+        if kind == 'lyrics' and payload.get('songId') is not None:
+            url = f"/lyrics/{payload['songId']}"
+            match = lambda item: (item.get('url') or '').split('?')[0] == url
+        elif kind == 'bible' and payload.get('reference'):
+            ref = parse_reference(str(payload['reference']))
+            if not ref:
+                return
+            match = lambda item: _mesma_passagem(item, ref)
+        else:
+            return
+        from datetime import date
+        key = current_key(date.today().isoformat())
+        ultimo_key, ultimo_id = _ultimo_feito_auto or (None, None)
+        marcado = mark_first_matching(key, match, skip_if=ultimo_id if ultimo_key == key else None)
+        # Algo fora da ordem foi ao ar: zera, pra próxima vez que a música
+        # voltar contar como a próxima ocorrência dela na ordem
+        _ultimo_feito_auto = (key, marcado) if marcado else None
+    except Exception:
+        current_app.logger.exception('Falha ao marcar item da ordem como feito')
+
+
 def _release_kind(kind, payload):
     """Faz o kind ir ao ar de verdade (chamando o handler real) e marca
     esse kind como o "live-follow" atual — ver display_state._live_follow_kind.
@@ -653,6 +700,7 @@ def _release_kind(kind, payload):
         else:
             handle_show_image(payload)
 
+    _marcar_feito_no_ar(kind, payload)
     display_state._live_follow_kind = kind
     emit('content_released', {'kind': kind}, broadcast=True)
     telao.broadcast_status()

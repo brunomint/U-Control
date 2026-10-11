@@ -351,6 +351,28 @@ def set_feito(key, item_id, feito):
     return feitos
 
 
+def mark_first_matching(key, match, skip_if=None):
+    """Marca como feito o 1º item ainda não feito da ordem `key` pra qual
+    match(item) é verdadeiro. Se o id em `skip_if` está entre os itens
+    que batem, não faz nada (mesma música/leitura que já marcou — cada
+    seção/versículo que vai ao ar chama de novo). Retorna o id marcado
+    (ou o skip_if, se pulou) ou None."""
+    order = db.session.get(Order, key)
+    if order is None or not order.itens:
+        return None
+    itens = _itens_to_dicts(order.itens)
+    matching = [iid for item, iid in zip(itens, item_ids(itens)) if match(item)]
+    if skip_if in matching:
+        return skip_if
+    feitos = list(order.feitos or [])
+    for iid in matching:
+        if iid not in feitos:
+            order.feitos = feitos + [iid]
+            db.session.commit()
+            return iid
+    return None
+
+
 def clear_feitos(key):
     order = db.session.get(Order, key)
     if order is not None and order.feitos:
