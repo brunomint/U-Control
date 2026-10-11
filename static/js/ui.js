@@ -16,3 +16,19 @@ window.ucToast = function (message, type) {
     document.body.appendChild(el);
     setTimeout(() => el.remove(), isError ? 4500 : 3000);
 };
+
+// Campo "Tipo de culto" (templates/_tipo_culto.html): "Outro" mostra o
+// campo de nome; o valor do tipo é o nome digitado (ou "Outro" se vazio).
+window.ucTipoCulto = function (id) {
+    const select = document.getElementById(id);
+    const nome = document.getElementById(id + 'Outro');
+    if (select.value === 'Outro' && nome && nome.value.trim()) return nome.value.trim();
+    return select.value;
+};
+document.addEventListener('change', e => {
+    const select = e.target.closest('select[data-outro]');
+    if (!select) return;
+    const nome = document.getElementById(select.dataset.outro);
+    nome.hidden = select.value !== 'Outro';
+    if (!nome.hidden) nome.focus();
+});

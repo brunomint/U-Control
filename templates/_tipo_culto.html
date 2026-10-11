@@ -1,0 +1,17 @@
+{# Campo "Tipo de culto" (Louvor da agenda e Ordem do Culto). "Outro" abre
+   um campo pra dar nome ao culto; o nome digitado é o que fica salvo como
+   tipo. Tipo salvo fora da lista abre já em "Outro" com o nome preenchido.
+   Valor lido por ucTipoCulto(id), em static/js/ui.js. #}
+{% macro tipo_culto(id, tipo_atual, com_nenhum=false, input_class='') %}
+{% set tipos = (['Nenhum'] if com_nenhum else []) + ['Culto Dominical', 'Culto de Oração', 'Culto de Jovens', 'Culto de Ensino', 'Culto Santa Ceia', 'Culto Especial'] %}
+{% set outro = tipo_atual and tipo_atual not in tipos %}
+<select class="{{ input_class }}" id="{{ id }}" data-outro="{{ id }}Outro">
+    {% for t in tipos %}
+    <option value="{{ t }}" {{ 'selected' if tipo_atual == t else '' }}>{{ t }}</option>
+    {% endfor %}
+    <option value="Outro" {{ 'selected' if outro else '' }}>Outro</option>
+</select>
+<input class="{{ input_class }} tipo-outro" type="text" id="{{ id }}Outro" aria-label="Nome do culto"
+       placeholder="Nome do culto (ex.: Culto de Missões)"
+       value="{{ tipo_atual if outro and tipo_atual != 'Outro' else '' }}"{% if not outro %} hidden{% endif %}>
+{% endmacro %}

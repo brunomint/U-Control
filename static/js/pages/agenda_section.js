@@ -64,7 +64,7 @@ async function save() {
     const payload = { ...(orderData || {}) };
 
     if (section === 'louvor') {
-        payload.tipo = document.getElementById('tipo').value;
+        payload.tipo = ucTipoCulto('tipo');
         payload.horario_culto = document.getElementById('horario_culto').value.trim();
         payload.dirigente = document.getElementById('dirigente').value.trim();
         payload.pregador = document.getElementById('pregador').value.trim();

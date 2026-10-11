@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_tipo_culto.html" import tipo_culto %}
 {% set app_theme = true %}
 {% set section_title = section == 'louvor' and 'Louvor e dirigência' or section == 'midia' and 'Escala de mídia' or 'Eventos' %}
 
@@ -45,15 +46,7 @@
             <div class="form-grid">
                 <div class="uc-field">
                     <label for="tipo">Tipo de culto</label>
-                    <select id="tipo">
-                        {% set tipo_sel = order.get('tipo','') %}
-                        {% set tipos = ['Nenhum','Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'] %}
-                        {% for t in tipos %}
-                            <option value="{{ t }}" {{ 'selected' if tipo_sel == t else '' }}>{{ t }}</option>
-                        {% endfor %}
-                        {# tipo salvo que não está na lista (ex.: veio da Ordem do Culto): mantém em vez de virar "Nenhum" #}
-                        {% if tipo_sel and tipo_sel not in tipos %}<option value="{{ tipo_sel }}" selected>{{ tipo_sel }}</option>{% endif %}
-                    </select>
+                    {{ tipo_culto('tipo', order.get('tipo', ''), com_nenhum=true) }}
                 </div>
                 <div class="uc-field">
                     <label for="horario_culto">Horário</label>

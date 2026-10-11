@@ -240,7 +240,7 @@ async function saveOrder() {
 
     const orderData = {
         ...existing,
-        tipo: document.getElementById("orderType").value,
+        tipo: ucTipoCulto("orderType"),
         horario: document.getElementById("orderTime").value,
         dirigente: document.getElementById("orderDirigente").value,
         pregador: document.getElementById("orderPregador").value,
@@ -325,7 +325,7 @@ function createPDF() {
     }
 
     const date = document.getElementById("orderDate").value;
-    const tipo = document.getElementById("orderType").value;
+    const tipo = ucTipoCulto("orderType");
     const dirigente = document.getElementById("orderDirigente").value;
 
     // Título

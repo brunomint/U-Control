@@ -1446,3 +1446,22 @@ def test_second_culto_has_own_pages_and_no_events(logged_in_client):
 def test_agenda_calendars_load_shared_culto_helper(logged_in_client):
     for path in ("/agenda", "/agenda/edit"):
         assert "js/agenda_cultos.js" in logged_in_client.get(path).get_data(as_text=True), path
+
+
+def test_tipo_culto_outro_keeps_custom_name(logged_in_client):
+    import re
+
+    c = logged_in_client
+    c.post("/api/orders/2031-07-05", json={"tipo": "Culto de Missões", "horario_culto": "19:00"})
+    try:
+        for path in ("/order/2031-07-05", "/agenda/2031-07-05/louvor"):
+            html = c.get(path).get_data(as_text=True)
+            assert '<option value="Outro" selected>' in html, path
+            campo = re.search(r'<input[^>]*id="(?:orderType|tipo)Outro"[^>]*>', html).group(0)
+            assert 'value="Culto de Missões"' in campo and " hidden" not in campo, path
+        # Tipo da lista: "Outro" fechado
+        c.post("/api/orders/2031-07-05", json={"tipo": "Culto de Oração", "horario_culto": "19:30"})
+        html = c.get("/order/2031-07-05").get_data(as_text=True)
+        assert '<option value="Culto de Oração" selected>' in html and 'id="orderTypeOutro"' in html
+    finally:
+        c.delete("/api/orders/2031-07-05")
