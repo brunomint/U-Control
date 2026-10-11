@@ -128,3 +128,23 @@
 @media (max-width: 720px) {
   .form-grid, .actions-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Abas dos cultos do dia (louvor/mídia de um dia com vários cultos) */
+.culto-tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.culto-tabs .uc-seg { overflow-x: auto; }
+.culto-tabs .uc-seg a {
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-weight: 700;
+  color: var(--uc-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.culto-tabs .uc-seg a:hover { color: var(--uc-text); }
+.culto-tabs .uc-seg a[aria-current="page"] { background: var(--uc-surface-3); color: var(--uc-text); }
+.culto-tabs .t { font-family: var(--uc-mono); font-weight: 600; color: var(--uc-faint); }
+.culto-tabs a[aria-current="page"] .t { color: var(--uc-accent-text); }
+.culto-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }

@@ -87,3 +87,18 @@
   .calendar-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .calendar-grid .day:empty { display: none; }
 }
+
+/* Dia com 2+ itens (vários cultos e/ou eventos): uma linha por item,
+   hora na frente — montado por static/js/agenda_cultos.js */
+.day-count {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--uc-accent-text);
+  background: var(--uc-accent-soft);
+  border-radius: 99px;
+  padding: 1px 7px;
+}
+.day-row { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: start; gap: 6px; min-width: 0; }
+.row-time { font-family: var(--uc-mono); font-size: 11px; color: var(--uc-muted); padding-top: 4px; }
+.day-row .pill { width: 100%; }

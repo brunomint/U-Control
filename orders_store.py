@@ -14,9 +14,18 @@ evita reescrever linhas que não mudaram.
 
 O sistema legado (pré-orders.json, order_of_service.json) foi unificado
 na Fase 5.6 — /save e /load (blueprints/orders.py) e o fallback de
-view_song (main.py) miram a ordem de hoje (tabela Order) desde então."""
-import logging
+view_song (main.py) miram a ordem de hoje (tabela Order) desde então.
 
+Vários cultos no mesmo dia: a chave de cada culto é "YYYY-MM-DD" (o
+primeiro, mesma chave de sempre — links antigos continuam valendo) ou
+"YYYY-MM-DD-N" pro 2º, 3º... culto do dia. Os eventos são do DIA e ficam
+só na linha da data pura. Ver key_date()/key_seq()/day_orders()/
+current_key() abaixo."""
+import logging
+import re
+from datetime import datetime
+
+from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 
 from extensions import db
@@ -119,19 +128,106 @@ def get_order(date):
     return _order_to_dict(order) if order else {}
 
 
-def get_next_order(from_date):
-    """Primeira ordem com data >= from_date (YYYY-MM-DD) que tenha conteúdo
+def get_next_order(from_date, now=None):
+    """Próximo culto com data >= from_date (YYYY-MM-DD) que tenha conteúdo
     — tipo de culto ou itens. O calendário cria linhas vazias pra datas
-    sem culto marcado; essas são puladas. Retorna (date, dict) ou
-    (None, {}) se não houver nenhuma. Usado pelo card "Próximo culto" do
-    dashboard."""
+    sem culto marcado; essas são puladas. Num dia com vários cultos, vale
+    a regra de current_key(). Retorna (chave, dict) ou (None, {}) se não
+    houver nenhum. Usado pelo card "Próximo culto" do dashboard."""
     candidates = Order.query.options(
         selectinload(Order.itens), selectinload(Order.eventos)
-    ).filter(Order.date >= from_date).order_by(Order.date.asc()).limit(60)
-    for order in candidates:
-        if order.tipo or order.itens:
-            return order.date, _order_to_dict(order)
-    return None, {}
+    ).filter(Order.date >= from_date).order_by(Order.date.asc()).limit(120).all()
+    candidates = [o for o in candidates if o.tipo or o.itens]
+    if not candidates:
+        return None, {}
+    first_day = min(key_date(o.date) for o in candidates)
+    order = _pick_culto([o for o in candidates if key_date(o.date) == first_day], now)
+    return order.date, _order_to_dict(order)
+
+
+# --------------------------------------------- vários cultos por dia ---
+
+KEY_RE = re.compile(r'^\d{4}-\d{2}-\d{2}(?:-\d{1,2})?$')
+CULTO_FIELDS = ('tipo', 'dirigente', 'pregador', 'horario', 'horario_culto',
+                'tema', 'louvor', 'midia', 'itens')
+
+
+def key_date(key):
+    """'2026-10-04-2' → '2026-10-04'."""
+    return key[:10]
+
+
+def key_seq(key):
+    """'2026-10-04' → 1, '2026-10-04-2' → 2."""
+    return int(key[11:]) if len(key) > 10 else 1
+
+
+def make_key(date_str, seq):
+    return date_str if seq <= 1 else f'{date_str}-{seq}'
+
+
+def _has_culto(order):
+    tipo = (order.tipo or '').strip()
+    return bool((tipo and tipo.lower() != 'nenhum') or order.itens or order.dirigente
+                or order.pregador or order.horario_culto or order.louvor or order.midia)
+
+
+def _minutes(hora):
+    """'18:40' / '18h40' / '9h' → minutos desde 0h; None se não der."""
+    m = re.match(r'\s*(\d{1,2})\s*[:hH]\s*(\d{2})?', hora or '')
+    return int(m.group(1)) * 60 + int(m.group(2) or 0) if m else None
+
+
+def _culto_sort_key(order):
+    mins = _minutes(order.horario_culto or order.horario)
+    return (mins if mins is not None else 24 * 60, key_seq(order.date))
+
+
+def _pick_culto(orders, now=None):
+    """Entre os cultos de UM dia, qual é "o culto" agora: se o dia é hoje,
+    o último que já começou ou começa em até 1h (de manhã é o da manhã,
+    a partir de 1h antes do da noite passa a ser o da noite); em outro
+    dia, o primeiro pelo horário."""
+    orders = sorted(orders, key=_culto_sort_key)
+    now = now or datetime.now()
+    if key_date(orders[0].date) != now.date().isoformat():
+        return orders[0]
+    now_mins = now.hour * 60 + now.minute
+    started = [o for o in orders if _culto_sort_key(o)[0] - 60 <= now_mins]
+    return started[-1] if started else orders[0]
+
+
+def _day_rows(date_str):
+    return Order.query.options(
+        selectinload(Order.itens), selectinload(Order.eventos)
+    ).filter(or_(Order.date == date_str, Order.date.like(f'{date_str}-%'))).all()
+
+
+def day_orders(date_str):
+    """Cultos de um dia, em ordem de horário: lista de (chave, dict). Só
+    entram linhas com culto (a linha da data pura pode ter só eventos)."""
+    rows = sorted((o for o in _day_rows(date_str) if _has_culto(o)), key=_culto_sort_key)
+    return [(o.date, _order_to_dict(o)) for o in rows]
+
+
+def current_key(date_str, now=None):
+    """Chave do culto "atual" de um dia (regra de _pick_culto). Sem culto
+    nenhum, a data pura — é onde /save, a Bíblia etc. sempre gravaram."""
+    rows = [o for o in _day_rows(date_str) if _has_culto(o)]
+    return _pick_culto(rows, now).date if rows else date_str
+
+
+def next_free_key(date_str):
+    """Chave pra um culto novo no dia: a data pura se ela ainda não tem
+    culto (pode ter só eventos), senão o primeiro -N livre."""
+    rows = {o.date: o for o in _day_rows(date_str)}
+    base = rows.get(date_str)
+    if base is None or not _has_culto(base):
+        return date_str
+    seq = 2
+    while make_key(date_str, seq) in rows:
+        seq += 1
+    return make_key(date_str, seq)
 
 
 def save_order(date, data):

@@ -1,6 +1,28 @@
-/* Escala de uma data (agenda_detail.html) — base, card e botões vêm do app.css. */
+/* Programação de um dia (agenda_detail.html): um bloco por culto, depois
+   os eventos do dia — base, card e botões vêm do app.css. */
 
-.detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.detail-page { max-width: 1100px; }
+.culto-block { display: grid; gap: 12px; margin-bottom: 26px; scroll-margin-top: 110px; }
+.culto-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--uc-line); }
+.culto-time {
+  font-family: var(--uc-mono);
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--uc-accent-soft);
+  color: var(--uc-accent-text);
+  border-radius: var(--uc-r-sm);
+  padding: 4px 10px;
+}
+.culto-head h2 { margin: 0; font-size: 19px; }
+.culto-meta { color: var(--uc-muted); font-size: 13.5px; }
+.culto-meta b { color: var(--uc-text); }
+.culto-head .uc-btn-row { margin-left: auto; }
+.culto-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.culto-none { margin-bottom: 16px; }
+.add-culto { display: flex; width: 100%; justify-content: center; border-style: dashed; margin-bottom: 26px; }
+.day-section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 12px; }
+.day-section-head h2 { margin: 0; }
+
 .detail-card { display: grid; gap: 10px; align-content: start; }
 .detail-card .uc-card-head { margin-bottom: 4px; }
 .detail-card .uc-card-head h2 { display: flex; align-items: center; gap: 8px; }
@@ -32,6 +54,7 @@
 .evento-meta { color: var(--uc-muted); font-size: 13px; }
 .evento-meta b { color: var(--uc-text); }
 
-@media (max-width: 1000px) {
-  .detail-grid { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 860px) {
+  .culto-grid { grid-template-columns: minmax(0, 1fr); }
+  .culto-head .uc-btn-row { margin-left: 0; }
 }

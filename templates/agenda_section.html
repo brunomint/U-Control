@@ -17,7 +17,7 @@
 <main class="uc-page section-page">
     <div class="uc-page-head">
         <div>
-            <a class="uc-link" href="/agenda/{{ date }}/admin"><i class="fas fa-arrow-left"></i> Escala do dia</a>
+            <a class="uc-link" href="/agenda/{{ day }}/admin#culto-{{ date }}"><i class="fas fa-arrow-left"></i> Escala do dia</a>
             <h1>{{ section_title }}</h1>
             <div class="uc-page-sub">{{ date | data_pt }}</div>
         </div>
@@ -26,6 +26,18 @@
             <button type="button" class="uc-btn uc-btn-primary" id="saveBtn"><i class="fas fa-floppy-disk"></i> Salvar</button>
         </div>
     </div>
+    {% if cultos %}
+    <nav class="culto-tabs" aria-label="Cultos do dia">
+        <div class="uc-seg">
+            {% for c in cultos %}
+            <a href="/agenda/{{ c.key }}/{{ section }}" aria-current="{{ 'page' if c.key == date else 'false' }}"><span class="t">{{ c.hora or '--:--' }}</span> {{ c.tipo }}</a>
+            {% endfor %}
+        </div>
+        {% if not is_new %}
+        <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/agenda/{{ day }}/novo-culto?secao={{ section }}"><i class="fas fa-plus"></i> Novo culto</a>
+        {% endif %}
+    </nav>
+    {% endif %}
     <div class="status" id="status" role="status"></div>
 
     <section class="uc-card section-form">
@@ -35,14 +47,18 @@
                     <label for="tipo">Tipo de culto</label>
                     <select id="tipo">
                         {% set tipo_sel = order.get('tipo','') %}
-                        {% for t in ['Nenhum','Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'] %}
+                        {% set tipos = ['Nenhum','Culto Dominical','Culto de Oração','Culto de Jovens','Culto de Ensino','Culto Santa Ceia','Culto Especial','Outro'] %}
+                        {% for t in tipos %}
                             <option value="{{ t }}" {{ 'selected' if tipo_sel == t else '' }}>{{ t }}</option>
                         {% endfor %}
+                        {# tipo salvo que não está na lista (ex.: veio da Ordem do Culto): mantém em vez de virar "Nenhum" #}
+                        {% if tipo_sel and tipo_sel not in tipos %}<option value="{{ tipo_sel }}" selected>{{ tipo_sel }}</option>{% endif %}
                     </select>
                 </div>
                 <div class="uc-field">
                     <label for="horario_culto">Horário</label>
                     <div class="hour-presets">
+                        <button type="button" class="hour-btn" onclick="setHora(this,'09:00')">09:00</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'18:40')">18:40</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'19:00')">19:00</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'19:30')">19:30</button>
@@ -92,6 +108,13 @@
                 </div>
                 <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
             </div>
+
+            {% if order.get('tipo') or order.get('dirigente') or order.get('itens') %}
+            <div class="culto-actions">
+                <span class="uc-muted">A mídia e a ordem do culto são deste culto; os eventos são do dia.</span>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text" id="deleteCultoBtn"><i class="fas fa-trash-can"></i> Excluir este culto</button>
+            </div>
+            {% endif %}
 
         {% elif section == 'midia' %}
             {% set midia = order.get('midia', {}) %}
@@ -193,6 +216,7 @@
 <script>
     window.AGENDA_SECTION = "{{ section }}";
     window.AGENDA_DATE = "{{ date }}";
+    window.AGENDA_IS_NEW = {{ 'true' if is_new else 'false' }};
 </script>
 {% endblock %}
 

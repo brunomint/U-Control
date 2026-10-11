@@ -21,7 +21,7 @@ from flask_socketio import emit
 from display_log import append_display_log
 from extensions import socketio
 from models import LyricsState
-from orders_store import get_order, save_order
+from orders_store import current_key, get_order, save_order
 from settings_store import load_settings, save_settings
 
 logger = logging.getLogger('ucontrol')
@@ -594,7 +594,7 @@ def api_bible_add_to_order():
     if not reference:
         return jsonify({'success': False, 'error': 'Referência vazia'})
 
-    today = date.today().isoformat()
+    today = current_key(date.today().isoformat())
     order = get_order(today)
     itens = list(order.get('itens') or [])
 
@@ -623,7 +623,7 @@ def api_bible_remove_from_order():
     if not reference:
         return jsonify({'success': False, 'error': 'Referência vazia'})
 
-    today = date.today().isoformat()
+    today = current_key(date.today().isoformat())
     order = get_order(today)
     itens = list(order.get('itens') or [])
 
@@ -645,7 +645,7 @@ def api_bible_remove_from_order():
 @login_required
 def bible_control_list():
     """Lista de passagens bíblicas da ordem do culto de hoje."""
-    today = date.today().isoformat()
+    today = current_key(date.today().isoformat())
     order = get_order(today)
     bible_items = [item for item in (order.get('itens') or []) if item.get('isBible')]
 
@@ -685,7 +685,7 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
     next_chapter = chapter + 1 if chapter < len(chapters) else None
 
     # Carrega passagens bíblicas da ordem do culto de hoje
-    today = date.today().isoformat()
+    today = current_key(date.today().isoformat())
     order = get_order(today)
     bible_items = []
     for item in (order.get('itens') or []):

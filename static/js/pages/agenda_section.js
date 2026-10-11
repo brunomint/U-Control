@@ -91,6 +91,8 @@ async function save() {
             body: JSON.stringify(payload)
         });
         if (!resp.ok) throw new Error('Falha ao salvar');
+        // Culto novo: recarrega pra aba trocar "Novo culto" pelo nome
+        if (window.AGENDA_IS_NEW) { location.reload(); return; }
         status.textContent = 'Salvo com sucesso!';
         status.className = 'status ok';
     } catch (e) {
@@ -101,6 +103,14 @@ async function save() {
     }
 }
 document.getElementById('saveBtn').addEventListener('click', save);
+
+// Excluir este culto (louvor): apaga o culto, mantém os eventos do dia
+document.getElementById('deleteCultoBtn')?.addEventListener('click', async () => {
+    if (!confirm('Excluir este culto, com a escala e a ordem do culto? Os eventos do dia continuam.')) return;
+    const resp = await fetch(`/api/cultos/${date}`, { method: 'DELETE' });
+    if (resp.ok) window.location = `/agenda/${date.slice(0, 10)}/admin`;
+    else ucToast('Não deu pra excluir o culto', 'error');
+});
 
 // ---- Itens (louvor) helpers ----
 async function searchSongs(query) {
@@ -382,7 +392,7 @@ function applyTemplate(fields) {
 }
 
 // ── COPIAR MÊS ────────────────────────────────────────────────────
-let copiarFieldsByDow = {}; // { 0: fields, 3: fields, ... }
+let copiarFieldsByDow = {}; // { "0|1": {tipo, fields, seq}, "0|2": ..., } — dia da semana | nº do culto
 
 const NOMES_DIA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const NOMES_MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -460,14 +470,17 @@ async function renderCopiarGrid() {
     try {
         const orders = await fetch('/api/orders').then(r => r.json());
 
-        // agrupa por dia da semana, pega o primeiro de cada tipo
+        // agrupa por dia da semana e nº do culto no dia (chave
+        // YYYY-MM-DD-N), pega o primeiro de cada
         Object.entries(orders)
             .filter(([d, o]) => d.startsWith(prefixo) && temDadosSecao(o))
             .sort(([a],[b]) => a.localeCompare(b))
             .forEach(([d, o]) => {
-                const dow = new Date(d + 'T12:00:00').getDay();
-                if (!(dow in copiarFieldsByDow)) {
-                    copiarFieldsByDow[dow] = { tipo: o.tipo || NOMES_DIA[dow], fields: extrairFields(o) };
+                const dow = new Date(d.slice(0, 10) + 'T12:00:00').getDay();
+                const seq = d.length > 10 ? Number(d.slice(11)) : 1;
+                const grupo = `${dow}|${seq}`;
+                if (!(grupo in copiarFieldsByDow)) {
+                    copiarFieldsByDow[grupo] = { tipo: o.tipo || NOMES_DIA[dow], fields: extrairFields(o), seq };
                 }
             });
 
@@ -479,15 +492,17 @@ async function renderCopiarGrid() {
         // para cada dia da semana encontrado, gera checkboxes no mês destino
         let html = '';
         Object.entries(copiarFieldsByDow)
-            .sort(([a],[b]) => Number(a)-Number(b))
-            .forEach(([dow, info]) => {
-                const datas = datasDoMesPorDow(destAno, destMes, Number(dow));
+            .sort(([a],[b]) => a.localeCompare(b))
+            .forEach(([grupo, info]) => {
+                const dow = Number(grupo.split('|')[0]);
+                const datas = datasDoMesPorDow(destAno, destMes, dow);
                 if (!datas.length) return;
+                const qual = info.seq > 1 ? ` (${info.seq}º culto do dia)` : '';
                 html += `<div class="copiar-group">
-                    <div class="copiar-group-title">${NOMES_DIA[dow]}s — ${info.tipo}</div>
+                    <div class="copiar-group-title">${NOMES_DIA[dow]}s — ${info.tipo}${qual}</div>
                     <div class="copiar-group-dates">${datas.map(d => {
-                        const iso = isoDate(d);
-                        return `<label class="mes-check"><input type="checkbox" name="copiar-date" data-dow="${dow}" value="${iso}" checked><span>${d.getDate()} ${NOMES_MES[d.getMonth()]}</span></label>`;
+                        const key = info.seq > 1 ? `${isoDate(d)}-${info.seq}` : isoDate(d);
+                        return `<label class="mes-check"><input type="checkbox" name="copiar-date" data-grupo="${grupo}" value="${key}" checked><span>${d.getDate()} ${NOMES_MES[d.getMonth()]}</span></label>`;
                     }).join('')}</div>
                 </div>`;
             });
@@ -504,19 +519,19 @@ async function executarCopiar() {
     const checked = [...document.querySelectorAll('input[name=copiar-date]:checked')];
     if (!checked.length) { result.textContent = 'Selecione ao menos uma data.'; result.style.color = 'var(--uc-danger)'; return; }
 
-    // agrupa datas selecionadas por dow
+    // agrupa datas selecionadas por dia da semana + culto
     const porDow = {};
     checked.forEach(el => {
-        const dow = el.dataset.dow;
-        (porDow[dow] = porDow[dow] || []).push(el.value);
+        const grupo = el.dataset.grupo;
+        (porDow[grupo] = porDow[grupo] || []).push(el.value);
     });
 
     btn.disabled = true; btn.textContent = 'Aplicando…';
     let total = 0, erro = false;
 
     try {
-        for (const [dow, datas] of Object.entries(porDow)) {
-            const info = copiarFieldsByDow[dow];
+        for (const [grupo, datas] of Object.entries(porDow)) {
+            const info = copiarFieldsByDow[grupo];
             if (!info) continue;
             const res = await fetch('/api/section-templates/apply-month', {
                 method: 'POST',

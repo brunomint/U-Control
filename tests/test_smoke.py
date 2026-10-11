@@ -1377,3 +1377,72 @@ def test_agenda_edit_has_whatsapp_share_buttons(logged_in_client):
     for marker in ('id="copyWhatsBtn"', 'id="shareMenu"', 'data-format="grid"', 'data-format="light"',
                    'data-format="dark"', 'id="saveImgBtn"', "js/pages/agenda_share.js"):
         assert marker in html, marker
+
+
+def test_culto_keys_and_current_culto_of_the_day(app):
+    from datetime import datetime
+
+    import orders_store as s
+
+    assert (s.key_date("2026-10-04-2"), s.key_seq("2026-10-04-2")) == ("2026-10-04", 2)
+    assert (s.key_seq("2026-10-04"), s.make_key("2026-10-04", 1), s.make_key("2026-10-04", 3)) == (1, "2026-10-04", "2026-10-04-3")
+    with app.app_context():
+        assert s.next_free_key("2031-05-04") == "2031-05-04"
+        s.save_order("2031-05-04", {"tipo": "Culto Dominical", "horario_culto": "18:40",
+                                    "eventos": [{"titulo": "Ensaio", "hora": "16:00"}]})
+        assert s.next_free_key("2031-05-04") == "2031-05-04-2"
+        s.save_order("2031-05-04-2", {"tipo": "Escola Bíblica", "horario_culto": "09:00"})
+        try:
+            # Em ordem de horário, não de chave
+            assert [k for k, _ in s.day_orders("2031-05-04")] == ["2031-05-04-2", "2031-05-04"]
+            assert s.next_free_key("2031-05-04") == "2031-05-04-3"
+            # De manhã é o da manhã; a partir de 1h antes do da noite, o da noite
+            assert s.current_key("2031-05-04", datetime(2031, 5, 4, 10, 0)) == "2031-05-04-2"
+            assert s.current_key("2031-05-04", datetime(2031, 5, 4, 17, 50)) == "2031-05-04"
+            assert s.current_key("2031-05-04", datetime(2031, 5, 4, 7, 0)) == "2031-05-04-2"
+            # Outro dia: o primeiro pelo horário
+            assert s.current_key("2031-05-04", datetime(2031, 5, 1, 20, 0)) == "2031-05-04-2"
+            assert s.get_next_order("2031-05-04", datetime(2031, 5, 1, 20, 0))[0] == "2031-05-04-2"
+            assert s.current_key("2031-05-05") == "2031-05-05"
+        finally:
+            s.save_order("2031-05-04", {})
+            s.save_order("2031-05-04-2", {})
+
+
+def test_second_culto_has_own_pages_and_no_events(logged_in_client):
+    c = logged_in_client
+    c.post("/api/orders/2031-06-01", json={"tipo": "Culto Dominical", "horario_culto": "18:40",
+                                           "eventos": [{"titulo": "Ensaio do louvor", "hora": "16:00"}]})
+    try:
+        # "Novo culto" abre o louvor da próxima chave livre
+        r = c.get("/agenda/2031-06-01/novo-culto")
+        assert r.status_code == 302 and r.headers["Location"].endswith("/agenda/2031-06-01-2/louvor")
+        # Eventos são do dia: ignorados no 2º culto
+        c.post("/api/orders/2031-06-01-2", json={"tipo": "Escola Bíblica", "horario_culto": "09:00",
+                                                 "eventos": [{"titulo": "Não deveria ficar"}]})
+        assert "eventos" not in c.get("/api/orders/2031-06-01-2").get_json()
+
+        day = c.get("/agenda/2031-06-01/admin").get_data(as_text=True)
+        assert day.index("Escola Bíblica") < day.index("Culto Dominical")
+        assert "/agenda/2031-06-01-2/louvor" in day and "Ensaio do louvor" in day
+        # Chave do 2º culto na URL da página do dia mostra o dia inteiro
+        assert "Ensaio do louvor" in c.get("/agenda/2031-06-01-2").get_data(as_text=True)
+
+        louvor = c.get("/agenda/2031-06-01-2/louvor").get_data(as_text=True)
+        assert 'href="/agenda/2031-06-01/louvor"' in louvor and 'id="deleteCultoBtn"' in louvor
+        assert c.get("/agenda/2031-06-01-2/eventos").headers["Location"].endswith("/agenda/2031-06-01/eventos")
+
+        # Excluir o 1º culto mantém os eventos do dia
+        assert c.delete("/api/cultos/2031-06-01").status_code == 200
+        assert c.get("/api/orders/2031-06-01").get_json() == {
+            "eventos": [{"titulo": "Ensaio do louvor", "hora": "16:00", "responsavel": "", "obs": ""}]}
+        assert c.delete("/api/cultos/2031-06-01-2").status_code == 200
+        assert c.get("/api/orders/2031-06-01-2").status_code == 404
+    finally:
+        c.delete("/api/orders/2031-06-01")
+        c.delete("/api/orders/2031-06-01-2")
+
+
+def test_agenda_calendars_load_shared_culto_helper(logged_in_client):
+    for path in ("/agenda", "/agenda/edit"):
+        assert "js/agenda_cultos.js" in logged_in_client.get(path).get_data(as_text=True), path

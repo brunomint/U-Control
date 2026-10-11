@@ -7,6 +7,13 @@ let currentSearchTerm = '';
 const originalDate = CONFIG.date;
 const isNew = CONFIG.isNew;
 
+// Chave do culto: o campo mostra só a data; se ela não mudou, mantém a
+// chave original (YYYY-MM-DD-N quando é o 2º, 3º... culto do dia)
+function orderKey() {
+    const value = document.getElementById('orderDate').value;
+    return value === originalDate.slice(0, 10) ? originalDate : value;
+}
+
 // Toast
 function showToast(message, type = 'success') {
     window.ucToast(message, type);
@@ -73,7 +80,7 @@ function addSongToList(song) {
 
     const displayText = song.author ? `${song.title} | ${song.author}` : song.title;
     const baseUrl = song.url || (song.id ? `/lyrics/${song.id}` : "#");
-    const orderDate = document.getElementById("orderDate").value;
+    const orderDate = orderKey();
     const url = baseUrl.includes('/lyrics/') ? `${baseUrl}?order=${orderDate}` : baseUrl;
 
     songItem.innerHTML = `
@@ -191,7 +198,7 @@ function drop(ev) {
 
 // Salvar ordem
 async function saveOrder() {
-    const date = document.getElementById("orderDate").value;
+    const date = orderKey();
 
     if (!date) {
         showToast('Selecione uma data', 'error');
@@ -385,7 +392,7 @@ async function loadExistingOrder() {
                 elem.id = `song-${Date.now()}-${Math.random()}`;
 
                 // Adiciona parâmetro order se for link de lyrics
-                const orderDate = document.getElementById("orderDate").value;
+                const orderDate = orderKey();
                 const linkUrl = item.url.includes('/lyrics/') ? `${item.url}?order=${orderDate}` : item.url;
 
                 elem.innerHTML = `
@@ -500,7 +507,7 @@ function substituirMusica(btn) {
             ac.classList.add('show');
             ac.querySelectorAll('.inline-ac-item').forEach(it => {
                 it.onclick = () => {
-                    const orderDate = document.getElementById('orderDate').value;
+                    const orderDate = orderKey();
                     const url = `${it.dataset.url}?order=${orderDate}`;
                     const link = item.querySelector('.song-info a');
                     link.href = url;
@@ -602,7 +609,7 @@ function addSongItemToList(url, title) {
     item.className = "song-item";
     item.setAttribute("draggable", "true");
     item.id = `song-${Date.now()}`;
-    const orderDate = document.getElementById("orderDate").value;
+    const orderDate = orderKey();
     const fullUrl = url.includes('/lyrics/') ? `${url}?order=${orderDate}` : url;
     item.innerHTML = `
         <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>

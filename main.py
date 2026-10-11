@@ -33,7 +33,7 @@ from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
 from blueprints.gallery import gallery_bp
-from orders_store import get_order, load_orders
+from orders_store import current_key, get_order, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
 import blueprints.screen_share  # noqa: F401 — importado só pelo efeito colateral de registrar os handlers de socket
@@ -65,15 +65,17 @@ def _setup_logging(app):
 
 
 class DateSlugConverter(BaseConverter):
-    """Converte datas no formato YYYY-MM-DD (evita conflito com /agenda/edit)."""
-    regex = r"\d{4}-\d{2}-\d{2}"
+    """Chave de culto: YYYY-MM-DD ou YYYY-MM-DD-N pro 2º, 3º... culto do dia
+    (ver orders_store.key_date). Evita conflito com /agenda/edit."""
+    regex = r"\d{4}-\d{2}-\d{2}(?:-\d{1,2})?"
 
 
 def data_pt(date_str):
-    """Formata YYYY-MM-DD como 'Quarta-feira, 8 de julho de 2026'."""
+    """Formata YYYY-MM-DD como 'Quarta-feira, 8 de julho de 2026'. Aceita
+    também a chave de culto YYYY-MM-DD-N (mostra só a data)."""
     try:
         from datetime import datetime
-        dt = datetime.strptime(date_str, '%Y-%m-%d')
+        dt = datetime.strptime(date_str[:10], '%Y-%m-%d')
         dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira',
                 'Sexta-feira', 'Sábado', 'Domingo']
         meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -350,7 +352,7 @@ def view_song(song_id):
         if not order_data:
             from datetime import date as _date_cls
             today = _date_cls.today().isoformat()
-            order_data = orders.get(today, {}).get('itens', [])
+            order_data = orders.get(current_key(today), {}).get('itens', [])
     
     # Extrai itens bíblicos
     for item in order_data:

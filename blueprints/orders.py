@@ -10,6 +10,8 @@ from flask import Blueprint, jsonify, render_template, request
 from flask_login import login_required
 
 from orders_store import (
+    CULTO_FIELDS,
+    current_key,
     get_next_order,
     get_order,
     load_orders,
@@ -19,6 +21,8 @@ from orders_store import (
     save_templates_file,
     load_section_templates,
     save_section_templates,
+    key_date,
+    key_seq,
 )
 
 orders_bp = Blueprint('orders', __name__)
@@ -28,7 +32,7 @@ orders_bp = Blueprint('orders', __name__)
 @login_required
 def api_culto_status():
     today = date.today().isoformat()
-    order = get_order(today)
+    order = get_order(current_key(today))
 
     if not order:
         return jsonify({
@@ -136,7 +140,7 @@ def api_culto_proximo():
     return jsonify({
         'status': 'ok',
         'date': order_date,
-        'days_until': (date.fromisoformat(order_date) - today).days,
+        'days_until': (date.fromisoformat(key_date(order_date)) - today).days,
         'tipo': order.get('tipo', ''),
         'horario': order.get('horario_culto') or order.get('horario') or '',
         'dirigente': order.get('dirigente', ''),
@@ -178,7 +182,9 @@ def api_save_order(date):
         order = get_order(date)
 
         # ---------- EVENTOS -----------
-        eventos = data.get('eventos', [])
+        # Eventos são do dia: só a linha da data pura guarda (o 2º, 3º...
+        # culto do dia não tem eventos próprios)
+        eventos = data.get('eventos', []) if key_seq(date) == 1 else []
         lista_eventos = []
 
         if isinstance(eventos, list):
@@ -285,6 +291,20 @@ def api_delete_order(date):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Exclui UM culto (de um dia com vários): apaga os dados do culto mas
+# mantém os eventos do dia, que vivem na linha da data pura
+@orders_bp.route('/api/cultos/<date>', methods=['DELETE'])
+@login_required
+def api_delete_culto(date):
+    order = get_order(date)
+    if not order:
+        return jsonify({"error": "Culto não encontrado"}), 404
+    for field in CULTO_FIELDS:
+        order.pop(field, None)
+    save_order(date, order if order.get('eventos') else {})
+    return jsonify({"message": "Culto excluído", "day": key_date(date)}), 200
+
+
 @orders_bp.route('/api/templates', methods=['GET'])
 def api_get_templates():
     return jsonify(load_templates())
@@ -367,7 +387,7 @@ def api_apply_section_template_month():
 def save_list():
     try:
         data = request.json
-        today = date.today().isoformat()
+        today = current_key(date.today().isoformat())
         order = get_order(today)
         if data:
             order['itens'] = data
@@ -390,7 +410,7 @@ def load_list():
 
         # Sem data no parâmetro: usa a ordem de hoje (antes lia
         # order_of_service.json, um bucket solto sem data — Fase 5.6)
-        today = date.today().isoformat()
+        today = current_key(date.today().isoformat())
         return jsonify(get_order(today).get('itens', [])), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

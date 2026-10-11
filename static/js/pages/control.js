@@ -826,7 +826,7 @@ function panelLoadOrder() {
             list.innerHTML = '<li class="ordem-empty">Nenhum culto com ordem cadastrada.</li>';
             return;
         }
-        const when = d.date ? d.date.split('-').reverse().slice(0, 2).join('/') : '';
+        const when = d.date ? d.date.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '';
         const label = [d.tipo, when, d.horario].filter(Boolean).join(' · ');
         document.getElementById('ordem-title').textContent = 'Ordem do culto' + (label ? ` · ${label}` : '');
         if (!d.itens.length) {

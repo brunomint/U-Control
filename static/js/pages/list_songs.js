@@ -24,9 +24,8 @@ async function loadAvailableOrders() {
             if (futureDates.length > 0) {
                 select.append('<optgroup label="📅 Próximas">');
                 futureDates.forEach(date => {
-                    const formatted = formatDate(date);
                     const itemCount = availableOrders[date]?.itens?.length || 0;
-                    select.append(`<option value="${date}">${formatted} (${itemCount} itens)</option>`);
+                    select.append(`<option value="${date}">${orderLabel(date)} (${itemCount} itens)</option>`);
                 });
                 select.append('</optgroup>');
             }
@@ -34,9 +33,8 @@ async function loadAvailableOrders() {
             if (pastDates.length > 0) {
                 select.append('<optgroup label="📜 Anteriores">');
                 pastDates.forEach(date => {
-                    const formatted = formatDate(date);
                     const itemCount = availableOrders[date]?.itens?.length || 0;
-                    select.append(`<option value="${date}">${formatted} (${itemCount} itens)</option>`);
+                    select.append(`<option value="${date}">${orderLabel(date)} (${itemCount} itens)</option>`);
                 });
                 select.append('</optgroup>');
             }
@@ -52,11 +50,18 @@ async function loadAvailableOrders() {
     }
 }
 
-// Formata data para exibição
+// Formata data para exibição (aceita a chave de culto YYYY-MM-DD-N)
 function formatDate(dateStr) {
-    const date = new Date(dateStr + 'T12:00:00');
+    const date = new Date(dateStr.slice(0, 10) + 'T12:00:00');
     const options = { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' };
     return date.toLocaleDateString('pt-BR', options);
+}
+
+// Data + qual culto (num dia pode haver mais de um)
+function orderLabel(key) {
+    const o = availableOrders[key] || {};
+    const culto = [o.tipo, o.horario_culto].filter(Boolean).join(' ');
+    return culto ? `${formatDate(key)} · ${culto}` : formatDate(key);
 }
 
 // Retorna próximo domingo

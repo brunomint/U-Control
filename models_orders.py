@@ -2,7 +2,9 @@
 orders.json/order_templates.json/section_templates.json. `Order.date` é a
 string "YYYY-MM-DD" original (mesma chave que orders.json já usava),
 preservada como PK — é referenciada em URLs (`/view/order/<date>`,
-`/order/<date>`) e nos links que a agenda gera.
+`/order/<date>`) e nos links que a agenda gera. O 2º, 3º... culto do
+mesmo dia usa "YYYY-MM-DD-N" (ver orders_store.key_date/key_seq); o
+SQLite não impõe o tamanho do VARCHAR, por isso String(10) continua.
 
 `OrderItem.kind` usa os valores "link"/"bible"/"freetext" — não "song":
 existem itens reais com {title,url} apontando pra páginas que não são

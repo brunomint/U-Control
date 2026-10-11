@@ -11,24 +11,16 @@
     const isTouch = () => window.matchMedia('(pointer: coarse)').matches;
     const toast = (msg, type) => { if (window.ucToast) window.ucToast(msg, type); };
 
-    // Itens de um dia: o culto (tipo + horário/dirigente/pregador) e os
-    // eventos — mesma regra do calendário (culto primeiro, depois horário)
-    function itemsForDay(o) {
-        const items = [];
-        if (o && o.tipo && o.tipo.trim() && (o.horario_culto || o.dirigente || o.pregador)) {
-            const details = [];
-            if (o.dirigente) details.push(`Dirigente: ${o.dirigente}`);
-            if (o.pregador) details.push(`Pregação: ${o.pregador}`);
-            items.push({ order: 0, title: o.tipo.trim(), time: o.horario_culto || '', details });
-        }
-        (o && Array.isArray(o.eventos) ? o.eventos : []).forEach(ev => {
-            if (!ev || !ev.titulo) return;
-            const details = [];
-            if (ev.responsavel) details.push(`Resp.: ${ev.responsavel}`);
-            if (ev.obs) details.push(`Obs.: ${ev.obs}`);
-            items.push({ order: 1, title: ev.titulo.trim(), time: ev.hora || '', details });
-        });
-        return items.sort((a, b) => a.order - b.order || (a.time || '').localeCompare(b.time || ''));
+    // Itens de um dia: os cultos (tipo + horário/dirigente/pregador) e os
+    // eventos, na ordem do horário — mesma regra do calendário
+    // (AgendaCultos, static/js/agenda_cultos.js)
+    const SHARE_LABEL = { Pregador: 'Pregação', Resp: 'Resp.', Obs: 'Obs.' };
+    function itemsForDay(day) {
+        return AgendaCultos.dayItems(day).map(it => ({
+            title: it.titulo,
+            time: it.hora,
+            details: it.meta.filter(([, v]) => v).map(([label, v]) => `${SHARE_LABEL[label] || label}: ${v}`),
+        }));
     }
 
     // Dias do mês aberto que têm algo cadastrado
@@ -36,10 +28,11 @@
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
         const last = new Date(year, month + 1, 0).getDate();
+        const byDay = AgendaCultos.groupByDay(ordersData);
         const days = [];
         for (let d = 1; d <= last; d++) {
             const date = new Date(year, month, d);
-            const items = itemsForDay(ordersData[formatDateISO(date)] || {});
+            const items = itemsForDay(byDay[formatDateISO(date)]);
             if (items.length) days.push({ date, items });
         }
         return days;
