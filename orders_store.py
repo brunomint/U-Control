@@ -311,6 +311,53 @@ def save_orders(orders):
         db.session.close()
 
 
+# ------------------------------------------- itens feitos no culto ---
+
+def item_ids(itens):
+    """Id estável de cada item da ordem pra marcar "já feito": pelo
+    conteúdo (música pela URL, leitura pela referência, texto pelo texto)
+    + nº da ocorrência, pra sobreviver a reordenar/editar a ordem e
+    distinguir dois "Oração" na mesma ordem."""
+    vistos = {}
+    ids = []
+    for item in itens or []:
+        if item.get('isBible'):
+            base = 'biblia:' + (item.get('reference') or item.get('title') or '')
+        elif item.get('url'):
+            base = 'url:' + item['url'].split('?')[0]
+        else:
+            base = 'texto:' + (item.get('anyText') or item.get('title') or '')
+        vistos[base] = vistos.get(base, 0) + 1
+        ids.append(f'{base}#{vistos[base]}')
+    return ids
+
+
+def get_feitos(key):
+    order = db.session.get(Order, key)
+    return list(order.feitos or []) if order else []
+
+
+def set_feito(key, item_id, feito):
+    """Marca/desmarca um item como feito. Retorna a lista atualizada, ou
+    None se a ordem não existe."""
+    order = db.session.get(Order, key)
+    if order is None:
+        return None
+    feitos = [i for i in (order.feitos or []) if i != item_id]
+    if feito:
+        feitos.append(item_id)
+    order.feitos = feitos or None
+    db.session.commit()
+    return feitos
+
+
+def clear_feitos(key):
+    order = db.session.get(Order, key)
+    if order is not None and order.feitos:
+        order.feitos = None
+        db.session.commit()
+
+
 # ----------------------------------------------------------- templates ---
 
 def load_templates():

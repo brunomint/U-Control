@@ -1465,3 +1465,29 @@ def test_tipo_culto_outro_keeps_custom_name(logged_in_client):
         assert '<option value="Culto de Oração" selected>' in html and 'id="orderTypeOutro"' in html
     finally:
         c.delete("/api/orders/2031-07-05")
+
+
+def test_view_order_marks_items_done(app, client, logged_in_client):
+    import orders_store
+
+    itens = [{"anyText": "Oração"}, {"title": "Hino | Autor", "url": "/lyrics/1"},
+             {"isBible": True, "reference": "João 3:16", "title": "📖 João 3:16"}, {"anyText": "Oração"}]
+    assert orders_store.item_ids(itens) == ["texto:Oração#1", "url:/lyrics/1#1", "biblia:João 3:16#1", "texto:Oração#2"]
+    logged_in_client.post("/api/orders/2031-08-02", json={"tipo": "Culto Dominical", "itens": itens})
+    try:
+        # Visitante não marca; logado marca, todos veem
+        assert client.post("/api/orders/2031-08-02/feitos", json={"item": "texto:Oração#2", "feito": True}).status_code in (302, 401)
+        r = logged_in_client.post("/api/orders/2031-08-02/feitos", json={"item": "texto:Oração#2", "feito": True})
+        assert r.get_json()["feitos"] == ["texto:Oração#2"]
+        assert client.get("/api/orders/2031-08-02/feitos").get_json()["feitos"] == ["texto:Oração#2"]
+        html = client.get("/view/order/2031-08-02").get_data(as_text=True)
+        assert html.count(" feito\"") == 1 and 'data-item="texto:Oração#2"' in html
+        assert 'button type="button" class="item-check"' not in html
+        assert 'class="item-check" aria-pressed' in logged_in_client.get("/view/order/2031-08-02").get_data(as_text=True)
+        # Editar a ordem não apaga a marcação
+        logged_in_client.post("/api/orders/2031-08-02", json={"tipo": "Culto Dominical", "itens": itens[::-1]})
+        assert client.get("/api/orders/2031-08-02/feitos").get_json()["feitos"] == ["texto:Oração#2"]
+        logged_in_client.post("/api/orders/2031-08-02/feitos", json={"limpar": True})
+        assert client.get("/api/orders/2031-08-02/feitos").get_json()["feitos"] == []
+    finally:
+        logged_in_client.delete("/api/orders/2031-08-02")

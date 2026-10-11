@@ -37,3 +37,28 @@ a.item-title:hover { color: var(--uc-accent-text); }
   .item-title, .order-meta b, .order-tema, .stats b { color: #000; }
   .order-when, .order-type, .order-meta, .stats, .item-type, .item-number, .item-title .artist { color: #444; }
 }
+
+/* Itens já feitos no culto */
+.item-check {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  border: 1.5px solid var(--uc-line);
+  background: var(--uc-bg);
+  font-size: 12px;
+  padding: 0;
+}
+.item-check i { visibility: hidden; }
+button.item-check { cursor: pointer; }
+button.item-check:hover { border-color: var(--uc-ok); }
+button.item-check:hover i { visibility: visible; color: var(--uc-faint); }
+.item.feito .item-check i { visibility: visible; color: var(--uc-ok); }
+span.item-check { visibility: hidden; }
+.item.feito span.item-check { visibility: visible; }
+.item.feito .item-check { background: var(--uc-ok-soft); border-color: var(--uc-ok); color: var(--uc-ok); }
+.item.feito { opacity: .55; }
+.item.feito .item-title { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+@media print { .item-check { display: none; } .item.feito { opacity: 1; } }

@@ -11,7 +11,9 @@ from flask_login import login_required
 
 from orders_store import (
     CULTO_FIELDS,
+    clear_feitos,
     current_key,
+    get_feitos,
     get_next_order,
     get_order,
     load_orders,
@@ -23,6 +25,7 @@ from orders_store import (
     save_section_templates,
     key_date,
     key_seq,
+    set_feito,
 )
 
 orders_bp = Blueprint('orders', __name__)
@@ -290,6 +293,29 @@ def api_delete_order(date):
         return jsonify({"error": "Ordem não encontrada"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Itens da ordem já feitos no culto (view/order): todos veem (GET é
+# público, a página atualiza sozinha); só quem está logado marca
+@orders_bp.route('/api/orders/<date>/feitos', methods=['GET'])
+def api_get_feitos(date):
+    return jsonify({'feitos': get_feitos(date)})
+
+
+@orders_bp.route('/api/orders/<date>/feitos', methods=['POST'])
+@login_required
+def api_set_feito(date):
+    data = request.get_json(force=True) or {}
+    if data.get('limpar'):
+        clear_feitos(date)
+        return jsonify({'feitos': []})
+    item_id = (data.get('item') or '').strip()
+    if not item_id:
+        return jsonify({'error': 'Item obrigatório'}), 400
+    feitos = set_feito(date, item_id, bool(data.get('feito')))
+    if feitos is None:
+        return jsonify({'error': 'Ordem não encontrada'}), 404
+    return jsonify({'feitos': feitos})
+
 
 # Exclui UM culto (de um dia com vários): apaga os dados do culto mas
 # mantém os eventos do dia, que vivem na linha da data pura

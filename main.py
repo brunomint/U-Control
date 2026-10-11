@@ -33,7 +33,7 @@ from blueprints.songs import songs_bp
 from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
 from blueprints.gallery import gallery_bp
-from orders_store import current_key, get_order, load_orders
+from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
 import blueprints.screen_share  # noqa: F401 — importado só pelo efeito colateral de registrar os handlers de socket
@@ -266,7 +266,10 @@ def view_order_by_date(date):
             if item.get('isBible'):
                 item['bible_url'] = generate_bible_url(item.get('reference', ''))
     
-    return render_template('view_order.html', date=date, order=order, not_found=False)
+    ids = item_ids(order.get('itens'))
+    feitos = set(get_feitos(date))
+    return render_template('view_order.html', date=date, order=order, not_found=False,
+                           item_ids=ids, feitos=feitos)
 
 @app.route('/api/songs/search')
 def api_songs_search():

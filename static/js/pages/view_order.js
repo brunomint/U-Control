@@ -43,8 +43,8 @@ function copyLink() {
     });
 }
 
-function showToast(message) {
-    window.ucToast(message);
+function showToast(message, type) {
+    window.ucToast(message, type);
 }
 
 // Réplica do filtro `truncate(length, killwords=True, end="...")` do Jinja2
@@ -111,3 +111,60 @@ function copyWhatsapp() {
             showToast('Texto copiado!');
         });
 }
+
+// ── Itens já feitos no culto ─────────────────────────────────────────
+// Quem está logado marca/desmarca; todos veem (a página busca as
+// marcações a cada 10 s, então a banda e a mídia acompanham sozinhas).
+const feitosUrl = `/api/orders/${CONFIG.date}/feitos`;
+
+function aplicarFeitos(feitos) {
+    const set = new Set(feitos);
+    let total = 0;
+    document.querySelectorAll('.item[data-item]').forEach(li => {
+        const feito = set.has(li.dataset.item);
+        if (feito) total++;
+        li.classList.toggle('feito', feito);
+        const btn = li.querySelector('button.item-check');
+        if (btn) btn.setAttribute('aria-pressed', String(feito));
+    });
+    document.getElementById('statFeitos').textContent = total;
+}
+
+async function salvarFeito(body) {
+    try {
+        const resp = await fetch(feitosUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        aplicarFeitos((await resp.json()).feitos);
+    } catch (e) {
+        showToast('Não deu pra salvar a marcação', 'error');
+        atualizarFeitos();
+    }
+}
+
+async function atualizarFeitos() {
+    if (document.hidden) return;
+    try {
+        const resp = await fetch(feitosUrl);
+        if (resp.ok) aplicarFeitos((await resp.json()).feitos);
+    } catch (e) { /* sem conexão: tenta de novo no próximo ciclo */ }
+}
+
+if (CONFIG.canMark) {
+    document.getElementById('itemsList').addEventListener('click', e => {
+        const btn = e.target.closest('button.item-check');
+        if (!btn) return;
+        const feito = btn.getAttribute('aria-pressed') !== 'true';
+        btn.closest('.item').classList.toggle('feito', feito);  // resposta imediata
+        btn.setAttribute('aria-pressed', String(feito));
+        salvarFeito({ item: btn.closest('.item').dataset.item, feito });
+    });
+    document.getElementById('limparFeitos').addEventListener('click', () => {
+        if (confirm('Desmarcar todos os itens desta ordem?')) salvarFeito({ limpar: true });
+    });
+}
+setInterval(atualizarFeitos, 10000);
+document.addEventListener('visibilitychange', atualizarFeitos);

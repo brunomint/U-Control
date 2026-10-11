@@ -28,6 +28,10 @@ class Order(db.Model):
     tema = db.Column(db.String(500), nullable=True)
     louvor = db.Column(db.JSON, nullable=True)
     midia = db.Column(db.JSON, nullable=True)
+    # Itens da ordem já feitos no culto (view/order): lista de ids de item
+    # de orders_store.item_ids(). Fica fora de _order_to_dict de propósito
+    # — editar a ordem não apaga as marcações.
+    feitos = db.Column(db.JSON, nullable=True)
 
     itens = db.relationship(
         'OrderItem', backref='order', order_by='OrderItem.position',

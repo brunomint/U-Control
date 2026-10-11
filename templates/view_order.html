@@ -42,11 +42,21 @@
                 <span><b id="statMusicas">0</b> músicas</span>
                 <span><b id="statBiblia">0</b> leituras</span>
                 <span><b id="statTotal">{{ order.itens | length }}</b> no total</span>
+                <span><b id="statFeitos">{{ feitos | select('in', item_ids) | list | length }}</b> feitos</span>
             </div>
+            {% if current_user.is_authenticated %}
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="limparFeitos"><i class="fas fa-rotate-left"></i> Desmarcar tudo</button>
+            {% endif %}
         </div>
         <ol id="itemsList" class="items">
             {% for item in order.itens %}
-            <li class="item {% if item.isBible or (item.url and '/bible/control/' in item.url) %}bible{% elif not item.url or item.url == '/order' or item.url == '/order/new' %}text-item{% endif %}">
+            {% set feito = item_ids[loop.index0] in feitos %}
+            <li class="item {% if item.isBible or (item.url and '/bible/control/' in item.url) %}bible{% elif not item.url or item.url == '/order' or item.url == '/order/new' %}text-item{% endif %}{% if feito %} feito{% endif %}" data-item="{{ item_ids[loop.index0] }}">
+                {% if current_user.is_authenticated %}
+                <button type="button" class="item-check" aria-pressed="{{ 'true' if feito else 'false' }}" aria-label="Marcar como feito" title="Marcar como feito"><i class="fas fa-check"></i></button>
+                {% else %}
+                <span class="item-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+                {% endif %}
                 <span class="item-number">{{ '%02d' % loop.index }}</span>
                 <div class="item-content">
                     {% if item.isBible or (item.url and '/bible/control/' in item.url) %}
@@ -83,7 +93,7 @@
 {% for item in (order.get('itens', []) if order else []) %}
 {% set _ = item_labels.append(item.title or item.anyText or item.reference or "") %}
 {% endfor %}
-<script id="view-order-data" type="application/json">{{ {"date": date, "order": {"tipo": (order.get('tipo') if order else none), "dirigente": (order.get('dirigente') if order else none), "pregador": (order.get('pregador') if order else none), "horario": ((order.get('horario') or order.get('horario_culto')) if order else none), "tema": (order.get('tema') if order else none), "itemLabels": item_labels}} | tojson }}</script>
+<script id="view-order-data" type="application/json">{{ {"date": date, "canMark": current_user.is_authenticated, "order": {"tipo": (order.get('tipo') if order else none), "dirigente": (order.get('dirigente') if order else none), "pregador": (order.get('pregador') if order else none), "horario": ((order.get('horario') or order.get('horario_culto')) if order else none), "tema": (order.get('tema') if order else none), "itemLabels": item_labels}} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
