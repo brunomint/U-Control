@@ -2,6 +2,24 @@
 let selectedSongData = null;
 let availableOrders = {};
 
+// Data local YYYY-MM-DD (toISOString é UTC: depois das 21h em Fortaleza
+// já seria "amanhã" e o culto da noite ia parar em "Anteriores")
+function localISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Ordem de exibição: por data e, no mesmo dia, pelo horário do culto
+// (chaves YYYY-MM-DD / YYYY-MM-DD-N, ver static/js/agenda_cultos.js)
+function orderSortKey(key) {
+    const o = availableOrders[key] || {};
+    return `${key.slice(0, 10)} ${o.horario_culto || o.horario || '99:99'} ${key}`;
+}
+
+const hasCulto = key => {
+    const o = availableOrders[key] || {};
+    return !!((o.tipo && o.tipo !== 'Nenhum') || (o.itens && o.itens.length));
+};
+
 // Carrega ordens disponíveis do servidor
 async function loadAvailableOrders() {
     try {
@@ -11,33 +29,28 @@ async function loadAvailableOrders() {
         const select = $('#orderDateSelect');
         select.empty();
 
-        const dates = Object.keys(availableOrders).sort();
+        const keys = Object.keys(availableOrders).sort((a, b) => orderSortKey(a).localeCompare(orderSortKey(b)));
 
-        if (dates.length === 0) {
+        if (keys.length === 0) {
             select.append('<option value="">Nenhuma ordem encontrada</option>');
         } else {
-            // Filtra para mostrar apenas datas de hoje em diante
-            const today = new Date().toISOString().split('T')[0];
-            const futureDates = dates.filter(d => d >= today);
-            const pastDates = dates.filter(d => d < today).reverse().slice(0, 3);
-
-            if (futureDates.length > 0) {
-                select.append('<optgroup label="📅 Próximas">');
-                futureDates.forEach(date => {
-                    const itemCount = availableOrders[date]?.itens?.length || 0;
-                    select.append(`<option value="${date}">${orderLabel(date)} (${itemCount} itens)</option>`);
+            // Próximas (de hoje em diante) e as 3 últimas anteriores
+            const today = localISO(new Date());
+            const futureKeys = keys.filter(k => k.slice(0, 10) >= today);
+            const pastKeys = keys.filter(k => k.slice(0, 10) < today).reverse().slice(0, 3);
+            const group = (label, list) => {
+                const g = $('<optgroup>').attr('label', label);
+                list.forEach(key => {
+                    const itemCount = availableOrders[key]?.itens?.length || 0;
+                    g.append($('<option>').val(key).text(`${orderLabel(key)} (${itemCount} itens)`));
                 });
-                select.append('</optgroup>');
-            }
-
-            if (pastDates.length > 0) {
-                select.append('<optgroup label="📜 Anteriores">');
-                pastDates.forEach(date => {
-                    const itemCount = availableOrders[date]?.itens?.length || 0;
-                    select.append(`<option value="${date}">${orderLabel(date)} (${itemCount} itens)</option>`);
-                });
-                select.append('</optgroup>');
-            }
+                select.append(g);
+            };
+            if (futureKeys.length) group('📅 Próximas', futureKeys);
+            if (pastKeys.length) group('📜 Anteriores', pastKeys);
+            // Já vem marcado o próximo culto (pula datas só com eventos)
+            const first = futureKeys.find(hasCulto) || futureKeys[0] || pastKeys[0];
+            if (first) select.val(first);
         }
 
         // Define data padrão para nova ordem como próximo domingo
@@ -60,8 +73,9 @@ function formatDate(dateStr) {
 // Data + qual culto (num dia pode haver mais de um)
 function orderLabel(key) {
     const o = availableOrders[key] || {};
-    const culto = [o.tipo, o.horario_culto].filter(Boolean).join(' ');
-    return culto ? `${formatDate(key)} · ${culto}` : formatDate(key);
+    const culto = [o.tipo !== 'Nenhum' && o.tipo, o.horario_culto].filter(Boolean).join(' ');
+    if (culto) return `${formatDate(key)} · ${culto}`;
+    return hasCulto(key) ? formatDate(key) : `${formatDate(key)} · sem culto cadastrado`;
 }
 
 // Retorna próximo domingo
@@ -71,7 +85,7 @@ function getNextSunday() {
     const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
     const nextSunday = new Date(today);
     nextSunday.setDate(today.getDate() + daysUntilSunday);
-    return nextSunday.toISOString().split('T')[0];
+    return localISO(nextSunday);
 }
 
 // Cria nova ordem
@@ -143,7 +157,7 @@ async function confirmAddToOrder() {
         );
 
         if (exists) {
-            showNotification(`"${selectedSongData.songTitle}" já está na ordem de ${formatDate(selectedDate)}!`);
+            showNotification(`"${selectedSongData.songTitle}" já está na ordem de ${orderLabel(selectedDate)}!`);
             closeOrderModal();
             return;
         }
@@ -153,15 +167,16 @@ async function confirmAddToOrder() {
             title: selectedSongData.title
         });
 
-        await fetch(`/api/orders/${selectedDate}`, {
+        const saved = await fetch(`/api/orders/${selectedDate}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderData)
         });
+        if (!saved.ok) throw new Error(`HTTP ${saved.status}`);
 
         button.html('<i class="fas fa-check"></i> Adicionada');
         button.removeClass('add-order').addClass('view');
-        showNotification(`"${selectedSongData.songTitle}" adicionada à ordem de ${formatDate(selectedDate)}!`);
+        showNotification(`"${selectedSongData.songTitle}" adicionada à ordem de ${orderLabel(selectedDate)}!`);
 
         setTimeout(() => {
             button.html(originalHtml);
