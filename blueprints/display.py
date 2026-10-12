@@ -701,7 +701,7 @@ def _release_kind(kind, payload):
             handle_show_image(payload)
 
     _marcar_feito_no_ar(kind, payload)
-    display_state._live_follow_kind = kind
+    display_state.follow_confirma(kind)
     emit('content_released', {'kind': kind}, broadcast=True)
     telao.broadcast_status()
 
@@ -724,7 +724,7 @@ def handle_stage_content(data):
     # ainda não tiver confirmado aquele tipo nesta sessão (ex: uma foto
     # nunca precisa ser "a mesma coisa" que o relógio, já que ações
     # nativas do /control não tocam o live-follow — ver display_state.py).
-    if display_state._live_follow_kind == kind:
+    if display_state.follow_inclui(kind):
         with current_app.app_context():
             staged = db.session.get(StagedContent, kind)
             if staged:

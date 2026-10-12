@@ -97,7 +97,7 @@
         if (st.follow) {
             parts.push(
                 `<span class="tb-chip tb-follow" title="Depois de um Liberar, o que for preparado desse tipo vai direto ao telão">` +
-                `<i class="fas fa-bolt"></i> ${esc(FOLLOW_TEXT[st.follow] || 'Entra direto')}` +
+                `<i class="fas fa-bolt"></i> ${esc(st.follow_label === 'Letra e Bíblia' ? 'Letra e Bíblia entram direto' : (FOLLOW_TEXT[st.follow] || 'Entra direto'))}` +
                 `<button type="button" class="tb-btn" data-act="stop-follow">parar</button></span>`);
         }
         bar.innerHTML = parts.join('');

@@ -53,6 +53,32 @@ _last_image_url = None
 # próxima foto clicada no presenter entrava por cima na hora.
 _live_follow_kind = None
 
+# Letra e Bíblia andam juntas: alternar entre música e leitura no mesmo
+# culto (ex.: leitura clicada na ordem do culto em /lyrics, e de volta pra
+# música) pedia Liberar a cada troca — e quem não via o "Liberar" achava
+# que a página tinha travado. Depois que as duas foram confirmadas, as
+# duas vão direto. Imagem nunca entra aqui (proteção do relógio acima).
+# Só vale enquanto _live_follow_kind não for None (os resets acima zeram
+# só ele — o conjunto fica velho, mas é ignorado e refeito no próximo
+# follow_confirma).
+TEXTO = {'lyrics', 'bible'}
+_live_follow_texto = set()
+
+
+def follow_confirma(kind):
+    """Liberação confirmada (_release_kind): passa a acompanhar `kind`."""
+    global _live_follow_kind, _live_follow_texto
+    if kind in TEXTO and _live_follow_kind in TEXTO:
+        _live_follow_texto = _live_follow_texto | {kind, _live_follow_kind}
+    else:
+        _live_follow_texto = {kind} & TEXTO
+    _live_follow_kind = kind
+
+
+def follow_inclui(kind):
+    """Esse kind vai direto ao ar (sem pedir Liberar)?"""
+    return _live_follow_kind is not None and (kind == _live_follow_kind or kind in _live_follow_texto)
+
 # Modo Público/Monitor atual (control.js: publicOnlyMode/monitorOnlyMode)
 # — fonte única de verdade no SERVIDOR, não só no JS do /control.
 # _release_kind (blueprints/display.py) lê daqui pra QUALQUER liberação,

@@ -1621,3 +1621,41 @@ def test_new_content_on_screen_shows_hidden_text_again(app, client):
         sock.emit("toggle_lyrics_visibility", {"visible": True})
         sock.disconnect()
         display_state._live_follow_kind = None
+
+
+def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
+    import display_state
+    from extensions import db
+    from models import StagedContent
+
+    display_state._live_follow_kind = None
+    sock = _operator_socket(app)
+
+    def preparar(kind, payload):
+        sock.emit("stage_content", {"kind": kind, "payload": payload, "label": "x"})
+        sock.get_received()
+        with app.app_context():
+            return db.session.get(StagedContent, kind) is not None   # True = ficou esperando Liberar
+
+    try:
+        assert preparar("lyrics", {"songId": 1, "sectionIndex": 0, "title": "V1"})
+        sock.emit("release_staged_content", {"kind": "lyrics"})
+        # 1ª troca pra Bíblia ainda pede Liberar...
+        assert preparar("bible", {"reference": "João 3:16", "text": "..."})
+        sock.emit("release_staged_content", {"kind": "bible"})
+        sock.get_received()
+        # ...depois, voltar pra música e de novo pra Bíblia vai direto
+        assert not preparar("lyrics", {"songId": 1, "sectionIndex": 1, "title": "Refrão"})
+        assert not preparar("bible", {"reference": "João 3:17", "text": "..."})
+        import telao
+        assert telao.build_status()["follow_label"] == "Letra e Bíblia"
+        # Foto continua pedindo Liberar
+        assert preparar("image", {"image_url": "/static/x.jpg"})
+        # "parar" volta a pedir pra tudo
+        sock.emit("stop_live_follow", {})
+        assert preparar("lyrics", {"songId": 1, "sectionIndex": 2, "title": "V2"})
+    finally:
+        for kind in ("image", "lyrics", "bible"):
+            sock.emit("discard_staged_content", {"kind": kind})
+        sock.disconnect()
+        display_state._live_follow_kind = None

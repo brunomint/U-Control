@@ -215,7 +215,8 @@ def build_status():
         'staged': staged,
         'mode': 'monitor' if mode.get('monitor_only') else 'public' if mode.get('exclude_monitor') else 'all',
         'follow': follow,
-        'follow_label': _FOLLOW_LABELS.get(follow) if follow else None,
+        'follow_label': ('Letra e Bíblia' if follow and display_state._live_follow_texto == display_state.TEXTO
+                         else _FOLLOW_LABELS.get(follow)) if follow else None,
         'blackout': bool(display_state._blackout_active),
         **_extras(),
     }

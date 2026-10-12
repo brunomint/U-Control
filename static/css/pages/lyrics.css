@@ -200,11 +200,14 @@ button#prev:hover, button#next:hover { border-color: var(--uc-accent); }
 .menu-links a:hover { color: var(--uc-text); background: var(--uc-surface-2); }
 
 /* Leitura bíblica ao vivo */
-.bible-modal-backdrop { position: fixed; inset: 0; z-index: 2100; background: rgba(5, 6, 12, .75); display: flex; align-items: center; justify-content: center; padding: 16px; }
+/* Começa embaixo do menu + barra do telão (--uc-nav-h): a leitura é usada
+   durante o culto e o "Liberar"/"parar" da barra precisam ficar clicáveis
+   (antes o fundo escuro cobria a barra e não tinha como liberar). */
+.bible-modal-backdrop { position: fixed; inset: var(--uc-nav-h, 0px) 0 0 0; z-index: 2100; background: rgba(5, 6, 12, .75); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .bible-modal-content {
   width: 100%;
   max-width: 760px;
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - var(--uc-nav-h, 0px) - 32px);
   display: flex;
   flex-direction: column;
   background: var(--uc-surface);
