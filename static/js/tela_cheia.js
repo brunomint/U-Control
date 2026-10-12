@@ -1,6 +1,8 @@
 // Tela aberta pelo "Abrir no datashow" do Controle (?tela_cheia=1,
-// screen_picker.js): fica em tela cheia sozinha quando o navegador deixa;
-// senão, no primeiro clique/tecla nela (o navegador exige um gesto).
+// screen_picker.js). O navegador só põe em tela cheia com um clique: o
+// "Pôr em tela cheia" do Controle empresta o clique pra esta janela
+// (postMessage com delegate: 'fullscreen'). Também vale um clique/tecla
+// aqui mesmo.
 (function () {
     if (!/[?&]tela_cheia=1/.test(location.search) || !document.documentElement.requestFullscreen) return;
     const cheia = () => !!document.fullscreenElement;
@@ -15,4 +17,12 @@
     document.addEventListener('pointerdown', gesto, { once: true });
     document.addEventListener('keydown', gesto, { once: true });
     document.addEventListener('fullscreenchange', () => { if (cheia()) dica.remove(); });
+    const responder = (uc) => { if (window.opener) window.opener.postMessage({ uc }, location.origin); };
+    window.addEventListener('message', e => {
+        if (e.origin !== location.origin || !e.data || e.data.uc !== 'tela_cheia') return;
+        document.documentElement.requestFullscreen()
+            .then(() => { dica.remove(); responder('tela_cheia_ok'); })
+            .catch(() => responder('tela_cheia_falhou'));
+    });
+    responder('tela_pronta');
 })();

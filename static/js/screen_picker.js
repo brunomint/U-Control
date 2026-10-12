@@ -13,6 +13,8 @@
     const list = document.getElementById('datashowList');
     const aviso = document.getElementById('datashowAviso');
     const baixar = document.getElementById('datashowBaixar');
+    const cheiaBtn = document.getElementById('datashowCheia');
+    let janela = null;      // janela aberta por abrirAgora
     const TELAS = { publico: '/lyrics/display/public', palco: '/monitor' };
     const KEY = 'uc_datashow';
     let tela = 'publico';
@@ -31,7 +33,9 @@
         baixar.disabled = false;
     }
 
-    function render(opcoes, abreDireto) {
+    // s.abre: dá pra abrir a janela já nessa tela (com a lista de telas
+    // do navegador; sem ela, só "Esta tela")
+    function render(opcoes) {
         const salvo = ler()[tela];
         list.innerHTML = '';
         opcoes.forEach((s, i) => {
@@ -41,12 +45,12 @@
             b.className = 'datashow-opcao';
             b.dataset.i = i;
             b.innerHTML = `<i class="fas ${s.icon}"></i><span class="grow"><b></b><small></small></span>` +
-                (abreDireto ? '<span class="uc-pill uc-pill-muted">Abrir</span>' : '');
+                (s.abre ? '<span class="uc-pill uc-pill-muted">Abrir</span>' : '');
             b.querySelector('b').textContent = s.label;
             b.querySelector('small').textContent = s.detalhe;
             b.addEventListener('click', () => {
                 escolher(s);
-                if (abreDireto) abrirAgora(s);
+                if (s.abre) abrirAgora(s);
             });
             list.appendChild(b);
             if (mesma(s, salvo)) escolher(s);
@@ -55,16 +59,46 @@
 
     function abrirAgora(s) {
         const feat = `popup,fullscreen,left=${s.left},top=${s.top},width=${s.width},height=${s.height}`;
-        const w = window.open(`${TELAS[tela]}?tela_cheia=1`, `uc_${tela}`, feat);
-        if (!w) {
+        janela = window.open(`${TELAS[tela]}?tela_cheia=1`, `uc_${tela}`, feat);
+        if (!janela) {
             aviso.textContent = 'O navegador bloqueou a janela. Libere pop-ups para este endereço e tente de novo.';
             return;
         }
-        ucToast(`Abrindo em ${s.label}. Se não ficar em tela cheia, clique nela uma vez.`);
+        // Abrir a janela gasta o clique; a tela cheia precisa de outro, aqui
+        // no Controle mesmo (o navegador empresta o clique pra janela —
+        // postMessage com delegate, ver tela_cheia.js). Liga quando ela carregar.
+        cheiaBtn.hidden = false;
+        cheiaBtn.disabled = true;
+        aviso.textContent = `Abrindo em ${s.label}…`;
     }
+
+    window.addEventListener('message', e => {
+        if (e.origin !== location.origin || !e.data || e.source !== janela) return;
+        if (e.data.uc === 'tela_pronta') {
+            cheiaBtn.disabled = false;
+            aviso.textContent = 'Janela aberta. Agora toque em "Pôr em tela cheia".';
+        } else if (e.data.uc === 'tela_cheia_ok') {
+            cheiaBtn.hidden = true;
+            aviso.textContent = '';
+            ucToast('Tela pública em tela cheia.');
+            fecharDatashow();
+        } else if (e.data.uc === 'tela_cheia_falhou') {
+            aviso.textContent = 'O navegador não deixou pôr em tela cheia daqui. Clique uma vez na janela da tela pública (ou aperte F11 nela).';
+        }
+    });
+
+    cheiaBtn.addEventListener('click', () => {
+        if (!janela || janela.closed) { cheiaBtn.hidden = true; return; }
+        try {
+            janela.postMessage({ uc: 'tela_cheia' }, { targetOrigin: location.origin, delegate: 'fullscreen' });
+        } catch (e) {
+            janela.postMessage({ uc: 'tela_cheia' }, location.origin);  // navegador sem delegação: a janela tenta e avisa
+        }
+    });
 
     async function carregar() {
         aviso.textContent = '';
+        cheiaBtn.hidden = true;
         escolhida = null;
         baixar.disabled = true;
         if ('getScreenDetails' in window && window.isSecureContext) {
@@ -77,9 +111,9 @@
                     left: sc.availLeft, top: sc.availTop, width: sc.availWidth, height: sc.availHeight,
                     label: `Tela ${i + 1}${sc.isPrimary ? ' · principal' : ''}`,
                     detalhe: `${sc.width}×${sc.height}${sc.label ? ' · ' + sc.label : ''}`,
-                    icon: sc.isPrimary ? 'fa-laptop' : 'fa-display',
+                    icon: sc.isPrimary ? 'fa-laptop' : 'fa-display', abre: true,
                 }));
-                render(opcoes, true);
+                render(opcoes);
                 if (opcoes.length === 1) aviso.textContent = 'Só uma tela ligada neste PC. Ligue o datashow (modo "Estender") e abra de novo.';
                 return;
             } catch (e) {
@@ -95,8 +129,9 @@
         render([
             { left: w + 50, top: 50, width: 0, height: 0, label: 'Tela à direita', detalhe: 'Datashow à direita desta tela (o mais comum)', icon: 'fa-arrow-right' },
             { left: -200, top: 50, width: 0, height: 0, label: 'Tela à esquerda', detalhe: 'Datashow à esquerda desta tela', icon: 'fa-arrow-left' },
-            { left: 0, top: 0, width: w, height: h, label: 'Esta tela', detalhe: `${w}×${h}`, icon: 'fa-laptop' },
-        ], false);
+            { left: window.screen.availLeft || 0, top: window.screen.availTop || 0, width: window.screen.availWidth, height: window.screen.availHeight,
+              label: 'Esta tela', detalhe: `${w}×${h}`, icon: 'fa-laptop', abre: true },
+        ]);
     }
 
     modal.querySelectorAll('[data-tela]').forEach(b => b.addEventListener('click', () => {
