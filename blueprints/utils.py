@@ -39,6 +39,15 @@ def exibir_links():
     return render_template("links.html", dados=dados)
 
 
+# Telas que o script de inicialização pode abrir. Perfil do Chrome
+# separado por tela: cada janela lembra o próprio lugar/tamanho.
+LAUNCHER_TELAS = {
+    'img': {'path': '/img', 'perfil': 'Monitor', 'arquivo': 'Monitor'},
+    'publico': {'path': '/lyrics/display/public', 'perfil': 'Publico', 'arquivo': 'Tela-Publica'},
+    'palco': {'path': '/monitor', 'perfil': 'Palco', 'arquivo': 'Retorno-Palco'},
+}
+
+
 @utils_bp.route('/download-monitor-launcher/<so>')
 def download_monitor_launcher(so):
     """
@@ -46,9 +55,19 @@ def download_monitor_launcher(so):
     do servidor preenchidos. Abre o Chrome com autoplay liberado para que
     vídeos toquem com som automaticamente.
     Suporta: windows (.bat), linux (.sh), mac (.command)
+
+    ?tela=publico|palco escolhe outra tela (padrão: img, como sempre) e
+    ?x=&y= abre numa tela específica do PC (ex.: o datashow) — o Chrome
+    abre a janela nesse ponto e fica em tela cheia naquela tela. Os
+    números vêm do "Abrir no datashow" do Controle (screen_picker.js).
     """
     server_host = request.host  # ex: 192.168.1.10:8585
-    url = f'http://{server_host}/img'
+    tela = LAUNCHER_TELAS.get(request.args.get('tela', 'img'), LAUNCHER_TELAS['img'])
+    url = f'http://{server_host}{tela["path"]}'
+    x, y = request.args.get('x', type=int), request.args.get('y', type=int)
+    posicao = f' --window-position={x},{y}' if x is not None and y is not None else ''
+    flags = ('--autoplay-policy=no-user-gesture-required --no-first-run --no-default-browser-check'
+             f'{posicao} --start-fullscreen')
 
     so = (so or '').lower()
 
@@ -87,10 +106,10 @@ def download_monitor_launcher(so):
             '    exit /b 1\r\n'
             ')\r\n'
             '\r\n'
-            'set PROFILE_DIR=%LocalAppData%\\UControl-Monitor\r\n'
-            'start "" "%BROWSER%" --autoplay-policy=no-user-gesture-required --user-data-dir="%PROFILE_DIR%" --no-first-run --no-default-browser-check --app=%URL% --start-fullscreen\r\n'
+            f'set PROFILE_DIR=%LocalAppData%\\UControl-{tela["perfil"]}\r\n'
+            f'start "" "%BROWSER%" --user-data-dir="%PROFILE_DIR%" --app=%URL% {flags}\r\n'
         )
-        filename = 'Iniciar-Monitor-UControl.bat'
+        filename = f'Iniciar-{tela["arquivo"]}-UControl.bat'
         mimetype = 'application/octet-stream'
 
     elif so == 'linux':
@@ -125,11 +144,11 @@ def download_monitor_launcher(so):
             '    exit 1\n'
             'fi\n'
             '\n'
-            'PROFILE_DIR="$HOME/.config/ucontrol-monitor"\n'
+            f'PROFILE_DIR="$HOME/.config/ucontrol-{tela["perfil"].lower()}"\n'
             'mkdir -p "$PROFILE_DIR"\n'
-            '"$CHROME" --autoplay-policy=no-user-gesture-required --user-data-dir="$PROFILE_DIR" --no-first-run --no-default-browser-check --app="$URL" --start-fullscreen &\n'
+            f'"$CHROME" --user-data-dir="$PROFILE_DIR" --app="$URL" {flags} &\n'
         )
-        filename = 'Iniciar-Monitor-UControl.sh'
+        filename = f'Iniciar-{tela["arquivo"]}-UControl.sh'
         mimetype = 'application/x-sh'
 
     elif so in ('mac', 'macos', 'osx'):
@@ -167,11 +186,11 @@ def download_monitor_launcher(so):
             '    exit 1\n'
             'fi\n'
             '\n'
-            'PROFILE_DIR="$HOME/Library/Application Support/UControl-Monitor"\n'
+            f'PROFILE_DIR="$HOME/Library/Application Support/UControl-{tela["perfil"]}"\n'
             'mkdir -p "$PROFILE_DIR"\n'
-            '"$CHROME" --autoplay-policy=no-user-gesture-required --user-data-dir="$PROFILE_DIR" --no-first-run --no-default-browser-check --app="$URL" --start-fullscreen &\n'
+            f'"$CHROME" --user-data-dir="$PROFILE_DIR" --app="$URL" {flags} &\n'
         )
-        filename = 'Iniciar-Monitor-UControl.command'
+        filename = f'Iniciar-{tela["arquivo"]}-UControl.command'
         mimetype = 'application/x-sh'
 
     else:

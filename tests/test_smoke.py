@@ -1535,3 +1535,16 @@ def test_items_going_on_screen_are_marked_done(app):
             orders_store.save_order(today, {})
             if antes:
                 orders_store.save_order(today, antes)
+
+
+def test_launcher_opens_chosen_screen_and_page(client, logged_in_client):
+    padrao = client.get("/download-monitor-launcher/windows").get_data(as_text=True)
+    assert "/img" in padrao and "--window-position" not in padrao and "UControl-Monitor" in padrao
+    r = client.get("/download-monitor-launcher/windows?tela=publico&x=1930&y=10")
+    corpo = r.get_data(as_text=True)
+    assert "Tela-Publica" in r.headers["Content-Disposition"]
+    assert "/lyrics/display/public" in corpo and "--window-position=1930,10 --start-fullscreen" in corpo
+    assert "--window-position=-190,60" in client.get("/download-monitor-launcher/linux?tela=palco&x=-190&y=60").get_data(as_text=True)
+    html = logged_in_client.get("/control").get_data(as_text=True)
+    assert 'id="modal-datashow"' in html and "js/screen_picker.js" in html
+    assert "js/tela_cheia.js" in client.get("/lyrics/display/public").get_data(as_text=True)

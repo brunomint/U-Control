@@ -58,6 +58,7 @@
         <div class="live-actions">
             <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> <span>Tela preta</span></button>
             <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="Copia o que está no público para o monitor de palco"><i class="fas fa-rotate"></i> Sincronizar monitor</button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="abrirDatashow()" title="Escolhe em qual tela do PC a tela pública abre"><i class="fas fa-display"></i> Abrir no datashow</button>
         </div>
 
         <div class="mode-choice">
@@ -222,8 +223,32 @@
         </div>
     </section>
 </main>
+
+<!-- "Abrir no datashow": em qual tela do PC abrir a tela pública (screen_picker.js) -->
+<div class="uc-modal-overlay" id="modal-datashow" style="display:none" onclick="if(event.target===this)fecharDatashow()">
+    <div class="uc-modal" role="dialog" aria-modal="true" aria-labelledby="datashow-title">
+        <div class="uc-modal-head">
+            <h2 id="datashow-title">Abrir no datashow</h2>
+            <button type="button" class="uc-modal-close" onclick="fecharDatashow()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="uc-modal-body">
+            <div class="uc-seg" role="group" aria-label="Qual tela abrir">
+                <button type="button" data-tela="publico" aria-pressed="true"><i class="fas fa-users"></i> Tela pública</button>
+                <button type="button" data-tela="palco" aria-pressed="false"><i class="fas fa-tv"></i> Retorno de palco</button>
+            </div>
+            <p class="uc-muted small">Escolha a tela do datashow. A escolha fica guardada neste computador.</p>
+            <div class="datashow-list" id="datashowList"></div>
+            <p class="datashow-aviso" id="datashowAviso" role="status"></p>
+        </div>
+        <div class="uc-modal-foot">
+            <span class="uc-muted small grow">Para os próximos cultos: o atalho abre direto em tela cheia na tela escolhida.</span>
+            <button type="button" class="uc-btn uc-btn-secondary" id="datashowBaixar" disabled><i class="fab fa-windows"></i> Baixar atalho</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ versioned_static('js/pages/control.js') }}"></script>
+<script src="{{ versioned_static('js/screen_picker.js') }}"></script>
 {% endblock %}
