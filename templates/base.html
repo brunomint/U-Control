@@ -22,5 +22,19 @@
 <body{% if app_theme %} class="uc-app"{% endif %}>
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
+    {# Avisos (flash) que a página não mostrou por conta própria: viram um
+       toast aqui, na página pra onde a pessoa foi mandada — antes ficavam
+       guardados na sessão e apareciam todos juntos em /usuarios. Repetidos
+       aparecem uma vez só. #}
+    {% if app_theme %}{% with avisos = get_flashed_messages(with_categories=true) %}{% if avisos %}
+    <script>
+    (function () {
+        const avisos = {{ avisos | unique | list | tojson }};
+        const textos = [...new Set(avisos.map(a => a[1]))];
+        const erro = avisos.some(a => a[0] === 'error');
+        window.ucToast(textos.join(' · '), erro ? 'error' : undefined);
+    })();
+    </script>
+    {% endif %}{% endwith %}{% endif %}
 </body>
 </html>

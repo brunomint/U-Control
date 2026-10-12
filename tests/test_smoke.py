@@ -1564,3 +1564,15 @@ def test_every_bible_book_opens_in_every_translation(logged_in_client):
                     falhas.append(path)
     assert falhas == []
     assert "Tiago" in logged_in_client.get("/bible/control/tg/1?translation=arc").get_data(as_text=True)
+
+
+def test_flash_shows_on_the_page_it_redirects_to(logged_in_client):
+    c = logged_in_client
+    for _ in range(3):
+        r = c.get("/bible/nao-existe/1")
+        assert r.status_code == 302
+    html = c.get(r.headers["Location"]).get_data(as_text=True)
+    # Os 3 avisos viram um toast só na página da Bíblia...
+    assert html.count("encontrado!") == 1 and "ucToast" in html  # tojson escreve "n\\u00e3o"
+    # ...e não sobram pra aparecer depois em /usuarios
+    assert "encontrado!" not in c.get("/usuarios").get_data(as_text=True)
