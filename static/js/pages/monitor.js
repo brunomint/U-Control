@@ -17,6 +17,16 @@
             socket.emit('identify', { role: 'monitor' });
         });
 
+        // Página do U-Control aberta DENTRO do monitor (tela dividida, URL,
+        // letra/foto/Bíblia): vai com host=monitor pra ela se apresentar ao
+        // servidor como monitor. Senão, em "Só público" o servidor deixava
+        // de mandar pro /monitor, mas a /img ou a /lyrics/display de dentro
+        // dele continuavam recebendo — e o monitor mudava junto com o público.
+        function noMonitor(u) {
+            if (!u || !u.startsWith('/') || u.startsWith('/static/') || /[?&]host=monitor\b/.test(u)) return u;
+            return u + (u.includes('?') ? '&' : '?') + 'host=monitor';
+        }
+
         // Verifica se a URL é de uma imagem com base na extensão
         function isImageUrl(url) {
             return /\.(jpeg|jpg|gif|png|bmp)(\?.*)?$/i.test(url || '');
@@ -44,7 +54,7 @@
                 displayImage.style.display = 'block';
             } else {
                 // Se não for uma imagem, mostra o iframe padrão com uma URL de backup
-                iframe1.src = imageUrl || "about:blank";
+                iframe1.src = noMonitor(imageUrl) || "about:blank";
                 showSingleIframe();
             }
         }
@@ -130,8 +140,8 @@
                     
                     if (state.url1 && state.url2) {
                         // Duas URLs - tela dividida
-                        iframe1.src = state.url1;
-                        iframe2.src = state.url2;
+                        iframe1.src = noMonitor(state.url1);
+                        iframe2.src = noMonitor(state.url2);
                         showDoubleIframe();
                     } else if (state.url1) {
                         // Uma URL - tela cheia
@@ -244,8 +254,8 @@
             if (u1.startsWith('/static/')) u1 = '/img';
             if (u2.startsWith('/static/')) u2 = '/img';
             hideVideo(); // Tela dividida usa iframes, não o player nativo de vídeo
-            iframe1.src = u1;
-            iframe2.src = u2;
+            iframe1.src = noMonitor(u1);
+            iframe2.src = noMonitor(u2);
             showDoubleIframe();
         });
         
@@ -289,7 +299,7 @@
             } else if (isImageUrl(url)) {
                 showImage(url);
             } else {
-                iframe1.src = url || 'about:blank';
+                iframe1.src = noMonitor(url) || 'about:blank';
                 showSingleIframe();
             }
         });

@@ -435,6 +435,16 @@ function renderPreview() {
         if (st.monitor.kind === 'split') { url1 = st.monitor.url1; url2 = st.monitor.url2; }
         else url1 = st.monitor.url || url1;
     }
+    // Vista do monitor: as páginas da prévia se apresentam como monitor
+    // (host=monitor, igual o /monitor faz) — senão, em "Só público", a
+    // prévia do monitor mudava junto com o público
+    const comoMonitor = u => {
+        if (!showMonitor || !u || !u.startsWith('/')) return u;
+        if (u.startsWith('/static/')) u = '/img';   // foto/vídeo do monitor: pela /img dele
+        return /[?&]host=monitor\b/.test(u) ? u : u + (u.includes('?') ? '&' : '?') + 'host=monitor';
+    };
+    url1 = comoMonitor(url1);
+    url2 = comoMonitor(url2);
     const norm = u => (u && u.startsWith('/static/') ? '/img' : (u || 'about:blank'));
     const f1 = document.getElementById('iframe1');
     const f2 = document.getElementById('iframe2');

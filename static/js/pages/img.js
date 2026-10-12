@@ -65,7 +65,9 @@ function playVideo(url, opts) {
 
 socket.on('connect', function() {
     console.log('✅ Socket conectado:', socket.id);
-    socket.emit('identify', { role: 'public' });
+    // Dentro do /monitor (host=monitor, ver noMonitor em monitor.js) é o
+    // monitor: em "Só público" não muda junto com o telão
+    socket.emit('identify', { role: new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public' });
 });
 socket.on('disconnect', function() {
     console.warn('❌ Socket desconectado');

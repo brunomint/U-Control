@@ -17,6 +17,9 @@ function aplicarEscondido() {
 // do /control, monitor, tela recarregada) ficava em "Aguardando versículos..."
 socket.on('connect', function() {
     console.log('📖 Conectado ao servidor de Bíblia');
+    // Dentro do /monitor (host=monitor): é o monitor — em "Só público" não
+    // muda junto com o telão (ver noMonitor em monitor.js)
+    if (new URLSearchParams(location.search).get('host') === 'monitor') socket.emit('identify', { role: 'monitor' });
     fetch('/api/lyrics/visible')
         .then(r => (r.ok ? r.json() : null))
         .then(d => { if (d) { escondido = d.visible === false; aplicarEscondido(); } })
