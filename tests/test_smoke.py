@@ -1586,3 +1586,18 @@ def test_bible_chapter_page_has_arrow_navigation_data(logged_in_client):
     dados = json.loads(re.search(r'id="bible-chapter-data" type="application/json">(.*?)</script>', html).group(1))
     assert (dados["prevChapter"], dados["nextChapter"], dados["translation"]) == (None, 2, "kja")
     assert "setas" in html
+
+
+def test_hide_button_reaches_bible_screen_and_survives_reload(app, client):
+    sock = _operator_socket(app)
+    try:
+        sock.emit("toggle_lyrics_visibility", {"visible": False})
+        sock.get_received()
+        # Tela sem login lê o estado ao abrir
+        assert client.get("/api/lyrics/visible").get_json() == {"visible": False}
+        js = client.get("/static/js/pages/bible_display.js").get_data(as_text=True)
+        assert "socket.on('lyrics_visibility_changed'" in js and "/api/lyrics/visible" in js
+    finally:
+        sock.emit("toggle_lyrics_visibility", {"visible": True})
+        sock.disconnect()
+    assert client.get("/api/lyrics/visible").get_json() == {"visible": True}

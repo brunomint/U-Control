@@ -1,12 +1,26 @@
 const socket = io();
 
 let shownOnce = false;
+// Botão Esconder/Mostrar (das páginas de música e da Bíblia): o mesmo
+// evento que a tela pública usa — antes esta tela esperava um
+// "bible_visibility_changed" que ninguém manda, e nunca escondia
+let escondido = false;
+
+function aplicarEscondido() {
+    ['content', 'waiting'].forEach(id => {
+        document.getElementById(id).style.visibility = escondido ? 'hidden' : '';
+    });
+}
 
 // Ao abrir (ou reconectar) mostra o versículo que já está no telão — a
 // página só recebia versículos NOVOS, então aberta depois do envio (prévia
 // do /control, monitor, tela recarregada) ficava em "Aguardando versículos..."
 socket.on('connect', function() {
     console.log('📖 Conectado ao servidor de Bíblia');
+    fetch('/api/lyrics/visible')
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => { if (d) { escondido = d.visible === false; aplicarEscondido(); } })
+        .catch(() => {});
     if (shownOnce) return;
     fetch('/api/bible/current')
         .then(r => (r.ok ? r.json() : null))
@@ -67,15 +81,7 @@ function displayVerse(data) {
     }, 300);
 }
 
-// Escuta também eventos de visibilidade (para esconder/mostrar)
-socket.on('bible_visibility_changed', function(data) {
-    const content = document.getElementById('content');
-    const waiting = document.getElementById('waiting');
-
-    if (data.visible) {
-        content.style.display = 'block';
-    } else {
-        content.style.display = 'none';
-        waiting.style.display = 'block';
-    }
+socket.on('lyrics_visibility_changed', function(data) {
+    escondido = data.visible === false;
+    aplicarEscondido();
 });

@@ -66,6 +66,15 @@ def lyrics(song_id):
 
     return render_template('lyrics.html', song=song, order_date=order_date, lyrics_visible=lyrics_visible)
 
+@lyrics_bp.route('/api/lyrics/visible')
+def api_lyrics_visible():
+    """Estado do botão Esconder/Mostrar (LyricsState.visible) — as telas
+    (tela pública, Bíblia (tela)) leem ao abrir, pra não voltarem a mostrar
+    o texto que o operador escondeu. Sem login, como as próprias telas."""
+    state = LyricsState.query.first()
+    return jsonify({'visible': state.visible if state else True})
+
+
 @lyrics_bp.route('/api/lyrics/<int:song_id>')
 def api_lyrics(song_id):
     """Retorna os dados completos da música em JSON (para API)."""

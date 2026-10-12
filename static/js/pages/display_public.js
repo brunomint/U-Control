@@ -145,6 +145,11 @@
         // pra visível mesmo com o operador tendo escondido, ignorando o
         // toggle. Mesmo padrão já usado em display_obs.js (lyricsHidden).
         let lyricsHidden = false;
+        // Ao abrir/recarregar, respeita o que já estava escondido
+        fetch('/api/lyrics/visible').then(r => r.json()).then(d => {
+            lyricsHidden = d.visible === false;
+            if (lyricsHidden) lyricsLayer.style.display = 'none';
+        }).catch(() => {});
 
         function showImage(url) {
             mediaVideo.pause();
