@@ -1601,3 +1601,23 @@ def test_hide_button_reaches_bible_screen_and_survives_reload(app, client):
         sock.emit("toggle_lyrics_visibility", {"visible": True})
         sock.disconnect()
     assert client.get("/api/lyrics/visible").get_json() == {"visible": True}
+
+
+def test_new_content_on_screen_shows_hidden_text_again(app, client):
+    import display_state
+
+    display_state._live_follow_kind = None
+    sock = _operator_socket(app)
+    try:
+        sock.emit("toggle_lyrics_visibility", {"visible": False})
+        sock.get_received()
+        # Letra escondida, aí vai um versículo pro telão: aparece
+        sock.emit("stage_content", {"kind": "bible", "payload": {"reference": "João 3:16", "text": "..."}, "label": "x"})
+        sock.emit("release_staged_content", {"kind": "bible"})
+        eventos = [m for m in sock.get_received() if m["name"] == "lyrics_visibility_changed"]
+        assert eventos and eventos[0]["args"][0] == {"visible": True}
+        assert client.get("/api/lyrics/visible").get_json() == {"visible": True}
+    finally:
+        sock.emit("toggle_lyrics_visibility", {"visible": True})
+        sock.disconnect()
+        display_state._live_follow_kind = None

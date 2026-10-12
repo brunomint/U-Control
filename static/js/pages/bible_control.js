@@ -86,7 +86,17 @@ function nextVerse() {
 function toggleVisibility() {
     isVisible = !isVisible;
     socket.emit('toggle_lyrics_visibility', { visible: isVisible });
+    aplicarBotaoVisibilidade();
+}
 
+// Escondido/mostrado por outra página (música), ou mostrado de novo
+// sozinho quando algo novo foi ao ar — o botão acompanha
+socket.on('lyrics_visibility_changed', (data) => {
+    isVisible = data.visible !== false;
+    aplicarBotaoVisibilidade();
+});
+
+function aplicarBotaoVisibilidade() {
     const btn = document.getElementById('toggle-bible');
     const text = document.getElementById('toggle-text');
     const icon = btn.querySelector('i');

@@ -159,10 +159,29 @@ def presenter():
     return render_template('presenter.html')
 
 
+def mostrar_se_escondido():
+    """Conteúdo novo indo ao ar (seção de música ou versículo) mostra o
+    texto de novo: o "Esconder" vale pro que está no telão naquela hora.
+    Antes ficava escondido pra sempre — esconder a letra e depois mandar
+    um versículo deixava a tela preta, e a página da Bíblia nem tem o
+    botão Mostrar."""
+    try:
+        state = LyricsState.query.first()
+        if state is None or state.visible is not False:
+            return
+        state.visible = True
+        db.session.commit()
+    except Exception:
+        logger.exception('Falha ao mostrar o texto de novo')
+        return
+    emit('lyrics_visibility_changed', {'visible': True}, broadcast=True)
+
+
 # Evento WebSocket para transmitir letras de músicas
 @socketio.on('update_lyrics')
 def handle_update_lyrics(data):
     logger.debug(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
+    mostrar_se_escondido()
     display_state._last_lyrics_payload = data
     display_state._current_display_mode = 'lyrics'
     # Persiste o payload exato (não só em memória) — display_state

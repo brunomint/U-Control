@@ -18,6 +18,7 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 from flask_login import login_required
 from flask_socketio import emit
 
+from blueprints.lyrics import mostrar_se_escondido
 from display_log import append_display_log
 from extensions import socketio
 from models import LyricsState
@@ -577,6 +578,7 @@ def api_bible_verse():
 @socketio.on('update_bible')
 def handle_update_bible(data):
     logger.debug(f'📖 Recebido update_bible: {data.get("reference", "Sem referência")}')
+    mostrar_se_escondido()
     ref = data.get('reference') or str(data.get('text', ''))[:60]
     if ref:
         append_display_log({'type': 'bible', 'title': ref})

@@ -145,11 +145,19 @@
         // pra visível mesmo com o operador tendo escondido, ignorando o
         // toggle. Mesmo padrão já usado em display_obs.js (lyricsHidden).
         let lyricsHidden = false;
-        // Ao abrir/recarregar, respeita o que já estava escondido
-        fetch('/api/lyrics/visible').then(r => r.json()).then(d => {
-            lyricsHidden = d.visible === false;
-            if (lyricsHidden) lyricsLayer.style.display = 'none';
-        }).catch(() => {});
+        // Ao abrir e a cada reconexão (servidor reiniciado, rede caiu),
+        // confere com o servidor se o texto está escondido ou não — senão
+        // a tela podia ficar presa no estado de antes
+        function sincronizarEscondido() {
+            fetch('/api/lyrics/visible').then(r => r.json()).then(d => {
+                const antes = lyricsHidden;
+                lyricsHidden = d.visible === false;
+                if (lyricsHidden) lyricsLayer.style.display = 'none';
+                else if (antes) { lyricsLayer.style.display = 'flex'; adjustFontSize(); }  // igual a lyrics_visibility_changed
+            }).catch(() => {});
+        }
+        sincronizarEscondido();
+        socket.on('connect', sincronizarEscondido);
 
         function showImage(url) {
             mediaVideo.pause();

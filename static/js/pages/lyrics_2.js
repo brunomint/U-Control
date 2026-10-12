@@ -711,7 +711,19 @@ $('#clear-lyrics').click(function() {
         function toggleLyricsVisibility() {
             lyricsVisible = !lyricsVisible;
             socket.emit('toggle_lyrics_visibility', { visible: lyricsVisible });
+            aplicarBotaoVisibilidade();
+            console.log(`👁️ Letras ${lyricsVisible ? 'mostradas' : 'escondidas'}`);
+        }
 
+        // Escondido/mostrado por outra página (controle da Bíblia), ou
+        // mostrado de novo sozinho quando algo novo foi ao ar (lyrics.py:
+        // mostrar_se_escondido) — o botão acompanha
+        socket.on('lyrics_visibility_changed', (data) => {
+            lyricsVisible = data.visible !== false;
+            aplicarBotaoVisibilidade();
+        });
+
+        function aplicarBotaoVisibilidade() {
             document.querySelectorAll('.lyrics-toggle-btn').forEach(btn => {
                 const icon = btn.querySelector('i');
                 const text = btn.querySelector('.toggle-text');
@@ -725,8 +737,6 @@ $('#clear-lyrics').click(function() {
                     if (text) text.textContent = 'Mostrar';
                 }
             });
-
-            console.log(`👁️ Letras ${lyricsVisible ? 'mostradas' : 'escondidas'}`);
         }
 
         $(document).ready(function() {
