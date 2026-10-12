@@ -17,6 +17,10 @@ function toggleVerse(element) {
         selectedVerses.push({ num: verseNum, text: text });
         selectedVerses.sort((a, b) => a.num - b.num);
         element.classList.add('selected');
+        // Versículo clicado vira o ponto de partida das setas: ↓ manda o
+        // seguinte a ele (ver passarVerso)
+        versoAtual = verseNum;
+        avisoBorda = null;
     }
 
     updateActionBar();
