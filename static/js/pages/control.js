@@ -793,9 +793,22 @@ function panelOpenPage(page, url) {
             panelFrames[page] = frame;
         }
         if (src !== frame.getAttribute('src')) frame.setAttribute('src', src);
+        // Mesmo src, mas a página saiu dela por um link: volta (o atributo
+        // não muda quando o iframe navega sozinho)
+        else if (!panelFrameNaPagina(page)) frame.contentWindow.location.replace(src);
     };
     if (url) load(url);
-    else if (!panelFrames[page]) panelFrameUrl(page).then(load);
+    else if (!panelFrames[page] || !panelFrameNaPagina(page)) panelFrameUrl(page).then(load);
+}
+
+// A página dentro da aba ainda é dela? (ex.: a aba Música foi parar numa
+// página da Bíblia por um link) — senão clicar na aba volta pra página dela
+const PANEL_PREFIX = { musica: '/lyrics/', biblia: '/bible', fotos: '/presenter' };
+function panelFrameNaPagina(page) {
+    const frame = panelFrames[page];
+    try {
+        return frame.contentWindow.location.pathname.startsWith(PANEL_PREFIX[page] || '/');
+    } catch (e) { return true; /* outra origem: não mexe */ }
 }
 
 // url: abrir esta página na aba (ex.: música clicada na Ordem do culto)

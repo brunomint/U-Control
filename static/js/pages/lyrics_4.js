@@ -70,8 +70,12 @@ function updateSongList(song) {
     // Item bíblico: clicar prepara pro telão (sendBibleListItem) em vez de
     // navegar pra /bible/control/... — busca e edição continuam por lá,
     // mas usar a passagem durante o culto acontece sem sair do /lyrics.
-    if (song.isBible) {
-        const reference = song.bibleReference || song.title.replace(/^📖\s*/, '');
+    // Leitura guardada como link comum pra /bible/control/... (sem isBible)
+    // também abre a janela de leitura — antes navegava a página inteira pra
+    // Bíblia e, dentro do painel do Controle, a aba Música ficava presa nela
+    const isBibleLink = (song.url || '').includes('/bible/control/');
+    if (song.isBible || isBibleLink) {
+        const reference = song.bibleReference || (song.title || '').replace(/^📖\s*/, '');
         songLink.onclick = (event) => {
             event.preventDefault();
             sendBibleListItem(reference, songItem);
