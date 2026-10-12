@@ -1576,3 +1576,13 @@ def test_flash_shows_on_the_page_it_redirects_to(logged_in_client):
     assert html.count("encontrado!") == 1 and "ucToast" in html  # tojson escreve "n\\u00e3o"
     # ...e não sobram pra aparecer depois em /usuarios
     assert "encontrado!" not in c.get("/usuarios").get_data(as_text=True)
+
+
+def test_bible_chapter_page_has_arrow_navigation_data(logged_in_client):
+    import json
+    import re
+
+    html = logged_in_client.get("/bible/tg/1?translation=kja").get_data(as_text=True)
+    dados = json.loads(re.search(r'id="bible-chapter-data" type="application/json">(.*?)</script>', html).group(1))
+    assert (dados["prevChapter"], dados["nextChapter"], dados["translation"]) == (None, 2, "kja")
+    assert "setas" in html

@@ -69,3 +69,7 @@
   .verse { grid-template-columns: 26px minmax(0, 1fr); }
   .verse-action-btn { grid-column: 2; justify-self: start; }
 }
+
+/* Versículo atual das setas (bible_chapter.js: passarVerso) */
+.verse.atual { border-color: var(--uc-live); box-shadow: inset 3px 0 0 var(--uc-live); }
+.verse.atual .verse-number { color: var(--uc-live); font-weight: 700; }

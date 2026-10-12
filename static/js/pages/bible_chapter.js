@@ -81,7 +81,7 @@ function sendToDisplay() {
     showToast('Preparado. Toque em “Liberar no telão” para exibir.');
 }
 
-function sendSingleVerse(verseNum, text) {
+function sendSingleVerse(verseNum, text, silencioso) {
     // O texto vem da página: passado inline no onclick, um apóstrofo no
     // versículo quebrava a string JS.
     if (text === undefined) {
@@ -89,6 +89,7 @@ function sendSingleVerse(verseNum, text) {
         text = el ? el.querySelector('.verse-text').textContent : '';
     }
     const reference = `${bookName} ${chapter}:${verseNum}`;
+    marcarAtual(verseNum);
 
     socket.emit('stage_content', {
         kind: 'bible',
@@ -103,7 +104,9 @@ function sendSingleVerse(verseNum, text) {
         label: reference
     });
 
-    showToast(`${reference} preparado. Toque em “Liberar no telão” para exibir.`);
+    // Pelas setas não avisa: com "Bíblia entra direto" já foi ao ar, e
+    // senão a barra do telão já mostra "Preparado · Liberar"
+    if (!silencioso) showToast(`${reference} preparado. Toque em “Liberar no telão” para exibir.`);
 }
 
 function copyVerses() {
@@ -155,4 +158,59 @@ window.addEventListener('load', function() {
             element.style.animation = 'highlight 2s';
         }
     }
+});
+
+// ── Setas do teclado (e pedal) passam os versículos ───────────────────
+// ↓ → PageDown: próximo versículo · ↑ ← PageUp: anterior. Cada um vai pro
+// telão como o botão ▶ do versículo (preparar, ou direto se "Bíblia entra
+// direto" estiver ligado). No fim do capítulo, apertar de novo abre o
+// próximo capítulo já no versículo 1 (e no começo, o anterior no último).
+const totalVersos = document.querySelectorAll('.verse[data-verse]').length;
+let versoAtual = null;
+let avisoBorda = null;   // 'fim' | 'inicio' depois do 1º aperto na borda
+
+function marcarAtual(n) {
+    versoAtual = n;
+    avisoBorda = null;
+    document.querySelectorAll('.verse.atual').forEach(el => el.classList.remove('atual'));
+    const el = document.getElementById(`verse-${n}`);
+    if (el) {
+        el.classList.add('atual');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function irCapitulo(cap, verso) {
+    window.location.href = `/bible/${bookAbbrev}/${cap}?translation=${CONFIG.translation}&verso=${verso}`;
+}
+
+function passarVerso(passo) {
+    if (!totalVersos) return;
+    if (versoAtual === null) return sendSingleVerse(passo > 0 ? 1 : totalVersos, undefined, true);
+    const alvo = versoAtual + passo;
+    if (alvo >= 1 && alvo <= totalVersos) return sendSingleVerse(alvo, undefined, true);
+    const borda = passo > 0 ? 'fim' : 'inicio';
+    const cap = passo > 0 ? CONFIG.nextChapter : CONFIG.prevChapter;
+    if (!cap) return showToast(passo > 0 ? `Fim de ${bookName}.` : `Início de ${bookName}.`);
+    if (avisoBorda === borda) return irCapitulo(cap, passo > 0 ? 1 : 'fim');
+    avisoBorda = borda;
+    showToast(passo > 0 ? `Fim do capítulo ${chapter}. Aperte de novo para ir ao ${cap}.`
+                        : `Início do capítulo. Aperte de novo para voltar ao ${cap}.`);
+}
+
+document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (['ArrowDown', 'ArrowRight', 'PageDown'].includes(e.key)) {
+        e.preventDefault();
+        passarVerso(1);
+    } else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) {
+        e.preventDefault();
+        passarVerso(-1);
+    }
+});
+
+// Veio das setas de outro capítulo (?verso=1 ou ?verso=fim): já manda
+window.addEventListener('load', () => {
+    const verso = new URLSearchParams(location.search).get('verso');
+    if (verso && totalVersos) sendSingleVerse(verso === 'fim' ? totalVersos : Math.min(parseInt(verso, 10) || 1, totalVersos), undefined, true);
 });

@@ -19,7 +19,7 @@
         <div>
             <a class="uc-link" href="/bible/{{ book_abbrev }}?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> {{ book_name }}</a>
             <h1>{{ book_name }} {{ chapter }}</h1>
-            <div class="uc-page-sub">Toque nos versículos para escolher e prepare para o telão</div>
+            <div class="uc-page-sub">Toque nos versículos para escolher e prepare para o telão · setas ↑↓ passam um versículo por vez</div>
         </div>
         <div class="head-controls">
             <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="Tradução">
@@ -74,7 +74,7 @@
     <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearSelection()" aria-label="Limpar seleção"><i class="fas fa-xmark"></i></button>
 </div>
 
-<script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev, "translationAbbrev": translation_abbrev, "translationName": translation_name} | tojson }}</script>
+<script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev, "translationAbbrev": translation_abbrev, "translationName": translation_name, "translation": current_translation, "prevChapter": prev_chapter, "nextChapter": next_chapter} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
