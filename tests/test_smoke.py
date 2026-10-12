@@ -1548,3 +1548,19 @@ def test_launcher_opens_chosen_screen_and_page(client, logged_in_client):
     html = logged_in_client.get("/control").get_data(as_text=True)
     assert 'id="modal-datashow"' in html and "js/screen_picker.js" in html
     assert "js/tela_cheia.js" in client.get("/lyrics/display/public").get_data(as_text=True)
+
+
+def test_every_bible_book_opens_in_every_translation(logged_in_client):
+    # ARC/KJA e as estrangeiras usam abreviações em inglês ('jm' = Tiago,
+    # 'act' = Atos): antes 17 livros davam "Livro não encontrado" nelas
+    from blueprints.bible import load_bible_metadata
+
+    meta = load_bible_metadata()
+    falhas = []
+    for t in meta["translations"]:
+        for book in meta["books"]:
+            for path in (f"/bible/{book['abbrev']}/1?translation={t}", f"/bible/control/{book['abbrev']}/1?translation={t}"):
+                if logged_in_client.get(path).status_code != 200:
+                    falhas.append(path)
+    assert falhas == []
+    assert "Tiago" in logged_in_client.get("/bible/control/tg/1?translation=arc").get_data(as_text=True)

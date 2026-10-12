@@ -277,23 +277,38 @@ ABBREV_ALIASES = {
 }
 
 
-def get_book_by_abbrev(translation, abbrev):
-    """Retorna um livro específico pela abreviação."""
-    bible = load_bible(translation)
-    abbrev_lower = abbrev.lower()
+def book_index(abbrev):
+    """Posição (0–65) do livro na lista padrão (books_metadata.json). As
+    traduções têm os 66 livros na mesma ordem, mas abreviações diferentes:
+    acf/nvi/aa em português ('tg', 'atos'), arc/kja e as estrangeiras em
+    inglês ('jm', 'act', '1kgs'...). Aceita qualquer uma delas."""
+    a = (abbrev or '').lower()
+    metas = [book['abbrev'].lower() for book in load_bible_metadata().get('books', [])]
+    # Exata primeiro: 'jo' é João, mesmo 'jn' (Jonas) sendo apelido dele
+    if a in metas:
+        return metas.index(a)
+    for i, meta in enumerate(metas):
+        if meta in ABBREV_ALIASES.get(a, []) or a in ABBREV_ALIASES.get(meta, []):
+            return i
+    # Abreviações em inglês (as mesmas de arc/kja/en_kjv)
+    for i, book in enumerate(load_bible('en_kjv')):
+        if book.get('abbrev', '').lower() == a:
+            return i
+    return None
 
-    # Primeiro, tenta encontrar pela abreviação exata
+
+def get_book_by_abbrev(translation, abbrev):
+    """Retorna um livro específico pela abreviação (de qualquer tradução —
+    ver book_index). Antes buscava só pela abreviação do arquivo da
+    tradução, e na ARC/KJA 17 livros não abriam (Tiago é 'jm' lá)."""
+    bible = load_bible(translation)
+    idx = book_index(abbrev)
+    if idx is not None and idx < len(bible):
+        return bible[idx]
+    abbrev_lower = (abbrev or '').lower()
     for book in bible:
         if book.get('abbrev', '').lower() == abbrev_lower:
             return book
-
-    # Se não encontrou, tenta pelas abreviações alternativas
-    aliases = ABBREV_ALIASES.get(abbrev_lower, [])
-    for alias in aliases:
-        for book in bible:
-            if book.get('abbrev', '').lower() == alias.lower():
-                return book
-
     return None
 
 
@@ -303,8 +318,11 @@ def search_bible(translation, query, limit=50):
     results = []
     query_lower = query.lower()
 
-    for book in bible:
-        book_abbrev = book.get('abbrev', '')
+    meta_books = load_bible_metadata().get('books', [])
+    for idx, book in enumerate(bible):
+        # Abreviação/nome da lista padrão (a do arquivo pode estar em
+        # inglês — ver book_index)
+        book_abbrev = meta_books[idx]['abbrev'] if idx < len(meta_books) else book.get('abbrev', '')
         book_name = get_book_name(book_abbrev)
         chapters = book.get('chapters', [])
 
