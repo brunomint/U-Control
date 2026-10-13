@@ -90,6 +90,16 @@
             </div>
             </div>
 
+            <!-- Tamanho da letra da cifra — só neste aparelho (localStorage),
+                 vale pra todas as músicas. As linhas nunca quebram (os
+                 acordes ficam alinhados); se passar da largura, o quadro
+                 da cifra rola de lado. -->
+            <div class="font-size-widget" role="group" aria-label="Tamanho da letra">
+                <button type="button" class="font-size-btn" onclick="changeCifraScale(-1)" aria-label="Diminuir letra" title="Diminuir letra">A<small>−</small></button>
+                <button type="button" class="font-size-value" id="cifraScaleLabel" onclick="changeCifraScale(0)" title="Voltar ao tamanho normal">100%</button>
+                <button type="button" class="font-size-btn" onclick="changeCifraScale(1)" aria-label="Aumentar letra" title="Aumentar letra">A<small>+</small></button>
+            </div>
+
             <div class="song-header-actions">
                 <div class="search-song-widget">
                     <button type="button" class="search-song-btn" onclick="toggleSearchSong()" title="Buscar outra música">
@@ -372,6 +382,20 @@
         }
 
         loadList();
+
+        // Tamanho da letra: 70% a 250%, de 10 em 10. 0 = volta ao normal.
+        function applyCifraScale(pct) {
+            document.documentElement.style.setProperty('--cifra-scale', pct / 100);
+            document.getElementById('cifraScaleLabel').textContent = pct + '%';
+        }
+        function changeCifraScale(step) {
+            let pct = 100;
+            try { pct = parseInt(localStorage.getItem('cifraScale'), 10) || 100; } catch (e) {}
+            pct = step === 0 ? 100 : Math.min(250, Math.max(70, pct + step * 10));
+            try { localStorage.setItem('cifraScale', String(pct)); } catch (e) {}
+            applyCifraScale(pct);
+        }
+        try { applyCifraScale(parseInt(localStorage.getItem('cifraScale'), 10) || 100); } catch (e) {}
 
         // Celular (≤768px): a lista é uma gaveta (.visible). Tela grande: fica
         // fixa ao lado, e o ✕ esconde (body.menu-hidden) — aí o botão de

@@ -159,10 +159,43 @@
 .search-song-item:hover { background: var(--uc-surface-3); }
 .search-song-item .autor { color: var(--uc-muted); font-weight: 500; }
 
+/* A− 100% A+ */
+.font-size-widget {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--uc-line);
+  border-radius: var(--uc-r);
+  background: var(--uc-surface-2);
+  overflow: hidden;
+}
+.font-size-btn, .font-size-value {
+  border: 0;
+  background: none;
+  color: var(--uc-text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.font-size-btn { padding: 8px 12px; font-size: 15px; }
+.font-size-btn small { font-size: 11px; margin-left: 1px; }
+.font-size-btn:hover, .font-size-value:hover { background: var(--uc-surface-3); }
+.font-size-value {
+  min-width: 52px;
+  padding: 0 4px;
+  font-size: 12.5px;
+  color: var(--uc-muted);
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid var(--uc-line);
+  border-right: 1px solid var(--uc-line);
+}
+
 /* Cifra */
 .song-content-card {
   display: inline-block;
   min-width: min(100%, 640px);
+  /* Letra grande (A+): a linha não quebra, o quadro rola de lado */
+  max-width: 100%;
+  overflow-x: auto;
   padding: 20px 24px;
   border-radius: var(--uc-r-lg);
   background: var(--uc-surface);
@@ -183,7 +216,7 @@
   background: transparent;
   color: var(--uc-text);
   font-family: var(--uc-mono) !important;
-  font-size: 18px;
+  font-size: calc(18px * var(--cifra-scale, 1));
   font-weight: 600;
   line-height: 1.7;
   white-space: pre !important;
@@ -244,7 +277,7 @@
   .song-header-title { font-size: 22px; }
   .song-header-icon { display: none; }
   .song-content-card { display: block; padding: 14px; overflow-x: auto; }
-  .content pre { font-size: 13px; line-height: 1.5; }
+  .content pre { font-size: calc(13px * var(--cifra-scale, 1)); line-height: 1.5; }
   .controls { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); right: 76px; }
 }
 
