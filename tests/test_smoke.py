@@ -1,3 +1,4 @@
+import os
 from werkzeug.security import generate_password_hash
 
 import main as ucontrol_main
@@ -200,8 +201,8 @@ def test_list_audio_returns_json_structure(client):
     assert "audios" in response.get_json()
 
 
-def test_download_audio_without_url_returns_400(client):
-    response = client.post("/download_audio", json={})
+def test_download_audio_without_url_returns_400(logged_in_client):
+    response = logged_in_client.post("/download_audio", json={})
     assert response.status_code == 400
     assert "error" in response.get_json()
 
@@ -254,8 +255,8 @@ def test_visiting_lyrics_page_does_not_rewrite_unrelated_song_children(logged_in
     assert ids_after[90002] == ids_before[90002]
 
 
-def test_add_search_and_delete_song_round_trip(client):
-    add_response = client.post(
+def test_add_search_and_delete_song_round_trip(logged_in_client):
+    add_response = logged_in_client.post(
         "/add_song",
         data={
             "title": "Música de Teste",
@@ -266,13 +267,13 @@ def test_add_search_and_delete_song_round_trip(client):
     )
     assert add_response.status_code == 200
 
-    search_response = client.get("/search", query_string={"q": "Teste"})
+    search_response = logged_in_client.get("/search", query_string={"q": "Teste"})
     results = search_response.get_json()
     assert len(results) == 1
     song_id = results[0]["id"]
     assert results[0]["title"] == "Música de Teste"
 
-    delete_response = client.post(f"/delete_song/{song_id}")
+    delete_response = logged_in_client.post(f"/delete_song/{song_id}")
     assert delete_response.status_code == 200
 
 
@@ -572,7 +573,7 @@ def test_api_section_template_save_and_delete_round_trip(logged_in_client):
     assert "Padrão" not in section
 
 
-def test_legacy_save_and_load_compat_routes(app, client):
+def test_legacy_save_and_load_compat_routes(app, logged_in_client):
     # Fase 5.6: /save e /load (sem ?date=) miram a ordem de HOJE na tabela
     # Order, não mais o antigo order_of_service.json (bucket sem data).
     import orders_store
@@ -582,10 +583,10 @@ def test_legacy_save_and_load_compat_routes(app, client):
     with app.app_context():
         existing = orders_store.load_orders()
 
-    save_response = client.post("/save", json=[{"title": "Item legado", "url": "/order"}])
+    save_response = logged_in_client.post("/save", json=[{"title": "Item legado", "url": "/order"}])
     assert save_response.status_code == 200
 
-    load_response = client.get("/load")
+    load_response = logged_in_client.get("/load")
     assert load_response.get_json() == [{"title": "Item legado", "url": "/order"}]
 
     with app.app_context():
@@ -743,9 +744,9 @@ def test_update_lyrics_broadcasts_and_updates_display_state(app):
     socket_client.disconnect()
 
 
-def test_api_lyrics_returns_song_data(client, tmp_path, monkeypatch):
+def test_api_lyrics_returns_song_data(logged_in_client, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    add_response = client.post(
+    add_response = logged_in_client.post(
         "/add_song",
         data={
             "title": "Música de Letras",
@@ -755,10 +756,10 @@ def test_api_lyrics_returns_song_data(client, tmp_path, monkeypatch):
         },
     )
     assert add_response.status_code == 200
-    songs = client.get("/search", query_string={"q": "Letras"}).get_json()
+    songs = logged_in_client.get("/search", query_string={"q": "Letras"}).get_json()
     song_id = songs[0]["id"]
 
-    response = client.get(f"/api/lyrics/{song_id}")
+    response = logged_in_client.get(f"/api/lyrics/{song_id}")
     assert response.status_code == 200
     assert response.get_json()["title"] == "Música de Letras"
 
@@ -1708,3 +1709,39 @@ def test_view_song_edit_button_only_for_logged_operator(app, client, logged_in_c
     anon = client.get(f"/view/{song_id}")
     assert anon.status_code == 200 and edit_href not in anon.get_data(as_text=True)
     assert edit_href in logged_in_client.get(f"/view/{song_id}").get_data(as_text=True)
+
+
+def test_write_routes_require_login(client):
+    """Rotas que alteram músicas, a ordem de hoje e o estado das telas
+    pediam nada: qualquer um na rede editava ou apagava música."""
+    for method, url in [("get", "/edit_song/1"), ("post", "/edit_song/1"), ("post", "/add_song"),
+                        ("post", "/delete_song/1"), ("post", "/save"), ("post", "/download_audio"),
+                        ("post", "/save_image_path"), ("post", "/save_display_state"),
+                        ("post", "/save_lyrics_state")]:
+        resp = getattr(client, method)(url)
+        assert resp.status_code == 302 and "/login" in resp.headers["Location"], (method, url)
+
+
+def test_download_audio_only_deletes_inside_audio_folder(app, logged_in_client, tmp_path, monkeypatch):
+    import subprocess
+
+    victim = tmp_path / "importante.db"
+    victim.write_text("x")
+    calls = []
+
+    class Falhou:
+        returncode, stderr = 1, "sem rede no teste"
+
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: calls.append(cmd) or Falhou())
+    audio_dir = os.path.join(app.static_folder, "audio")
+    rel = os.path.relpath(victim, audio_dir)
+    resp = logged_in_client.post("/download_audio", json={
+        "url": "--exec=touch /tmp/x https://youtu.be/abcdefghijk", "song_id": "../1",
+        "old_audio_url": "/static/audio/" + rel,
+    })
+    assert resp.status_code == 500
+    assert victim.exists()  # fora da pasta de áudio: não apaga
+    cmd = calls[0]
+    assert cmd[-2:] == ["--", "https://www.youtube.com/watch?v=abcdefghijk"]
+    assert not any(a.startswith("--exec") for a in cmd)
+    assert "/../" not in cmd[cmd.index("-o") + 1]

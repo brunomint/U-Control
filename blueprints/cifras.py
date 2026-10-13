@@ -143,6 +143,7 @@ def pegar_cifra_com_video():
 
 # Download de áudio do YouTube via yt-dlp
 @cifras_bp.route("/download_audio", methods=["POST"])
+@login_required
 def download_audio():
     import subprocess
 
@@ -161,17 +162,25 @@ def download_audio():
             return jsonify({"error": "URL do YouTube inválida"}), 400
 
         video_id = match.group(1)
+        # yt-dlp recebe só a URL remontada a partir do ID: o texto recebido
+        # podia começar com "--exec=..." e virar opção (comando no servidor)
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
+        # song_id entra no nome do arquivo: só número
+        song_id = str(song_id) if song_id is not None and str(song_id).isdigit() else None
 
         # Define nome do arquivo (usa song_id se fornecido, senão video_id)
         filename = f"{song_id}_{video_id}" if song_id else video_id
         audio_dir = os.path.join(current_app.static_folder, 'audio')
         output_path = os.path.join(audio_dir, f"{filename}.mp3")
 
-        # Deleta áudio antigo se fornecido e diferente do novo
+        # Deleta áudio antigo se fornecido e diferente do novo — só um .mp3
+        # de dentro da pasta de áudio (antes "../../instance/users.db"
+        # apagava o banco)
         if old_audio_url and old_audio_url.strip():
-            old_filename = old_audio_url.replace('/static/audio/', '')
+            old_filename = os.path.basename(old_audio_url.split('?')[0])
             old_path = os.path.join(audio_dir, old_filename)
-            if os.path.exists(old_path) and old_path != output_path:
+            dentro = os.path.realpath(old_path).startswith(os.path.realpath(audio_dir) + os.sep)
+            if dentro and old_filename.endswith('.mp3') and os.path.exists(old_path) and old_path != output_path:
                 os.remove(old_path)
                 logger.info(f"🗑️ Áudio antigo deletado: {old_path}")
 
@@ -195,6 +204,7 @@ def download_audio():
             "-o", output_path.replace('.mp3', '.%(ext)s'),
             "--no-playlist",
             "--quiet",
+            "--",
             video_url
         ]
 

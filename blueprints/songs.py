@@ -90,6 +90,7 @@ def save_sheet_data(song_id):
         return jsonify({"error": str(e)}), 500
 
 @songs_bp.route('/add_song', methods=['POST'])
+@login_required
 def add_song():
     """Adiciona uma nova música."""
     import sys
@@ -194,6 +195,7 @@ def add_song():
     return jsonify({"message": "Música adicionada com sucesso!"})
 
 @songs_bp.route('/edit_song/<int:song_id>', methods=['GET', 'POST'])
+@login_required
 def edit_song(song_id):
     """Edita uma música existente."""
     songs = load_songs()
@@ -280,6 +282,7 @@ def edit_song(song_id):
     return render_template('edit_song.html', song=song_to_edit)
 
 @songs_bp.route('/delete_song/<int:song_id>', methods=['POST'])
+@login_required
 def delete_song(song_id):
     """Exclui uma música."""
     songs = load_songs()

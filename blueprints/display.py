@@ -94,6 +94,7 @@ def save_image_path(image_path):
 
 # Endpoint para salvar o caminho da imagem
 @display_bp.route('/save_image_path', methods=['POST'])
+@login_required
 def save_image_path_endpoint():
     data = request.get_json()
     image_path = data.get('image_path')
@@ -183,6 +184,7 @@ def _persist_display_state(url1, url2=''):
 
 # Rota para salvar o estado do display
 @display_bp.route('/save_display_state', methods=['POST'])
+@login_required
 def save_display_state():
     data = request.json
     _persist_display_state(data.get('url1', ''), data.get('url2', ''))
@@ -201,6 +203,7 @@ def get_lyrics_state():
 
 # Rota para salvar o estado das letras (música + seção)
 @display_bp.route('/save_lyrics_state', methods=['POST'])
+@login_required
 def save_lyrics_state():
     data = request.json
     state = LyricsState.query.first()

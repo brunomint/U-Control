@@ -410,6 +410,7 @@ def api_apply_section_template_month():
 # Rota para salvar a lista (mantém compatibilidade com sistema antigo —
 # sem data no contexto, mira sempre a ordem de HOJE)
 @orders_bp.route('/save', methods=['POST'])
+@login_required
 def save_list():
     try:
         data = request.json
