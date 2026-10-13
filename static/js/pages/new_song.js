@@ -1128,6 +1128,11 @@
             // Renderiza todos os blocos
             // skipFocus: se true, não foca no primeiro input (usado ao deletar para manter scroll)
             function renderBlocks(skipFocus = false) {
+                // Redesenhar apaga tudo e as caixas de texto nascem com 50px —
+                // a página encolhe e o navegador sobe a rolagem. Segura a altura
+                // e a rolagem até as caixas voltarem ao tamanho certo.
+                const keepScrollY = window.scrollY;
+                blockContainer.style.minHeight = blockContainer.offsetHeight + 'px';
                 blockContainer.innerHTML = '';
                 let firstSectionInput = null;
                 
@@ -1163,6 +1168,15 @@
                 const finalInsertButton = createInsertButton(blocks.length);
                 blockContainer.appendChild(finalInsertButton);
                 
+                // Altura certa das caixas de texto já agora (o ajuste do
+                // createTextBlock só roda depois, tarde demais pra rolagem)
+                blockContainer.querySelectorAll('textarea.text-block').forEach(ta => {
+                    ta.style.height = 'auto';
+                    ta.style.height = ta.scrollHeight + 'px';
+                });
+                blockContainer.style.minHeight = '';
+                window.scrollTo(0, keepScrollY);
+
                 // Atualiza campo oculto
                 updateHiddenField();
                 updateTomDisplay();
@@ -1625,21 +1639,15 @@
             
             // Adiciona bloco de texto
             function addTextBlock(position = -1) {
-                // Salva a posição do scroll antes de re-renderizar
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                
-                const newBlock = { type: 'text', content: '', id: Date.now() };
-                if (position === -1) {
-                    blocks.push(newBlock);
-                } else {
-                    blocks.splice(position, 0, newBlock);
+                if (position === -1) position = blocks.length;
+                blocks.splice(position, 0, { type: 'text', content: '', id: Date.now() });
+                renderBlocks(true);
+
+                const ta = document.querySelector(`#blockEditor [data-block-index="${position}"] textarea`);
+                if (ta) {
+                    ta.focus({ preventScroll: true });
+                    ta.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 }
-                renderBlocks(true); // skipFocus=true para manter posição do scroll
-                
-                // Restaura a posição do scroll após re-renderizar
-                requestAnimationFrame(() => {
-                    window.scrollTo(0, scrollTop);
-                });
             }
             
             // Adiciona uma seção já com o bloco de texto logo abaixo e põe o
@@ -1841,7 +1849,7 @@
                     deleteBtn.style.display = 'none';
                 }
                 
-                renderBlocks();
+                renderBlocks(true);
             }
             
             function toggleBlockSelection(index) {
@@ -1850,7 +1858,7 @@
                 } else {
                     selectedBlocks.add(index);
                 }
-                renderBlocks();
+                renderBlocks(true);
             }
             
             function deleteSelectedBlocks() {
