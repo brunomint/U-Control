@@ -151,7 +151,7 @@ document.addEventListener('click', function(event) {
     const menu = document.querySelector('.menu');
     const toggleButton = document.querySelector('#toggle-menu');
     const isClickInsideMenu = menu.contains(event.target);
-    const isClickOnToggleButton = event.target.matches('#toggle-menu');
+    const isClickOnToggleButton = !!event.target.closest('#toggle-menu');
 
     // Em mobile, fecha o menu ao clicar fora
     if (window.innerWidth <= 768 && menu.classList.contains('visible') && !isClickInsideMenu && !isClickOnToggleButton) {
