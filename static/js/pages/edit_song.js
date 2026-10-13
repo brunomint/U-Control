@@ -2108,6 +2108,21 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 return texto.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, '');
             }
 
+            // Tira [Intro], [Refrão]… sem mexer nas colunas: o marcador vira
+            // espaços do mesmo tamanho. No Cifra Club ele às vezes fica NA
+            // MESMA linha dos acordes ("[Intro] F9  Am7  G" com a linha de
+            // baixo alinhada por baixo) — apagar puxava os acordes pra
+            // esquerda e desalinhava. Depois tira o recuo que sobrou igual em
+            // todas as linhas (ex.: os 8 espaços do "[Intro] ").
+            function tirarMarcadoresPreservandoColunas(texto) {
+                const semMarcador = apararPreservandoIndentacao(
+                    texto.replace(/\[[^\]\n]*\][ \t]*/g, (m) => ' '.repeat(m.length)));
+                const linhas = semMarcador.split('\n');
+                const recuos = linhas.filter(l => l.trim()).map(l => l.match(/^ */)[0].length);
+                const comum = recuos.length ? Math.min(...recuos) : 0;
+                return comum ? linhas.map(l => l.slice(Math.min(comum, l.match(/^ */)[0].length))).join('\n') : semMarcador;
+            }
+
             // Detecta links do Cifra Club
             function detectCifraClubLink(text) {
                 const cifraClubRegex = /https?:\/\/(www\.)?cifraclub\.com\.br\/[^\/\s]+\/[^\/\s]+\/?/g;
@@ -2216,7 +2231,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     }
                     
                     // Remove marcadores [Refrão], [Verso], etc.
-                    const cleanText = apararPreservandoIndentacao(paragraph.replace(/\[.*?\]/g, ''));
+                    const cleanText = tirarMarcadoresPreservandoColunas(paragraph);
                     
                     blocks.push({
                         type: 'section',

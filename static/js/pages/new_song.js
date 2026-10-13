@@ -228,7 +228,9 @@
                         
                     } else if (block.type === 'text') {
                         // Bloco de texto
-                        const content = (block.content || '').trim();
+                        // Sem trim(): ele cortava os espaços que posicionam o 1º
+                        // acorde da 1ª linha de CADA seção (igual edit_song.js)
+                        const content = (block.content || '').replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, '');
                         
                         if (currentSection) {
                             // Se existe seção pendente, adiciona o texto nela
@@ -853,7 +855,7 @@
                 if (sections.length > 1) {
                     console.log('✅ Separação por linhas em branco bem-sucedida!');
                     sections = sections
-                        .map(section => section.trim())
+                        .map(section => section.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, ''))
                         .filter(section => section.length > 0);
                     return sections;
                 }
@@ -864,7 +866,7 @@
                     console.log('✅ Separação por seções em colchetes!');
                     sections = cleanText.split(bracketSections);
                     sections = sections
-                        .map(section => section.trim())
+                        .map(section => section.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, ''))
                         .filter(section => section.length > 0);
                     return sections;
                 }
@@ -875,7 +877,7 @@
                     console.log('✅ Separação por marcadores explícitos!');
                     sections = cleanText.split(sectionMarkers);
                     sections = sections
-                        .map(section => section.trim())
+                        .map(section => section.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, ''))
                         .filter(section => section.length > 0);
                     return sections;
                 }
@@ -930,7 +932,7 @@
                 
                 // Limpa e filtra seções vazias
                 sections = sections
-                    .map(section => section.trim())
+                    .map(section => section.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, ''))
                     .filter(section => section.length > 0);
                 
                 console.log('🎯 Seções finais:', sections.length);
@@ -1050,7 +1052,7 @@
                         // que posiciona o primeiro acorde da linha seguinte (bug
                         // real: "primeira linha de cada verso vem com o acorde
                         // forçado no começo, ignorando o espaço").
-                        let cleanText = paragraph.replace(/^\s*\[[^\]]+\][ \t]*\n?/i, '');
+                        let cleanText = tirarMarcadoresPreservandoColunas(paragraph);
                         // Remove títulos explícitos do início — mesmo cuidado acima
                         cleanText = cleanText.replace(/^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)[ \t]*:?[ \t]*\d*[ \t]*\n?/gi, '');
                         cleanText = apararPreservandoIndentacao(cleanText);
@@ -1972,7 +1974,7 @@
                         content += '[🎼 PARTITURA_INTEGRADA]\n\n';
                     }
                 });
-                hiddenTextarea.value = content.trim();
+                hiddenTextarea.value = content.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, '');
             }
             
             // Mostra preview da música em modal
@@ -2103,6 +2105,21 @@
                 return texto.replace(/^(?:[ \t]*\n)+/, '').replace(/\s+$/, '');
             }
 
+            // Tira [Intro], [Refrão]… sem mexer nas colunas: o marcador vira
+            // espaços do mesmo tamanho. No Cifra Club ele às vezes fica NA
+            // MESMA linha dos acordes ("[Intro] F9  Am7  G" com a linha de
+            // baixo alinhada por baixo) — apagar puxava os acordes pra
+            // esquerda e desalinhava. Depois tira o recuo que sobrou igual em
+            // todas as linhas (ex.: os 8 espaços do "[Intro] ").
+            function tirarMarcadoresPreservandoColunas(texto) {
+                const semMarcador = apararPreservandoIndentacao(
+                    texto.replace(/\[[^\]\n]*\][ \t]*/g, (m) => ' '.repeat(m.length)));
+                const linhas = semMarcador.split('\n');
+                const recuos = linhas.filter(l => l.trim()).map(l => l.match(/^ */)[0].length);
+                const comum = recuos.length ? Math.min(...recuos) : 0;
+                return comum ? linhas.map(l => l.slice(Math.min(comum, l.match(/^ */)[0].length))).join('\n') : semMarcador;
+            }
+
             // Detecta links do Cifra Club
             function detectCifraClubLink(text) {
                 const cifraClubRegex = /https?:\/\/(www\.)?cifraclub\.com\.br\/[^\/\s]+\/[^\/\s]+\/?/g;
@@ -2211,7 +2228,7 @@
                     }
                     
                     // Remove marcadores [Refrão], [Verso], etc.
-                    const cleanText = apararPreservandoIndentacao(paragraph.replace(/\[.*?\]/g, ''));
+                    const cleanText = tirarMarcadoresPreservandoColunas(paragraph);
                     
                     blocks.push({
                         type: 'section',
