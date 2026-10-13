@@ -33,6 +33,9 @@ body.uc-app {
   margin: 0 auto;
   padding: 28px 16px 48px;
   display: grid;
+  /* minmax(0, …): um texto que não quebra (URL comprida no histórico)
+     não alarga a página toda no celular */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 .uc-page-head {

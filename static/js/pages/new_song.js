@@ -649,13 +649,13 @@
         });
         
         // Botão de pausa
-        restBtn.addEventListener('click', function() {
+        restBtn?.addEventListener('click', function() {
           isRest = !isRest;
           this.classList.toggle('active');
         });
         
         // Botão de desfazer
-        undoBtn.addEventListener('click', function() {
+        undoBtn?.addEventListener('click', function() {
           if (notes.length > 0) {
             notes.pop();
             renderNotes();
@@ -663,7 +663,7 @@
         });
         
         // Botão de limpar
-        clearBtn.addEventListener('click', function() {
+        clearBtn?.addEventListener('click', function() {
           notes = [];
           renderNotes();
         });
@@ -695,7 +695,7 @@
         });
 
         // Botão para inserir marcador diretamente
-        document.getElementById('insertMarkerBtn').addEventListener('click', function() {
+        document.getElementById('insertMarkerBtn')?.addEventListener('click', function() {
             insertPartituraMarker();
         });
 
