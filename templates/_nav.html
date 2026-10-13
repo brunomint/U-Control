@@ -50,6 +50,11 @@ try { if (window.self !== window.top && window.top.location.origin === location.
         {% endif %}
     </div>
     {% if current_user.is_authenticated %}
+    {#- Celular: o menu vira um painel aberto por este botão; na barra fica
+        só o Controle (ver nav.css, max-width: 640px). #}
+    <button type="button" class="site-nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <div class="site-nav-user">
         <span class="site-nav-avatar">{{ current_user.username[0] | upper }}</span>
         <span class="site-nav-username">{{ current_user.username }}</span>
@@ -75,10 +80,26 @@ try { if (window.self !== window.top && window.top.location.origin === location.
 // então posiciona embaixo do botão ao abrir. Fecha ao abrir outro, ao
 // clicar fora e com Esc.
 (function () {
+    const nav = document.querySelector('.site-nav');
     const menus = document.querySelectorAll('.site-nav-menu');
+    // Celular: painel com tudo aberto (os menus viram seções fixas)
+    const panelOpen = function () { return nav.classList.contains('nav-open'); };
+    const toggle = document.querySelector('.site-nav-toggle');
+    function setPanel(open) {
+        nav.classList.toggle('nav-open', open);
+        if (!toggle) return;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+        toggle.querySelector('i').className = 'fas ' + (open ? 'fa-xmark' : 'fa-bars');
+        menus.forEach(function (m) { m.open = open; });
+    }
+    if (toggle) toggle.addEventListener('click', function () { setPanel(!panelOpen()); });
+    window.addEventListener('resize', function () { if (panelOpen() && window.innerWidth > 640) setPanel(false); });
     menus.forEach(function (menu) {
+        // No painel o título do menu é só um rótulo: não fecha a seção
+        menu.querySelector('summary').addEventListener('click', function (e) { if (panelOpen()) e.preventDefault(); });
         menu.addEventListener('toggle', function () {
-            if (!menu.open) return;
+            if (!menu.open || panelOpen()) return;
             menus.forEach(function (other) { if (other !== menu) other.open = false; });
             const r = menu.querySelector('summary').getBoundingClientRect();
             const list = menu.querySelector('.site-nav-menu-list');
@@ -87,13 +108,16 @@ try { if (window.self !== window.top && window.top.location.origin === location.
         });
     });
     document.addEventListener('click', function (e) {
+        if (panelOpen()) { if (!e.target.closest('.site-nav')) setPanel(false); return; }
         if (!e.target.closest('.site-nav-menu')) menus.forEach(function (m) { m.open = false; });
     });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') menus.forEach(function (m) { m.open = false; });
+        if (e.key !== 'Escape') return;
+        if (panelOpen()) setPanel(false);
+        else menus.forEach(function (m) { m.open = false; });
     });
     document.querySelector('.site-nav-links').addEventListener('scroll', function () {
-        menus.forEach(function (m) { m.open = false; });
+        if (!panelOpen()) menus.forEach(function (m) { m.open = false; });
     });
 })();
 </script>
