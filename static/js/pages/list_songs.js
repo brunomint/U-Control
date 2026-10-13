@@ -206,9 +206,10 @@ $(document).ready(function() {
             const title = $(this).find('.song-title').text().toLowerCase();
             const author = $(this).find('.song-author').text().toLowerCase();
 
-            // Remove highlights anteriores
-            $(this).find('.uc-highlight').each(function() {
-                $(this).replaceWith($(this).text());
+            // Remove highlights anteriores (volta ao texto original)
+            $(this).find('.song-title, .song-author').each(function() {
+                const original = $(this).data('original-text');
+                if (original !== undefined) $(this).text(original);
             });
 
             if (searchTerm === '' || title.includes(searchTerm) || author.includes(searchTerm)) {
@@ -237,12 +238,23 @@ $(document).ready(function() {
         }
     });
 
-    // Função para destacar texto
-    function highlightText(element, searchTerm) {
-        const text = element.text();
-        const regex = new RegExp(`(${searchTerm})`, 'gi');
-        const highlightedText = text.replace(regex, '<span class="uc-highlight">$1</span>');
-        element.html(highlightedText);
+    // Função para destacar texto — um elemento por vez: cada linha tem
+    // DOIS .song-author (ao lado do título no celular e a coluna Autor);
+    // antes o texto dos dois era juntado e escrito nos dois, dobrando o
+    // autor a cada tecla. Termo e texto escapados (busca com "(" quebrava;
+    // título com "<" virava HTML).
+    const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    function highlightText(elements, searchTerm) {
+        const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+        elements.each(function() {
+            const el = $(this);
+            if (el.data('original-text') === undefined) el.data('original-text', el.text());
+            const text = el.data('original-text');
+            el.html(text.split(regex).map((part, i) =>
+                i % 2 ? `<span class="uc-highlight">${escapeHtml(part)}</span>` : escapeHtml(part)
+            ).join(''));
+        });
     }
 
     // Funcionalidade de adicionar à ordem do culto - abre modal
