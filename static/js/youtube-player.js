@@ -232,6 +232,23 @@ class YouTubeFloatingPlayer {
 
         this.renderMinimizeButton();
         this.setupEventListeners();
+        this.reserveSpace();
+    }
+
+    // O player fica fixo no canto de baixo: sem isto ele cobria o fim da
+    // página — os botões Salvar do editor e as últimas linhas da cifra —
+    // mesmo rolando até o fim. Reserva a altura dele embaixo da página
+    // (acompanha abrir/recolher/trocar de conteúdo).
+    reserveSpace() {
+        const base = parseFloat(getComputedStyle(document.body).paddingBottom) || 0;
+        const apply = () => {
+            const hidden = this.container.classList.contains('hidden');
+            const h = hidden ? 0 : this.container.offsetHeight + 28;
+            document.body.style.paddingBottom = (base + h) + 'px';
+        };
+        apply();
+        if (window.ResizeObserver) new ResizeObserver(apply).observe(this.container);
+        this._reapplySpace = apply;
     }
 
     setupEventListeners() {
@@ -323,10 +340,12 @@ class YouTubeFloatingPlayer {
 
     show() {
         this.container.classList.remove('hidden');
+        if (this._reapplySpace) this._reapplySpace();
     }
 
     hide() {
         this.container.classList.add('hidden');
+        if (this._reapplySpace) this._reapplySpace();
     }
 
     setHeader(kind, title) {

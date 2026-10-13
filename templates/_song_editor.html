@@ -93,6 +93,12 @@
             <button type="button" class="uc-btn uc-btn-ghost" onclick="processCifraClubManual()"><i class="fas fa-link"></i> Importar link do Cifra Club</button>
             <span class="grow"></span>
             <a href="{{ url_for('songs.list_songs') }}" class="uc-btn uc-btn-ghost">Cancelar</a>
+            {#- Só na criação: salva e abre a edição da música criada — assim os
+                próximos salvamentos atualizam a mesma música (na edição o
+                Salvar já fica na página) #}
+            {% if not song %}
+            <button type="submit" class="uc-btn uc-btn-secondary btn-salvar-continuar" data-continuar="1"><i class="fas fa-pen-to-square"></i> Salvar e continuar editando</button>
+            {% endif %}
             <button type="submit" class="uc-btn uc-btn-primary btn-salvar"><i class="fas fa-floppy-disk"></i> Salvar música</button>
         </div>
     </form>

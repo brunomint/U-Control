@@ -184,6 +184,9 @@
 
             $('#songForm').submit(async function(event) {
                 event.preventDefault();
+                // "Salvar e continuar editando" (data-continuar no botão)
+                const submitter = event.originalEvent && event.originalEvent.submitter;
+                const continuarEditando = !!(submitter && submitter.dataset.continuar);
                 const { normalizeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
 
                 console.log('📤 Enviando formulário...');
@@ -373,7 +376,10 @@
                         success: function(response) {
                             console.log('✅ Resposta do servidor:', response);
                             alert(response.message);
-                            window.location.href = '/songs';
+                            // Continuar: abre a edição da música criada (salvar
+                            // de novo atualiza ela, em vez de criar outra)
+                            window.location.href = continuarEditando && response.id != null
+                                ? `/edit_song/${response.id}` : '/songs';
                             //$('#songForm')[0].reset();
                             //$('#sections').find('.section:gt(0)').remove(); // Remove todas as seções, exceto a primeira
                         },

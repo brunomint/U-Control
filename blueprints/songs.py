@@ -192,7 +192,8 @@ def add_song():
     save_songs(songs)
 
     logger.debug(f"✅ [DEBUG] Música salva com sucesso!")
-    return jsonify({"message": "Música adicionada com sucesso!"})
+    # id: o "Salvar e continuar editando" do /new_song vai pra /edit_song/<id>
+    return jsonify({"message": "Música adicionada com sucesso!", "id": new_song["id"]})
 
 @songs_bp.route('/edit_song/<int:song_id>', methods=['GET', 'POST'])
 @login_required

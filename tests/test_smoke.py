@@ -1774,3 +1774,20 @@ def test_order_edit_saves_tema_and_horario(app, logged_in_client):
     with app.app_context():
         assert "tema" not in orders_store.get_order(key)
     logged_in_client.delete(f"/api/orders/{key}")
+
+
+def test_new_song_save_and_continue(app, logged_in_client):
+    """/new_song tem "Salvar e continuar editando"; /add_song devolve o id
+    pra página abrir /edit_song/<id>. A edição não mostra o botão."""
+    import songs_store
+
+    assert "btn-salvar-continuar" in logged_in_client.get("/new_song").get_data(as_text=True)
+    resp = logged_in_client.post("/add_song", data={
+        "title": "Música Continuar", "author": "Autor",
+        "sections[]": ["Verso"], "texts[]": ["la la"],
+    }).get_json()
+    with app.app_context():
+        song = songs_store.get_song(resp["id"])
+    assert song and song["title"] == "Música Continuar"
+    assert "btn-salvar-continuar" not in logged_in_client.get(f"/edit_song/{resp['id']}").get_data(as_text=True)
+    logged_in_client.post(f"/delete_song/{resp['id']}")
