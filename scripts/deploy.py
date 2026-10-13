@@ -20,8 +20,11 @@ import sys
 
 DEFAULT_HOST = "100.64.46.84"  # Tailscale — funciona de qualquer rede
 DEFAULT_USER = "piano-25"
-DEFAULT_PATH = "/home/piano-25/14.3_calendario_U-Control"
+DEFAULT_PATH = "/home/piano-25/ucontrol-v2"  # desde 2026-08-15 (antes 14.3_calendario_U-Control)
 DEFAULT_BRANCH = "rebuild"
+# Há dois serviços com "ucontrol" no nome (o do túnel Cloudflare também);
+# a detecção automática pegava o primeiro da lista
+DEFAULT_SERVICE = "ucontrol-gunicorn"
 
 
 def build_remote_commands(project_path, branch):
@@ -71,7 +74,7 @@ def main():
     parser.add_argument("--user", default=DEFAULT_USER, help=f"usuário SSH (default: {DEFAULT_USER})")
     parser.add_argument("--path", default=DEFAULT_PATH, help=f"caminho do projeto no Pi (default: {DEFAULT_PATH})")
     parser.add_argument("--branch", default=DEFAULT_BRANCH, help=f"branch a fazer deploy (default: {DEFAULT_BRANCH})")
-    parser.add_argument("--service", default=None, help="nome do serviço systemd (default: detecta automaticamente)")
+    parser.add_argument("--service", default=DEFAULT_SERVICE, help=f"nome do serviço systemd (default: {DEFAULT_SERVICE})")
     parser.add_argument("--dry-run", action="store_true", help="só mostra o plano, não conecta em lugar nenhum")
     parser.add_argument("--yes", action="store_true", help="não pede confirmação antes de executar")
     args = parser.parse_args()
