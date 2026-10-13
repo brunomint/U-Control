@@ -46,7 +46,11 @@ weasyprint==70.0
 # produção; descoberto testando a imagem Docker (2026-08-14), onde o
 # comando falhava com "No module named yt_dlp". Precisa de ffmpeg
 # instalado no sistema também (não é pacote pip) pra converter pra mp3.
-yt-dlp==2026.7.4
+# >= e não ==: o YouTube muda e versão parada para de baixar (testado em
+# 2026-10-13: 2025.04.30 e 2026.7.4 falham, 2026.08.19 baixa). No Pi,
+# atualizar de vez em quando: venv/bin/pip install -U "yt-dlp[default]".
+# [default] traz o yt-dlp-ejs (desafio de JavaScript do YouTube).
+yt-dlp[default]>=2026.8.19
 
 beautifulsoup4==4.14.3
 bidict==0.23.1

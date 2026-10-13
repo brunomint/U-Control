@@ -1,10 +1,12 @@
 """Cifras (Cifra Club) e download/gestão de áudio do YouTube. Bloco
 autocontido — nenhuma rota é referenciada por url_for() em lugar nenhum
 do projeto (chamadas via fetch() no JS dos templates)."""
+import importlib.util
 import json
 import logging
 import os
 import re
+import sys
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import login_required
@@ -141,6 +143,13 @@ def pegar_cifra_com_video():
         return jsonify({"error": str(e)}), 500
 
 
+def _yt_dlp_python():
+    """Python que roda o yt-dlp: o do próprio U-Control (venv, versão do
+    requirements.txt) quando ele tem o yt-dlp — antes era sempre o
+    python3 do sistema, com um yt-dlp velho que o YouTube já recusava."""
+    return sys.executable if importlib.util.find_spec('yt_dlp') else 'python3'
+
+
 # Download de áudio do YouTube via yt-dlp
 @cifras_bp.route("/download_audio", methods=["POST"])
 @login_required
@@ -197,7 +206,7 @@ def download_audio():
 
         # Comando yt-dlp para baixar apenas áudio em MP3
         cmd = [
-            "python3", "-m", "yt_dlp",
+            _yt_dlp_python(), "-m", "yt_dlp",
             "-x",  # Extrai áudio
             "--audio-format", "mp3",
             "--audio-quality", "192K",
