@@ -355,6 +355,15 @@ function renderModes() {
     updateModePill();
 }
 
+// O servidor guarda um modo por máquina (cookie uc_device — ver
+// display_state._device_modes): dois /control em PCs diferentes, um no
+// público e outro no monitor, não trocam o modo um do outro.
+function myMode(st) {
+    if (st.mode) return st.mode;  // GET /api/telao-status já vem com o desta máquina
+    const m = document.cookie.match(/(?:^|;\s*)uc_device=([^;]*)/);
+    return (st.modes || {})[m ? decodeURIComponent(m[1]) : null] || 'all';
+}
+
 function applyServerMode(mode) {
     const was = monitorOnlyMode ? 'monitor' : publicOnlyMode ? 'public' : 'all';
     monitorOnlyMode = mode === 'monitor';
@@ -376,7 +385,7 @@ function setModeChoice(mode) {
     renderPreview();
     // Manda o modo pro servidor — fonte única de verdade que _release_kind
     // usa pra QUALQUER liberação (card do /control ou banner nas próprias
-    // páginas, ver display_state._active_mode). Também reseta o
+    // páginas, ver display_state._device_modes). Também reseta o
     // live-follow, senão um live-follow em andamento continuaria usando o
     // modo ANTIGO até a próxima liberação explícita.
     socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
@@ -415,7 +424,7 @@ let lastTelaoStatus = null;
 function applyTelaoStatus(st) {
     if (!st || !st.live) return;
     lastTelaoStatus = st;
-    applyServerMode(st.mode);
+    applyServerMode(myMode(st));
     setBlackoutButton(!!st.blackout);
     renderPreview();
 }
@@ -561,7 +570,7 @@ function loadStagedContent() {
 
 function releaseStagedContent(kind) {
     // Modo Público/Monitor não precisa ser mandado aqui — o servidor já
-    // sabe (display_state._active_mode, atualizado por set_display_mode
+    // sabe o desta máquina (display_state._device_modes, via set_display_mode
     // em setModeChoice) e aplica pra qualquer
     // liberação, venha daqui ou do banner nas próprias páginas.
     socket.emit('release_staged_content', { kind });

@@ -10,6 +10,7 @@ from flask import (
 from werkzeug.routing import BaseConverter
 from flask_login import current_user, login_required
 import os
+import secrets
 import json
 import threading
 import time
@@ -186,6 +187,17 @@ def create_app(config=None):
         return url_for('static', filename=filename) + f'?v={v}'
 
     app.jinja_env.globals['versioned_static'] = _versioned_static
+
+    @app.after_request
+    def set_device_cookie(response):
+        # Identifica a máquina (navegador) pro modo Só público/Só monitor de
+        # cada /control — ver display_state._device_modes. Criado na
+        # primeira página, antes do socket conectar, então o socket já leva.
+        # Sem HttpOnly: o JS lê pra achar o próprio modo no telao_status.
+        if 'uc_device' not in request.cookies:
+            response.set_cookie('uc_device', secrets.token_urlsafe(12),
+                                max_age=10 * 365 * 24 * 3600, samesite='Lax')
+        return response
 
     @app.context_processor
     def inject_nav():

@@ -1317,6 +1317,37 @@ def test_single_gallery_lives_in_presenter(logged_in_client):
         assert marker in presenter, marker
 
 
+def test_each_machine_has_its_own_display_mode(app):
+    """Dois /control em PCs diferentes (cookie uc_device diferente): um em
+    Só público, outro em Só monitor. Trocar o modo num não troca no outro,
+    e cada um manda pra sua tela."""
+    import display_state
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    pc_publico = _operator_socket(app)
+    pc_palco = _operator_socket(app)
+    pc_publico.emit("set_display_mode", {"exclude_monitor": True, "monitor_only": False})
+    pc_palco.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
+    status = [m["args"][0] for m in pc_publico.get_received() if m["name"] == "telao_status"][-1]
+    assert sorted(status["modes"].values()) == ["monitor", "public"]
+
+    monitor.get_received()
+    pc_publico.emit("show_image", {"image_url": "/static/imagens/publico.jpg", "use_active_mode": True})
+    assert display_state._last_image_url == "/static/imagens/publico.jpg"
+    assert not [m for m in monitor.get_received() if m["name"] == "display_monitor_content"]
+
+    pc_palco.emit("show_image", {"image_url": "/static/imagens/palco.jpg", "use_active_mode": True})
+    got = [m["args"][0]["url"] for m in monitor.get_received() if m["name"] == "display_monitor_content"]
+    assert got == ["/static/imagens/palco.jpg"]
+    assert display_state._last_image_url == "/static/imagens/publico.jpg"  # público não mudou
+
+    for op in (pc_publico, pc_palco):
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.disconnect()
+    assert display_state._device_modes == {}
+    monitor.disconnect()
+
+
 def test_slideshow_show_image_respects_server_mode(app):
     import display_state
     monitor = ucontrol_main.socketio.test_client(app)

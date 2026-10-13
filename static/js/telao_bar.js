@@ -59,9 +59,13 @@
         if (st.blackout) {
             parts.push('<span class="tb-chip tb-black" title="O público vê a tela toda preta"><i class="fas fa-moon"></i> Tela preta</span>');
         }
-        if (st.mode === 'public') {
+        // Modo desta máquina (o servidor guarda um por PC — ver
+        // display_state._device_modes); o GET já vem com st.mode
+        const dev = document.cookie.match(/(?:^|;\s*)uc_device=([^;]*)/);
+        const mode = st.mode || (st.modes || {})[dev ? decodeURIComponent(dev[1]) : null] || 'all';
+        if (mode === 'public') {
             parts.push('<span class="tb-chip tb-mode" title="Ações mudam só a tela do público"><i class="fas fa-users"></i> Só público</span>');
-        } else if (st.mode === 'monitor') {
+        } else if (mode === 'monitor') {
             parts.push('<span class="tb-chip tb-mode" title="Ações mudam só o monitor de palco"><i class="fas fa-tv"></i> Só monitor</span>');
         }
         if (st.monitor) {

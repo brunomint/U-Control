@@ -256,10 +256,11 @@ def handle_show_image(data):
     # use_active_mode: quem manda não sabe o modo (slideshow do /presenter)
     # — aplica o modo atual do servidor, como o Liberar já faz
     if data.get('use_active_mode'):
-        if display_state._active_mode.get('monitor_only'):
+        mode = display_state.device_mode()
+        if mode == 'monitor':
             handle_show_monitor_content({'url': image_url})
             return
-        data = {**data, 'exclude_monitor': bool(display_state._active_mode.get('exclude_monitor'))}
+        data = {**data, 'exclude_monitor': mode == 'public'}
     _end_live_follow_unless(image_url)
     real_app = current_app._get_current_object()
 
@@ -644,17 +645,19 @@ def _release_kind(kind, payload):
     handle_stage_content, pra não duplicar a lógica de qual handler
     chamar pra cada kind.
 
-    Lê display_state._active_mode (Modo Público/Monitor) direto — não
-    recebe isso como parâmetro de propósito, já que o modo é uma decisão
-    do /control que precisa valer igual não importa de onde a liberação
-    partiu (ver comentário de _active_mode em display_state.py). Vale
+    Lê o modo (Público/Monitor) da máquina que liberou direto de
+    display_state.device_mode() — não recebe isso como parâmetro de
+    propósito, já que o modo é uma decisão do /control daquela máquina que
+    precisa valer igual não importa de qual página a liberação partiu (ver
+    comentário de _device_modes em display_state.py). Vale
     pra kind='image' (mecanismo original, também usado pelas ações
     nativas do /control: URL, galeria) e kind='lyrics'. Bíblia ainda não
     tem esse suporte — o monitor nunca teve nenhum jeito de mostrar
     bíblia, nem antes da existência de preparar/liberar, então
     precisaria ser construído do zero antes de sequer cogitar os modos."""
-    exclude_monitor = display_state._active_mode['exclude_monitor']
-    monitor_only = display_state._active_mode['monitor_only']
+    mode = display_state.device_mode()
+    exclude_monitor = mode == 'public'
+    monitor_only = mode == 'monitor'
 
     if kind == 'lyrics':
         song_id = payload.get('songId')
@@ -762,20 +765,18 @@ def handle_release_staged_content(data):
 
 @socketio.on('set_display_mode')
 def handle_set_display_mode(data):
-    """Emitido pelo /control ao ligar/desligar Modo Público/Monitor (ver
-    toggleMonitorMode/togglePublicMode em control.js) — grava em
-    display_state._active_mode, a fonte única de verdade que _release_kind
-    lê pra QUALQUER liberação, não importa se veio do card do /control ou
-    do banner nas próprias páginas (release_banner.js não tem acesso às
+    """Emitido pelo /control ao escolher Os dois / Só público / Só monitor
+    (setModeChoice em control.js) — grava o modo DESTA máquina em
+    display_state._device_modes, que _release_kind lê pra QUALQUER
+    liberação feita daqui, não importa se veio do card do /control ou do
+    banner nas próprias páginas (release_banner.js não tem acesso às
     variáveis JS do /control, que fica numa aba/página diferente).
 
     Também reseta o live-follow — trocar de modo é uma troca de contexto
     igual trocar de tipo: sem isto, um live-follow em andamento continuaria
-    aplicando o modo ANTIGO até a próxima liberação explícita."""
-    display_state._active_mode = {
-        'exclude_monitor': bool(data.get('exclude_monitor')),
-        'monitor_only': bool(data.get('monitor_only')),
-    }
+    indo pra tela antiga até a próxima liberação explícita."""
+    display_state.set_device_mode('monitor' if data.get('monitor_only')
+                                  else 'public' if data.get('exclude_monitor') else 'all')
     display_state._live_follow_kind = None
     telao.broadcast_status()
 
@@ -817,7 +818,7 @@ def handle_stop_live_follow(data=None):
 @login_required
 def api_telao_status():
     """Resumo do telão pra barrinha "No ar / Preparado" (telao.py)."""
-    return jsonify(telao.build_status())
+    return jsonify({**telao.build_status(), 'mode': display_state.device_mode()})
 
 
 @socketio.on('discard_staged_content')

@@ -201,7 +201,6 @@ def _extras():
 
 def build_status():
     from models import StagedContent
-    mode = display_state._active_mode
     follow = display_state._live_follow_kind
     try:
         staged = [{'kind': s.kind, 'label': s.label} for s in StagedContent.query.all()]
@@ -213,7 +212,9 @@ def build_status():
         'monitor': {**describe(_monitor), 'url': _monitor.get('url', ''),
                     'url1': _monitor.get('url1', ''), 'url2': _monitor.get('url2', '')} if _monitor else None,
         'staged': staged,
-        'mode': 'monitor' if mode.get('monitor_only') else 'public' if mode.get('exclude_monitor') else 'all',
+        # Modo de cada máquina (cookie uc_device): a barra e o /control de
+        # cada PC mostram o seu — ver display_state._device_modes
+        'modes': dict(display_state._device_modes),
         'follow': follow,
         'follow_label': ('Letra e Bíblia' if follow and display_state._live_follow_texto == display_state.TEXTO
                          else _FOLLOW_LABELS.get(follow)) if follow else None,

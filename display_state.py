@@ -79,17 +79,44 @@ def follow_inclui(kind):
     """Esse kind vai direto ao ar (sem pedir Liberar)?"""
     return _live_follow_kind is not None and (kind == _live_follow_kind or kind in _live_follow_texto)
 
-# Modo Público/Monitor atual (control.js: publicOnlyMode/monitorOnlyMode)
-# — fonte única de verdade no SERVIDOR, não só no JS do /control.
+# Modo Público/Monitor de cada máquina (control.js: publicOnlyMode/
+# monitorOnlyMode) — guardado no SERVIDOR, não só no JS do /control.
 # _release_kind (blueprints/display.py) lê daqui pra QUALQUER liberação,
 # não importa de onde ela vem: pelo card do /control ou pelo banner
 # embutido nas próprias páginas (release_banner.js) — esse banner é uma
-# aba/página diferente do /control, sem acesso às variáveis JS de lá, e
-# achado ao vivo: sem isto, liberar pelo banner sempre ignorava o modo
-# ativo (agia como se nenhum modo estivesse ligado), inconsistente com
-# liberar pelo card. Atualizado via evento set_display_mode, emitido
-# sempre que toggleMonitorMode()/togglePublicMode() mudam de estado.
-_active_mode = {'exclude_monitor': False, 'monitor_only': False}
+# aba/página diferente do /control, sem acesso às variáveis JS de lá.
+#
+# Por máquina, não um só: dois /control em PCs diferentes, um cuidando do
+# público ("Só público") e outro do monitor de palco ("Só monitor").
+# Com um modo único, trocar num PC trocava no outro, e a letra mandada
+# pelo PC do público ia parar no monitor. A máquina é o cookie uc_device
+# (ver main.py), que todas as abas do mesmo navegador mandam — inclusive
+# no socket. Máquina sem modo guardado = 'all' (Os dois).
+_device_modes = {}
+
+
+def current_device():
+    """Id da máquina de quem fez o pedido (cookie uc_device). Fora de
+    um pedido ou sem cookie: '' — as máquinas sem cookie dividem o mesmo
+    modo (string, não None, pra o dicionário virar JSON sem tropeçar)."""
+    try:
+        from flask import request
+        return request.cookies.get('uc_device') or ''
+    except RuntimeError:
+        return ''
+
+
+def device_mode(device=None):
+    """'all' | 'public' | 'monitor' da máquina (padrão: quem pediu)."""
+    return _device_modes.get(device if device is not None else current_device(), 'all')
+
+
+def set_device_mode(mode, device=None):
+    device = device if device is not None else current_device()
+    if mode in ('public', 'monitor'):
+        _device_modes[device] = mode
+    else:
+        _device_modes.pop(device, None)
 
 # Estado de reprodução de vídeo para sincronização entre clientes /img.
 # Quando uma nova janela /img conecta, ela consulta este estado para começar
