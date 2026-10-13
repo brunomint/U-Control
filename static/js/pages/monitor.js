@@ -312,10 +312,15 @@
         function updateTicker(text) {
             const bar = document.getElementById('ticker-bar');
             const span = document.getElementById('ticker-text');
-            if (!text) { bar.style.display = 'none'; return; }
+            const box = document.getElementById('iframeContainer');
+            if (!text) { bar.style.display = 'none'; box.style.height = ''; return; }
             span.textContent = text;
             span.style.animationDuration = Math.max(10, text.length * 0.3) + 's';
             bar.style.display = 'block';
+            // A faixa é fixa embaixo: o conteúdo (cifra, foto) encolhe pra
+            // acabar em cima dela, em vez de ficar escondido por baixo. A
+            // cifra refaz o tamanho da letra sozinha (display.js, resize).
+            box.style.height = `calc(100% - ${bar.offsetHeight}px)`;
         }
         socket.on('ticker_update', function(data) { updateTicker(data.text || ''); });
         fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateTicker(d.text || ''); });

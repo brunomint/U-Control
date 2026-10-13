@@ -29,8 +29,11 @@
             padding: 10px;
             box-sizing: border-box;
             flex: 1 1 auto;
-            min-height: 0; /* deixa o overflow-y:auto funcionar dentro de um item flex */
-            overflow-y: auto;
+            min-height: 0; /* deixa #lyrics encolher dentro do flex pra abrir espaço pro rodapé */
+            /* Tela de exibição: ninguém rola durante o culto, então nunca
+               barra de rolagem — shrink()/fitSheetsToScreen() (display.js)
+               diminuem a letra/partitura até caber */
+            overflow: hidden;
             position: relative;
             z-index: 1;
             color: #fff;

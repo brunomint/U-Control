@@ -95,7 +95,10 @@
     const textDiv = document.getElementById("lyrics");
     const sectionText = document.getElementById("section-text");
     let fontSize = Math.min(window.innerWidth / 10, 200); // Tamanho inicial da fonte baseado na largura da tela
-    const minFontSize = 10; // Tamanho mínimo da fonte
+    // Mínimo só pra não zerar: caber na tela vale mais que legibilidade
+    // num caso extremo (seção muito longa em tela baixa ou dividida) — com
+    // 10px a cifra passava da tela e ficava cortada
+    const minFontSize = 4;
 
     sectionText.style.fontSize = `${fontSize}px`;
     sectionText.style.fontWeight = 'bold';
@@ -632,6 +635,22 @@ window.addEventListener('load', shrink);
 // Chama a função shrink ao redimensionar a janela
 window.addEventListener('resize', shrink);
 window.addEventListener('resize', fitSheetsToScreen);
+
+// E sempre que o espaço da letra mudar sem a janela mudar: rodapé
+// ("A seguir", mapa) aparecendo/sumindo ou quebrando em mais linhas —
+// antes a letra ficava do tamanho antigo e passava por baixo do rodapé.
+if (window.ResizeObserver) {
+    let lastBox = '';
+    let pending = false;
+    new ResizeObserver(() => {
+        const l = document.getElementById('lyrics');
+        const box = l.clientWidth + 'x' + l.clientHeight;
+        if (box === lastBox || pending) return;
+        lastBox = box;
+        pending = true;
+        requestAnimationFrame(() => { pending = false; shrink(); fitSheetsToScreen(); });
+    }).observe(document.getElementById('lyrics'));
+}
 
     // Inicializa a aplicação ao carregar a página
     $(document).ready(initializeApp);
