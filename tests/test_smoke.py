@@ -1690,3 +1690,21 @@ def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
             sock.emit("discard_staged_content", {"kind": kind})
         sock.disconnect()
         display_state._live_follow_kind = None
+
+
+def test_view_song_edit_button_only_for_logged_operator(app, client, logged_in_client):
+    """/view/<id> é aberta pros músicos sem login; o Editar só aparece pra
+    quem está logado."""
+    import songs_store
+
+    with app.app_context():
+        songs = songs_store.load_songs()
+        song_id = songs_store.get_next_id(songs)
+        songs_store.save_songs(songs + [{
+            "id": song_id, "title": "Música Editar", "author": "Autor",
+            "sections": [{"title": "Verso", "text": ["la la"]}],
+        }])
+    edit_href = f'href="/edit_song/{song_id}"'
+    anon = client.get(f"/view/{song_id}")
+    assert anon.status_code == 200 and edit_href not in anon.get_data(as_text=True)
+    assert edit_href in logged_in_client.get(f"/view/{song_id}").get_data(as_text=True)

@@ -113,6 +113,7 @@
   cursor: pointer;
 }
 .tom-trigger:hover, .search-song-btn:hover, .print-btn:hover { border-color: var(--uc-faint); }
+a.print-btn { text-decoration: none; }
 .tom-trigger strong { color: var(--uc-accent-text); }
 .tom-trigger .fa-chevron-down { font-size: 10px; color: var(--uc-muted); }
 .tom-popover {

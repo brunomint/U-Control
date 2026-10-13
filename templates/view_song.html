@@ -113,6 +113,12 @@
                 <button type="button" class="print-btn" onclick="imprimirCifra()" title="Imprimir cifra">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
+                {#- Só operador logado: a página é aberta pros músicos sem login #}
+                {% if current_user.is_authenticated %}
+                <a class="print-btn" href="{{ url_for('songs.edit_song', song_id=song.id) }}" title="Editar esta música">
+                    <i class="fas fa-pen"></i> Editar
+                </a>
+                {% endif %}
             </div>
         </div>
 
