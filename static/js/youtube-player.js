@@ -152,6 +152,8 @@ class YouTubeFloatingPlayer {
                 cursor: pointer;
             }
             .yt-btn-add-video:hover { background: var(--uc-accent-strong, #7350ea); }
+            .yt-empty-tip { margin: 14px 0 0 !important; font-size: 12.5px !important; line-height: 1.45; }
+            .yt-empty-tip b { color: var(--uc-text, #e9ebf4); }
 
             #yt-player-frame { width: 100%; }
             #yt-player-frame iframe { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; }
@@ -343,6 +345,11 @@ class YouTubeFloatingPlayer {
         show('.yt-btn-change', change);
     }
 
+    // Velocidade só faz sentido com algo tocando aqui (vídeo ou áudio)
+    setSpeedVisible(on) {
+        this.container.querySelector('.yt-speed-control').style.display = on ? '' : 'none';
+    }
+
     promptForVideo() {
         const input = prompt('Cole o link do vídeo do YouTube:\n\nServe youtube.com/watch?v=…, youtu.be/…, código de incorporação (iframe) ou o ID do vídeo (11 caracteres).');
 
@@ -400,9 +407,19 @@ class YouTubeFloatingPlayer {
                 title="Vídeo de referência"></iframe>
         `;
 
+        // Pede ao player do YouTube os eventos (onError): vídeo com
+        // incorporação bloqueada pelo dono mostrava só "Este vídeo não está
+        // disponível", parecendo defeito do U-Control
+        const iframe = playerFrame.querySelector('iframe');
+        iframe.addEventListener('load', () => {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'uc-yt', channel: 'widget' }), 'https://www.youtube.com');
+        });
+        this.listenYoutubeErrors();
+
         this.container.querySelector('.yt-btn-external').href = `https://www.youtube.com/watch?v=${videoId}`;
         this.setHeader('video', 'Vídeo de referência');
         this.setFooterActions({ external: true, download: true, change: true });
+        this.setSpeedVisible(true);
         this.show();
     }
 
@@ -491,26 +508,55 @@ class YouTubeFloatingPlayer {
         this.setHeader('audio', 'Áudio de referência');
         // Já baixado: sem "Baixar"; "Trocar" põe outro vídeo do YouTube
         this.setFooterActions({ external: false, download: false, change: true });
+        this.setSpeedVisible(true);
         this.show();
     }
 
-    showExternalLink(videoId) {
-        // Vídeo que não deixa tocar fora do YouTube
+    // Erros do player do YouTube (via postMessage, enablejsapi=1):
+    // 101/150 = o dono não deixa tocar em outros sites; 100 = vídeo
+    // removido ou privado; 2 = link inválido
+    listenYoutubeErrors() {
+        if (this._ytErrorListener) return;
+        this._ytErrorListener = (e) => {
+            if (!/^https:\/\/www\.youtube(-nocookie)?\.com$/.test(e.origin)) return;
+            const iframe = this.container.querySelector('#yt-player-frame iframe');
+            if (!iframe || e.source !== iframe.contentWindow) return;
+            let data;
+            try { data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (err) { return; }
+            if (!data || data.event !== 'onError' || !this.videoId) return;
+            const code = Number(data.info);
+            const reason = (code === 101 || code === 150 || code === 152 || code === 153)
+                ? 'O dono deste vídeo não deixa tocar fora do YouTube.'
+                : code === 100 ? 'Este vídeo foi removido ou é privado.' : 'O YouTube não conseguiu tocar este vídeo.';
+            this.showExternalLink(this.videoId, reason, code === 100 || code === 2);
+        };
+        window.addEventListener('message', this._ytErrorListener);
+    }
+
+    showExternalLink(videoId, reason = 'Este vídeo não deixa tocar fora do YouTube.', gone = false) {
         const emptyState = this.container.querySelector('.yt-player-empty');
         const playerFrame = this.container.querySelector('#yt-player-frame');
 
         playerFrame.style.display = 'none';
         playerFrame.innerHTML = '';
 
+        // No editor: baixar o áudio resolve (fica guardado no U-Control e
+        // toca aqui mesmo). Na cifra (somente leitura), só abrir no YouTube.
+        const tip = !this.readOnly && !gone
+            ? '<p class="yt-empty-tip">Use <b>Baixar áudio</b> para guardar o áudio no U-Control e ouvir aqui.</p>'
+            : '';
         emptyState.style.display = 'block';
         emptyState.innerHTML = `
             <i class="fab fa-youtube yt-empty-icon"></i>
-            <p>Este vídeo não deixa tocar fora do YouTube.</p>
-            <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="yt-btn-add-video">
+            <p>${reason}</p>
+            ${gone ? '' : `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="yt-btn-add-video">
                 <i class="fas fa-arrow-up-right-from-square"></i> Abrir no YouTube
-            </a>
+            </a>`}
+            ${tip}
         `;
-
+        // Vídeo removido: não tem o que baixar
+        this.setFooterActions({ external: false, download: !gone, change: !this.readOnly });
+        this.setSpeedVisible(false);
         this.show();
     }
 
