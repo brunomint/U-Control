@@ -21,7 +21,7 @@ import sys
 DEFAULT_HOST = "100.64.46.84"  # Tailscale — funciona de qualquer rede
 DEFAULT_USER = "piano-25"
 DEFAULT_PATH = "/home/piano-25/ucontrol-v2"  # desde 2026-08-15 (antes 14.3_calendario_U-Control)
-DEFAULT_BRANCH = "rebuild"
+DEFAULT_BRANCH = "main"  # desde a v1.0 (2026-10-13); antes "rebuild"
 # Há dois serviços com "ucontrol" no nome (o do túnel Cloudflare também);
 # a detecção automática pegava o primeiro da lista
 DEFAULT_SERVICE = "ucontrol-gunicorn"
