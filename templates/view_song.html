@@ -22,6 +22,8 @@
 
     <!-- Menu -->
     <div class="menu" id="menu">
+        {#- onclick no atributo: loadList() remonta o menu com innerHTML += #}
+        <button type="button" class="menu-close" onclick="closeMenu()" aria-label="Fechar lista" title="Fechar lista"><i class="fas fa-xmark"></i></button>
         <div id="song-list" class="menu-item"><h2>Ordem do culto</h2></div>
         
         {% if bible_items %}
@@ -35,6 +37,11 @@
         {% endfor %}
         {% endif %}
     </div>
+
+    <script>
+    // Tela grande: lista fechada pelo ✕ continua fechada ao trocar de música
+    try { if (localStorage.getItem('viewSongMenuHidden') === '1') document.body.classList.add('menu-hidden'); } catch (e) {}
+    </script>
 
     <!-- Conteúdo -->
     <div class="content" id="content">
@@ -366,10 +373,21 @@
 
         loadList();
 
-        // Função para alternar a visibilidade do menu (mobile)
+        // Celular (≤768px): a lista é uma gaveta (.visible). Tela grande: fica
+        // fixa ao lado, e o ✕ esconde (body.menu-hidden) — aí o botão de
+        // lista aparece pra reabrir. Lembrado neste aparelho.
+        const isMobileMenu = () => window.innerWidth <= 768;
+        function setMenuHidden(hidden) {
+            document.body.classList.toggle('menu-hidden', hidden);
+            try { localStorage.setItem('viewSongMenuHidden', hidden ? '1' : '0'); } catch (e) {}
+        }
         function toggleMenu() {
-            const menu = document.querySelector('.menu');
-            menu.classList.toggle('visible');
+            if (isMobileMenu()) document.querySelector('.menu').classList.toggle('visible');
+            else setMenuHidden(!document.body.classList.contains('menu-hidden'));
+        }
+        function closeMenu() {
+            if (isMobileMenu()) document.querySelector('.menu').classList.remove('visible');
+            else setMenuHidden(true);
         }
 
         document.addEventListener('click', function(event) {

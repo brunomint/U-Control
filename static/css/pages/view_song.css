@@ -19,7 +19,23 @@
   transition: transform .25s ease;
   scrollbar-width: thin;
 }
-.menu h2 { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-muted); padding: 0 10px 8px; }
+.menu h2 { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-muted); padding: 0 40px 8px 10px; }
+.menu-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--uc-r-sm);
+  background: none;
+  color: var(--uc-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+.menu-close:hover { background: var(--uc-surface-2); color: var(--uc-text); }
 .menu-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-warn); padding: 14px 10px 6px; }
 .menu a, .menu .song-link {
   display: block;
@@ -54,7 +70,15 @@
 }
 
 /* ── Conteúdo ── */
-.content { margin-left: 270px; padding: 24px 28px 140px; min-width: 0; }
+.content { margin-left: 270px; padding: 24px 28px 140px; min-width: 0; transition: margin-left .25s ease; }
+
+/* Tela grande com a lista fechada pelo ✕: cifra na largura toda e o botão
+   de lista (o mesmo do celular) aparece pra reabrir */
+@media (min-width: 769px) {
+  body.menu-hidden .menu { transform: translateX(-100%); }
+  body.menu-hidden #toggle-menu { display: grid; place-items: center; }
+  body.menu-hidden .content { margin-left: 0; padding-left: 72px; }
+}
 .song-header { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
 .song-header-icon {
   width: 52px;
