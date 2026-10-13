@@ -1745,3 +1745,32 @@ def test_download_audio_only_deletes_inside_audio_folder(app, logged_in_client, 
     assert cmd[-2:] == ["--", "https://www.youtube.com/watch?v=abcdefghijk"]
     assert not any(a.startswith("--exec") for a in cmd)
     assert "/../" not in cmd[cmd.index("-o") + 1]
+
+
+def test_order_edit_saves_tema_and_horario(app, logged_in_client):
+    """/order/<data> manda 'tema' e 'horario'; a rota ignorava os dois."""
+    import orders_store
+
+    key = "2031-03-02"
+    base = {"tipo": "Culto Dominical", "dirigente": "Ana", "itens": [{"title": "Item"}]}
+    assert logged_in_client.post(f"/api/orders/{key}", json={**base, "tema": "Graça", "horario": "18:40"}).status_code == 200
+    with app.app_context():
+        saved = orders_store.get_order(key)
+    assert saved["tema"] == "Graça" and saved["horario"] == "18:40"
+
+    # Editar de novo troca os dois
+    logged_in_client.post(f"/api/orders/{key}", json={**base, "tema": "Fé", "horario": "19:00"})
+    with app.app_context():
+        saved = orders_store.get_order(key)
+    assert saved["tema"] == "Fé" and saved["horario"] == "19:00"
+
+    # Quem não manda o campo (ex.: agenda) não apaga o tema
+    logged_in_client.post(f"/api/orders/{key}", json=base)
+    with app.app_context():
+        assert orders_store.get_order(key)["tema"] == "Fé"
+
+    # Apagar o texto do tema apaga do banco
+    logged_in_client.post(f"/api/orders/{key}", json={**base, "tema": ""})
+    with app.app_context():
+        assert "tema" not in orders_store.get_order(key)
+    logged_in_client.delete(f"/api/orders/{key}")

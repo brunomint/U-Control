@@ -247,6 +247,20 @@ def api_save_order(date):
             order.pop('louvor', None)
             order.pop('itens', None)
 
+        # ---------- TEMA e HORÁRIO da ordem (/order/<data>) ----------
+        # A página de editar a ordem manda 'tema' e 'horario' (o do campo
+        # Horário dela — a agenda usa 'horario_culto'), e esta rota não
+        # copiava nenhum dos dois: o get_order() acima mantinha o valor
+        # antigo e o que a pessoa digitou se perdia. Só mexe quando o campo
+        # vem no pedido, pra quem não manda (agenda) não apagar o que já tem.
+        for campo in ('tema', 'horario'):
+            if campo in data:
+                valor = (data.get(campo) or '').strip()
+                if valor:
+                    order[campo] = valor
+                else:
+                    order.pop(campo, None)
+
         # ---------- MÍDIA ----------
         midia = data.get('midia') or {}
 
