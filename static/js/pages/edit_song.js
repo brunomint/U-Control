@@ -1994,99 +1994,6 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 hiddenTextarea.value = content;
             }
             
-            // Mostra preview da música em modal
-            function showPreviewModal() {
-                updateHiddenField();
-                
-                // Cria modal
-                const modal = document.createElement('div');
-                modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.7);
-                    z-index: 1000;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                `;
-                
-                // Conteúdo do modal - estilo folha de papel
-                const modalContent = document.createElement('div');
-                modalContent.style.cssText = `
-                    background: #fefefe;
-                    border-radius: 8px;
-                    padding: 40px;
-                    max-width: 900px;
-                    max-height: 85vh;
-                    overflow-y: auto;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-                    position: relative;
-                    border: 1px solid #f0f0f0;
-                `;
-                
-                // Cabeçalho
-                const header = document.createElement('div');
-                header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;';
-                header.innerHTML = `
-                    <h3 style="margin: 0; color: #5b3fd6;">Pré-visualização</h3>
-                    <button onclick="this.closest('[style*=fixed]').remove()" style="background: #f44; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">✕</button>
-                `;
-                
-                // Conteúdo da música - estilo folha limpa com formatação preservada
-                const musicContent = document.createElement('div');
-                musicContent.style.cssText = 'line-height: 1.8; white-space: pre-wrap; color: #2c2c2c;';
-                
-                // Gera preview visual dos blocos - estilo folha limpa
-                let previewHTML = '';
-                blocks.forEach(block => {
-                    if (block.type === 'section') {
-                        previewHTML += `<div style="color: #5b3fd6; font-weight: bold; font-size: 18px; margin: 25px 0 15px 0; text-transform: uppercase; letter-spacing: 1px;">${block.title || 'SEÇÃO'}</div>`;
-                    } else if (block.type === 'text') {
-                        if (block.content && block.content.trim()) {
-                            // Preserva formatação HTML original: cores, espaçamento, etc.
-                            previewHTML += `<div style="margin: 15px 0; line-height: 1.8; white-space: pre-wrap; font-family: 'Courier New', monospace;">${block.content}</div>`;
-                        }
-                    } else if (block.type === 'sheet') {
-                        previewHTML += `<div style="margin: 20px 0; text-align: left;">`;
-                        if (block.svgData) {
-                            previewHTML += block.svgData;
-                        } else {
-                            previewHTML += '<p style="color: #999; font-style: italic;">🎼 Partitura</p>';
-                        }
-                        previewHTML += '</div>';
-                    }
-                });
-                
-                if (!previewHTML.trim()) {
-                    previewHTML = '<p style="color: #999; font-style: italic; text-align: center;">Nenhum conteúdo para mostrar</p>';
-                }
-                
-                musicContent.innerHTML = previewHTML;
-                
-                // Ajusta SVGs no preview - tamanho menor e mais proporcional
-                const svgs = musicContent.querySelectorAll('svg');
-                svgs.forEach(svg => {
-                    svg.style.cssText = 'max-width: 100%; height: auto; transform: scale(1.1); transform-origin: center;';
-                });
-                
-                // Monta modal
-                modalContent.appendChild(header);
-                modalContent.appendChild(musicContent);
-                modal.appendChild(modalContent);
-                document.body.appendChild(modal);
-                
-                // Fecha modal clicando fora
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
-                    }
-                });
-                
-                console.log('👁️ Preview modal aberto');
-            }
             
             // ===== FUNCIONALIDADE CIFRA CLUB =====
 
@@ -2524,10 +2431,6 @@ Com mais conteúdo musical`;
             document.getElementById('insertSheetBtn').onclick = () => {
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
                 vexWindow.focus();
-            };
-            
-            document.getElementById('previewBtn').onclick = () => {
-                showPreviewModal();
             };
             
             document.getElementById('clearAllBtn').onclick = () => {
