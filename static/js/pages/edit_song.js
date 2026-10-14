@@ -954,8 +954,18 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 });
                 
                 // Ctrl+Enter: quebra o texto no cursor e abre uma nova seção
-                // (nome + texto) com o que estava abaixo do cursor
+                // (nome + texto) com o que estava abaixo do cursor.
+                // Alt+↑/↓: move a seção onde esta letra está (igual no nome
+                // da seção — na letra é onde o cursor costuma estar)
                 div.addEventListener('keydown', (e) => {
+                    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                        const g = sectionGroups().find(g => index >= g.start && index < g.end);
+                        if (g && blocks[g.start].type === 'section') {
+                            e.preventDefault();
+                            moveSection(g.start, e.key === 'ArrowUp' ? -1 : 1);
+                        }
+                        return;
+                    }
                     if (e.key === 'Enter' && e.ctrlKey) {
                         e.preventDefault();
                         const before = div.value.slice(0, div.selectionStart).replace(/\n+$/, '');
