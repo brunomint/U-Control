@@ -11,6 +11,10 @@
 .meta-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto; gap: 12px; align-items: end; }
 .stage-tip { margin: 0; font-size: 13px; color: var(--uc-muted); }
 .stage-tip i { color: var(--uc-warn); margin-right: 4px; }
+.shortcuts-tip { margin-top: 6px; line-height: 1.7; }
+.shortcuts-tip kbd { font-family: var(--uc-mono); font-size: 12px; background: var(--uc-surface-2); border: 1px solid var(--uc-line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--uc-text); }
+/* Celular/tablet sem teclado físico: atalho não serve pra nada */
+@media (hover: none) { .shortcuts-tip { display: none; } }
 .stage-tip code { font-family: var(--uc-mono); background: var(--uc-surface-2); border: 1px solid var(--uc-line); border-radius: 4px; padding: 0 5px; color: var(--uc-text); }
 
 /* Tom */
