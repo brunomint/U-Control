@@ -1817,3 +1817,48 @@ def test_cifra_club_titulo_e_artista_com_acento():
       {"position": 3, "name": "Diante do Trono"}]}</script>""", 'html.parser')
     assert _extrair_artista_cifra(so_trilha) == "Diante do Trono"
     assert _extrair_artista_cifra(BeautifulSoup("<p>nada</p>", 'html.parser')) is None
+
+
+def test_song_crud_does_not_load_every_song(app, logged_in_client, monkeypatch):
+    """Criar, abrir, editar, salvar partitura e excluir mexem só na música
+    em questão — load_songs()/save_songs() da lista inteira custavam ~2 s
+    por Salvar no Pi, com o servidor parado pra todo mundo nesse tempo."""
+    import songs_store
+
+    def proibido(*a, **k):
+        raise AssertionError("carregou/gravou todas as músicas")
+    import blueprints.songs as rotas
+    monkeypatch.setattr(songs_store, "load_songs", proibido)
+    monkeypatch.setattr(songs_store, "save_songs", proibido)
+    monkeypatch.setattr(rotas, "load_songs", proibido)
+
+    with app.app_context():
+        outra = songs_store.next_song_id()
+        songs_store.save_song({"id": outra, "title": "Outra", "author": "X",
+                               "sections": [{"title": "V", "text": ["intacta"]}]})
+
+    song_id = logged_in_client.post("/add_song", data={
+        "title": "Uma Só", "author": "Autor", "sections[]": ["Verso"], "texts[]": ["la la"],
+    }).get_json()["id"]
+    assert song_id == outra + 1
+    assert logged_in_client.get(f"/edit_song/{song_id}").status_code == 200
+    resp = logged_in_client.post(f"/edit_song/{song_id}", data={
+        "title": "Uma Só (editada)", "author": "Autor",
+        "sections[]": ["Refrão"], "texts[]": ["novo texto"],
+    })
+    assert resp.get_json()["message"] == "Música editada com sucesso!"
+    assert logged_in_client.post(f"/api/save_sheet/{song_id}", json={"id": 7, "measures": []}).status_code == 200
+    assert logged_in_client.get(f"/sheet_editor/{song_id}").status_code == 200
+
+    with app.app_context():
+        song = songs_store.get_song(song_id)
+        assert song["title"] == "Uma Só (editada)"
+        assert song["sections"] == [{"title": "Refrão", "text": ["novo texto"]}]
+        assert [sh["id"] for sh in song["sheet_data"]] == [7]
+        assert songs_store.get_song(outra)["sections"] == [{"title": "V", "text": ["intacta"]}]
+
+    logged_in_client.post(f"/delete_song/{song_id}")
+    with app.app_context():
+        assert songs_store.get_song(song_id) is None
+        assert songs_store.get_song(outra) is not None
+        songs_store.delete_song(outra)

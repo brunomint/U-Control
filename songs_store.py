@@ -26,6 +26,7 @@ só são recriadas quando o conteúdo comparado realmente difere do que já
 está no banco."""
 from datetime import datetime
 
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
 from extensions import db
@@ -218,6 +219,43 @@ def save_songs(songs):
         db.session.rollback()
     finally:
         db.session.close()
+
+
+def save_song(data):
+    """Grava UMA música (cria se o id não existir) — mesma regra de diff do
+    save_songs(), mas sem carregar e comparar as outras ~390. Editar,
+    criar e salvar partitura chamavam load_songs()+save_songs() com a
+    lista inteira: ~2 s de CPU no Pi a cada Salvar, com o servidor (1
+    worker) parado nesse tempo pra todo mundo — telão e monitor inclusive
+    (medido em 2026-10-14)."""
+    song = db.session.get(
+        Song, data['id'],
+        options=[selectinload(Song.sections), selectinload(Song.sheet_data)],
+    )
+    is_new = song is None
+    if is_new:
+        song = Song(id=data['id'])
+        db.session.add(song)
+    _apply_song_fields(song, data, is_new=is_new)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    finally:
+        db.session.close()
+
+
+def delete_song(song_id):
+    """Exclui UMA música (seções e partituras vão junto pelo cascade)."""
+    song = db.session.get(Song, song_id)
+    if song:
+        db.session.delete(song)
+        db.session.commit()
+
+
+def next_song_id():
+    """Próximo id livre, direto no banco (sem carregar as músicas)."""
+    return (db.session.query(func.max(Song.id)).scalar() or 0) + 1
 
 
 def get_next_id(songs):

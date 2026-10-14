@@ -8,7 +8,8 @@ import time
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
 
-from songs_store import get_next_id, load_songs, save_songs
+import songs_store
+from songs_store import get_song, load_songs, next_song_id, save_song
 
 logger = logging.getLogger('ucontrol')
 
@@ -49,8 +50,7 @@ def sheet_editor():
 @login_required
 def edit_sheet(song_id):
     """Edita a partitura de uma música específica."""
-    songs = load_songs()
-    song = next((s for s in songs if s['id'] == song_id), None)
+    song = get_song(song_id)
     if not song:
         flash('Música não encontrada!', 'error')
         return redirect(url_for('songs.list_songs'))
@@ -65,9 +65,7 @@ def save_sheet_data(song_id):
     Fase 2 do plano de unificação de renderização VexFlow)."""
     try:
         incoming = request.get_json()
-        songs = load_songs()
-
-        song = next((s for s in songs if s['id'] == song_id), None)
+        song = get_song(song_id)
         if not song:
             return jsonify({"error": "Música não encontrada"}), 404
 
@@ -83,7 +81,7 @@ def save_sheet_data(song_id):
             sheets.append(incoming)
 
         song['sheet_data'] = sheets
-        save_songs(songs)
+        save_song(song)
 
         return jsonify({"message": "Partitura salva com sucesso!", "id": incoming['id']})
     except Exception as e:
@@ -124,9 +122,8 @@ def add_song():
     if audio_url:
         logger.debug(f"🎵 [DEBUG] Audio URL recebido: {audio_url}")
 
-    songs = load_songs()
     new_song = {
-        "id": get_next_id(songs),
+        "id": next_song_id(),
         "title": title,
         "author": author,
         "sections": [
@@ -188,8 +185,7 @@ def add_song():
         else:
             logger.debug(f"📊 [DEBUG] Notas na música final: {_count_notes(sheet_data)}")
 
-    songs.append(new_song)
-    save_songs(songs)
+    save_song(new_song)
 
     logger.debug(f"✅ [DEBUG] Música salva com sucesso!")
     # id: o "Salvar e continuar editando" do /new_song vai pra /edit_song/<id>
@@ -199,7 +195,6 @@ def add_song():
 @login_required
 def edit_song(song_id):
     """Edita uma música existente."""
-    songs = load_songs()
 
     if request.method == 'POST':
         # Usa a mesma lógica do add_song
@@ -227,12 +222,7 @@ def edit_song(song_id):
             logger.debug(f"🔍 [DEBUG] Primeiros 100 chars: {repr(texts[0][:100])}")
             logger.debug(f"🔍 [DEBUG] Começa com espaço? {texts[0].startswith(' ')}")
 
-        # Encontra a música existente
-        song_to_update = None
-        for song in songs:
-            if song['id'] == song_id:
-                song_to_update = song
-                break
+        song_to_update = get_song(song_id)
 
         if not song_to_update:
             return jsonify({"error": "Música não encontrada!"}), 404
@@ -275,20 +265,17 @@ def edit_song(song_id):
             # Remove se estava preenchido e agora está vazio
             del song_to_update["audio_url"]
 
-        save_songs(songs)
+        save_song(song_to_update)
         logger.debug(f"✅ [DEBUG] Música {song_id} editada com sucesso!")
         return jsonify({"message": "Música editada com sucesso!"})
 
-    song_to_edit = next((song for song in songs if song['id'] == song_id), None)
-    return render_template('edit_song.html', song=song_to_edit)
+    return render_template('edit_song.html', song=get_song(song_id))
 
 @songs_bp.route('/delete_song/<int:song_id>', methods=['POST'])
 @login_required
 def delete_song(song_id):
     """Exclui uma música."""
-    songs = load_songs()
-    songs = [s for s in songs if s['id'] != song_id]
-    save_songs(songs)
+    songs_store.delete_song(song_id)
 
     return jsonify({'message': 'Música removida com sucesso!'})
 
