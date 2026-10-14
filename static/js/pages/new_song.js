@@ -1171,6 +1171,7 @@
                 // Altura certa das caixas de texto já agora (o ajuste do
                 // createTextBlock só roda depois, tarde demais pra rolagem)
                 blockContainer.querySelectorAll('textarea.text-block').forEach(ta => {
+                    if (ta._chordSync) ta._chordSync();
                     ta.style.height = 'auto';
                     ta.style.height = ta.scrollHeight + 'px';
                 });
@@ -1360,6 +1361,7 @@
                 div.setAttribute('placeholder', 'Digite a letra da música...');
                 div.setAttribute('wrap', 'off');
                 div.value = block.content || '';
+                ChordHighlight.attach(div);
                 
                 // Função para ajustar altura automaticamente
                 const adjustHeight = () => {
@@ -1396,7 +1398,10 @@
                     setTimeout(async () => {
                         const original = div.value || '';
                         const text = limparColagemCifraClub(original);
-                        if (text !== original) div.value = text;
+                        if (text !== original) {
+                            div.value = text;
+                            div.dispatchEvent(new Event('input'));
+                        }
                         console.log('📝 Texto colado:', text);
                         console.log('📏 Tamanho do texto:', text.length);
                         

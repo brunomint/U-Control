@@ -22,6 +22,7 @@
 
 {% block scripts %}
 <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
+<script src="{{ versioned_static('js/chord_highlight.js') }}"></script>
 <script>
     // Lido por new_song.js pra buscar sheet_render.js (ES module, import() dinâmico) com cache-busting.
     window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";

@@ -270,3 +270,27 @@ textarea[name="texts[]"], #entrada { display: none; }
 #blockEditor .sec-btn.danger:hover { background: var(--uc-danger-soft); }
 #blockEditor .sec-btn:disabled { opacity: .2 !important; cursor: default; background: transparent; }
 #blockEditor .section-flash { box-shadow: 0 0 0 2px var(--uc-accent); transition: box-shadow .3s; }
+
+/* Acordes coloridos no editor: o texto colorido fica numa camada atrás da
+   textarea (static/js/chord_highlight.js); a textarea só mostra cursor e
+   seleção. Mesmas cores da página /view. */
+.chord-backdrop {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: transparent;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--uc-text);
+}
+.text-block.has-chord-backdrop {
+  position: relative;
+  color: transparent !important;
+  caret-color: var(--uc-text);
+}
+.text-block.has-chord-backdrop::placeholder { color: var(--uc-faint); }
+.text-block.has-chord-backdrop::selection { color: transparent; background: var(--uc-accent-soft); }
+.chord-backdrop .chord { color: var(--uc-warn); }
+.chord-backdrop .comment-line { color: var(--uc-faint); }
