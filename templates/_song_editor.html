@@ -67,12 +67,6 @@
         <div class="scrollable-div">
             <div id="sections">
                 <div class="section">
-                    <div class="section-header" style="display: none;">
-                        <input type="text" name="sections[]" placeholder="Título da seção (ex.: verso, coro)">
-                        <button type="button" class="addSection" title="Adicionar seção"><i class="fas fa-plus"></i></button>
-                        <button type="button" class="removeSection" title="Remover seção"><i class="fas fa-trash-alt"></i></button>
-                    </div>
-
                     <!-- Editor de blocos (folha clara) -->
                     <div id="blockEditor">
                         <div class="block-container" id="blockContainer">
@@ -103,32 +97,3 @@
     </form>
 </main>
 
-<!-- Editor de partitura (modal; o desenho precisa de fundo branco) -->
-<div id="vexEditor" class="vex-editor-container" style="display: none;">
-    <div class="vex-editor">
-        <div class="vex-head">
-            <h3>Editor de partitura</h3>
-        </div>
-        <div class="vex-toolbar">
-            <div class="vex-durations">
-                <span>Duração</span>
-                <button type="button" class="vex-btn active" data-dur="w" title="Semibreve">𝅝</button>
-                <button type="button" class="vex-btn" data-dur="h" title="Mínima">𝅗𝅥</button>
-                <button type="button" class="vex-btn" data-dur="q" title="Semínima">𝅘𝅥</button>
-                <button type="button" class="vex-btn" data-dur="8" title="Colcheia">𝅘𝅥𝅮</button>
-                <button type="button" class="vex-btn" data-dur="16" title="Semicolcheia">𝅘𝅥𝅯</button>
-            </div>
-            <div class="vex-accidentals">
-                <span>Acidentes</span>
-                <button type="button" class="vex-btn active" data-acc="n" title="Natural">♮</button>
-                <button type="button" class="vex-btn" data-acc="#" title="Sustenido">♯</button>
-                <button type="button" class="vex-btn" data-acc="b" title="Bemol">♭</button>
-            </div>
-        </div>
-        <div id="vex-canvas"></div>
-        <div class="vex-actions">
-            <button type="button" id="vex-cancel" class="uc-btn uc-btn-ghost">Cancelar</button>
-            <button type="button" id="vex-insert" class="uc-btn uc-btn-primary">Inserir partitura</button>
-        </div>
-    </div>
-</div>

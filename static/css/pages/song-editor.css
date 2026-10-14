@@ -11,7 +11,7 @@
 .meta-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto; gap: 12px; align-items: end; }
 .stage-tip { margin: 0; font-size: 13px; color: var(--uc-muted); }
 .stage-tip i { color: var(--uc-warn); margin-right: 4px; }
-.stage-tip code, .vex-editor code { font-family: var(--uc-mono); background: var(--uc-surface-2); border: 1px solid var(--uc-line); border-radius: 4px; padding: 0 5px; color: var(--uc-text); }
+.stage-tip code { font-family: var(--uc-mono); background: var(--uc-surface-2); border: 1px solid var(--uc-line); border-radius: 4px; padding: 0 5px; color: var(--uc-text); }
 
 /* Tom */
 .toolbar { display: flex; }
@@ -115,9 +115,6 @@
 .tool-btn.danger-ghost:hover { color: var(--uc-danger); background: var(--uc-danger-soft); }
 .tool-sep { width: 1px; height: 22px; background: var(--uc-line); margin: 0 4px; }
 
-/* Seções ocultas legadas (o JS usa .section-header só como suporte) */
-.section-header { display: none; }
-
 /* Folha de edição */
 #blockEditor {
   padding: 18px 22px;
@@ -197,49 +194,6 @@
 textarea[name="texts[]"], #entrada { display: none; }
 
 .footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 4px; }
-
-/* Editor de partitura (modal) */
-.vex-editor-container {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(5, 6, 12, .75);
-}
-.vex-editor-container.show { display: flex; }
-.vex-editor {
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 20px;
-  border-radius: var(--uc-r-lg);
-  background: var(--uc-surface);
-  border: 1px solid var(--uc-line);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
-  display: grid;
-  gap: 14px;
-}
-.vex-head h3 { font-size: 16px; font-weight: 800; }
-.vex-toolbar { display: flex; flex-wrap: wrap; gap: 16px; }
-.vex-durations, .vex-accidentals { display: flex; align-items: center; gap: 4px; }
-.vex-durations span, .vex-accidentals span { font-size: 12px; font-weight: 700; color: var(--uc-muted); margin-right: 4px; }
-.vex-btn { min-width: 38px; padding: 6px 10px; border-radius: var(--uc-r-sm); border: 1px solid var(--uc-line); background: var(--uc-surface-2); color: var(--uc-text); font-size: 18px; cursor: pointer; }
-.vex-btn:hover { border-color: var(--uc-faint); }
-.vex-btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
-#vex-canvas { width: 100%; min-height: 200px; border-radius: var(--uc-r); background: #fff; }
-.vex-actions { display: flex; justify-content: flex-end; gap: 8px; }
-
-/* Teclado de piano (usado pelo editor de partitura) */
-.piano-container { position: relative; display: flex; width: 100%; max-width: 500px; height: 150px; margin: 10px auto; padding: 5px; border-radius: 6px; background: var(--uc-surface-2); box-sizing: border-box; }
-.piano-key { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; box-sizing: border-box; cursor: pointer; user-select: none; font-weight: 700; color: #333; }
-.white-key { flex: 1; height: 100%; background: #fff; border: 1px solid #ccc; border-radius: 0 0 5px 5px; z-index: 1; }
-.black-key { position: absolute; top: 0; right: -15px; width: 30px; height: 60%; background: #222; color: #fff; border-radius: 0 0 3px 3px; z-index: 2; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; box-sizing: border-box; }
-.white-key:active, .white-key.active { background: #e4e6ef; }
-.black-key:active, .black-key.active { background: #000; }
 
 @media (max-width: 760px) {
   .meta-grid { grid-template-columns: minmax(0, 1fr); }
