@@ -1136,7 +1136,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 );
                 if (hasContent) {
                     import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
-                        renderSheetMusic(sheetContainer, originalData, { maxWidth: 600 })
+                        renderSheetMusic(sheetContainer, originalData, { maxWidth: sheetContainer.clientWidth || 600, compact: true })
                     ).then(() => {
                         const svg = sheetContainer.querySelector('svg');
                         if (svg) {

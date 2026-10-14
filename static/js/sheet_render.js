@@ -321,20 +321,75 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
   const data = normalizeSheetData(rawOrCanonicalData);
   container.innerHTML = '';
 
+  // options.compact (editor de música e /view): aproveita a largura —
+  // compasso do tamanho das notas que tem, linha esticada até a borda,
+  // fórmula de compasso só na 1ª linha, menos espaço entre linhas e, em
+  // tela estreita, desenho um pouco menor pra caber mais de um compasso
+  // por linha. Sem compact (telão, monitor, editor de partitura com
+  // clique nas notas) continua o layout de antes.
+  const compact = !!options.compact && !options.interactive;
   const BASE_MEASURE_W = 220;
-  const STAVE_H = 140, SYSTEM_GAP = 30, LEFT = 24, RIGHT = 24, TOP = 20;
+  const STAVE_H = compact ? 110 : 140, SYSTEM_GAP = compact ? 12 : 30, LEFT = compact ? 10 : 24, RIGHT = compact ? 10 : 24, TOP = 20;
 
   const { beats, beatValue } = timeValues(data.timeSig);
   const viewportW = options.maxWidth ?? (container.clientWidth || container.parentElement?.clientWidth || 900);
-  const maxSystemW = viewportW - (LEFT + RIGHT);
+  const scale = compact && viewportW < 520 ? 0.78 : 1;
+  const logicalW = Math.round(viewportW / scale);
+  const maxSystemW = logicalW - (LEFT + RIGHT);
 
   const proportion = (beats / beatValue) / (4 / 4);
   const baseW = BASE_MEASURE_W * Math.max(0.7, proportion);
 
-  const widths = data.measures.map(m => measureVisualWidth(m, baseW));
-  const systemsIdx = splitIntoSystems(widths, Math.max(260, maxSystemW));
+  let widths, systemsIdx;
+  if (compact) {
+    // Clave + armadura no começo de toda linha; fórmula só na primeira
+    const keyAcc = keySignatureAccidentals(data.keySig);
+    const lineStartW = 42 + 11 * (keyAcc.sharps.size + keyAcc.flats.size);
+    const TIME_W = 28;
+    const natural = data.measures.map(m => Math.max(96, 46 + (m?.length ?? 0) * 26));
+    systemsIdx = [];
+    let row = [], acc = 0;
+    natural.forEach((w, i) => {
+      const extra = row.length ? 0 : lineStartW + (systemsIdx.length ? 0 : TIME_W);
+      if (row.length && acc + w > maxSystemW) {
+        systemsIdx.push(row);
+        row = [i];
+        acc = lineStartW + w;
+      } else {
+        row.push(i);
+        acc += w + extra;
+      }
+    });
+    if (row.length) systemsIdx.push(row);
+    // Distribui por igual entre as linhas (8 compassos: 4 + 4, não 7 + 1)
+    const total = natural.reduce((t, w) => t + w, 0);
+    const cabe = rows => rows.every((r, k) =>
+      r.length && r.reduce((t, i) => t + natural[i], 0) + lineStartW + (k ? 0 : TIME_W) <= maxSystemW);
+    for (let n = systemsIdx.length; n > 1 && n <= natural.length; n++) {
+      const rows = Array.from({ length: n }, () => []);
+      let cum = 0;
+      natural.forEach((w, i) => {
+        rows[Math.min(n - 1, Math.floor((cum + w / 2) / (total / n)))].push(i);
+        cum += w;
+      });
+      if (cabe(rows)) { systemsIdx = rows; break; }
+    }
+    // Estica cada linha até a borda — menos uma linha única e curta (ex.:
+    // 2 compassos numa tela larga), que fica no tamanho natural
+    widths = [];
+    systemsIdx.forEach((r, s) => {
+      const extra = lineStartW + (s ? 0 : TIME_W);
+      const soma = r.reduce((t, i) => t + natural[i], 0);
+      const ultima = s === systemsIdx.length - 1;
+      const fator = (ultima && systemsIdx.length === 1 && soma + extra < maxSystemW * 0.7) ? 1 : (maxSystemW - extra) / soma;
+      r.forEach((i, j) => { widths[i] = natural[i] * fator + (j === 0 ? extra : 0); });
+    });
+  } else {
+    widths = data.measures.map(m => measureVisualWidth(m, baseW));
+    systemsIdx = splitIntoSystems(widths, Math.max(260, maxSystemW));
+  }
   const totalH = TOP + systemsIdx.length * STAVE_H + (systemsIdx.length - 1) * SYSTEM_GAP + 20;
-  const totalW = viewportW;
+  const totalW = logicalW;
 
   if (!container.id) container.id = `sheet-render-${Math.random().toString(36).slice(2)}`;
   const vf = new Factory({ renderer: { elementId: container.id, width: totalW, height: totalH } });
@@ -365,7 +420,10 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
 
       const stave = vf.Stave({ x, y, width: w });
       stave.setStyle(notationStyle);
-      if (j === 0) { stave.addClef(data.clef).addKeySignature(data.keySig).addTimeSignature(data.timeSig); }
+      if (j === 0) {
+        stave.addClef(data.clef).addKeySignature(data.keySig);
+        if (!compact || s === 0) stave.addTimeSignature(data.timeSig);
+      }
       stave.setContext(ctx).draw();
 
       const tickables = measureNotes.map(m => {
@@ -450,5 +508,17 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
     } catch (e) { console.warn('Erro ao desenhar acorde:', e); }
   });
 
-  return { vfNotesByMI, systemsIdx, svgEl: container.querySelector('svg'), data };
+  const svgEl = container.querySelector('svg');
+  if (svgEl && scale !== 1) {
+    // Desenhado em tamanho "lógico" maior e mostrado menor; a altura
+    // acompanha a largura (sem faixa branca em cima/embaixo)
+    svgEl.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+    svgEl.setAttribute('width', Math.round(totalW * scale));
+    svgEl.setAttribute('height', Math.round(totalH * scale));
+    svgEl.style.width = '100%';
+    svgEl.style.maxWidth = Math.round(totalW * scale) + 'px';
+    svgEl.style.height = 'auto';
+  }
+
+  return { vfNotesByMI, systemsIdx, svgEl, data };
 }

@@ -1007,8 +1007,15 @@ window.onload = () => {
                 }
 
                 try {
-                    const maxWidth = window.innerWidth <= 768 ? window.innerWidth - 40 : 800;
-                    await renderSheetMusic(sheetElement, sheetData, { maxWidth });
+                    // Largura útil da área de conteúdo (o cartão da música é
+                    // inline-block e encolhe até a letra), no máximo 900px;
+                    // a partitura alarga o cartão como antes
+                    const area = sheetElement.closest('.content') || document.body;
+                    const cs = getComputedStyle(area);
+                    const util = area.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+                    const cardPad = window.innerWidth <= 768 ? 28 : 48;
+                    const maxWidth = Math.max(260, Math.min(util, 900) - cardPad - 32);
+                    await renderSheetMusic(sheetElement, sheetData, { maxWidth, compact: true });
                 } catch (error) {
                     console.error('❌ Erro ao renderizar partitura ' + sheetId + ':', error);
                     sheetElement.innerHTML = '<p style="text-align: center; color: #f44336;">Erro: ' + error.message + '</p>';
