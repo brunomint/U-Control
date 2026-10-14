@@ -27,13 +27,26 @@ DEFAULT_BRANCH = "main"  # desde a v1.0 (2026-10-13); antes "rebuild"
 DEFAULT_SERVICE = "ucontrol-gunicorn"
 
 
+# A conexão do Pi com o GitHub às vezes trava sem cair (2026-10-14: um
+# fetch ficou 7+ min parado enquanto outro, ao mesmo tempo, respondia em
+# 26 s). ServerAlive derruba a conexão muda em ~30 s, timeout corta o
+# fetch em 90 s, e tenta até 3 vezes antes de desistir.
+FETCH_COMMAND = (
+    "for tentativa in 1 2 3; do "
+    "GIT_SSH_COMMAND='ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectTimeout=20' "
+    "timeout 90 git fetch origin && exit 0; "
+    "echo \"git fetch falhou/travou (tentativa $tentativa de 3), tentando de novo...\" >&2; "
+    "done; exit 1"
+)
+
+
 def build_remote_commands(project_path, branch):
     """Monta a sequência de comandos remotos. Cada um só roda se o anterior
     teve sucesso (`&&`), então a primeira falha para o deploy inteiro."""
     return [
         f"cd {project_path}",
         "git status --porcelain",  # checado à parte, não faz parte da cadeia &&
-        f"cd {project_path} && git fetch origin",
+        f"cd {project_path} && {FETCH_COMMAND}",
         f"cd {project_path} && git reset --hard origin/{branch}",
         f"cd {project_path} && venv/bin/pip install -r requirements.txt",
         f"cd {project_path} && venv/bin/python scripts/patch_flask_socketio.py",
@@ -130,7 +143,7 @@ def main():
                     print("Cancelado.")
                     return 1
 
-        run(client, f"cd {args.path} && git fetch origin", "git fetch")
+        run(client, f"cd {args.path} && {FETCH_COMMAND}", "git fetch")
         run(client, f"cd {args.path} && git reset --hard origin/{args.branch}", "git reset --hard")
         run(client, f"cd {args.path} && venv/bin/pip install -r requirements.txt", "pip install")
         run(client, f"cd {args.path} && venv/bin/python scripts/patch_flask_socketio.py", "patch flask_socketio")
