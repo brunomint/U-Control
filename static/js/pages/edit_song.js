@@ -208,23 +208,59 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 
                 console.log('📋 Enviando dados estruturados...');
                 
-                $.ajax({
+                // Fica na página sem recarregar: o vídeo/áudio de referência
+                // continua tocando de onde estava. O servidor grava a música
+                // inteira de novo a cada Salvar, então não há nada pra buscar
+                // de volta.
+                const SESSAO_EXPIROU = 'Não salvou: sua sessão expirou. Entre de novo em outra aba e clique em Salvar aqui outra vez — nada do que você editou se perdeu.';
+
+                // Sessão vencida (ou novo login em outra aba) invalida o token
+                // CSRF guardado nesta página. Busca a página de novo só pra
+                // pegar um token novo; se cair no login, ainda está deslogado.
+                async function renovarToken() {
+                    try {
+                        const r = await fetch(location.href, { credentials: 'same-origin' });
+                        if (!r.ok || new URL(r.url).pathname.startsWith('/login')) return false;
+                        const novo = new DOMParser().parseFromString(await r.text(), 'text/html')
+                            .querySelector('meta[name="csrf-token"]');
+                        const meta = document.querySelector('meta[name="csrf-token"]');
+                        if (!novo || !meta) return false;
+                        meta.content = novo.content;
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                function enviar(tentativa) {
+                    $.ajax({
                         type: 'POST',
                         url: '/edit_song/' + CONFIG.songId,
                         data: formData,
                         processData: false,
                         contentType: false,
                         success: function(response) {
-                            console.log('✅ Resposta do servidor:', response);
-                            alert(response.message);
-                            // Permanece na mesma página de edição (recarrega para atualizar dados)
-                            window.location.reload();
+                            // Deslogado: o servidor redireciona pro login e a
+                            // resposta chega como página HTML, não JSON
+                            if (!response || !response.message) {
+                                ucToast(SESSAO_EXPIROU, 'error');
+                                return;
+                            }
+                            ucToast(response.message);
                         },
-                        error: function(xhr, status, error) {
-                            console.error('❌ Erro no envio:', error);
-                            console.error('📄 Resposta:', xhr.responseText);
+                        error: async function(xhr, status, error) {
+                            console.error('❌ Erro no envio:', error, xhr.responseText);
+                            if (![400, 401, 403].includes(xhr.status)) {
+                                ucToast('Não foi possível salvar. Confira a internet e tente de novo.', 'error');
+                            } else if (tentativa === 0 && await renovarToken()) {
+                                enviar(1);
+                            } else {
+                                ucToast(SESSAO_EXPIROU, 'error');
+                            }
                         }
                     });
+                }
+                enviar(0);
                 });
 
             

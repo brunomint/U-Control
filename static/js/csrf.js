@@ -6,7 +6,9 @@
 (function () {
     const meta = document.querySelector('meta[name="csrf-token"]');
     if (!meta) return;
-    const token = meta.content;
+    // Lido na hora de cada envio (não guardado): quem renova o token depois
+    // de um novo login (ex.: Salvar do editor) só precisa trocar o meta.
+    const token = () => meta.content;
     const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
     const originalFetch = window.fetch;
 
@@ -16,7 +18,7 @@
         if (!safeMethods.has(method)) {
             const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
             if (!headers.has('X-CSRFToken')) {
-                headers.set('X-CSRFToken', token);
+                headers.set('X-CSRFToken', token());
             }
             init = Object.assign({}, init, { headers });
         }
@@ -37,7 +39,7 @@
             beforeSend: function (xhr, settings) {
                 const method = (settings.type || settings.method || 'GET').toUpperCase();
                 if (!safeMethods.has(method)) {
-                    xhr.setRequestHeader('X-CSRFToken', token);
+                    xhr.setRequestHeader('X-CSRFToken', token());
                 }
             }
         });
