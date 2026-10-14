@@ -770,16 +770,13 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     display: none;
                     z-index: 1000;
                     min-width: 200px;
+                    max-width: min(340px, calc(100vw - 32px));
+                    max-height: 320px;
+                    overflow-y: auto;
+                    text-align: left;
                 `;
                 
-                // Opções do menu
-                const options = [
-                    { icon: 'fas fa-font', text: 'Bloco de Texto', action: () => insertBlockAt(position, 'text') },
-                    { icon: 'fas fa-heading', text: 'Seção (Coro, Verso...)', action: () => insertBlockAt(position, 'section') },
-                    { icon: 'fas fa-music', text: 'Partitura', action: () => insertBlockAt(position, 'sheet') }
-                ];
-                
-                options.forEach(option => {
+                function menuItem(html, onClick) {
                     const optionDiv = document.createElement('div');
                     optionDiv.style.cssText = `
                         padding: 8px 12px;
@@ -790,26 +787,70 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         gap: 8px;
                         transition: background 0.2s ease;
                     `;
-                    optionDiv.innerHTML = `<i class="${option.icon}"></i> ${option.text}`;
-                    
-                    optionDiv.addEventListener('mouseenter', () => {
-                        optionDiv.style.background = 'var(--uc-surface-3)';
-                    });
-                    
-                    optionDiv.addEventListener('mouseleave', () => {
-                        optionDiv.style.background = 'transparent';
-                    });
-                    
+                    optionDiv.innerHTML = html;
+                    optionDiv.addEventListener('mouseenter', () => { optionDiv.style.background = 'var(--uc-surface-3)'; });
+                    optionDiv.addEventListener('mouseleave', () => { optionDiv.style.background = 'transparent'; });
                     optionDiv.addEventListener('click', (e) => {
                         e.preventDefault(); // Evita submit do formulário
                         e.stopPropagation();
-                        option.action();
-                        menu.style.display = 'none';
-                        button.style.opacity = '0.7';
+                        onClick();
                     });
-                    
-                    menu.appendChild(optionDiv);
-                });
+                    return optionDiv;
+                }
+
+                function fecharMenu() {
+                    menu.style.display = 'none';
+                    button.style.opacity = '0.7';
+                }
+
+                // Opções do menu (remontadas a cada abertura: a lista de
+                // seções do "Repetir" tem que refletir a música de agora)
+                function montarOpcoes() {
+                    menu.innerHTML = '';
+                    const options = [
+                        { icon: 'fas fa-font', text: 'Bloco de Texto', action: () => insertBlockAt(position, 'text') },
+                        { icon: 'fas fa-heading', text: 'Seção (Coro, Verso...)', action: () => insertBlockAt(position, 'section') },
+                        { icon: 'fas fa-music', text: 'Partitura', action: () => insertBlockAt(position, 'sheet') }
+                    ];
+                    options.forEach(option => {
+                        menu.appendChild(menuItem(`<i class="${option.icon}"></i> ${option.text}`, () => {
+                            option.action();
+                            fecharMenu();
+                        }));
+                    });
+                    if (sectionGroups().some(g => blocks[g.start].type === 'section')) {
+                        menu.appendChild(menuItem('<i class="fas fa-clone"></i> Repetir uma seção…', listarSecoes));
+                    }
+                }
+
+                // Segundo passo do "Repetir": escolhe a seção; a cópia entra
+                // aqui (ex.: refrão de novo no fim), sem subir/descer depois
+                function listarSecoes() {
+                    menu.innerHTML = '';
+                    menu.appendChild(menuItem('<i class="fas fa-arrow-left"></i> Voltar', montarOpcoes));
+                    sectionGroups().filter(g => blocks[g.start].type === 'section').forEach(g => {
+                        const titulo = (blocks[g.start].title || '').trim() || '(sem nome)';
+                        const letra = blocks.slice(g.start + 1, g.end)
+                            .filter(b => b.type === 'text')
+                            .flatMap(b => (b.content || '').split('\n'))
+                            .find(l => l.trim() && !l.trim().startsWith('//') && !ChordLines.isChordLine(l)) || '';
+                        const item = menuItem('', () => {
+                            fecharMenu();
+                            repeatSectionAt(g.start, position);
+                        });
+                        const nome = document.createElement('strong');
+                        nome.textContent = titulo;
+                        const trecho = document.createElement('span');
+                        trecho.textContent = letra.trim();
+                        trecho.style.cssText = 'color: var(--uc-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;';
+                        item.style.flexDirection = 'column';
+                        item.style.alignItems = 'flex-start';
+                        item.style.gap = '2px';
+                        item.append(nome, trecho);
+                        menu.appendChild(item);
+                    });
+                }
+                montarOpcoes();
                 
                 // Event listeners do botão
                 button.addEventListener('mouseenter', () => {
@@ -832,15 +873,13 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     // Fecha todos os outros menus
                     document.querySelectorAll('.insert-menu').forEach(m => m.style.display = 'none');
                     
+                    if (!isVisible) montarOpcoes();
                     menu.style.display = isVisible ? 'none' : 'block';
                     button.style.opacity = isVisible ? '0.7' : '1';
                 });
                 
                 // Fecha menu ao clicar fora
-                document.addEventListener('click', () => {
-                    menu.style.display = 'none';
-                    button.style.opacity = '0.7';
-                });
+                document.addEventListener('click', fecharMenu);
                 
                 menu.className = 'insert-menu';
                 container.appendChild(button);
@@ -1442,6 +1481,20 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 updateHiddenField();
                 updateTomDisplay();
                 showSectionAt(group.end);
+            }
+
+            // Cópia de uma seção inteira (título + blocos até o próximo
+            // título) inserida em "position" — o "Repetir uma seção…" do +
+            function repeatSectionAt(start, position) {
+                const group = sectionGroups().find(g => g.start === start);
+                if (!group) return;
+                const now = Date.now();
+                const copy = blocks.slice(group.start, group.end)
+                    .map((b, i) => ({ ...JSON.parse(JSON.stringify(b)), id: now + i }));
+                blocks.splice(position, 0, ...copy);
+                updateHiddenField();
+                updateTomDisplay();
+                showSectionAt(position);
             }
 
             function deleteBlock(index) {
