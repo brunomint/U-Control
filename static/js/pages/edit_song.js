@@ -1022,7 +1022,10 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             }
             
             // Processa a letra colada e cria seções automaticamente
-            async function processLyrics(text, targetElement) {
+            // blockIndex: caixa de texto onde a letra foi colada — só ela (e o
+            // título logo acima) dá lugar às seções novas; o resto da música
+            // fica. Sem blockIndex (letra digitada no prompt), substitui tudo.
+            async function processLyrics(text, blockIndex = null) {
                 try {
                     console.log('🎵 Processando letra de música...');
                     
@@ -1036,6 +1039,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     console.log(`✅ Letra separada em ${sections.length} seções`);
                     
                     // Limpa o editor atual
+                    const anteriores = blocks;
                     blocks = [];
                     selectedBlocks.clear();
                     
@@ -1045,7 +1049,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         const sectionTitle = suggestSectionTitle(sectionContent, index);
                         blocks.push({
                             type: 'section',
-                            content: sectionTitle,
+                            title: sectionTitle,
                             id: Date.now() + index * 1000
                         });
                         
@@ -1075,13 +1079,27 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         });
                     });
                     
-                    // Re-renderiza o editor
-                    renderBlocks();
-                    
-                    // Limpa o campo original
-                    if (targetElement) {
-                        targetElement.value = '';
+                    let primeiraNova = 0;
+                    if (blockIndex !== null) {
+                        const novas = blocks;
+                        blocks = anteriores;
+                        let inicio = blockIndex, quantos = 1;
+                        const titulo = blocks[blockIndex - 1];
+                        if (titulo && titulo.type === 'section') {
+                            // a seção onde colou vira a 1ª seção nova; se já
+                            // tinha nome, o nome fica
+                            inicio = blockIndex - 1;
+                            quantos = 2;
+                            if ((titulo.title || '').trim()) novas[0].title = titulo.title;
+                        }
+                        blocks.splice(inicio, quantos, ...novas);
+                        primeiraNova = inicio;
                     }
+
+                    // Re-renderiza o editor e mostra a 1ª seção nova
+                    renderBlocks(true);
+                    const primeira = document.querySelector(`#blockEditor [data-block-index="${primeiraNova}"]`);
+                    if (primeira) primeira.scrollIntoView({ block: 'start', behavior: 'smooth' });
                     
                     console.log('🎉 Letra processada e organizada em seções!');
                     return true;
@@ -1110,8 +1128,15 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             // subir/descer/renomear); 'inicio' = blocos antes do 1º título
             const transposeSelected = new Set();
             
-            // Expõe o array blocks globalmente para o formulário poder acessá-lo
-            window.editorBlocks = blocks;
+            // Expõe o array blocks globalmente para o formulário poder acessá-lo.
+            // Getter, não cópia da referência: colar letra, importar do Cifra
+            // Club e "Limpar tudo" trocam o array inteiro (blocks = [...]) e a
+            // referência antiga fazia o Salvar gravar a versão anterior.
+            Object.defineProperty(window, 'editorBlocks', {
+                configurable: true,
+                get: () => blocks,
+                set: (v) => { blocks = v; },
+            });
             
             // Elementos
             const blockContainer = document.getElementById('blockContainer');
@@ -1377,64 +1402,6 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     }
                 });
                 
-                // Evento de paste para detecção de letras
-                div.addEventListener('paste', function(e) {
-                    console.log('🎵 Evento de paste detectado!');
-                    setTimeout(async () => {
-                        const original = div.value || '';
-                        const text = limparColagemCifraClub(original);
-                        if (text !== original) {
-                            div.value = text;
-                            div.dispatchEvent(new Event('input'));
-                        }
-                        console.log('📝 Texto colado:', text);
-                        console.log('📏 Tamanho do texto:', text.length);
-                        
-                        // Verifica se tem linhas em branco (separação automática)
-                        const hasBlankLinesInText = hasBlankLines(text);
-                        console.log('📄 Tem linhas em branco?', hasBlankLinesInText);
-                        
-                        // Verifica se é uma letra de música
-                        const isLyrics = detectLyrics(text);
-                        console.log('🎼 É letra de música?', isLyrics);
-                        
-                        if (isLyrics) {
-                            let shouldProcess = false;
-                            
-                            // Se tem linhas em branco, processa automaticamente
-                            if (hasBlankLinesInText) {
-                                console.log('🚀 Linhas em branco detectadas - processamento automático!');
-                                shouldProcess = true;
-                            } else {
-                                // Se não tem linhas em branco, pergunta ao usuário
-                                shouldProcess = confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`);
-                            }
-                            
-                            if (shouldProcess) {
-                                console.log('⚙️ Iniciando processamento...');
-                                const success = await processLyrics(text, null);
-                                if (success) {
-                                    // Limpa o bloco atual após processar
-                                    div.innerHTML = '';
-                                    blocks[index].content = '';
-                                    updateHiddenField();
-                                    console.log('✅ Processamento concluído com sucesso!');
-                                    
-                                    // Mostra notificação se foi automático
-                                    if (hasBlankLinesInText) {
-                                        // Pequena notificação não intrusiva
-                                        console.log('🎉 Letra organizada automaticamente em seções!');
-                                    }
-                                } else {
-                                    console.log('❌ Falha no processamento');
-                                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
-                                }
-                            }
-                        } else {
-                            console.log('ℹ️ Texto não identificado como letra de música');
-                        }
-                    }, 500);
-                });
                 
                 // Checkbox de seleção
                 const checkbox = document.createElement('input');
@@ -2005,8 +1972,12 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             // gera (o paste sempre chega como texto puro) — é a própria
             // página do Cifra Club que injeta isso no clipboard. Remove essas
             // linhas fantasma e colapsa as duplicatas que sobram.
+            // Linhas repetidas só são colapsadas quando há linha fantasma: letra
+            // colada de outro lugar tem repetição de propósito ("A terra alegre
+            // está" 2x) e não pode perder linha.
             function limparColagemCifraClub(texto) {
                 const linhas = texto.split('\n');
+                if (!linhas.some(linha => linha.trim().startsWith('">'))) return texto;
                 const semFantasmas = linhas.filter(linha => !linha.trim().startsWith('">'));
                 const semDuplicatas = [];
                 for (const linha of semFantasmas) {
@@ -2291,72 +2262,46 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 return true;
             }
             
-            // Monitora colagem no campo de título
-            const titleField = document.getElementById('title');
-            if (titleField) {
-                titleField.addEventListener('paste', function(e) {
-                    const self = this;
-                    setTimeout(async () => {
-                        const text = limparColagemCifraClub(self.value);
-                        if (text !== self.value) self.value = text;
-
-                        // Primeiro verifica se é um link do Cifra Club
-                        const links = detectCifraClubLink(text);
-                        
-                        if (links && links.length > 0) {
-                            const shouldProcess = confirm(`🎵 Link do Cifra Club detectado!\n\n${links[0]}\n\nDeseja processar automaticamente?\n\n✅ SIM: Extrair informações e criar estrutura\n❌ NÃO: Manter como texto normal`);
-                            
-                            if (shouldProcess) {
-                                await processCifraClubLink(links[0]);
-                                self.value = ''; // Limpa o campo após processar
-                            }
-                        }
-                        // Se não for link, verifica se é uma letra de música
-                        else if (detectLyrics(text)) {
-                            const shouldProcess = confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`);
-                            
-                            if (shouldProcess) {
-                                const success = await processLyrics(text, self);
-                                if (!success) {
-                                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
-                                }
-                            }
-                        }
-                    }, 500); // Delay para permitir que o usuário termine de colar
-                });
-            }
-            
+            // Colagem: um ponto só pro título, as caixas de texto e qualquer
+            // outro campo — antes eram três listeners e a mesma colagem era
+            // tratada duas vezes (pergunta e aviso em dobro). Espera o texto
+            // colado entrar no campo.
             document.addEventListener('paste', function(e) {
-                if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
-                    setTimeout(async () => {
-                        const text = limparColagemCifraClub(e.target.value);
-                        if (text !== e.target.value) e.target.value = text;
-
-                        // Primeiro verifica se é um link do Cifra Club
-                        const links = detectCifraClubLink(text);
-
-                        if (links && links.length > 0) {
-                            const shouldProcess = confirm(`🎵 Link do Cifra Club detectado!\n\n${links[0]}\n\nDeseja processar automaticamente?`);
-
-                            if (shouldProcess) {
-                                await processCifraClubLink(links[0]);
-                                e.target.value = '';
-                            }
-                        }
-                        // Se não for link, verifica se é uma letra de música
-                        else if (detectLyrics(text)) {
-                            const shouldProcess = confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`);
-                            
-                            if (shouldProcess) {
-                                const success = await processLyrics(text, e.target);
-                                if (!success) {
-                                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
-                                }
-                            }
-                        }
-                    }, 500);
-                }
+                const el = e.target;
+                if (el.tagName !== 'TEXTAREA' && el.tagName !== 'INPUT') return;
+                setTimeout(() => tratarColagem(el), 500);
             });
+
+            async function tratarColagem(el) {
+                const text = limparColagemCifraClub(el.value);
+                if (text !== el.value) {
+                    el.value = text;
+                    el.dispatchEvent(new Event('input'));
+                }
+
+                const links = detectCifraClubLink(text);
+                if (links && links.length > 0) {
+                    if (confirm(`🎵 Link do Cifra Club detectado!\n\n${links[0]}\n\nDeseja processar automaticamente?`)) {
+                        await processCifraClubLink(links[0]);
+                        if (el.isConnected) {
+                            el.value = '';
+                            el.dispatchEvent(new Event('input'));
+                        }
+                    }
+                    return;
+                }
+
+                // Letra: só nas caixas de texto do editor. Com linha em branco
+                // entre as estrofes separa direto; sem, pergunta antes.
+                const holder = el.classList.contains('text-block') && el.closest('[data-block-index]');
+                if (!holder || !detectLyrics(text)) return;
+                const perguntou = !hasBlankLines(text);
+                if (perguntou && !confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`)) return;
+                const ok = await processLyrics(text, Number(holder.dataset.blockIndex));
+                if (!ok && perguntou) {
+                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
+                }
+            }
             
             // Função para processamento manual de links
             window.processCifraClubManual = async function() {
