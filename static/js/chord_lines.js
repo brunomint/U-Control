@@ -32,7 +32,32 @@
   // "Eb", não "D#").
   const CHORD_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-  const CHORD_TOKEN_REGEX = /^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([0-9]+\))?(?:\/[A-G][#b]?)?$/;
+  const CHORD_TOKEN_REGEX = /^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([#b+]?[0-9]+(?:[/,][#b+]?[0-9]+)*\))?(?:\/[A-G][#b]?)?$/;
+
+  // Tokens de acorde de uma linha, já limpos — ou null se algum token não
+  // for acorde. Tira marcadores de repetição (x2, 2x), barras de compasso
+  // e hífens; parênteses só saem quando estão SOLTOS em volta do acorde
+  // ("( C9  D/F# )", "(C9"), nunca quando fazem parte dele — "C7M(9)" é um
+  // acorde só (antes os parênteses viravam espaço, o "9" sobrava sozinho
+  // e a linha inteira caía como letra: sem cor, sem transpor e aparecendo
+  // no telão público — achado na música 412).
+  function chordTokens(line) {
+    const cleaned = line.trim()
+      .replace(/[xX][0-9]+/g, '')
+      .replace(/[0-9]+[xX]/g, '')
+      .replace(/[\-|]/g, ' ');
+    const tokens = [];
+    for (const raw of cleaned.split(/\s+/)) {
+      let tok = raw.replace(/^\(+/, '');
+      if (!tok || /^\)+$/.test(tok)) continue;
+      while (!CHORD_TOKEN_REGEX.test(tok)) {
+        if (!tok.endsWith(')')) return null;
+        tok = tok.slice(0, -1);
+      }
+      tokens.push(tok);
+    }
+    return tokens;
+  }
 
   // Transpõe um acorde individual (incluindo baixo após a barra, ex: /G#)
   function transposeChord(chord, semitones) {
@@ -68,20 +93,12 @@
     if (!trimmed) return false;
     if (/\/\/chords$/i.test(trimmed)) return true;
     if (/\/\/lyrics$/i.test(trimmed)) return false;
-    // remove marcadores de repetição (x2, 2x), parênteses/hífen soltos e
-    // barras de compasso (| ou ||, ex: "| G | G7M | Em D |") — sem isso,
-    // "|" vira um token que não bate com CHORD_TOKEN_REGEX (não começa
-    // com A-G), e a linha inteira de intro/solo em notação de compasso
-    // era classificada como letra em vez de cifra: não era removida na
-    // tela pública nem transposta (bug real, achado com música real que
-    // tinha intro em "| G | G7M | C7M | Em D4 D ||").
-    const cleaned = trimmed
-      .replace(/[xX][0-9]+/g, '')
-      .replace(/[0-9]+[xX]/g, '')
-      .replace(/[()\-|]/g, ' ');
-    const tokens = cleaned.split(/\s+/).filter(Boolean);
-    if (tokens.length === 0) return false;
-    return tokens.every(tok => CHORD_TOKEN_REGEX.test(tok));
+    // Barras de compasso (| ou ||, ex: "| G | G7M | Em D |") também saem
+    // na limpeza (chordTokens) — sem isso, intro/solo em notação de
+    // compasso era classificada como letra (bug real, música com intro em
+    // "| G | G7M | C7M | Em D4 D ||").
+    const tokens = chordTokens(trimmed);
+    return !!tokens && tokens.length > 0;
   }
 
   // Transpõe só os tokens de uma linha já confirmada como cifra,
@@ -185,16 +202,10 @@
       const lines = content.split('\n');
       for (const line of lines) {
         if (isChordLine(line)) {
-          // Mesma limpeza de isChordLine (repetição, parênteses/hífen/barra
-          // de compasso) — sem isso, uma intro em notação "| G | G7M | ..."
-          // devolvia o "|" cru como "primeiro acorde", e o widget "Tom: X"
-          // ficava travado em "—" pra sempre (bug real, achado com a
-          // música 296 — intro começa exatamente nesse formato).
-          const cleaned = line.trim()
-            .replace(/[xX][0-9]+/g, '')
-            .replace(/[0-9]+[xX]/g, '')
-            .replace(/[()\-|]/g, ' ');
-          const tokens = cleaned.split(/\s+/).filter(Boolean);
+          // Mesma limpeza de isChordLine — sem isso, uma intro em
+          // notação "| G | G7M | ..." devolvia o "|" cru como "primeiro
+          // acorde" e o "Tom: X" ficava em "—" (bug real, música 296)
+          const tokens = chordTokens(line) || [];
           if (tokens.length) return tokens[0];
         }
       }

@@ -21,7 +21,7 @@ CHORD_MAP = {
 CHORD_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
 CHORD_TOKEN_REGEX = re.compile(
-    r'^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([0-9]+\))?(?:/[A-G][#b]?)?$'
+    r'^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([#b+]?[0-9]+(?:[/,][#b+]?[0-9]+)*\))?(?:/[A-G][#b]?)?$'
 )
 
 _CHORD_BASE_REGEX = re.compile(r'^([A-G][#b]?)(.*)$')
@@ -56,6 +56,26 @@ def transpose_chord(chord, semitones):
     return transposed_base + _BASS_REGEX.sub(_bass_sub, modifiers)
 
 
+def chord_tokens(line):
+    """Tokens de acorde já limpos, ou None se algum não for acorde — mesma
+    lógica de chordTokens() no .js (parênteses só saem quando soltos em
+    volta do acorde; "C7M(9)" é um acorde só)."""
+    cleaned = re.sub(r'[xX][0-9]+', '', line.strip())
+    cleaned = re.sub(r'[0-9]+[xX]', '', cleaned)
+    cleaned = re.sub(r'[\-|]', ' ', cleaned)
+    tokens = []
+    for raw in cleaned.split():
+        tok = raw.lstrip('(')
+        if not tok or not tok.strip(')'):
+            continue
+        while not CHORD_TOKEN_REGEX.match(tok):
+            if not tok.endswith(')'):
+                return None
+            tok = tok[:-1]
+        tokens.append(tok)
+    return tokens
+
+
 def is_chord_line(line):
     trimmed = line.strip()
     if not trimmed:
@@ -64,13 +84,7 @@ def is_chord_line(line):
         return True
     if re.search(r'//lyrics$', trimmed, re.IGNORECASE):
         return False
-    cleaned = re.sub(r'[xX][0-9]+', '', trimmed)
-    cleaned = re.sub(r'[0-9]+[xX]', '', cleaned)
-    cleaned = re.sub(r'[()\-|]', ' ', cleaned)
-    tokens = [t for t in cleaned.split() if t]
-    if not tokens:
-        return False
-    return all(CHORD_TOKEN_REGEX.match(tok) for tok in tokens)
+    return bool(chord_tokens(trimmed))
 
 
 def _split_preserving_spaces(rest):
