@@ -59,6 +59,35 @@ def _extrair_titulo_compositor_cifra(soup):
     return titulo, compositor, cifra
 
 
+
+def _extrair_artista_cifra(soup):
+    """Artista/banda como o Cifra Club escreve (com acento e maiúsculas
+    certas — "MORADA", "Diante do Trono"). Vem do JSON-LD MusicRecording
+    (byArtist) e, se faltar, do BreadcrumbList (3º item). Antes o editor
+    montava o artista a partir do endereço ("ministerio-morada" →
+    "Ministerio Morada"), sem acento."""
+    trilha = None
+    for script in soup.find_all('script', type='application/ld+json'):
+        try:
+            data = json.loads(script.string or '')
+        except (ValueError, TypeError):
+            continue
+        for item in (data if isinstance(data, list) else [data]):
+            if not isinstance(item, dict):
+                continue
+            tipos = item.get('@type')
+            tipos = tipos if isinstance(tipos, list) else [tipos]
+            if 'MusicRecording' in tipos:
+                artista = (item.get('byArtist') or {}).get('name')
+                if artista:
+                    return artista.strip()
+            if 'BreadcrumbList' in tipos:
+                for elemento in item.get('itemListElement') or []:
+                    if elemento.get('position') == 3 and elemento.get('name'):
+                        trilha = elemento['name'].strip()
+    return trilha
+
+
 #Extrair Cifras do Cifra-CLub
 @cifras_bp.route("/cifra")
 def pegar_cifra():
@@ -134,6 +163,7 @@ def pegar_cifra_com_video():
 
         return jsonify({
             "titulo": titulo,
+            "artista": _extrair_artista_cifra(soup),
             "compositor": compositor,
             "cifra": texto_puro,
             "video_url": video_url

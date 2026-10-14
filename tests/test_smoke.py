@@ -1791,3 +1791,29 @@ def test_new_song_save_and_continue(app, logged_in_client):
     assert song and song["title"] == "Música Continuar"
     assert "btn-salvar-continuar" not in logged_in_client.get(f"/edit_song/{resp['id']}").get_data(as_text=True)
     logged_in_client.post(f"/delete_song/{resp['id']}")
+
+
+def test_cifra_club_titulo_e_artista_com_acento():
+    """Título e artista vêm do JSON-LD da página (com acento), não do
+    endereço ("ministerio-morada" virava "Ministerio Morada")."""
+    from bs4 import BeautifulSoup
+    from blueprints.cifras import _extrair_artista_cifra, _extrair_titulo_compositor_cifra
+    html = """<html><head>
+    <script type="application/ld+json">{"@type": ["MusicRecording", "Article"],
+      "name": "Ministério Morada - Para Onde Eu Irei?",
+      "byArtist": {"@type": "MusicGroup", "name": "Ministério Morada"}}</script>
+    <script type="application/ld+json">{"@type": "MusicComposition",
+      "name": "Para Onde Eu Irei?", "composer": [{"@type": "Person", "name": "João Sá"}]}</script>
+    </head><body><pre data-chord-content="true">C  G</pre></body></html>"""
+    soup = BeautifulSoup(html, 'html.parser')
+    titulo, compositor, _ = _extrair_titulo_compositor_cifra(soup)
+    assert titulo == "Para Onde Eu Irei?"
+    assert compositor == "João Sá"
+    assert _extrair_artista_cifra(soup) == "Ministério Morada"
+
+    # Sem MusicRecording: usa o 3º item da trilha (BreadcrumbList)
+    so_trilha = BeautifulSoup("""<script type="application/ld+json">{"@type": "BreadcrumbList",
+      "itemListElement": [{"position": 1, "name": "Início"}, {"position": 2, "name": "Gospel"},
+      {"position": 3, "name": "Diante do Trono"}]}</script>""", 'html.parser')
+    assert _extrair_artista_cifra(so_trilha) == "Diante do Trono"
+    assert _extrair_artista_cifra(BeautifulSoup("<p>nada</p>", 'html.parser')) is None

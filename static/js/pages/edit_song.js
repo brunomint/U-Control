@@ -1665,6 +1665,15 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         const data = await response.json();
                         lyrics = data.cifra;
                         videoUrl = data.video_url;
+
+                        // Título e artista como estão na página do Cifra Club
+                        // (com acento); os do endereço ficam só de reserva
+                        if (titleField && data.titulo && data.titulo !== 'Título não encontrado') {
+                            titleField.value = data.titulo;
+                        }
+                        if (authorField && data.artista) {
+                            authorField.value = data.artista;
+                        }
                         
                         console.log('✅ Cifra extraída com sucesso!');
                         if (videoUrl) {
