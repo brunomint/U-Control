@@ -32,7 +32,13 @@
   // "Eb", não "D#").
   const CHORD_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-  const CHORD_TOKEN_REGEX = /^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([#b+]?[0-9]+(?:[/,][#b+]?[0-9]+)*\))?(?:\/[A-G][#b]?)?$/;
+  // Um acorde (token). Aceita a notação brasileira e a de jazz:
+  // qualidade (m, min, mi, maj, dim, aug, sus, add, Δ, ø, °, o7, +, -),
+  // extensões encadeadas (7M, maj7, 7+, 5+, b9, #11, alt, 4sus, 6/9),
+  // extensões entre parênteses (C7M(9), D7(4/9), F#7(5-), Cm(maj7)) e
+  // baixo invertido (/G#). Letras só entram em palavras-chave fechadas,
+  // então palavra de letra de música não passa por acorde.
+  const CHORD_TOKEN_REGEX = /^[A-G][#b]?(?:maj|Maj|min|mi|m|M|dim|aug|sus|add|Δ|ø|°|º|o(?=7)|\+|-)?(?:[0-9]+|M|maj[0-9]*|Maj[0-9]*|Δ[0-9]*|sus[0-9]*|add[0-9]+|alt|[#b+\-][0-9]+|[+\-°øº]|\((?:add|maj|M)?[#b+\-]?[0-9]+[+\-]?(?:[\/,](?:add|maj|M)?[#b+\-]?[0-9]+[+\-]?)*\)|\/[0-9]+)*(?:\/[A-G][#b]?)?$/;
 
   // Tokens de acorde de uma linha, já limpos — ou null se algum token não
   // for acorde. Tira marcadores de repetição (x2, 2x), barras de compasso
@@ -41,20 +47,32 @@
   // acorde só (antes os parênteses viravam espaço, o "9" sobrava sozinho
   // e a linha inteira caía como letra: sem cor, sem transpor e aparecendo
   // no telão público — achado na música 412).
+  function chordToken(raw) {
+    let tok = raw.replace(/^\(+/, '');
+    while (tok) {
+      if (CHORD_TOKEN_REGEX.test(tok)) return tok;
+      if (!tok.endsWith(')')) return null;
+      tok = tok.slice(0, -1);
+    }
+    return null;
+  }
+
   function chordTokens(line) {
     const cleaned = line.trim()
       .replace(/[xX][0-9]+/g, '')
       .replace(/[0-9]+[xX]/g, '')
-      .replace(/[\-|]/g, ' ');
+      .replace(/\|/g, ' ');
     const tokens = [];
     for (const raw of cleaned.split(/\s+/)) {
-      let tok = raw.replace(/^\(+/, '');
-      if (!tok || /^\)+$/.test(tok)) continue;
-      while (!CHORD_TOKEN_REGEX.test(tok)) {
-        if (!tok.endsWith(')')) return null;
-        tok = tok.slice(0, -1);
-      }
-      tokens.push(tok);
+      // vazio, parêntese ou hífen/travessão soltos ("G - D")
+      if (!raw || /^[()\-–—]+$/.test(raw)) continue;
+      const tok = chordToken(raw);
+      if (tok) { tokens.push(tok); continue; }
+      // acordes ligados por hífen ("G-D-Em"); o hífen do acorde (C-7,
+      // F#7(5-)) já passou acima como parte do próprio acorde
+      const parts = raw.split(/[\-–—]/).filter(Boolean).map(chordToken);
+      if (raw.includes('-') && parts.length && parts.every(Boolean)) { tokens.push(...parts); continue; }
+      return null;
     }
     return tokens;
   }
@@ -187,7 +205,7 @@
     const match = /^([A-G][#b]?)(.*)$/.exec(chordToken || '');
     if (!match) return null;
     const [, root, rest] = match;
-    const isMinor = /^m(?!aj)/.test(rest); // "m", "m7"... mas não "maj7"
+    const isMinor = /^(?:m(?!aj)|-|ø)/.test(rest); // "m", "m7", "mi7", "-7", "ø7" (jazz)... mas não "maj7"
     return root + (isMinor ? 'm' : '');
   }
 

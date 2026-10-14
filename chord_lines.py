@@ -20,8 +20,9 @@ CHORD_MAP = {
 # Mistura sustenido/bemol por nota, mesma convenção do .js.
 CHORD_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
+# Mesma regra de CHORD_TOKEN_REGEX no .js (notação brasileira e de jazz)
 CHORD_TOKEN_REGEX = re.compile(
-    r'^[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add)?[0-9]*(?:M)?(?:º)?(?:\([#b+]?[0-9]+(?:[/,][#b+]?[0-9]+)*\))?(?:/[A-G][#b]?)?$'
+    r'^[A-G][#b]?(?:maj|Maj|min|mi|m|M|dim|aug|sus|add|Δ|ø|°|º|o(?=7)|\+|-)?(?:[0-9]+|M|maj[0-9]*|Maj[0-9]*|Δ[0-9]*|sus[0-9]*|add[0-9]+|alt|[#b+\-][0-9]+|[+\-°øº]|\((?:add|maj|M)?[#b+\-]?[0-9]+[+\-]?(?:[/,](?:add|maj|M)?[#b+\-]?[0-9]+[+\-]?)*\)|\/[0-9]+)*(?:\/[A-G][#b]?)?$'
 )
 
 _CHORD_BASE_REGEX = re.compile(r'^([A-G][#b]?)(.*)$')
@@ -56,23 +57,38 @@ def transpose_chord(chord, semitones):
     return transposed_base + _BASS_REGEX.sub(_bass_sub, modifiers)
 
 
+def _chord_token(raw):
+    tok = raw.lstrip('(')
+    while tok:
+        if CHORD_TOKEN_REGEX.match(tok):
+            return tok
+        if not tok.endswith(')'):
+            return None
+        tok = tok[:-1]
+    return None
+
+
 def chord_tokens(line):
     """Tokens de acorde já limpos, ou None se algum não for acorde — mesma
     lógica de chordTokens() no .js (parênteses só saem quando soltos em
-    volta do acorde; "C7M(9)" é um acorde só)."""
+    volta do acorde; "C7M(9)" é um acorde só; hífen solto ou ligando
+    acordes "G-D" separa, hífen do acorde "C-7"/"F#7(5-)" fica)."""
     cleaned = re.sub(r'[xX][0-9]+', '', line.strip())
     cleaned = re.sub(r'[0-9]+[xX]', '', cleaned)
-    cleaned = re.sub(r'[\-|]', ' ', cleaned)
+    cleaned = cleaned.replace('|', ' ')
     tokens = []
     for raw in cleaned.split():
-        tok = raw.lstrip('(')
-        if not tok or not tok.strip(')'):
+        if re.fullmatch(r'[()\-–—]+', raw):
             continue
-        while not CHORD_TOKEN_REGEX.match(tok):
-            if not tok.endswith(')'):
-                return None
-            tok = tok[:-1]
-        tokens.append(tok)
+        tok = _chord_token(raw)
+        if tok:
+            tokens.append(tok)
+            continue
+        parts = [_chord_token(p) for p in re.split(r'[\-–—]', raw) if p]
+        if '-' in raw and parts and all(parts):
+            tokens.extend(parts)
+            continue
+        return None
     return tokens
 
 
