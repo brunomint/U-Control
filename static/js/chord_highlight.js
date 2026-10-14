@@ -4,25 +4,11 @@
 // numa camada atrás dela (.chord-backdrop) e a textarea fica com o texto
 // transparente — só o cursor e a seleção aparecem por cima. As duas usam a
 // mesma fonte monoespaçada, padding e borda, então os caracteres ficam
-// exatamente um em cima do outro. Mesmas regras de cor da página /view
-// (ChordLines.isChordLine, comentários "//", acorde entre barras "| A |").
+// exatamente um em cima do outro. A regra de cor é a mesma da página /view:
+// ChordLines.highlightLineHtml (static/js/chord_lines.js).
 (function () {
-  const BAR_CHORD = /\|\s*([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\/[A-G][#b]?)?)\s*\|/g;
-
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function lineHtml(line) {
-    if (line.trim().startsWith('//')) {
-      return `<span class="comment-line">${escapeHtml(line)}</span>`;
-    }
-    if (ChordLines.isChordLine(line)) {
-      return ChordLines.highlightChordTokensHtml(escapeHtml(line));
-    }
-    // Mantém os espaços originais (só pinta), pra não desalinhar
-    return escapeHtml(line).replace(BAR_CHORD, (m) =>
-      m.replace(/[^\s|]+|\|/g, (t) => `<span class="chord">${t}</span>`));
   }
 
   // Liga a camada colorida a uma textarea que já está (ou vai estar) num
@@ -51,7 +37,7 @@
       if (!back.isConnected && ta.parentNode) ta.parentNode.insertBefore(back, ta);
       if (!styled) copyBoxStyle();
       // "\n" no fim: a última linha vazia também ocupa altura
-      back.innerHTML = ta.value.split('\n').map(lineHtml).join('\n') + '\n';
+      back.innerHTML = ta.value.split('\n').map((l) => ChordLines.highlightLineHtml(escapeHtml(l))).join('\n') + '\n';
       back.scrollLeft = ta.scrollLeft;
     }
 

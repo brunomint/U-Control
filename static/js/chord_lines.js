@@ -142,6 +142,26 @@
     return leading + html;
   }
 
+  // Acorde solto entre barras de compasso no meio de uma linha de letra
+  // (ex.: "algumas palavras | A | mais palavras")
+  const BAR_CHORD_REGEX = /\|\s*([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\/[A-G][#b]?)?)\s*\|/g;
+
+  // Colore UMA linha: comentário "//" (nota de palco), linha de cifra ou
+  // acorde entre barras. Regra única usada pela página /view e pelo
+  // editor de música (static/js/chord_highlight.js). Recebe a linha já
+  // em HTML (texto escapado) e devolve HTML; os espaços da linha são
+  // mantidos como estão — no editor a cor fica atrás da textarea e
+  // precisa casar caractere por caractere.
+  function highlightLineHtml(lineHtml) {
+    const plain = lineHtml.replace(/<[^>]*>/g, '');
+    if (plain.trim().startsWith('//')) {
+      return `<span class="comment-line">${lineHtml}</span>`;
+    }
+    if (isChordLine(plain)) return highlightChordTokensHtml(lineHtml);
+    return lineHtml.replace(BAR_CHORD_REGEX, (m) =>
+      m.replace(/[^\s|]+|\|/g, (t) => `<span class="chord">${t}</span>`));
+  }
+
   // Nome de tom pra exibir (ex: "G", "Am") a partir de um token de
   // acorde — reduz sufixos de extensão (7, sus4, 9...) à indicação
   // maior/menor só, que é o que "tom" quer dizer (Cmaj7 e C7 são os
@@ -191,6 +211,7 @@
     transposeBlockContent,
     stripChordLines,
     highlightChordTokensHtml,
+    highlightLineHtml,
     describeKey,
     detectFirstChordToken,
   };

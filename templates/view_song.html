@@ -551,26 +551,9 @@ window.onload = () => {
       currentContents.push(content);
 
       const lines = content.split('\n');
-      const processedLines = lines.map((line) => {
-        const plain = line.replace(/<[^>]*>/g, '');
-
-        // Linhas de comentário: destaca antes de qualquer coisa
-        if (plain.trim().startsWith('//')) {
-          return `<span class="comment-line">${line}</span>`;
-        }
-
-        let processedLine = ChordLines.isChordLine(plain)
-          ? ChordLines.highlightChordTokensHtml(line)
-          : line;
-
-        // Destaca acorde isolado entre barras de compasso mesmo fora de
-        // linha de cifra (ex.: "algumas palavras | A | mais palavras")
-        processedLine = processedLine.replace(/\|\s*([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\/[A-G][#b]?)?)\s*\|/g, (m, chord) => {
-          return `<span class="chord">|</span> <span class="chord">${chord}</span> <span class="chord">|</span>`;
-        });
-
-        return processedLine;
-      });
+      // Comentário "//", linha de cifra e acorde entre barras — mesma
+      // regra do editor de música (ChordLines.highlightLineHtml)
+      const processedLines = lines.map(ChordLines.highlightLineHtml);
 
       pre.innerHTML = processedLines.join('\n');
     });
