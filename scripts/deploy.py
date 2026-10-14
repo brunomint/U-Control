@@ -16,6 +16,7 @@ Requer `paramiko` instalado localmente (requirements-dev.txt) — não faz
 parte das dependências do Pi.
 """
 import argparse
+import os
 import sys
 
 DEFAULT_HOST = "100.64.46.84"  # Tailscale — funciona de qualquer rede
@@ -29,13 +30,15 @@ DEFAULT_SERVICE = "ucontrol-gunicorn"
 
 # A conexão do Pi com o GitHub às vezes trava sem cair (2026-10-14: um
 # fetch ficou 7+ min parado enquanto outro, ao mesmo tempo, respondia em
-# 26 s). ServerAlive derruba a conexão muda em ~30 s, timeout corta o
-# fetch em 90 s, e tenta até 3 vezes antes de desistir.
+# 26 s; mais tarde, nem conectava nas portas 22 e 443). ServerAlive
+# derruba a conexão muda em ~30 s, timeout corta o fetch em 60 s, 2
+# tentativas — e se falhar, o plano B (enviar_do_pc) manda o código direto
+# do PC pro Pi, sem passar pela conexão Pi→GitHub.
 FETCH_COMMAND = (
-    "for tentativa in 1 2 3; do "
+    "for tentativa in 1 2; do "
     "GIT_SSH_COMMAND='ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectTimeout=20' "
-    "timeout 90 git fetch origin && exit 0; "
-    "echo \"git fetch falhou/travou (tentativa $tentativa de 3), tentando de novo...\" >&2; "
+    "timeout 60 git fetch origin && exit 0; "
+    "echo \"git fetch falhou/travou (tentativa $tentativa de 2)\" >&2; "
     "done; exit 1"
 )
 
@@ -53,7 +56,7 @@ def build_remote_commands(project_path, branch):
     ]
 
 
-def run(client, command, label):
+def run(client, command, label, check=True):
     print(f"\n$ {command}")
     stdin, stdout, stderr = client.exec_command(command)
     exit_code = stdout.channel.recv_exit_status()
@@ -64,9 +67,24 @@ def run(client, command, label):
     if err.strip():
         print(err.strip(), file=sys.stderr)
     if exit_code != 0:
+        if not check:
+            return None
         print(f"\nERRO: '{label}' falhou (exit {exit_code}). Deploy interrompido.", file=sys.stderr)
         sys.exit(1)
     return out
+
+
+def enviar_do_pc(user, host, path, branch):
+    """Plano B quando o Pi não consegue buscar no GitHub: o PC (que acabou
+    de dar git push e enxerga o Pi pelo Tailscale) envia o mesmo commit
+    do origin/<branch> local direto pro origin/<branch> do Pi. Mesmo
+    resultado do fetch — o reset --hard seguinte não muda."""
+    import subprocess
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ref = f"refs/remotes/origin/{branch}"
+    cmd = ["git", "-C", repo, "push", "--force", f"ssh://{user}@{host}{path}", f"{ref}:{ref}"]
+    print(f"\n$ {' '.join(cmd)}")
+    return subprocess.run(cmd).returncode == 0
 
 
 def detect_service_name(client):
@@ -143,7 +161,11 @@ def main():
                     print("Cancelado.")
                     return 1
 
-        run(client, f"cd {args.path} && {FETCH_COMMAND}", "git fetch")
+        if run(client, f"cd {args.path} && {FETCH_COMMAND}", "git fetch", check=False) is None:
+            print("\nO Pi não conseguiu buscar no GitHub. Plano B: enviando o código direto do PC...")
+            if not enviar_do_pc(args.user, args.host, args.path, args.branch):
+                print("\nERRO: o envio direto do PC também falhou. Deploy interrompido (nada mudou no Pi).", file=sys.stderr)
+                return 1
         run(client, f"cd {args.path} && git reset --hard origin/{args.branch}", "git reset --hard")
         run(client, f"cd {args.path} && venv/bin/pip install -r requirements.txt", "pip install")
         run(client, f"cd {args.path} && venv/bin/python scripts/patch_flask_socketio.py", "patch flask_socketio")
