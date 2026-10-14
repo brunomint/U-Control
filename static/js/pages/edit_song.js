@@ -564,6 +564,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     
                     // Limpa o editor atual
                     const anteriores = blocks;
+                    registrar('separar a letra em seções');
                     blocks = [];
                     selectedBlocks.clear();
                     
@@ -660,6 +661,72 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 configurable: true,
                 get: () => blocks,
                 set: (v) => { blocks = v; },
+            });
+
+            // ===== DESFAZER / REFAZER (Ctrl+Z / Ctrl+Y) =====
+            // O Ctrl+Z do navegador só vale dentro de cada caixa de texto; as
+            // ações do editor (nova seção, excluir, mover, repetir, colar
+            // letra, importar, limpar, transpor...) guardam aqui uma foto
+            // dos blocos de antes da ação — até 50 passos.
+            const historico = [];
+            const refazer = [];
+            // true logo depois de uma ação do editor; volta a false quando a
+            // pessoa digita. Decide se o Ctrl+Z dentro de um campo é do
+            // editor ou da digitação (navegador).
+            let ultimaFoiAcao = false;
+            const fotoBlocos = () => JSON.parse(JSON.stringify(blocks));
+
+            function registrar(rotulo) {
+                historico.push({ rotulo, blocos: fotoBlocos() });
+                if (historico.length > 50) historico.shift();
+                refazer.length = 0;
+                ultimaFoiAcao = true;
+                atualizarBotoesHistorico();
+            }
+
+            function restaurar(de, para, verbo) {
+                const passo = de.pop();
+                if (!passo) return;
+                para.push({ rotulo: passo.rotulo, blocos: fotoBlocos() });
+                blocks = passo.blocos;
+                selectedBlocks.clear();
+                ultimaFoiAcao = true;
+                renderBlocks(true);
+                atualizarBotoesHistorico();
+                ucToast(`${verbo}: ${passo.rotulo}`);
+            }
+
+            function atualizarBotoesHistorico() {
+                const desf = document.getElementById('undoBtn');
+                const ref = document.getElementById('redoBtn');
+                if (desf) {
+                    desf.disabled = !historico.length;
+                    desf.title = historico.length ? `Desfazer: ${historico[historico.length - 1].rotulo} (Ctrl+Z)` : 'Nada para desfazer';
+                }
+                if (ref) {
+                    ref.disabled = !refazer.length;
+                    ref.title = refazer.length ? `Refazer: ${refazer[refazer.length - 1].rotulo} (Ctrl+Y)` : 'Nada para refazer';
+                }
+            }
+
+            window.desfazerAcao = () => restaurar(historico, refazer, 'Desfeito');
+            window.refazerAcao = () => restaurar(refazer, historico, 'Refeito');
+
+            document.addEventListener('input', () => { ultimaFoiAcao = false; });
+            document.addEventListener('keydown', (e) => {
+                if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+                const k = e.key.toLowerCase();
+                const desf = k === 'z' && !e.shiftKey;
+                const ref = k === 'y' || (k === 'z' && e.shiftKey);
+                if (!desf && !ref) return;
+                const pilha = desf ? historico : refazer;
+                if (!pilha.length) return;
+                const el = document.activeElement;
+                const noCampo = el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT');
+                // Digitando: deixa o navegador desfazer a digitação
+                if (noCampo && !ultimaFoiAcao) return;
+                e.preventDefault();
+                desf ? window.desfazerAcao() : window.refazerAcao();
             });
             
             // Elementos
@@ -905,6 +972,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     newBlock = { type: 'sheet', content: '', id: Date.now() };
                 }
                 
+                registrar('inserir bloco');
                 // Salva a posição do scroll antes de re-renderizar
                 const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 
@@ -968,10 +1036,11 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     }
                     if (e.key === 'Enter' && e.ctrlKey) {
                         e.preventDefault();
+                        registrar('nova seção (Ctrl+Enter)');
                         const before = div.value.slice(0, div.selectionStart).replace(/\n+$/, '');
                         const after = div.value.slice(div.selectionEnd).replace(/^\n+/, '');
                         blocks[index].content = before;
-                        addSectionBlock(index + 1, after);
+                        addSectionBlock(index + 1, after, false);
                     }
                 });
                 
@@ -1169,6 +1238,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             
             // Adiciona bloco de texto
             function addTextBlock(position = -1) {
+                registrar('novo bloco de texto');
                 if (position === -1) position = blocks.length;
                 blocks.splice(position, 0, { type: 'text', content: '', id: Date.now() });
                 renderBlocks(true);
@@ -1182,7 +1252,8 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             
             // Adiciona uma seção já com o bloco de texto logo abaixo e põe o
             // cursor no nome da seção
-            function addSectionBlock(position = -1, text = '') {
+            function addSectionBlock(position = -1, text = '', registrarAcao = true) {
+                if (registrarAcao) registrar('nova seção');
                 if (position === -1) position = blocks.length;
                 const now = Date.now();
                 blocks.splice(position, 0,
@@ -1227,6 +1298,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 console.log('SVG:', svgData ? 'Presente' : 'Ausente');
                 console.log('JSON:', sheetData ? 'Presente' : 'Ausente');
                 
+                registrar('inserir partitura');
                 const newBlock = { 
                     type: 'sheet', 
                     svgData: svgData,
@@ -1359,6 +1431,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         
                         if (newSheetData && window.currentSheetData) {
                             // Atualiza com os dados convertidos (formato original)
+                            registrar('editar partitura');
                             window.editorBlocks[index].svgData = newSvgData;
                             window.editorBlocks[index].sheetData = JSON.stringify(window.currentSheetData);
                             window.editorBlocks[index].originalData = window.currentSheetData; // Objeto já parseado
@@ -1413,6 +1486,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 }
                 
                 if (confirm(`🗑️ Tem certeza que deseja excluir ${selectedBlocks.size} bloco(s) selecionado(s)?`)) {
+                    registrar('excluir selecionados');
                     // Salva a posição do scroll antes de re-renderizar
                     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                     
@@ -1471,6 +1545,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 const other = pos + dir;
                 if (pos < 0 || other < 0 || other >= groups.length) return;
                 const [a, b] = dir < 0 ? [groups[other], groups[pos]] : [groups[pos], groups[other]];
+                registrar('mover seção');
                 const first = blocks.slice(a.start, a.end);
                 const second = blocks.slice(b.start, b.end);
                 blocks.splice(a.start, b.end - a.start, ...second, ...first);
@@ -1484,6 +1559,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             function duplicateSection(index) {
                 const group = sectionGroups().find(g => g.start === index);
                 if (!group) return;
+                registrar('duplicar seção');
                 const now = Date.now();
                 const copy = blocks.slice(group.start, group.end)
                     .map((b, i) => ({ ...JSON.parse(JSON.stringify(b)), id: now + i }));
@@ -1498,6 +1574,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             function repeatSectionAt(start, position) {
                 const group = sectionGroups().find(g => g.start === start);
                 if (!group) return;
+                registrar('repetir seção');
                 const now = Date.now();
                 const copy = blocks.slice(group.start, group.end)
                     .map((b, i) => ({ ...JSON.parse(JSON.stringify(b)), id: now + i }));
@@ -1513,6 +1590,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                                  block.type === 'sheet' ? 'partitura' : 'texto';
                 
                 if (confirm(`🗑️ Tem certeza que deseja excluir este bloco de ${blockType}?`)) {
+                    registrar(`excluir ${blockType}`);
                     // Salva a posição do scroll antes de re-renderizar
                     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                     
@@ -1801,6 +1879,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     lyrics = await extractLyricsFromCifraClub(url);
                 }
                 
+                registrar('importar do Cifra Club');
                 // Limpa blocos existentes
                 blocks = [];
                 
@@ -1918,6 +1997,9 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             
             // Event listeners dos botões
             document.getElementById('addSectionBtn').onclick = () => addSectionBlock();
+            document.getElementById('undoBtn').onclick = () => window.desfazerAcao();
+            document.getElementById('redoBtn').onclick = () => window.refazerAcao();
+            atualizarBotoesHistorico();
             document.getElementById('addTextBlockBtn').onclick = () => addTextBlock();
             document.getElementById('addSheetBlockBtn').onclick = () => addSheetBlock();
             
@@ -1927,7 +2009,8 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             };
             
             document.getElementById('clearAllBtn').onclick = () => {
-                if (confirm('🗑️ Tem certeza que deseja limpar TODOS os blocos?\n\nEsta ação não pode ser desfeita!')) {
+                if (confirm('🗑️ Tem certeza que deseja limpar TODOS os blocos?\n\n(Dá pra desfazer com Ctrl+Z ou o botão Desfazer.)')) {
+                    registrar('limpar tudo');
                     blocks = [{ type: 'text', content: '', id: Date.now() }];
                     selectedBlocks.clear();
                     renderBlocks();
@@ -2090,6 +2173,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             window.transposeStep = async function(semitones) {
                 const targets = transposeTargets();
                 if (!targets.length) return;
+                registrar('transpor');
                 const countRef = { count: 0 };
                 // sheet_render.js é ES module (import/export) — este arquivo
                 // é script clássico, então só dá pra acessar via import()
@@ -2122,6 +2206,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             window.undoTranspose = async function() {
                 const moved = blocks.filter(b => b._semi);
                 if (!moved.length) return;
+                registrar('voltar ao tom original');
                 const countRef = { count: 0 };
                 const { transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
                 moved.forEach(block => {

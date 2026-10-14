@@ -114,6 +114,7 @@
   cursor: pointer;
 }
 .tool-btn:hover { color: var(--uc-text); background: var(--uc-surface-2); }
+.tool-btn:disabled { opacity: .4; cursor: default; background: transparent; color: var(--uc-muted); }
 .tool-btn.active { color: var(--uc-text); background: var(--uc-surface-3); border-color: var(--uc-line); }
 .tool-btn.danger { background: var(--uc-danger-soft); color: var(--uc-danger); }
 .tool-btn.danger-ghost:hover { color: var(--uc-danger); background: var(--uc-danger-soft); }
