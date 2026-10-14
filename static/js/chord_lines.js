@@ -32,6 +32,28 @@
   // "Eb", não "D#").
   const CHORD_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
+  // Grafia pelo tom de destino: tons de sustenido escrevem tudo com # (em
+  // Mi, o baixo de E é G#: "E/G#", não "E/Ab"); tons de bemol, tudo com b
+  // (em Láb, "Ab" e "Db", não "G#"/"C#"). Dó maior / Lá menor (sem
+  // acidentes) ficam com a mistura de CHORD_NAMES. O tom é o 1º acorde do
+  // bloco já transposto (ou o próprio acorde, quando vem sozinho).
+  const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const SHARP_KEYS = { major: [7, 2, 9, 4, 11, 6], minor: [4, 11, 6, 1, 8] };
+  const FLAT_KEYS = { major: [5, 10, 3, 8, 1], minor: [2, 7, 0, 5, 10, 3] };
+
+  // "m", "m7", "mi7", "-7", "ø7" (jazz)... mas não "maj7"
+  function isMinorSuffix(rest) {
+    return /^(?:m(?!aj)|-|ø)/.test(rest);
+  }
+
+  function namesForKey(pitch, minor) {
+    const kind = minor ? 'minor' : 'major';
+    if (SHARP_KEYS[kind].includes(pitch)) return SHARP_NAMES;
+    if (FLAT_KEYS[kind].includes(pitch)) return FLAT_NAMES;
+    return CHORD_NAMES;
+  }
+
   // Um acorde (token). Aceita a notação brasileira e a de jazz:
   // qualidade (m, min, mi, maj, dim, aug, sus, add, Δ, ø, °, o7, +, -),
   // extensões encadeadas (7M, maj7, 7+, 5+, b9, #11, alt, 4sus, 6/9),
@@ -77,8 +99,9 @@
     return tokens;
   }
 
-  // Transpõe um acorde individual (incluindo baixo após a barra, ex: /G#)
-  function transposeChord(chord, semitones) {
+  // Transpõe um acorde individual (incluindo baixo após a barra, ex: /G#).
+  // names: grafia do tom (namesForKey); sem ela, o próprio acorde decide.
+  function transposeChord(chord, semitones, names) {
     const chordRegex = /^([A-G][#b]?)(.*)$/;
     const match = chord.match(chordRegex);
     if (!match) return chord; // não é um acorde válido, retorna original
@@ -87,20 +110,26 @@
     const baseIndex = CHORD_MAP[baseNote];
     if (baseIndex === undefined) return chord;
 
-    let newIndex = (baseIndex + semitones) % 12;
-    if (newIndex < 0) newIndex += 12;
-    const transposedBase = CHORD_NAMES[newIndex];
+    const newIndex = ((baseIndex + semitones) % 12 + 12) % 12;
+    if (!names) names = namesForKey(newIndex, isMinorSuffix(modifiers));
+    const transposedBase = names[newIndex];
 
     const bassRegex = /(\/)([A-G][#b]?)/g;
     const transposedModifiers = modifiers.replace(bassRegex, (m, slash, bassNote) => {
       const bassIndex = CHORD_MAP[bassNote];
       if (bassIndex === undefined) return m;
-      let newBassIndex = (bassIndex + semitones) % 12;
-      if (newBassIndex < 0) newBassIndex += 12;
-      return slash + CHORD_NAMES[newBassIndex];
+      return slash + names[((bassIndex + semitones) % 12 + 12) % 12];
     });
 
     return transposedBase + transposedModifiers;
+  }
+
+  // Grafia de um bloco transposto, pelo 1º acorde dele
+  function namesForBlock(content, semitones) {
+    const match = /^([A-G][#b]?)(.*)$/.exec(detectFirstChordToken([content]) || '');
+    if (!match || CHORD_MAP[match[1]] === undefined) return CHORD_NAMES;
+    const pitch = ((CHORD_MAP[match[1]] + semitones) % 12 + 12) % 12;
+    return namesForKey(pitch, isMinorSuffix(match[2]));
   }
 
   // Suporta os sufixos //chords e //lyrics no fim da linha pra forçar a
@@ -122,13 +151,13 @@
   // Transpõe só os tokens de uma linha já confirmada como cifra,
   // preservando os espaços originais entre eles (mantém o alinhamento
   // da cifra em cima da sílaba certa da letra).
-  function transposeLine(line, semitones, countRef) {
+  function transposeLine(line, semitones, countRef, names) {
     const leading = line.match(/^\s*/)[0];
     const rest = line.slice(leading.length);
     const parts = rest.split(/(\s+)/);
     const transposedParts = parts.map(part => {
       if (part === '' || /^\s+$/.test(part)) return part;
-      const transposed = transposeChord(part, semitones);
+      const transposed = transposeChord(part, semitones, names);
       if (transposed !== part && countRef) countRef.count++;
       return transposed;
     });
@@ -138,10 +167,11 @@
   // Transpõe o conteúdo de um bloco de texto inteiro (múltiplas linhas),
   // linha por linha — só linhas de cifra (isChordLine) são tocadas.
   function transposeBlockContent(content, semitones, countRef) {
+    const names = namesForBlock(content, semitones);
     const lines = content.split('\n');
     const newLines = lines.map(line => {
       if (!isChordLine(line)) return line;
-      return transposeLine(line, semitones, countRef);
+      return transposeLine(line, semitones, countRef, names);
     });
     return newLines.join('\n');
   }
@@ -205,8 +235,7 @@
     const match = /^([A-G][#b]?)(.*)$/.exec(chordToken || '');
     if (!match) return null;
     const [, root, rest] = match;
-    const isMinor = /^(?:m(?!aj)|-|ø)/.test(rest); // "m", "m7", "mi7", "-7", "ø7" (jazz)... mas não "maj7"
-    return root + (isMinor ? 'm' : '');
+    return root + (isMinorSuffix(rest) ? 'm' : '');
   }
 
   // Acha o primeiro acorde de uma lista de blocos de texto (na ordem em

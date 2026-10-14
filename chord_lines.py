@@ -20,6 +20,25 @@ CHORD_MAP = {
 # Mistura sustenido/bemol por nota, mesma convenção do .js.
 CHORD_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
+# Grafia pelo tom de destino — mesma regra de namesForKey() no .js (tons de
+# sustenido com #, "E/G#" em Mi; tons de bemol com b; Dó/Lá menor = mistura).
+SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+_SHARP_KEYS = {False: (7, 2, 9, 4, 11, 6), True: (4, 11, 6, 1, 8)}
+_FLAT_KEYS = {False: (5, 10, 3, 8, 1), True: (2, 7, 0, 5, 10, 3)}
+
+
+def _is_minor_suffix(rest):
+    return bool(re.match(r'(?:m(?!aj)|-|ø)', rest))
+
+
+def names_for_key(pitch, minor):
+    if pitch in _SHARP_KEYS[minor]:
+        return SHARP_NAMES
+    if pitch in _FLAT_KEYS[minor]:
+        return FLAT_NAMES
+    return CHORD_NAMES
+
 # Mesma regra de CHORD_TOKEN_REGEX no .js (notação brasileira e de jazz)
 CHORD_TOKEN_REGEX = re.compile(
     r'^[A-G][#b]?(?:maj|Maj|min|mi|m|M|dim|aug|sus|add|Δ|ø|°|º|o(?=7)|\+|-)?(?:[0-9]+|M|maj[0-9]*|Maj[0-9]*|Δ[0-9]*|sus[0-9]*|add[0-9]+|alt|[#b+\-][0-9]+|[+\-°øº]|\((?:add|maj|M)?[#b+\-]?[0-9]+[+\-]?(?:[/,](?:add|maj|M)?[#b+\-]?[0-9]+[+\-]?)*\)|\/[0-9]+)*(?:\/[A-G][#b]?)?$'
@@ -36,7 +55,7 @@ _BARLINE_CHORD_REGEX = re.compile(
 )
 
 
-def transpose_chord(chord, semitones):
+def transpose_chord(chord, semitones, names=None):
     match = _CHORD_BASE_REGEX.match(chord)
     if not match:
         return chord
@@ -45,16 +64,31 @@ def transpose_chord(chord, semitones):
     if base_index is None:
         return chord
     new_index = (base_index + semitones) % 12
-    transposed_base = CHORD_NAMES[new_index]
+    if names is None:
+        names = names_for_key(new_index, _is_minor_suffix(modifiers))
+    transposed_base = names[new_index]
 
     def _bass_sub(m):
         bass_index = CHORD_MAP.get(m.group(2))
         if bass_index is None:
             return m.group(0)
-        new_bass_index = (bass_index + semitones) % 12
-        return m.group(1) + CHORD_NAMES[new_bass_index]
+        return m.group(1) + names[(bass_index + semitones) % 12]
 
     return transposed_base + _BASS_REGEX.sub(_bass_sub, modifiers)
+
+
+def _names_for_block(content, semitones):
+    """Grafia de um bloco transposto, pelo 1º acorde dele (namesForBlock no .js)."""
+    for line in content.split('\n'):
+        if is_chord_line(line):
+            tokens = chord_tokens(line) or []
+            if tokens:
+                match = _CHORD_BASE_REGEX.match(tokens[0])
+                if match and match.group(1) in CHORD_MAP:
+                    pitch = (CHORD_MAP[match.group(1)] + semitones) % 12
+                    return names_for_key(pitch, _is_minor_suffix(match.group(2)))
+                break
+    return CHORD_NAMES
 
 
 def _chord_token(raw):
@@ -110,20 +144,21 @@ def _split_preserving_spaces(rest):
     return re.split(r'(\s+)', rest)
 
 
-def transpose_line(line, semitones):
+def transpose_line(line, semitones, names=None):
     leading = re.match(r'^\s*', line).group(0)
     rest = line[len(leading):]
     parts = _split_preserving_spaces(rest)
-    transposed = [p if (p == '' or p.isspace()) else transpose_chord(p, semitones) for p in parts]
+    transposed = [p if (p == '' or p.isspace()) else transpose_chord(p, semitones, names) for p in parts]
     return leading + ''.join(transposed)
 
 
 def transpose_block_content(content, semitones):
     if not semitones:
         return content
+    names = _names_for_block(content, semitones)
     lines = content.split('\n')
     return '\n'.join(
-        line if not is_chord_line(line) else transpose_line(line, semitones)
+        line if not is_chord_line(line) else transpose_line(line, semitones, names)
         for line in lines
     )
 
