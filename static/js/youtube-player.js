@@ -225,6 +225,24 @@ class YouTubeFloatingPlayer {
             .audio-player-author { margin-top: 2px; font-size: 12px; color: var(--uc-muted, #9198b3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .local-audio-player { display: block; width: 100%; height: 40px; }
             .audio-player-badge { margin-top: 8px; font-size: 11px; color: var(--uc-ok, #3fcf8e); }
+
+            /* Celular: player menor em todas as telas (aberto 240px, recolhido
+               190px), botões do rodapé só com ícone (nome no title) */
+            @media (max-width: 600px) {
+                #yt-floating-player { width: min(240px, calc(100vw - 24px)); bottom: 12px; right: 12px; border-radius: 12px; }
+                #yt-floating-player.minimized { width: min(190px, calc(100vw - 24px)); }
+                .yt-player-header { padding: 5px 5px 5px 10px; gap: 8px; }
+                .yt-player-header .yt-icon-btn { width: 28px; height: 28px; }
+                .yt-player-footer { padding: 5px 6px; gap: 6px; }
+                .yt-action { font-size: 0; gap: 0; padding: 6px 9px; }
+                .yt-action i { font-size: 13px; }
+                .yt-player-empty { padding: 14px 12px; }
+                .yt-empty-icon { font-size: 22px; }
+                .yt-player-empty p { margin: 6px 0 10px; font-size: 12px; }
+                .yt-btn-add-video { padding: 7px 12px; font-size: 12px; }
+                .yt-empty-tip { font-size: 11.5px !important; margin-top: 10px !important; }
+                .audio-player-container { padding: 10px; }
+            }
             `;
             document.head.appendChild(styles);
         }

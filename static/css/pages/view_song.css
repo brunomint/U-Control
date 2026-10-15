@@ -280,12 +280,10 @@ a.print-btn { text-decoration: none; }
   .song-content-card { display: block; padding: 14px; overflow-x: auto; }
   .content pre { font-size: calc(13px * var(--cifra-scale, 1)); line-height: 1.5; }
   .controls { top: auto; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); right: 76px; }
-  /* Player de referência: no celular a Rolagem desce pro rodapé e o player
-     (canto de baixo, static/js/youtube-player.js) abria em cima dela. Fica
-     logo acima da Rolagem, alinhado com ela e longe dos botões ▲▼; aberto,
-     usa a largura da tela. "body" pra ganhar do <style> que o player injeta. */
-  body #yt-floating-player { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); right: 12px; }
-  body #yt-floating-player.minimized { right: 76px; }
+  /* Player de referência no celular: começa no canto de cima, à direita,
+     logo abaixo do menu (a Rolagem e os botões ▲▼ ficam no rodapé). Dá pra
+     arrastar. "body" pra ganhar do <style> que o player injeta. */
+  body #yt-floating-player { top: calc(var(--uc-nav-h) + 10px); bottom: auto; right: 12px; }
 }
 
 /* Impressão — pensado pra sair em preto no branco, sem gastar tinta
