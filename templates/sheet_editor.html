@@ -96,6 +96,33 @@
     </div>
 
     <div class="control-group">
+      <span class="control-group-title">Repetição</span>
+      <div class="row rep-row" role="group" aria-label="Sinais de repetição do compasso selecionado">
+        <button type="button" class="btn" id="repStartBtn" title="Início de repetição (ritornelo) no compasso da nota selecionada">𝄆 Início</button>
+        <button type="button" class="btn" id="repEndBtn" title="Fim de repetição (volta pro início ou pro último 𝄆)">𝄇 Fim</button>
+        <button type="button" class="btn rep-volta" data-volta="1" title="Casa 1 (1ª vez) — no compasso ou no trecho selecionado">Casa 1</button>
+        <button type="button" class="btn rep-volta" data-volta="2" title="Casa 2 (2ª vez)">Casa 2</button>
+        <button type="button" class="btn rep-volta" data-volta="3" title="Casa 3 (3ª vez)">Casa 3</button>
+      </div>
+      <div class="row">
+        <select id="jumpSelect" aria-label="Salto ou indicação no compasso selecionado" title="Salto ou indicação no compasso selecionado">
+          <option value="">Saltos: nenhum</option>
+          <option value="SEGNO_LEFT">𝄋 Segno</option>
+          <option value="CODA_LEFT">𝄌 Coda (começo da coda)</option>
+          <option value="TO_CODA">To Coda (vai pra coda)</option>
+          <option value="FINE">Fine</option>
+          <option value="DC">D.C.</option>
+          <option value="DC_AL_FINE">D.C. al Fine</option>
+          <option value="DC_AL_CODA">D.C. al Coda</option>
+          <option value="DS">D.S.</option>
+          <option value="DS_AL_FINE">D.S. al Fine</option>
+          <option value="DS_AL_CODA">D.S. al Coda</option>
+        </select>
+      </div>
+      <div class="row"><small>Vale pro compasso da nota selecionada (casas: pros compassos do trecho selecionado). O ▶ Tocar segue as repetições.</small></div>
+    </div>
+
+    <div class="control-group">
       <span class="control-group-title">Nota selecionada</span>
       <div class="row sel-nav" role="group" aria-label="Mexer na nota selecionada">
         <button type="button" class="btn" id="selPrevBtn" title="Nota anterior (←)" aria-label="Nota anterior"><i class="fas fa-chevron-left"></i></button>
@@ -263,6 +290,7 @@
     measures:[[]],
     selectedNote: null,   // {m:0, i:0} - nota selecionada para cifra
     chords:[],            // [{m:0, i:0, symbol:'C'}] - acordes por posição
+    marks:{},             // {"<compasso>": {start, end, times, volta, jump}} - repetições
     ties:[],          // {from:{m,i}, to:{m,i}}
     lastNoteRef:null,
     tupletLeft:0, tupletId:null, tupletRestore:null,   // tercina em andamento
@@ -460,6 +488,7 @@
     $editDotted.disabled = !hasSelection;
     $editRest.disabled = !hasSelection;
     document.querySelectorAll('.sel-nav .btn').forEach(b => b.disabled = !hasSelection);
+    if (typeof updateMarkControls === 'function') updateMarkControls();
 
     if (note) {
       // Preenche valores atuais
@@ -566,7 +595,7 @@
   const durValue=(d, dotted=false)=>DUR_BASE[d]*(dotted?1.5:1);
   const EPS=1e-6;
 
-  const snapshot=()=>JSON.parse(JSON.stringify({measures:state.measures, ties:state.ties, chords:state.chords, clef:state.clef, keySig:state.keySig, timeSig:state.timeSig}));
+  const snapshot=()=>JSON.parse(JSON.stringify({measures:state.measures, ties:state.ties, chords:state.chords, marks:state.marks, clef:state.clef, keySig:state.keySig, timeSig:state.timeSig}));
   const pushUndo=()=>state.undo.push(snapshot());
   const clearRedo=()=>state.redo=[];
   const restoreSnapshot=(s)=>{
@@ -574,6 +603,7 @@
     state.measures=s.measures; 
     state.ties=s.ties; 
     state.chords=s.chords||[];
+    state.marks=s.marks||{};
     if(s.clef){ state.clef=s.clef; state.keySig=s.keySig; state.timeSig=s.timeSig; syncSheetControls(); }
 
     state.lastNoteRef=null; 
@@ -1005,6 +1035,71 @@
     chordBox.style.top=Math.max(0, r.top - w.top + wrap.scrollTop - 38)+'px';
   }
 
+  // ===== Repetições (por compasso) =====
+  const mkOf = (m) => state.marks[String(m)] || {};
+  function selMeasures(){
+    return [...new Set(selectedRefs().map(r => r.m))].sort((a,b) => a-b);
+  }
+  function editMarks(ms, fn){
+    if(!ms.length){ if(window.ucToast) ucToast('Selecione uma nota do compasso primeiro.', 'error'); return; }
+    pushUndo(); clearRedo();
+    ms.forEach(m => {
+      const k=String(m), o={...(state.marks[k]||{})};
+      fn(o, m);
+      Object.keys(o).forEach(x => { if(o[x]===false || o[x]==='' || o[x]==null) delete o[x]; });
+      if(Object.keys(o).length) state.marks[k]=o; else delete state.marks[k];
+    });
+    updateMarkControls(); render();
+  }
+  function toggleRepStart(){ const ms=selMeasures(); editMarks(ms.slice(0,1), o => { o.start=!o.start; }); }
+  function toggleRepEnd(){ const ms=selMeasures(); editMarks(ms.slice(-1), o => { o.end=!o.end; }); }
+  function toggleVolta(n){
+    const ms=selMeasures();
+    const todas = ms.length && ms.every(m => String(mkOf(m).volta)===String(n));
+    editMarks(ms, o => { o.volta = todas ? '' : String(n); });
+  }
+  function setJump(v){
+    const sel=state.selectedNote; editMarks(sel ? [sel.m] : [], o => { o.jump=v; });
+  }
+  function updateMarkControls(){
+    const sel=state.selectedNote, o = sel ? mkOf(sel.m) : {};
+    const ms = selMeasures();
+    $('repStartBtn').classList.toggle('active', !!o.start);
+    $('repEndBtn').classList.toggle('active', !!(ms.length && mkOf(ms[ms.length-1]).end));
+    document.querySelectorAll('.rep-volta').forEach(b => b.classList.toggle('active', !!sel && String(o.volta)===b.dataset.volta));
+    $('jumpSelect').value = o.jump || '';
+    document.querySelectorAll('.rep-row .btn, #jumpSelect').forEach(b => b.disabled = !sel);
+  }
+  // Ordem real de tocar os compassos: ritornelo, casas, D.C./D.S. (al Fine,
+  // al Coda), To Coda/Coda. Depois de D.C./D.S. não repete de novo e vai na
+  // última casa (convenção usual, igual ao MuseScore).
+  function playOrder(){
+    const n=state.measures.length, order=[];
+    const ultimaCasa=Math.max(0, ...Object.values(state.marks).map(o => Math.max(0, ...String(o.volta||'0').split(/[^0-9]+/).map(Number))));
+    const acha=(t)=>{ for(let k=0;k<n;k++) if(mkOf(k).jump===t) return k; return -1; };
+    let i=0, pass=1, ini=0, saltou=false, alFine=false, alCoda=false, guard=0;
+    while(i<n && guard++<4000){
+      const o=mkOf(i);
+      if(o.start && ini!==i && !saltou){ ini=i; pass=1; }
+      if(o.volta){
+        const nums=String(o.volta).split(/[^0-9]+/).filter(Boolean).map(Number);
+        if(!nums.includes(pass)){ i++; continue; }
+      }
+      order.push(i);
+      if(saltou && alFine && o.jump==='FINE') break;
+      if(saltou && alCoda && o.jump==='TO_CODA'){ const c=acha('CODA_LEFT'); if(c>i){ i=c; continue; } }
+      if(o.end && !saltou && pass<(o.times||2)){ pass++; i=ini; continue; }
+      if(!saltou && o.jump && /^D[CS]/.test(o.jump)){
+        saltou=true; alFine=/FINE/.test(o.jump); alCoda=/CODA/.test(o.jump);
+        pass=Math.max(ultimaCasa, 1);
+        i = o.jump.startsWith('DS') ? Math.max(0, acha('SEGNO_LEFT')) : 0;
+        continue;
+      }
+      i++;
+    }
+    return order;
+  }
+
   // ===== Som (Web Audio, sem biblioteca) =====
   let audioCtx = null;
   function ac(){
@@ -1053,9 +1148,14 @@
     $('playBtn').innerHTML = '<i class="fas fa-play"></i> <span>Tocar</span>';
   }
   function startPlayback(){
-    const items = allItems();
+    // Sequência na ordem de tocar (com repetições), começando da nota
+    // selecionada (1ª vez que ela aparece) ou do começo
+    const items = playOrder().flatMap(m => state.measures[m].map((_, i) => ({m, i})));
     if(!items.length) return;
-    let k0 = selIndex(); if(k0 < 0 || state.appendMode && k0 === items.length - 1) k0 = 0;
+    const s0sel = state.selectedNote;
+    let k0 = s0sel ? items.findIndex(r => r.m===s0sel.m && r.i===s0sel.i) : 0;
+    const ultimo = allItems().length - 1;
+    if(k0 < 0 || state.appendMode && selIndex() === ultimo) k0 = 0;
     const bpm = Math.max(30, Math.min(240, parseInt($('tempoInput').value, 10) || 80));
     const whole = 4 * 60 / bpm;                           // segundos de uma semibreve
     const tieTarget = new Set(state.ties.map(t => t.to.m + ':' + t.to.i));
@@ -1205,7 +1305,7 @@
   }
   const undo=()=>{ if(!state.undo.length) return; state.redo.push(snapshot()); restoreSnapshot(state.undo.pop()); render(); };
   const redo=()=>{ if(!state.redo.length) return; state.undo.push(snapshot()); restoreSnapshot(state.redo.pop()); render(); };
-  const clearAll=()=>{ pushUndo(); clearRedo(); state.measures=[[]]; state.ties=[]; state.chords=[]; state.lastNoteRef=null; state.selectedNote=null; render(); };
+  const clearAll=()=>{ pushUndo(); clearRedo(); state.measures=[[]]; state.ties=[]; state.chords=[]; state.marks={}; state.lastNoteRef=null; state.selectedNote=null; render(); };
 
   // ===== Função de aplicar edição de nota =====
   function applyNoteEdit() {
@@ -1279,6 +1379,10 @@
   $('selOctDownBtn').onclick = () => shiftOctave(-1);
   $('selRespellBtn').onclick = () => respell();
   $('selRestBtn').onclick = () => selectedToRest();
+  $('repStartBtn').onclick = () => toggleRepStart();
+  $('repEndBtn').onclick = () => toggleRepEnd();
+  document.querySelectorAll('.rep-volta').forEach(b => b.onclick = () => toggleVolta(b.dataset.volta));
+  $('jumpSelect').addEventListener('change', (e) => { setJump(e.target.value); e.target.blur(); });
   $('selExtendBtn').onclick = () => extendSel(1);
   $('selChordBtn').onclick = () => openChordBox();
   $('copyBtn').onclick = () => copySel();
@@ -1373,7 +1477,7 @@
   }
   function exportMusicXML(){
     const titulo = tituloDaMusica();
-    const xml = toMusicXML({clef:state.clef,keySig:state.keySig,timeSig:state.timeSig,measures:state.measures,ties:state.ties,chords:state.chords}, { title: titulo });
+    const xml = toMusicXML({clef:state.clef,keySig:state.keySig,timeSig:state.timeSig,measures:state.measures,ties:state.ties,chords:state.chords,marks:state.marks}, { title: titulo });
     const blob=new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a');
     a.href=url; a.download=(titulo.replace(/[\\/:*?"<>|]+/g,' ').trim()||'partitura')+'.musicxml';
@@ -1403,7 +1507,7 @@
     }
     pushUndo(); clearRedo();
     state.clef=data.clef; state.keySig=data.keySig; state.timeSig=data.timeSig;
-    state.measures=data.measures; state.ties=data.ties||[]; state.chords=data.chords||[];
+    state.measures=data.measures; state.ties=data.ties||[]; state.chords=data.chords||[]; state.marks=data.marks||{};
     state.lastNoteRef=null; setSelection(null, true);
     syncSheetControls(); render();
     mostrarAvisos(avisos, `Importado: ${file.name}. Observações:`);
@@ -1513,7 +1617,8 @@
         timeSig: state.timeSig,
         measures: state.measures,
         ties: state.ties,
-        chords: state.chords
+        chords: state.chords,
+        marks: state.marks
       };
       localStorage.setItem('vexflow_sheet_data', JSON.stringify(data));
       
@@ -1535,6 +1640,7 @@
   let editorInitialized = false; // Flag para evitar auto-save antes de carregar dados
   const originalRender = render;
   render = function() {
+    Object.keys(state.marks).forEach(k => { if (+k >= state.measures.length) delete state.marks[k]; });
     originalRender();
     setTimeout(addNoteClickHandlers, 100); // Delay para garantir que o SVG foi renderizado
     if (editorInitialized) {
@@ -1576,6 +1682,7 @@
         if (parsed.measures) state.measures = parsed.measures;
         if (parsed.ties) state.ties = parsed.ties;
         if (parsed.chords) state.chords = parsed.chords;
+        state.marks = parsed.marks || {};
         
         console.log('🔄 Estado atualizado:', state);
         
@@ -1638,6 +1745,7 @@
       state.measures = normalized.measures;
       state.ties = normalized.ties;
       state.chords = normalized.chords;
+      state.marks = normalized.marks || {};
 
       // Teclado na região da clave (Fá: começa no Dó2)
       pianoStart = state.clef === 'bass' ? 2 : 4; buildPiano();
@@ -1734,7 +1842,8 @@
         timeSig: state.timeSig,
         measures: state.measures,
         ties: state.ties,
-        chords: state.chords
+        chords: state.chords,
+        marks: state.marks
       };
 
       const response = await fetch(`/api/save_sheet/${songId}`, {

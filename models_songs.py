@@ -48,3 +48,6 @@ class SheetData(db.Model):
     measures = db.Column(db.JSON, nullable=False)
     ties = db.Column(db.JSON, nullable=True)
     chords = db.Column(db.JSON, nullable=True)
+    # Sinais de repetição por compasso: {"<índice>": {start, end, times,
+    # volta, jump}} — ritornelo, casas 1/2/3, Segno/Coda/Fine/D.C./D.S.
+    marks = db.Column(db.JSON, nullable=True)

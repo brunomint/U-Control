@@ -165,6 +165,23 @@ export function toMusicXML(raw, { title = 'Partitura' } = {}) {
   const chordAt = new Map(data.chords.map((c) => [`${c.m}:${c.i}`, c.symbol]));
   const clef = data.clef === 'bass' ? '<sign>F</sign><line>4</line>' : '<sign>G</sign><line>2</line>';
 
+  // Repetições por compasso
+  const marks = data.marks || {};
+  const mk = (i) => marks[String(i)] || {};
+  const casas = Object.values(marks).map((o) => parseInt(o && o.volta, 10)).filter((x) => x > 0);
+  const ultimaCasa = casas.length ? Math.max(...casas) : 0;
+  const JUMP_WORDS = {
+    FINE: ['Fine', 'fine="yes"'], DC: ['D.C.', 'dacapo="yes"'], DC_AL_FINE: ['D.C. al Fine', 'dacapo="yes"'],
+    DC_AL_CODA: ['D.C. al Coda', 'dacapo="yes"'], DS: ['D.S.', 'dalsegno="segno"'], DS_AL_FINE: ['D.S. al Fine', 'dalsegno="segno"'],
+    DS_AL_CODA: ['D.S. al Coda', 'dalsegno="segno"'], TO_CODA: ['To Coda', 'tocoda="coda"'],
+  };
+  const direction = (j) => {
+    if (j === 'SEGNO_LEFT' || j === 'SEGNO_RIGHT') return '<direction placement="above"><direction-type><segno/></direction-type><sound segno="segno"/></direction>';
+    if (j === 'CODA_LEFT' || j === 'CODA_RIGHT') return '<direction placement="above"><direction-type><coda/></direction-type><sound coda="coda"/></direction>';
+    const w = JUMP_WORDS[j];
+    return w ? `<direction placement="above"><direction-type><words>${esc(w[0])}</words></direction-type><sound ${w[1]}/></direction>` : '';
+  };
+
   let body = '';
   data.measures.forEach((notes, m) => {
     body += `<measure number="${m + 1}">`;
@@ -172,6 +189,17 @@ export function toMusicXML(raw, { title = 'Partitura' } = {}) {
       body += `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>${KEY_COUNT[data.keySig] || 0}</fifths></key>`
         + `<time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef>${clef}</clef></attributes>`;
     }
+    const o = mk(m);
+    const casaIni = o.volta && mk(m - 1).volta !== o.volta;
+    const casaFim = o.volta && mk(m + 1).volta !== o.volta;
+    if (o.start || casaIni) {
+      body += '<barline location="left">' + (o.start ? '<bar-style>heavy-light</bar-style>' : '')
+        + (casaIni ? `<ending number="${esc(o.volta)}" type="start">${esc(o.volta)}.</ending>` : '')
+        + (o.start ? '<repeat direction="forward"/>' : '') + '</barline>';
+    }
+    // Segno/Coda no começo do compasso; os outros (Fine, D.C., To Coda...) no fim
+    const noFim = o.jump && !/^(SEGNO|CODA)/.test(o.jump);
+    if (o.jump && !noFim) body += direction(o.jump);
     notes.forEach((n, i) => {
       const ref = `${m}:${i}`;
       if (chordAt.has(ref)) body += harmonyXML(chordAt.get(ref));
@@ -205,6 +233,13 @@ export function toMusicXML(raw, { title = 'Partitura' } = {}) {
         body += '</note>';
       });
     });
+    if (noFim) body += direction(o.jump);
+    if (o.end || casaFim) {
+      const aberta = casaFim && ultimaCasa > 1 && parseInt(o.volta, 10) === ultimaCasa && !o.end;
+      body += '<barline location="right">' + (o.end ? '<bar-style>light-heavy</bar-style>' : '')
+        + (casaFim ? `<ending number="${esc(o.volta)}" type="${aberta ? 'discontinue' : 'stop'}"/>` : '')
+        + (o.end ? `<repeat direction="backward"${o.times > 2 ? ` times="${o.times}"` : ''}/>` : '') + '</barline>';
+    }
     body += '</measure>';
   });
 
@@ -279,7 +314,15 @@ export function fromMusicXMLText(xml) {
     avisos.add(`O arquivo tem ${parts.length} partes (instrumentos); entrou só ${nome}.`);
   }
 
-  const out = { clef: 'treble', keySig: 'C', timeSig: '4/4', measures: [], ties: [], chords: [] };
+  const out = { clef: 'treble', keySig: 'C', timeSig: '4/4', measures: [], ties: [], chords: [], marks: {} };
+  const setMark = (m, k, v) => { const o = out.marks[String(m)] || (out.marks[String(m)] = {}); o[k] = v; };
+  let casaAberta = null;                                       // número da casa em andamento
+  const JUMP_TEXT = [
+    [/d\.?\s*s\.?.*al\s*fine|dal\s*segno.*fine/i, 'DS_AL_FINE'], [/d\.?\s*s\.?.*al\s*coda|dal\s*segno.*coda/i, 'DS_AL_CODA'],
+    [/^\s*(d\.?\s*s\.?|dal\s*segno)\s*$/i, 'DS'], [/d\.?\s*c\.?.*al\s*fine|da\s*capo.*fine/i, 'DC_AL_FINE'],
+    [/d\.?\s*c\.?.*al\s*coda|da\s*capo.*coda/i, 'DC_AL_CODA'], [/^\s*(d\.?\s*c\.?|da\s*capo)\s*$/i, 'DC'],
+    [/to\s*coda|ao\s*coda/i, 'TO_CODA'], [/^\s*fine\s*$/i, 'FINE'],
+  ];
   let divisions = 1, voz = null, keySet = false, timeSet = false, clefSet = false;
   let pendingChord = null;
   let tupletSeq = 0, tupletCount = 0;
@@ -289,7 +332,42 @@ export function fromMusicXMLText(xml) {
     const m = out.measures.length;
     const notas = [];
     out.measures.push(notas);
+    if (casaAberta) setMark(m, 'volta', casaAberta);
     for (const el of meas.children) {
+      if (el.nodeName === 'barline') {
+        const rp = el.querySelector('repeat')?.getAttribute('direction');
+        if (rp === 'forward') setMark(m, 'start', true);
+        if (rp === 'backward') {
+          setMark(m, 'end', true);
+          const t = +el.querySelector('repeat').getAttribute('times'); if (t > 2) setMark(m, 'times', t);
+        }
+        const en = el.querySelector('ending');
+        if (en) {
+          const num = (en.getAttribute('number') || '1').replace(/\s+/g, '');
+          if (en.getAttribute('type') === 'start') casaAberta = num;
+          if (casaAberta) setMark(m, 'volta', casaAberta);
+          if (en.getAttribute('type') !== 'start') casaAberta = null;
+        }
+        continue;
+      }
+      if (el.nodeName === 'direction') {
+        let j = null;
+        if (el.querySelector('direction-type segno')) j = 'SEGNO_LEFT';
+        else if (el.querySelector('direction-type coda')) j = 'CODA_LEFT';
+        else {
+          const w = [...el.querySelectorAll('direction-type words')].map((x) => x.textContent).join(' ');
+          if (w) { const hit = JUMP_TEXT.find(([re]) => re.test(w)); if (hit) j = hit[1]; }
+          if (!j) {
+            const so = el.querySelector('sound');
+            if (so?.getAttribute('fine')) j = 'FINE';
+            else if (so?.getAttribute('tocoda')) j = 'TO_CODA';
+            else if (so?.getAttribute('dacapo') === 'yes') j = 'DC';
+            else if (so?.getAttribute('dalsegno')) j = 'DS';
+          }
+        }
+        if (j) setMark(m, 'jump', j);
+        continue;
+      }
       if (el.nodeName === 'attributes') {
         const d = el.querySelector('divisions'); if (d) divisions = +d.textContent || 1;
         const f = el.querySelector('key fifths');

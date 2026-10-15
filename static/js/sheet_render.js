@@ -112,8 +112,10 @@ export function normalizeSheetData(raw) {
 
   const measuresField = raw.measures ?? raw.notes;
   const isCanonical = Array.isArray(measuresField) && (measuresField.length === 0 || Array.isArray(measuresField[0]));
+  // marks: sinais de repetição por compasso {"<i>": {start, end, times, volta, jump}}
+  const marks = (raw.marks && typeof raw.marks === 'object') ? raw.marks : {};
   if (isCanonical) {
-    return { clef, keySig, timeSig, measures: measuresField.length ? measuresField : [[]], ties: raw.ties || [], chords };
+    return { clef, keySig, timeSig, measures: measuresField.length ? measuresField : [[]], ties: raw.ties || [], chords, marks };
   }
 
   const flat = measuresField || [];
@@ -147,7 +149,7 @@ export function normalizeSheetData(raw) {
     }
   }
 
-  return { clef, keySig, timeSig, measures, ties: [], chords: remappedChords };
+  return { clef, keySig, timeSig, measures, ties: [], chords: remappedChords, marks: {} };
 }
 
 // Tabelas próprias (não importa de chord_lines.js) — sheet_editor.html
@@ -334,7 +336,7 @@ export function transposeSheetData(canonicalData, semitones) {
  */
 export async function renderSheetMusic(container, rawOrCanonicalData, options = {}) {
   const VF = await loadVexFlow();
-  const { Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam, Tuplet } = VF;
+  const { Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam, Tuplet, BarlineType, VoltaType, Repetition } = VF;
 
   const data = normalizeSheetData(rawOrCanonicalData);
   container.innerHTML = '';
@@ -347,7 +349,11 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
   // clique nas notas) continua o layout de antes.
   const compact = !!options.compact && !options.interactive;
   const BASE_MEASURE_W = 220;
-  const STAVE_H = compact ? 110 : 140, SYSTEM_GAP = compact ? 12 : 30, LEFT = compact ? 10 : 24, RIGHT = compact ? 10 : 24, TOP = 20;
+  // Casa (volta) e Segno/Coda ficam acima da pauta: abre uma faixa extra
+  // em cima de cada linha (o colchete em cima, a cifra logo abaixo)
+  const TOP_JUMPS = ['SEGNO_LEFT', 'SEGNO_RIGHT', 'CODA_LEFT', 'CODA_RIGHT'];
+  const EXTRA = Object.values(data.marks || {}).some(x => x && (x.volta || TOP_JUMPS.includes(x.jump))) ? 30 : 0;
+  const STAVE_H = (compact ? 110 : 140) + EXTRA, SYSTEM_GAP = compact ? 12 : 30, LEFT = compact ? 10 : 24, RIGHT = compact ? 10 : 24, TOP = 20;
 
   const { beats, beatValue } = timeValues(data.timeSig);
   const viewportW = options.maxWidth ?? (container.clientWidth || container.parentElement?.clientWidth || 900);
@@ -428,6 +434,29 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
 
   const vfNotesByMI = Array(data.measures.length).fill(null).map(() => []);
 
+  // Sinais de repetição do compasso: barra de ritornelo, colchete de casa
+  // (fechado; a última casa fica aberta, como no MuseScore) e Segno/Coda/
+  // Fine/D.C./D.S.
+  const marks = data.marks || {};
+  const mk = (i) => marks[String(i)] || {};
+  const voltaNums = Object.values(marks).map(x => parseInt(x && x.volta, 10)).filter(n => n > 0);
+  const ultimaCasa = voltaNums.length ? Math.max(...voltaNums) : 0;
+  function applyMarks(stave, i) {
+    const m = mk(i);
+    try {
+      if (m.start && BarlineType) stave.setBegBarType(BarlineType.REPEAT_BEGIN);
+      if (m.end && BarlineType) stave.setEndBarType(BarlineType.REPEAT_END);
+      if (m.volta && VoltaType) {
+        const ini = mk(i - 1).volta !== m.volta, fim = mk(i + 1).volta !== m.volta;
+        const aberta = ultimaCasa > 1 && parseInt(m.volta, 10) === ultimaCasa;
+        const tipo = ini && fim ? (aberta ? VoltaType.BEGIN : VoltaType.BEGIN_END)
+          : ini ? VoltaType.BEGIN : fim ? (aberta ? VoltaType.MID : VoltaType.END) : VoltaType.MID;
+        stave.setVoltaType(tipo, `${m.volta}.`, 0);
+      }
+      if (m.jump && Repetition && Repetition.type[m.jump]) stave.setRepetitionType(Repetition.type[m.jump], 0);
+    } catch (e) { console.warn('Erro no sinal de repetição:', e); }
+  }
+
   systemsIdx.forEach((row, s) => {
     const y = TOP + s * (STAVE_H + SYSTEM_GAP);
     let x = LEFT;
@@ -436,8 +465,9 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
       const measureNotes = data.measures[mIndex] ?? [];
       const w = widths[mIndex];
 
-      const stave = vf.Stave({ x, y, width: w });
+      const stave = vf.Stave({ x, y: y + EXTRA, width: w });
       stave.setStyle(notationStyle);
+      applyMarks(stave, mIndex);
       if (j === 0) {
         stave.addClef(data.clef).addKeySignature(data.keySig);
         if (!compact || s === 0) stave.addTimeSignature(data.timeSig);
@@ -549,7 +579,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
         ctx.font = '14px Arial, sans-serif';
         ctx.fillStyle = notationColor;
         ctx.textAlign = 'center';
-        ctx.fillText(chord.symbol, bbox.x + bbox.w / 2, staveY + 2);
+        ctx.fillText(chord.symbol, bbox.x + bbox.w / 2, staveY + EXTRA + 2);
         ctx.restore();
       }
     } catch (e) { console.warn('Erro ao desenhar acorde:', e); }

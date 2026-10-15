@@ -40,7 +40,7 @@ def _sections_to_dicts(sections):
 def _normalize_sheet(sh):
     """Formato canônico único (chave wire, usado em toda parte — payload
     do editor, sheet_data embutido no dict da música, coluna do banco):
-    {id, clef, keySig, timeSig, measures, ties, chords}. Ver plano em
+    {id, clef, keySig, timeSig, measures, ties, chords, marks}. Ver plano em
     .claude/plans/harmonic-mixing-breeze.md — unificação de renderização
     VexFlow.
 
@@ -60,6 +60,8 @@ def _normalize_sheet(sh):
         'measures': sh.get('measures') if sh.get('measures') is not None else sh.get('notes'),
         'ties': sh.get('ties'),
         'chords': sh.get('chords'),
+        # vazio vira None: partitura sem repetição continua igual à de antes
+        'marks': sh.get('marks') or None,
     }
 
 
@@ -72,6 +74,7 @@ def _sheet_model_to_dict(sd):
         'measures': sd.measures,
         'ties': sd.ties,
         'chords': sd.chords,
+        'marks': sd.marks,
     })
 
 
@@ -182,6 +185,7 @@ def _apply_song_fields(song, data, is_new):
                 clef=sh.get('clef'),
                 key_sig=sh.get('keySig'),
                 chords=sh.get('chords'),
+                marks=sh.get('marks'),
             )
             for sh in incoming_sheets
         ]

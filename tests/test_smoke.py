@@ -1862,3 +1862,23 @@ def test_song_crud_does_not_load_every_song(app, logged_in_client, monkeypatch):
         assert songs_store.get_song(song_id) is None
         assert songs_store.get_song(outra) is not None
         songs_store.delete_song(outra)
+
+
+def test_sheet_marks_round_trip(app):
+    """Sinais de repetição (ritornelo, casas, D.C./D.S.) ficam na coluna
+    sheet_data.marks e voltam iguais; partitura sem repetição continua sem
+    a chave preenchida (None), igual a antes."""
+    import songs_store
+    marks = {"0": {"start": True}, "1": {"volta": "1", "end": True}, "2": {"volta": "2"}, "3": {"jump": "DC_AL_FINE"}}
+    nota = {"pitch": "C4", "duration": "w", "dotted": False, "accidental": "", "rest": False}
+    with app.app_context():
+        sid = songs_store.next_song_id()
+        songs_store.save_song({"id": sid, "title": "Rep", "author": "X", "sections": [],
+                               "sheet_data": [{"id": 1, "clef": "treble", "keySig": "C", "timeSig": "4/4",
+                                               "measures": [[nota]] * 4, "ties": [], "chords": [], "marks": marks},
+                                              {"id": 2, "clef": "treble", "keySig": "C", "timeSig": "4/4",
+                                               "measures": [[nota]], "ties": [], "chords": [], "marks": {}}]})
+        sheets = songs_store.get_song(sid)["sheet_data"]
+        assert sheets[0]["marks"] == marks
+        assert sheets[1]["marks"] is None
+        songs_store.delete_song(sid)
