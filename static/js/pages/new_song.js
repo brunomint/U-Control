@@ -1291,7 +1291,9 @@
                     type: 'sheet', 
                     svgData: svgData,
                     sheetData: sheetData, // Salva como string mesmo
-                    originalData: sheetData, // Backup dos dados originais
+                    // objeto (não o texto): createSheetBlock desenha a prévia a
+                    // partir dele — com o texto, a partitura inserida não aparecia
+                    originalData: (() => { try { return JSON.parse(sheetData); } catch (e) { return sheetData; } })(),
                     id: Date.now()
                 };
                 blocks.push(newBlock);
@@ -1979,11 +1981,24 @@
             document.getElementById('redoBtn').onclick = () => window.refazerAcao();
             atualizarBotoesHistorico();
             document.getElementById('addTextBlockBtn').onclick = () => addTextBlock();
-            document.getElementById('addSheetBlockBtn').onclick = () => addSheetBlock();
             
+            // Criar partitura: abre o editor EM BRANCO (antes reabria a última
+            // partitura editada) e, quando a janela fecha (Concluir ou X),
+            // a partitura entra sozinha na música — sem "Inserir partitura"
             document.getElementById('insertSheetBtn').onclick = () => {
+                localStorage.removeItem('vexflow_sheet_data');
+                localStorage.removeItem('vexflow_sheet_svg');
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                if (!vexWindow) { alert('O navegador bloqueou a janela do editor de partitura. Libere pop-ups pra este site.'); return; }
                 vexWindow.focus();
+                const espera = setInterval(() => {
+                    if (!vexWindow.closed) return;
+                    clearInterval(espera);
+                    try {
+                        const d = JSON.parse(localStorage.getItem('vexflow_sheet_data') || 'null');
+                        if (d && Array.isArray(d.measures) && d.measures.some(m => m.length) && localStorage.getItem('vexflow_sheet_svg')) addSheetBlock();
+                    } catch (e) { console.warn('Partitura nova não lida:', e); }
+                }, 400);
             };
             
             document.getElementById('clearAllBtn').onclick = () => {

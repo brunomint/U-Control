@@ -181,13 +181,14 @@
     </div>
 
     <div class="control-group">
-      <span class="control-group-title">Exportação</span>
+      <span class="control-group-title">Arquivo</span>
       <div class="row">
-        <button type="button" class="btn action-btn" id="exportSVGBtn">Exportar SVG</button>
-        <button type="button" class="btn action-btn" id="saveJSONBtn">Salvar JSON</button>
-        <label class="btn" for="loadJSONInput">Carregar JSON</label>
-        <input id="loadJSONInput" type="file" accept="application/json" hidden>
+        <button type="button" class="btn action-btn" id="exportXMLBtn" title="Baixar em MusicXML: abre no MuseScore e em outros editores de partitura"><i class="fas fa-file-export"></i> Exportar MusicXML</button>
+        <label class="btn" for="loadFileInput" title="Abrir um MusicXML (.musicxml, .xml, .mxl) — ex.: exportado do MuseScore"><i class="fas fa-file-import"></i> Importar MusicXML</label>
+        <input id="loadFileInput" type="file" accept=".musicxml,.xml,.mxl,.json,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/json" hidden>
+        <button type="button" class="btn" id="exportSVGBtn" title="Baixar a imagem da partitura (SVG)">Exportar SVG</button>
       </div>
+      <div id="importNotes" class="import-notes" hidden></div>
     </div>
 
     <small class="atalhos">
@@ -202,6 +203,7 @@
     <div class="score-header">
       <h2>Partitura</h2>
       <div class="play-controls">
+        <button type="button" class="btn done-btn" id="doneBtn" hidden title="Fechar e voltar pra música — a partitura entra (ou é atualizada) lá"><i class="fas fa-check"></i> <span>Concluir</span></button>
         <button type="button" class="btn action-btn" id="playBtn" title="Tocar a partir da nota selecionada, ou do começo (Espaço)"><i class="fas fa-play"></i> <span>Tocar</span></button>
         <label class="tempo" title="Andamento (semínimas por minuto)"><i class="fas fa-gauge-high"></i>
           <input type="number" id="tempoInput" min="30" max="240" step="5" value="80" aria-label="Andamento"></label>
@@ -232,6 +234,7 @@
 {% block scripts %}
 <script type="module">
   import { renderSheetMusic, normalizeSheetData } from '{{ versioned_static("js/sheet_render.js") }}';
+  import { toMusicXML, fromMusicXMLFile } from '{{ versioned_static("js/musicxml.js") }}';
 
   // ===== Dados da música (se editando uma existente) =====
   const songDataElement = document.getElementById('song-data');
@@ -549,14 +552,16 @@
   const durValue=(d, dotted=false)=>DUR_BASE[d]*(dotted?1.5:1);
   const EPS=1e-6;
 
-  const snapshot=()=>JSON.parse(JSON.stringify({measures:state.measures, ties:state.ties, chords:state.chords}));
+  const snapshot=()=>JSON.parse(JSON.stringify({measures:state.measures, ties:state.ties, chords:state.chords, clef:state.clef, keySig:state.keySig, timeSig:state.timeSig}));
   const pushUndo=()=>state.undo.push(snapshot());
   const clearRedo=()=>state.redo=[];
   const restoreSnapshot=(s)=>{
     const wasSelected = state.selectedNote; // Salva seleção atual
     state.measures=s.measures; 
     state.ties=s.ties; 
-    state.chords=s.chords||[]; 
+    state.chords=s.chords||[];
+    if(s.clef){ state.clef=s.clef; state.keySig=s.keySig; state.timeSig=s.timeSig; syncSheetControls(); }
+
     state.lastNoteRef=null; 
     // Só limpa seleção se não estamos aplicando edição
     if(!s.preserveSelection) state.selectedNote=null;
@@ -1084,48 +1089,68 @@
     const url=URL.createObjectURL(blob); const a=document.createElement('a');
     a.href=url; a.download='partitura.svg'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
-  function saveJSON(){
-    const data={clef:state.clef,keySig:state.keySig,timeSig:state.timeSig,measures:state.measures,ties:state.ties,chords:state.chords};
-    
-    // Salva no localStorage para integração com U-Control
-    try {
-      localStorage.setItem('vexflow_sheet_data', JSON.stringify(data));
-      
-      // Salva também o SVG visual
-      const svg = $score.querySelector('svg');
-      if (svg) {
-        const svgData = new XMLSerializer().serializeToString(svg);
-        localStorage.setItem('vexflow_sheet_svg', svgData);
-        console.log('✅ Partitura (dados + SVG) salva no localStorage para U-Control');
-      } else {
-        console.log('✅ Apenas dados salvos no localStorage (SVG não encontrado)');
-      }
-    } catch (e) {
-      console.warn('⚠️ Erro ao salvar no localStorage:', e);
+  // Selects de clave/armadura/compasso e teclado acompanham o estado
+  function syncSheetControls(){
+    $clef.value=state.clef; $keysig.value=state.keySig;
+    if(![...$timesig.options].some(o=>o.value===state.timeSig)){
+      const o=document.createElement('option'); o.value=o.textContent=state.timeSig; $timesig.appendChild(o);
     }
-    
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a');
-    a.href=url; a.download='partitura.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    $timesig.value=state.timeSig;
+    pianoStart = state.clef==='bass' ? 2 : 4; buildPiano();
   }
-  function loadJSON(file){
-    const r=new FileReader();
-    r.onload=()=>{
-      try{
-        const o=JSON.parse(String(r.result));
-        if(o?.measures){
-          state.clef=o.clef||'treble'; state.keySig=o.keySig||'C'; state.timeSig=o.timeSig||'4/4';
-          state.measures=o.measures; state.ties=o.ties||[]; state.chords=o.chords||[]; state.lastNoteRef=null; state.selectedNote=null; render();
-        }
-      }catch{ alert('JSON inválido'); }
-    };
-    r.readAsText(file);
+  function tituloDaMusica(){
+    try { const t = window.opener && window.opener.document.getElementById('title')?.value; if(t) return t; } catch (e) {}
+    return (songData && songData.title) || 'Partitura';
+  }
+  function exportMusicXML(){
+    const titulo = tituloDaMusica();
+    const xml = toMusicXML({clef:state.clef,keySig:state.keySig,timeSig:state.timeSig,measures:state.measures,ties:state.ties,chords:state.chords}, { title: titulo });
+    const blob=new Blob([xml],{type:'application/vnd.recordare.musicxml+xml'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download=(titulo.replace(/[\\/:*?"<>|]+/g,' ').trim()||'partitura')+'.musicxml';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function mostrarAvisos(lista, titulo){
+    const box=$('importNotes');
+    if(!lista.length){ box.hidden=true; box.innerHTML=''; return; }
+    box.hidden=false;
+    box.innerHTML='<b></b><ul></ul>';
+    box.querySelector('b').textContent=titulo;
+    lista.forEach(t=>{ const li=document.createElement('li'); li.textContent=t; box.querySelector('ul').appendChild(li); });
+  }
+  async function importFile(file){
+    const temNotas = state.measures.some(m=>m.length);
+    if(temNotas && !confirm('Substituir a partitura atual pela do arquivo?\n(Dá pra desfazer com Ctrl+Z.)')) return;
+    let data, avisos=[];
+    try {
+      if(/\.json$/i.test(file.name)){
+        data = normalizeSheetData(JSON.parse(await file.text()));
+      } else {
+        ({ data, avisos } = await fromMusicXMLFile(file));
+      }
+    } catch(e) {
+      mostrarAvisos([String(e.message||e)], 'Não deu pra abrir o arquivo:');
+      return;
+    }
+    pushUndo(); clearRedo();
+    state.clef=data.clef; state.keySig=data.keySig; state.timeSig=data.timeSig;
+    state.measures=data.measures; state.ties=data.ties||[]; state.chords=data.chords||[];
+    state.lastNoteRef=null; setSelection(null, true);
+    syncSheetControls(); render();
+    mostrarAvisos(avisos, `Importado: ${file.name}. Observações:`);
+    if(!avisos.length && window.ucToast) ucToast(`Partitura importada: ${file.name}`);
   }
 
   // ===== Botões & atalhos =====
   $('exportSVGBtn').onclick=exportSVG;
-  $('saveJSONBtn').onclick=saveJSON;
-  $('loadJSONInput').onchange=(e)=>{ const f=e.target.files?.[0]; if(f) loadJSON(f); e.target.value=''; };
+  $('exportXMLBtn').onclick=exportMusicXML;
+  $('loadFileInput').onchange=(e)=>{ const f=e.target.files?.[0]; if(f) importFile(f); e.target.value=''; };
+  // Aberto pela música (janela "filha"): Concluir fecha e a música pega a
+  // partitura (auto-save no localStorage já está em dia)
+  if(window.opener){
+    $('doneBtn').hidden=false;
+    $('doneBtn').onclick=()=>{ autoSaveToLocalStorage(); window.close(); };
+  }
   $('removeBtn').onclick=removeLast;
   $('clearBtn').onclick=clearAll;
   $('undoBtn').onclick=undo;

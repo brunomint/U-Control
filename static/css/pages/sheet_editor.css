@@ -18,7 +18,7 @@
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
 .row:last-child { margin-bottom: 0; }
 .controls label { display: block; font-size: 11.5px; font-weight: 700; color: var(--uc-muted); margin-bottom: 3px; }
-.controls label.btn { display: inline-flex; margin: 0; color: var(--uc-text); }
+.controls label.btn { display: inline-flex; align-items: center; gap: 4px; margin: 0; color: var(--uc-text); font-size: 13px; font-weight: 600; cursor: pointer; }
 .controls select, .controls input[type="text"] {
   padding: 6px 8px;
   border: 1px solid var(--uc-line);
@@ -102,3 +102,10 @@
   .score-wrap { max-height: 30vh; min-height: 0; padding: 6px; }
   .piano { height: 78px; }
 }
+
+/* Concluir (editor aberto pela música) e avisos de importação */
+.done-btn { background: var(--uc-ok, #3fcf8e); border-color: var(--uc-ok, #3fcf8e); color: #0b0e17; }
+.done-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.import-notes { margin-top: 8px; padding: 8px 10px; border-radius: var(--uc-r-sm); background: var(--uc-bg); border: 1px solid var(--uc-line); font-size: 12px; color: var(--uc-muted); }
+.import-notes b { display: block; margin-bottom: 4px; color: var(--uc-text); }
+.import-notes ul { margin: 0; padding-left: 18px; }
