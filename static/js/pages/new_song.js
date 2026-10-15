@@ -1309,61 +1309,26 @@
             
             // Edita partitura
             function editSheet(index) {
-                // Salva dados da partitura atual no localStorage para o editor carregar
+                // Passa a partitura do bloco pro editor pelo localStorage.
+                // Sempre limpa antes: num bloco vazio (+ → Partitura) o editor
+                // abria com a última partitura de outra música. Os dados podem
+                // estar como objeto (originalData, vindo do "Criar partitura")
+                // ou texto (sheetData) — antes o JSON.parse no objeto falhava
+                // e o ✏️ abria o editor em branco.
                 const currentBlock = blocks[index];
-                console.log('🔍 Editando partitura do bloco:', index, currentBlock);
-                
-                if (currentBlock && currentBlock.svgData) {
-                    // LIMPA localStorage primeiro para evitar dados antigos
-                    localStorage.removeItem('vexflow_sheet_data');
-                    localStorage.removeItem('vexflow_sheet_svg');
-                    console.log('🧹 localStorage limpo');
-                    
-                    // Salva o SVG atual para o editor poder carregar
-                    localStorage.setItem('vexflow_sheet_svg', currentBlock.svgData);
-                    console.log('💾 SVG salvo no localStorage');
-                    
-                    // Usa os dados originais se existirem
-                    if (currentBlock.originalData || currentBlock.sheetData) {
-                        const dataToSave = currentBlock.originalData || currentBlock.sheetData;
-                        
-                        // Verifica se os dados têm notas válidas antes de salvar
-                        try {
-                            const parsed = JSON.parse(dataToSave);
-                            if (parsed.measures && parsed.measures.length > 0 && parsed.measures[0].length > 0) {
-                                localStorage.setItem('vexflow_sheet_data', dataToSave);
-                                console.log('💾 Dados válidos salvos no localStorage');
-                                console.log('📄 Conteúdo:', dataToSave.substring(0, 200) + '...');
-                            } else {
-                                console.log('⚠️ Dados vazios detectados - não salvando');
-                                alert('⚠️ Esta partitura está vazia. Crie algumas notas primeiro!');
-                                return;
-                            }
-                        } catch (e) {
-                            console.warn('Erro ao verificar dados:', e);
-                        }
-                    } else {
-                        console.log('⚠️ Criando dados básicos para edição');
-                        const basicData = JSON.stringify({
-                            clef: 'treble',
-                            keySig: 'C',
-                            timeSig: '4/4',
-                            measures: [[{pitch: 'C/4', duration: 'q'}]], // Adiciona uma nota básica
-                            ties: [],
-                            chords: []
-                        });
-                        localStorage.setItem('vexflow_sheet_data', basicData);
-                        console.log('💾 Dados básicos salvos:', basicData);
-                    }
-                    
-                    console.log('📝 Dados preparados para edição');
-                } else {
-                    console.log('❌ Nenhuma partitura encontrada no bloco');
+                localStorage.removeItem('vexflow_sheet_data');
+                localStorage.removeItem('vexflow_sheet_svg');
+                let dados = currentBlock && (currentBlock.originalData || currentBlock.sheetData);
+                if (typeof dados === 'string') { try { dados = JSON.parse(dados); } catch (e) { dados = null; } }
+                if (dados && typeof dados === 'object') {
+                    localStorage.setItem('vexflow_sheet_data', JSON.stringify(dados));
+                    if (currentBlock.svgData) localStorage.setItem('vexflow_sheet_svg', currentBlock.svgData);
                 }
-                
+
                 // Abre editor VexFlow
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-                
+                if (!vexWindow) { alert('O navegador bloqueou a janela do editor de partitura. Libere pop-ups pra este site.'); return; }
+
                 // Monitora fechamento
                 const checkClosed = setInterval(async () => {
                     if (vexWindow.closed) {
@@ -1408,11 +1373,14 @@
                         console.log('Novo SVG:', newSvgData ? 'Presente' : 'Ausente');
                         console.log('Novos dados:', newSheetData ? 'Presente' : 'Ausente');
                         
-                        if (newSvgData) {
+                        if (newSvgData && newSheetData) {
                             registrar('editar partitura');
                             blocks[index].svgData = newSvgData;
                             blocks[index].sheetData = newSheetData;
-                            blocks[index].originalData = newSheetData; // Atualiza dados originais
+                            // objeto, não o texto: createSheetBlock desenha a
+                            // prévia a partir dele (com o texto ficava "Partitura
+                            // sem dados")
+                            try { blocks[index].originalData = JSON.parse(newSheetData); } catch (e) { blocks[index].originalData = null; }
                             renderBlocks();
                             console.log('✅ Partitura atualizada com sucesso!');
                         } else {

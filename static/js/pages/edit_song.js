@@ -1378,7 +1378,10 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     console.log('💾 Dados básicos salvos:', basicData);
                 }
                 } else {
-                    console.log('❌ Nenhuma partitura encontrada no bloco');
+                    // Bloco vazio (+ → Partitura): editor em branco, não a
+                    // última partitura que ficou no localStorage
+                    localStorage.removeItem('vexflow_sheet_data');
+                    localStorage.removeItem('vexflow_sheet_svg');
                 }
 
                 openSheetEditorPopup();
