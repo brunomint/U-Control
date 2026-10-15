@@ -193,6 +193,7 @@
     <small class="atalhos">
       <b>Atalhos (iguais aos do MuseScore):</b> duração <kbd>3</kbd> semicolcheia · <kbd>4</kbd> colcheia · <kbd>5</kbd> semínima · <kbd>6</kbd> mínima · <kbd>7</kbd> semibreve · <kbd>.</kbd> ponto ·
       nota <kbd>A</kbd>–<kbd>G</kbd> (a oitava mais próxima da anterior) · <kbd>0</kbd> pausa · <kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd> sustenido/bemol/bequadro na próxima nota · <kbd>T</kbd> nota ligada ·
+      <kbd>Espaço</kbd> toca/para · <kbd>P</kbd> teclado de piano ·
       <kbd>←</kbd> <kbd>→</kbd> anda entre as notas · <kbd>↑</kbd> <kbd>↓</kbd> meio tom · <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> oitava · <kbd>J</kbd> troca a grafia · <kbd>Del</kbd> vira pausa · <kbd>Backspace</kbd> apaga a última · <kbd>Esc</kbd> tira a seleção · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd>
     </small>
   </section>
@@ -200,6 +201,13 @@
   <section class="uc-card card score-section">
     <div class="score-header">
       <h2>Partitura</h2>
+      <div class="play-controls">
+        <button type="button" class="btn action-btn" id="playBtn" title="Tocar a partir da nota selecionada, ou do começo (Espaço)"><i class="fas fa-play"></i> <span>Tocar</span></button>
+        <label class="tempo" title="Andamento (semínimas por minuto)"><i class="fas fa-gauge-high"></i>
+          <input type="number" id="tempoInput" min="30" max="240" step="5" value="80" aria-label="Andamento"></label>
+        <button type="button" class="btn" id="soundToggle" title="Som ao digitar as notas" aria-pressed="true"><i class="fas fa-volume-high"></i></button>
+        <button type="button" class="btn" id="pianoToggle" title="Mostrar/esconder o teclado (P)" aria-pressed="true"><i class="fas fa-keyboard"></i></button>
+      </div>
       <div class="zoom-controls">
         <button type="button" class="btn" id="zoomOutBtn">-</button>
         <span id="zoomLevel">100%</span>
@@ -207,6 +215,11 @@
       </div>
     </div>
     <div class="score-wrap"><div id="score"></div></div>
+    <div class="piano-panel" id="pianoPanel">
+      <button type="button" class="btn piano-shift" id="pianoDown" title="Teclado uma oitava abaixo" aria-label="Teclado uma oitava abaixo"><i class="fas fa-chevron-left"></i></button>
+      <div class="piano" id="piano" role="group" aria-label="Teclado de piano: toque pra ouvir e escrever a nota"></div>
+      <button type="button" class="btn piano-shift" id="pianoUp" title="Teclado uma oitava acima" aria-label="Teclado uma oitava acima"><i class="fas fa-chevron-right"></i></button>
+    </div>
   </section>
 </main>
 
@@ -262,7 +275,7 @@
   const $editPitch=$('editPitch'), $editOctave=$('editOctave'), $editDuration=$('editDuration'),
         $editAccidental=$('editAccidental'), $editDotted=$('editDotted'), $editRest=$('editRest');
 
-  $clef.onchange=()=>{state.clef=$clef.value; render();};
+  $clef.onchange=()=>{state.clef=$clef.value; pianoStart = state.clef==='bass' ? 2 : 4; buildPiano(); render();};
   $keysig.onchange=()=>{state.keySig=$keysig.value; render();};
   $timesig.onchange=()=>{state.timeSig=$timesig.value; render();};
   $isRest.onchange=()=>state.isRest=$isRest.checked;
@@ -597,9 +610,11 @@
       if(k+1<items.length) setSelection(items[k+1], false);
       else setSelection({m,i}, true);
       render();
+      if(somAoDigitar){ const s0=soundingOf({pitch, accidental:armed}); if(s0!=null) tone(s0, ac().currentTime+0.01, 0.45); }
       return;
     }
     addNoteSplit(pitch,false,armed);
+    previewSelected();
   }
   function addRest(dur){
     const prevDur=state.duration, prevRest=state.isRest, prevDot=state.dotted;
@@ -681,6 +696,9 @@
   function moveSel(dir){
     const items=allItems(); if(!items.length) return;
     let k=selIndex();
+    // Logo depois de digitar, o cursor está "depois" da nota nova: o 1º ←
+    // volta pra ela (pra corrigir), igual ao MuseScore
+    if(dir<0 && state.appendMode && k===items.length-1){ setSelection(items[k], false); render(); return; }
     if(k<0) k = dir>0 ? -1 : items.length;
     const nk=Math.max(0,Math.min(items.length-1,k+dir));
     setSelection(items[nk], false);
@@ -698,7 +716,7 @@
     pushUndo(); clearRedo();
     n.pitch=sp.pitch; n.accidental=sp.accidental;
     dropTiesOf(state.selectedNote.m, state.selectedNote.i);
-    setOctave(sp.oct); updateEditControls(); render();
+    setOctave(sp.oct); updateEditControls(); render(); previewSelected();
   }
   // Ctrl+↑ ↓ / [ ]: oitava da nota selecionada (sem seleção, da próxima)
   function shiftOctave(dir){
@@ -709,7 +727,7 @@
     pushUndo(); clearRedo();
     n.pitch=p.letter+p.acc+o;
     dropTiesOf(state.selectedNote.m, state.selectedNote.i);
-    setOctave(o); updateEditControls(); render();
+    setOctave(o); updateEditControls(); render(); previewSelected();
   }
   // J: mesma altura, outra grafia (Dó♯ ↔ Ré♭)
   function respell(){
@@ -719,7 +737,7 @@
     if(!alt) return;
     pushUndo(); clearRedo();
     n.pitch=alt.pitch; n.accidental=alt.accidental;
-    updateEditControls(); render();
+    updateEditControls(); render(); previewSelected();
   }
   // Del: a nota selecionada vira pausa (mesma duração)
   function selectedToRest(){
@@ -757,6 +775,169 @@
     state.lastNoteRef={m:ref.m, i:ref.i, pitch:ref.note.pitch};
     state.tieArmed=true;
     addNoteSplit(ref.note.pitch, false, ref.note.accidental==='n' ? 'n' : '');
+  }
+
+  // ===== Som (Web Audio, sem biblioteca) =====
+  let audioCtx = null;
+  function ac(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  const midiOf = (semis) => semis + 12;                 // C4 (semis 48) = MIDI 60
+  const freqOf = (semis) => 440 * Math.pow(2, (midiOf(semis) - 69) / 12);
+  let playingNodes = [];
+  // Um "piano" simples: triângulo + seno uma oitava acima, ataque rápido
+  function tone(semis, start, dur, vol = 0.22){
+    const ctx = ac();
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(vol, start + 0.012);
+    g.gain.exponentialRampToValueAtTime(vol * 0.45, start + 0.25);
+    const fim = start + Math.max(0.08, dur);
+    g.gain.setValueAtTime(vol * 0.45, Math.max(start + 0.25, fim - 0.06));
+    g.gain.exponentialRampToValueAtTime(0.0001, fim + 0.12);
+    g.connect(ctx.destination);
+    [['triangle', 1, 1], ['sine', 2, 0.25]].forEach(([type, mult, amp]) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = type; o.frequency.value = freqOf(semis) * mult; og.gain.value = amp;
+      o.connect(og).connect(g); o.start(start); o.stop(fim + 0.15);
+      playingNodes.push(o);
+    });
+  }
+  let somAoDigitar = true;
+  try { somAoDigitar = localStorage.getItem('uc_sheet_som') !== '0'; } catch (e) {}
+  function previewSelected(){
+    if(!somAoDigitar || isPlaying) return;
+    const n = selectedNoteObj(); if(!n || n.rest) return;
+    const s0 = soundingOf(n); if(s0 == null) return;
+    tone(s0, ac().currentTime + 0.01, 0.45);
+  }
+
+  // ===== Tocar a partitura =====
+  let isPlaying = false, playTimers = [];
+  function stopPlayback(){
+    playTimers.forEach(clearTimeout); playTimers = [];
+    const ctx = audioCtx;
+    if(ctx) playingNodes.forEach(o => { try { o.stop(ctx.currentTime + 0.02); } catch (e) {} });
+    playingNodes = [];
+    isPlaying = false;
+    $('playBtn').innerHTML = '<i class="fas fa-play"></i> <span>Tocar</span>';
+  }
+  function startPlayback(){
+    const items = allItems();
+    if(!items.length) return;
+    let k0 = selIndex(); if(k0 < 0 || state.appendMode && k0 === items.length - 1) k0 = 0;
+    const bpm = Math.max(30, Math.min(240, parseInt($('tempoInput').value, 10) || 80));
+    const whole = 4 * 60 / bpm;                           // segundos de uma semibreve
+    const tieTarget = new Set(state.ties.map(t => t.to.m + ':' + t.to.i));
+    const ctx = ac();
+    const t0 = ctx.currentTime + 0.08;
+    let t = 0, last = null;
+    isPlaying = true;
+    $('playBtn').innerHTML = '<i class="fas fa-stop"></i> <span>Parar</span>';
+    for(let k = k0; k < items.length; k++){
+      const {m, i} = items[k];
+      const n = state.measures[m][i];
+      const d = durValue(n.duration, !!n.dotted) * whole;
+      if(!n.rest){
+        const s0 = soundingOf(n);
+        // nota ligada à anterior: só estica a anterior, não toca de novo
+        if(last && tieTarget.has(m + ':' + i) && last.semis === s0) last.dur += d;
+        else { last = { semis: s0, start: t, dur: d }; last.ev = last; playEvents.push(last); }
+      } else last = null;
+      const ref = items[k];
+      playTimers.push(setTimeout(() => {
+        state.selectedNote = { m: ref.m, i: ref.i };
+        if(lastVfNotes) drawSelectionHighlight(lastVfNotes);
+      }, (t0 - ctx.currentTime + t) * 1000));
+      t += d;
+    }
+    playEvents.forEach(e => tone(e.semis, t0 + e.start, e.dur * 0.95));
+    playEvents.length = 0;
+    playTimers.push(setTimeout(() => { stopPlayback(); updateEditControls(); }, (t0 - ctx.currentTime + t) * 1000 + 300));
+  }
+  const playEvents = [];
+  function togglePlay(){ isPlaying ? stopPlayback() : startPlayback(); }
+
+  // ===== Teclado de piano =====
+  // Tecla = altura que soa; vira nota escrita na grafia do tom (com
+  // sustenidos em tom de sustenido, bemóis em tom de bemol) e entra igual
+  // a uma letra: troca a selecionada (se andou até ela) ou acrescenta
+  let pianoStart = 4;                                     // oitava da 1ª tecla
+  function enterSounding(semis){
+    const n = KEY_COUNT[state.keySig] || 0;
+    const sp = spell(semis, n < 0);
+    const accText = sp.pitch.replace(/^[A-G]/, '').replace(/\d$/, '');
+    const k = selIndex();
+    if(!state.appendMode && k >= 0){
+      pushUndo(); clearRedo();
+      const {m, i} = state.selectedNote, note = state.measures[m][i];
+      note.pitch = sp.pitch; note.accidental = sp.accidental; note.rest = false;
+      dropTiesOf(m, i);
+      const items = allItems();
+      if(k + 1 < items.length) setSelection(items[k + 1], false); else setSelection({m, i}, true);
+      setOctave(sp.oct); render(); return;
+    }
+    clearAccArmed();
+    setOctave(sp.oct);
+    addNoteSplit(sp.letter + accText + sp.oct, false, sp.accidental);
+  }
+  function buildPiano(){
+    const el = $('piano'); el.innerHTML = '';
+    const WHITE = [0, 2, 4, 5, 7, 9, 11], BLACK = {1: 0, 3: 1, 6: 3, 8: 4, 10: 5};   // preta -> depois da branca n
+    for(let o = 0; o < 2; o++){
+      WHITE.forEach((pc, w) => {
+        const semis = (pianoStart + o) * 12 + pc;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'pk white'; b.dataset.semis = semis;
+        b.style.left = `calc(${(o * 7 + w)} * (100% / 14))`;
+        b.title = ['C','D','E','F','G','A','B'][w] + (pianoStart + o);
+        if(pc === 0) b.textContent = 'C' + (pianoStart + o);
+        el.appendChild(b);
+      });
+      Object.entries(BLACK).forEach(([pc, after]) => {
+        const semis = (pianoStart + o) * 12 + (+pc);
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'pk black'; b.dataset.semis = semis;
+        b.style.left = `calc(${(o * 7 + after + 1)} * (100% / 14) - (100% / 14) * 0.3)`;
+        el.appendChild(b);
+      });
+    }
+  }
+  $('piano').addEventListener('pointerdown', (e) => {
+    const key = e.target.closest('.pk'); if(!key) return;
+    e.preventDefault();
+    const semis = +key.dataset.semis;
+    key.classList.add('down'); setTimeout(() => key.classList.remove('down'), 160);
+    if(somAoDigitar) tone(semis, ac().currentTime + 0.005, 0.45);
+    enterSounding(semis);
+  });
+  $('pianoDown').onclick = () => { pianoStart = Math.max(1, pianoStart - 1); buildPiano(); };
+  $('pianoUp').onclick = () => { pianoStart = Math.min(6, pianoStart + 1); buildPiano(); };
+  function togglePiano(){
+    const p = $('pianoPanel'); const on = p.hidden;
+    p.hidden = !on; $('pianoToggle').setAttribute('aria-pressed', String(on));
+    $('pianoToggle').classList.toggle('active', on);
+    try { localStorage.setItem('uc_sheet_piano', on ? '1' : '0'); } catch (e) {}
+  }
+  $('pianoToggle').onclick = togglePiano;
+  $('playBtn').onclick = togglePlay;
+  $('soundToggle').onclick = () => {
+    somAoDigitar = !somAoDigitar;
+    $('soundToggle').setAttribute('aria-pressed', String(somAoDigitar));
+    $('soundToggle').classList.toggle('active', somAoDigitar);
+    $('soundToggle').innerHTML = `<i class="fas fa-volume-${somAoDigitar ? 'high' : 'xmark'}"></i>`;
+    try { localStorage.setItem('uc_sheet_som', somAoDigitar ? '1' : '0'); } catch (e) {}
+  };
+  // Mantém a nota selecionada à vista dentro da área da partitura
+  function scrollScoreTo(rect){
+    const wrap = $score.closest('.score-wrap'); if(!wrap) return;
+    const r = rect.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    if(r.top < w.top + 8) wrap.scrollTop -= (w.top + 8 - r.top);
+    else if(r.bottom > w.bottom - 8) wrap.scrollTop += (r.bottom - w.bottom + 8);
+    if(r.left < w.left + 8) wrap.scrollLeft -= (w.left + 8 - r.left);
+    else if(r.right > w.right - 8) wrap.scrollLeft += (r.right - w.right + 8);
   }
 
   function removeLast(){
@@ -853,9 +1034,11 @@
   // static/js/sheet_render.js, compartilhado com as telas de exibição
   // (view_song/lyrics/display) — ver .claude/plans/harmonic-mixing-breeze.md.
   // Aqui só sobra o que é específico do editor: destaque de seleção.
+  let lastVfNotes = null;
   function render(){
     if(!VF_READY) return;
     renderSheetMusic($score, state, { interactive: true }).then(({vfNotesByMI})=>{
+      lastVfNotes = vfNotesByMI;
       drawSelectionHighlight(vfNotesByMI);
     }).catch(e=>{
       console.warn('Falha ao renderizar partitura.', e);
@@ -887,6 +1070,7 @@
       rect.setAttribute('stroke-width', '2');
       rect.setAttribute('pointer-events', 'none');
       svg.appendChild(rect);
+      scrollScoreTo(rect);
     } catch(e) {
       console.warn('Erro ao destacar nota:', e);
     }
@@ -967,7 +1151,9 @@
     if (k==='ArrowDown'){ ev.preventDefault(); stepSemitone(-1); return; }
     if (k==='Backspace'){ ev.preventDefault(); removeLast(); return; }
     if (k==='Delete'){ ev.preventDefault(); selectedToRest(); return; }
-    if (k==='Escape'){ deselectNote(); return; }
+    if (k==='Escape'){ if(isPlaying) stopPlayback(); else deselectNote(); return; }
+    if (k===' '){ ev.preventDefault(); togglePlay(); return; }
+    if (kl==='p'){ togglePiano(); return; }
     if (k==='.'){ $dot.click(); return; }
     if (DUR_KEYS[k]){ setDuration(DUR_KEYS[k]); return; }
     if (k==='0'){ enterRest(); return; }
@@ -1088,6 +1274,7 @@
         const timeSigEl = document.getElementById('timesig');
         
         if (clefEl) clefEl.value = state.clef;
+        pianoStart = state.clef === 'bass' ? 2 : 4; buildPiano();
         if (keySigEl) keySigEl.value = state.keySig;
         if (timeSigEl) timeSigEl.value = state.timeSig;
         
@@ -1140,6 +1327,9 @@
       state.measures = normalized.measures;
       state.ties = normalized.ties;
       state.chords = normalized.chords;
+
+      // Teclado na região da clave (Fá: começa no Dó2)
+      pianoStart = state.clef === 'bass' ? 2 : 4; buildPiano();
 
       // Atualiza os controles da interface
       document.getElementById('clef').value = state.clef;
@@ -1277,6 +1467,12 @@
   setOctave(state.currentOctave);
   setDuration(state.duration||'h');
   setZoom(state.zoomLevel);
+  pianoStart = state.clef === 'bass' ? 2 : 4;
+  buildPiano();
+  try { if(localStorage.getItem('uc_sheet_piano') === '0') togglePiano(); } catch (e) {}
+  $('pianoToggle').classList.toggle('active', !$('pianoPanel').hidden);
+  $('soundToggle').classList.toggle('active', somAoDigitar);
+  if(!somAoDigitar) $('soundToggle').innerHTML = '<i class="fas fa-volume-xmark"></i>';
   updateEditControls();
   render();
 </script>

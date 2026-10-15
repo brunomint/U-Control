@@ -69,9 +69,36 @@
 .zoom-controls { display: flex; align-items: center; gap: 6px; }
 .zoom-controls .btn { width: 30px; padding: 0; }
 #zoomLevel { min-width: 44px; text-align: center; font-family: var(--uc-mono); font-size: 12.5px; color: var(--uc-muted); }
-.score-wrap { overflow-x: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 240px; }
+.score-wrap { overflow: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 240px; max-height: calc(100vh - var(--uc-nav-h) - 300px); }
+
+/* Tocar / andamento / som / teclado */
+.score-header { gap: 8px; flex-wrap: wrap; }
+.play-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.play-controls .btn { display: inline-flex; align-items: center; gap: 6px; }
+.play-controls .tempo { display: inline-flex; align-items: center; gap: 5px; margin: 0; color: var(--uc-muted); font-size: 12px; }
+.play-controls .tempo input { width: 58px; padding: 4px 6px; border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); background: var(--uc-bg); color: var(--uc-text); font: inherit; font-size: 13px; color-scheme: dark; }
+
+/* Teclado de piano (duas oitavas) */
+.piano-panel { display: flex; align-items: stretch; gap: 6px; }
+.piano-panel[hidden] { display: none; }
+.piano-shift { width: 30px; padding: 0; flex: none; }
+.piano { position: relative; flex: 1; height: 96px; user-select: none; touch-action: manipulation; }
+.pk { position: absolute; top: 0; padding: 0; border: 1px solid #9aa0b4; cursor: pointer; font: inherit; }
+.pk.white { width: calc(100% / 14); height: 100%; background: #fff; border-radius: 0 0 6px 6px; color: #8a90a6; font-size: 10px; font-weight: 700; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; z-index: 1; }
+.pk.black { width: calc(100% / 14 * 0.6); height: 60%; background: #1d2030; border-color: #1d2030; border-radius: 0 0 4px 4px; z-index: 2; }
+.pk.white:hover { background: #f1efff; }
+.pk.black:hover { background: #343852; }
+.pk.down.white { background: var(--uc-accent); color: #fff; }
+.pk.down.black { background: var(--uc-accent-strong); }
 
 @media (max-width: 960px) {
   .sheet-main { grid-template-columns: minmax(0, 1fr); }
-  .score-section { position: static; order: -1; }
+  /* Celular/tablet: partitura + teclado ficam presos em cima enquanto os
+     controles rolam embaixo — dá pra ver a partitura ao digitar */
+  .score-section { position: sticky; top: var(--uc-nav-h); z-index: 30; order: -1; padding: 8px !important; gap: 6px; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+  .score-header h2, .zoom-controls { display: none; }
+  .play-controls { margin-left: 0; width: 100%; }
+  .play-controls #playBtn { flex: 1; justify-content: center; }
+  .score-wrap { max-height: 30vh; min-height: 0; padding: 6px; }
+  .piano { height: 78px; }
 }
