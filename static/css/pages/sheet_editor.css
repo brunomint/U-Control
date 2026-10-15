@@ -59,6 +59,9 @@
 .kbd { display: inline-block; min-width: 26px; text-align: center; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); font-family: var(--uc-mono); font-size: 12px; }
 .controls small { display: block; margin-top: 6px; color: var(--uc-faint); font-size: 12px; line-height: 1.5; }
 .controls input[type="checkbox"] { accent-color: var(--uc-accent); }
+.controls .atalhos kbd { display: inline-block; min-width: 18px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); color: var(--uc-text); font-family: var(--uc-mono); font-size: 11px; text-align: center; }
+.controls .atalhos b { color: var(--uc-muted); }
+.sel-nav .btn { min-width: 34px; }
 
 .score-section { display: flex; flex-direction: column; gap: 10px; position: sticky; top: calc(var(--uc-nav-h) + 16px); }
 .score-header { display: flex; align-items: center; justify-content: space-between; }

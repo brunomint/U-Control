@@ -54,37 +54,37 @@
       <div class="row">
         <div>
           <span class="group-title">Oitava:</span>
-          <button type="button" class="btn" id="octDown" title="Oitava - ( [ )">–</button>
+          <button type="button" class="btn" id="octDown" title="Oitava abaixo (Ctrl+↓ ou [)">–</button>
           <span id="octDisplay" class="kbd">4</span>
-          <button type="button" class="btn" id="octUp" title="Oitava + ( ] )">+</button>
+          <button type="button" class="btn" id="octUp" title="Oitava acima (Ctrl+↑ ou ])">+</button>
         </div>
-        <div><button type="button" class="btn" id="tieBtn" title="Armar ligadura manual (T)">Ligadura</button></div>
+        <div><button type="button" class="btn" id="tieBtn" title="Nota ligada: repete a nota selecionada com a duração escolhida (T)">Ligadura</button></div>
       </div>
       <div class="row">
         <span class="group-title">Acidentes:</span>
-        <button type="button" class="btn" id="accSharpBtn" title="Sustenido (#)">#</button>
-        <button type="button" class="btn" id="accFlatBtn" title="Bemol (b)">b</button>
-        <button type="button" class="btn" id="accNaturalBtn" title="Bequadro (♮)">♮</button>
-        <button type="button" class="btn" id="accDoubleSharpBtn" title="Dobrado sustenido (𝄪)">𝄪</button>
-        <button type="button" class="btn" id="accDoubleFlatBtn" title="Dobrado bemol (𝄫)">𝄫</button>
+        <button type="button" class="btn" id="accSharpBtn" title="Sustenido na próxima nota (+)">#</button>
+        <button type="button" class="btn" id="accFlatBtn" title="Bemol na próxima nota (-)">b</button>
+        <button type="button" class="btn" id="accNaturalBtn" title="Bequadro na próxima nota (=)">♮</button>
+        <button type="button" class="btn" id="accDoubleSharpBtn" title="Dobrado sustenido na próxima nota">𝄪</button>
+        <button type="button" class="btn" id="accDoubleFlatBtn" title="Dobrado bemol na próxima nota">𝄫</button>
       </div>
     </div>
 
     <div class="control-group">
       <span class="control-group-title">Duração</span>
       <div class="row">
-        <button type="button" class="btn dur" data-dur="w"  title="Semibreve (1)" aria-pressed="false">𝅝</button>
-        <button type="button" class="btn dur active" data-dur="h" title="Mínima (2)"    aria-pressed="true">𝅗𝅥</button>
-        <button type="button" class="btn dur" data-dur="q"  title="Semínima (3)"  aria-pressed="false">𝅘𝅥</button>
+        <button type="button" class="btn dur" data-dur="w"  title="Semibreve (7)" aria-pressed="false">𝅝</button>
+        <button type="button" class="btn dur active" data-dur="h" title="Mínima (6)"    aria-pressed="true">𝅗𝅥</button>
+        <button type="button" class="btn dur" data-dur="q"  title="Semínima (5)"  aria-pressed="false">𝅘𝅥</button>
         <button type="button" class="btn dur" data-dur="8"  title="Colcheia (4)"  aria-pressed="false">𝅘𝅥𝅮</button>
-        <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (5)" aria-pressed="false">𝅘𝅥𝅯</button>
+        <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (3)" aria-pressed="false">𝅘𝅥𝅯</button>
         <button type="button" class="btn" id="dotBtn" title="Ponto (.)">.</button>
       </div>
       <div class="row">
-        <label class="row"><input type="checkbox" id="isRest"> Pausa (R)</label>
+        <label class="row"><input type="checkbox" id="isRest"> Notas viram pausa</label>
       </div>
       <div class="row">
-        <span class="group-title">Pausas rápidas:</span>
+        <span class="group-title">Pausas (0):</span>
         <button type="button" class="btn rest-btn" data-dur="w">𝅝</button>
         <button type="button" class="btn rest-btn" data-dur="h">𝅗𝅥</button>
         <button type="button" class="btn rest-btn" data-dur="q">𝅘𝅥</button>
@@ -94,7 +94,17 @@
     </div>
 
     <div class="control-group">
-      <span class="control-group-title">Editar Nota Selecionada</span>
+      <span class="control-group-title">Nota selecionada</span>
+      <div class="row sel-nav" role="group" aria-label="Mexer na nota selecionada">
+        <button type="button" class="btn" id="selPrevBtn" title="Nota anterior (←)" aria-label="Nota anterior"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" class="btn" id="selNextBtn" title="Próxima nota (→)" aria-label="Próxima nota"><i class="fas fa-chevron-right"></i></button>
+        <button type="button" class="btn" id="selUpBtn" title="Meio tom acima (↑)" aria-label="Meio tom acima"><i class="fas fa-arrow-up"></i></button>
+        <button type="button" class="btn" id="selDownBtn" title="Meio tom abaixo (↓)" aria-label="Meio tom abaixo"><i class="fas fa-arrow-down"></i></button>
+        <button type="button" class="btn" id="selOctUpBtn" title="Oitava acima (Ctrl+↑)">8va↑</button>
+        <button type="button" class="btn" id="selOctDownBtn" title="Oitava abaixo (Ctrl+↓)">8va↓</button>
+        <button type="button" class="btn" id="selRespellBtn" title="Trocar a grafia, ex.: Dó♯ ↔ Ré♭ (J)">♯↔♭</button>
+        <button type="button" class="btn" id="selRestBtn" title="Trocar por pausa (Del)">Pausa</button>
+      </div>
       <div class="row">
         <div>
           <label>Altura:</label>
@@ -136,12 +146,10 @@
         <div>
           <label><input type="checkbox" id="editRest" disabled> Pausa</label>
         </div>
-        <div>
-          <button type="button" class="btn" id="applyEditBtn" disabled>Aplicar Mudanças</button>
-        </div>
+
       </div>
       <div class="row">
-        <small>Clique numa nota para editá-la, mude as propriedades e toque em "Aplicar".</small>
+        <small>Clique numa nota (ou use ← →) e mude aqui — vale na hora. Digitar uma letra com uma nota selecionada troca essa nota e passa pra próxima.</small>
       </div>
     </div>
 
@@ -182,8 +190,10 @@
       </div>
     </div>
 
-    <small>
-      Atalhos: 1=w · 2=h · 3=q · 4=8 · 5=16 · . ponto · R pausa · [ ] oitava · T ligadura · C..B notas · Backspace remove · Ctrl/⌘+Z / Y · Editar: clique na nota, modifique e clique "Aplicar"
+    <small class="atalhos">
+      <b>Atalhos (iguais aos do MuseScore):</b> duração <kbd>3</kbd> semicolcheia · <kbd>4</kbd> colcheia · <kbd>5</kbd> semínima · <kbd>6</kbd> mínima · <kbd>7</kbd> semibreve · <kbd>.</kbd> ponto ·
+      nota <kbd>A</kbd>–<kbd>G</kbd> (a oitava mais próxima da anterior) · <kbd>0</kbd> pausa · <kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd> sustenido/bemol/bequadro na próxima nota · <kbd>T</kbd> nota ligada ·
+      <kbd>←</kbd> <kbd>→</kbd> anda entre as notas · <kbd>↑</kbd> <kbd>↓</kbd> meio tom · <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> oitava · <kbd>J</kbd> troca a grafia · <kbd>Del</kbd> vira pausa · <kbd>Backspace</kbd> apaga a última · <kbd>Esc</kbd> tira a seleção · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd>
     </small>
   </section>
 
@@ -230,6 +240,9 @@
     chords:[],            // [{m:0, i:0, symbol:'C'}] - acordes por posição
     ties:[],          // {from:{m,i}, to:{m,i}}
     lastNoteRef:null,
+    // true: a seleção é a nota que acabou de entrar (letra acrescenta no
+    // fim); false: a pessoa andou/clicou numa nota (letra troca a nota)
+    appendMode:true,
     undo:[], redo:[],
     zoomLevel:100
   };
@@ -247,15 +260,14 @@
         $accDoubleFlat=$('accDoubleFlatBtn');
   const $chordInput=$('chordInput'), $addChordBtn=$('addChordBtn'), $removeChordBtn=$('removeChordBtn');
   const $editPitch=$('editPitch'), $editOctave=$('editOctave'), $editDuration=$('editDuration'),
-        $editAccidental=$('editAccidental'), $editDotted=$('editDotted'), $editRest=$('editRest'),
-        $applyEditBtn=$('applyEditBtn');
+        $editAccidental=$('editAccidental'), $editDotted=$('editDotted'), $editRest=$('editRest');
 
   $clef.onchange=()=>{state.clef=$clef.value; render();};
   $keysig.onchange=()=>{state.keySig=$keysig.value; render();};
   $timesig.onchange=()=>{state.timeSig=$timesig.value; render();};
   $isRest.onchange=()=>state.isRest=$isRest.checked;
   $dot.onclick=()=>{state.dotted=!state.dotted; $dot.classList.toggle('active',state.dotted);};
-  $tie.onclick=()=>{state.tieArmed=!state.tieArmed; $tie.classList.toggle('active',state.tieArmed);};
+  $tie.onclick=()=>addTiedNote();
 
   function setAccArmed(v){
     state.accArmed = (state.accArmed===v?'':v);
@@ -287,6 +299,88 @@
 
   // ===== Notas =====
   const LETTERS=['C','D','E','F','G','A','B'];
+
+  // ===== Altura: nota escrita + armadura =====
+  // pitch fica como escrito ("F4", "F#4"); note.accidental é o sinal que
+  // aparece (inclui 'n' de bequadro). Sem sinal, a armadura vale por cima
+  // (em Sol, "F4" soa Fá♯) — igual ao desenho do sheet_render.js.
+  const LETTER_PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  const ACC_SEMI={'':0,'n':0,'#':1,'b':-1,'##':2,'bb':-2};
+  const SHARP_ORDER=['F','C','G','D','A','E','B'], FLAT_ORDER=['B','E','A','D','G','C','F'];
+  const KEY_COUNT={C:0,G:1,D:2,A:3,E:4,B:5,'F#':6,'C#':7,F:-1,Bb:-2,Eb:-3,Ab:-4,Db:-5,Gb:-6,Cb:-7};
+  function keyAcc(letter){
+    const n=KEY_COUNT[state.keySig]||0;
+    if(n>0 && SHARP_ORDER.slice(0,n).includes(letter)) return '#';
+    if(n<0 && FLAT_ORDER.slice(0,-n).includes(letter)) return 'b';
+    return '';
+  }
+  function parsePitch(p){
+    const m=/^([A-G])(##|bb|#|b)?(\d)$/.exec(p||'');
+    return m ? {letter:m[1], acc:m[2]||'', oct:+m[3]} : null;
+  }
+  // Altura que soa, em semitons (C0 = 0)
+  function soundingOf(note){
+    const p=parsePitch(note.pitch); if(!p) return null;
+    const acc=note.accidental || p.acc;
+    const semi=(acc==='') ? ACC_SEMI[keyAcc(p.letter)] : ACC_SEMI[acc];
+    return p.oct*12 + LETTER_PC[p.letter] + semi;
+  }
+  const SPELL_SHARP=[['C',''],['C','#'],['D',''],['D','#'],['E',''],['F',''],['F','#'],['G',''],['G','#'],['A',''],['A','#'],['B','']];
+  const SPELL_FLAT=[['C',''],['D','b'],['D',''],['E','b'],['E',''],['F',''],['G','b'],['G',''],['A','b'],['A',''],['B','b'],['B','']];
+  // Escreve uma altura (semitons) com sustenido ou bemol; o sinal que
+  // aparece é só o que a armadura não dá conta
+  function spell(semis, preferFlat){
+    const oct=Math.floor(semis/12), pc=((semis%12)+12)%12;
+    const [letter,acc]=(preferFlat?SPELL_FLAT:SPELL_SHARP)[pc];
+    const ka=keyAcc(letter);
+    const shown = acc===ka ? '' : (acc==='' ? 'n' : acc);
+    return { pitch: letter+acc+oct, accidental: shown, letter, oct };
+  }
+  const diatonic=(letter,oct)=>oct*7+LETTERS.indexOf(letter);
+
+  // Lista plana de tudo (notas e pausas) na ordem: [{m,i}]
+  function allItems(){
+    const out=[];
+    state.measures.forEach((ms,m)=>ms.forEach((_,i)=>out.push({m,i})));
+    return out;
+  }
+  function selIndex(){
+    if(!state.selectedNote) return -1;
+    return allItems().findIndex(r=>r.m===state.selectedNote.m && r.i===state.selectedNote.i);
+  }
+  // Última nota (não pausa) antes da posição k da lista plana
+  function prevNoteBefore(k){
+    const items=allItems();
+    for(let j=Math.min(k,items.length)-1;j>=0;j--){
+      const n=state.measures[items[j].m][items[j].i];
+      if(n && !n.rest) return n;
+    }
+    return null;
+  }
+  // Oitava mais próxima da nota anterior (igual ao MuseScore)
+  function closestOctave(letter, prev){
+    const p=prev && parsePitch(prev.pitch);
+    if(!p) return state.currentOctave;
+    const ref=diatonic(p.letter,p.oct);
+    let best=p.oct, bestD=Infinity;
+    for(const o of [p.oct-1,p.oct,p.oct+1]){
+      if(o<state.minOctave||o>state.maxOctave) continue;
+      const d=Math.abs(diatonic(letter,o)-ref);
+      if(d<bestD){ best=o; bestD=d; }
+    }
+    return best;
+  }
+  function dropTiesOf(m,i){
+    state.ties=state.ties.filter(t=>!(t.from.m===m&&t.from.i===i)&&!(t.to.m===m&&t.to.i===i));
+  }
+  function selectedNoteObj(){
+    const s=state.selectedNote; return s ? state.measures[s.m]?.[s.i] : null;
+  }
+  function setSelection(ref, append){
+    state.selectedNote = ref ? {m:ref.m, i:ref.i} : null;
+    state.appendMode = !!append;
+    updateEditControls();
+  }
   function buildNoteButtons(){
     const wrap=$('noteButtons');
     LETTERS.forEach(L=>{
@@ -314,6 +408,7 @@
 
   function deselectNote() {
     state.selectedNote = null;
+    state.appendMode = true;
     updateEditControls();
     render();
   }
@@ -334,7 +429,7 @@
     $editAccidental.disabled = !hasSelection || (note && note.rest);
     $editDotted.disabled = !hasSelection;
     $editRest.disabled = !hasSelection;
-    $applyEditBtn.disabled = !hasSelection;
+    document.querySelectorAll('.sel-nav .btn').forEach(b => b.disabled = !hasSelection);
 
     if (note) {
       // Preenche valores atuais
@@ -479,10 +574,32 @@
 
   // Inserção (split + ties)
   function addNoteFromLetter(letter){
+    // Caixa "Notas viram pausa" ligada: a letra entra como pausa
+    if(state.isRest){ enterRest(); return; }
     const L=letter.toUpperCase();
-    const accText = state.accArmed==='n' ? '' : (state.accArmed||''); // 'n' não entra no pitch
-    const pitch=`${L}${accText}${state.currentOctave}`;
-    addNoteSplit(pitch,false);
+    const armed=state.accArmed;                 // vale só pra esta nota
+    const k=selIndex();
+    const overwrite = !state.appendMode && k>=0;
+    const prev = prevNoteBefore(overwrite ? k : allItems().length);
+    const oct = closestOctave(L, prev);
+    const accText = (armed==='n') ? '' : (armed||'');
+    const pitch = `${L}${accText}${oct}`;
+    setOctave(oct);
+    clearAccArmed();
+    if(overwrite){
+      // Troca a altura da nota selecionada (mantém a duração) e anda
+      pushUndo(); clearRedo();
+      const {m,i}=state.selectedNote;
+      const n=state.measures[m][i];
+      n.pitch=pitch; n.accidental=armed; n.rest=false;
+      dropTiesOf(m,i);
+      const items=allItems();
+      if(k+1<items.length) setSelection(items[k+1], false);
+      else setSelection({m,i}, true);
+      render();
+      return;
+    }
+    addNoteSplit(pitch,false,armed);
   }
   function addRest(dur){
     const prevDur=state.duration, prevRest=state.isRest, prevDot=state.dotted;
@@ -491,7 +608,8 @@
     setDuration(prevDur); state.isRest=prevRest; state.dotted=prevDot;
     $('dotBtn').classList.toggle('active',state.dotted);
   }
-  function addNoteSplit(pitch, isRestFlag){
+  function addNoteSplit(pitch, isRestFlag, accidental){
+    if(accidental===undefined) accidental=state.accArmed;
     const targetVal=durValue(state.duration,state.dotted);
     let remaining=targetVal;
 
@@ -515,7 +633,7 @@
       const parts=decomposeAmount(Math.min(chunk,capacity));
       for(const p of parts){
         const noteObj={ pitch, duration:p.duration, dotted:p.dotted,
-                        accidental:state.accArmed, rest:isRestFlag??state.isRest };
+                        accidental:(isRestFlag?'':accidental), rest:isRestFlag??state.isRest };
         measureArr.push(noteObj);
         const iIndex=measureArr.length-1;
 
@@ -536,6 +654,11 @@
     }
 
     state.measures=measures; state.ties=ties;
+    state.tieArmed=false;
+    {
+      const lm=state.measures.length-1;
+      setSelection({m:lm, i:state.measures[lm].length-1}, true);
+    }
     if(!isRestFlag){
       const lm=state.measures.length-1; const li=state.measures[lm].length-1;
       state.lastNoteRef={m:lm,i:li,pitch};
@@ -552,6 +675,90 @@
     }
     return null;
   }
+  function clearAccArmed(){ if(state.accArmed) setAccArmed(state.accArmed); }
+
+  // ← →: anda entre notas e pausas
+  function moveSel(dir){
+    const items=allItems(); if(!items.length) return;
+    let k=selIndex();
+    if(k<0) k = dir>0 ? -1 : items.length;
+    const nk=Math.max(0,Math.min(items.length-1,k+dir));
+    setSelection(items[nk], false);
+    render();
+  }
+  // ↑ ↓: meio tom (↑ escreve com sustenido, ↓ com bemol — igual ao MuseScore)
+  function stepSemitone(dir){
+    const n=selectedNoteObj(); if(!n || n.rest) return;
+    const s0=soundingOf(n); if(s0==null) return;
+    // Grafia: a que não precisa de sinal (a armadura já dá, ex.: Fá♯ em
+    // Sol); se as duas precisam, ↑ usa sustenido e ↓ bemol (MuseScore)
+    const cands=[spell(s0+dir, dir<0), spell(s0+dir, dir>0)];
+    const sp=cands.find(c=>c.accidental==='') || cands[0];
+    if(sp.oct<state.minOctave||sp.oct>state.maxOctave) return;
+    pushUndo(); clearRedo();
+    n.pitch=sp.pitch; n.accidental=sp.accidental;
+    dropTiesOf(state.selectedNote.m, state.selectedNote.i);
+    setOctave(sp.oct); updateEditControls(); render();
+  }
+  // Ctrl+↑ ↓ / [ ]: oitava da nota selecionada (sem seleção, da próxima)
+  function shiftOctave(dir){
+    const n=selectedNoteObj();
+    if(!n || n.rest){ setOctave(state.currentOctave+dir); return; }
+    const p=parsePitch(n.pitch); if(!p) return;
+    const o=p.oct+dir; if(o<state.minOctave||o>state.maxOctave) return;
+    pushUndo(); clearRedo();
+    n.pitch=p.letter+p.acc+o;
+    dropTiesOf(state.selectedNote.m, state.selectedNote.i);
+    setOctave(o); updateEditControls(); render();
+  }
+  // J: mesma altura, outra grafia (Dó♯ ↔ Ré♭)
+  function respell(){
+    const n=selectedNoteObj(); if(!n || n.rest) return;
+    const s0=soundingOf(n), p=parsePitch(n.pitch); if(s0==null||!p) return;
+    const alt=[spell(s0,false), spell(s0,true)].find(x=>x.letter!==p.letter);
+    if(!alt) return;
+    pushUndo(); clearRedo();
+    n.pitch=alt.pitch; n.accidental=alt.accidental;
+    updateEditControls(); render();
+  }
+  // Del: a nota selecionada vira pausa (mesma duração)
+  function selectedToRest(){
+    const n=selectedNoteObj(); if(!n || n.rest) return;
+    pushUndo(); clearRedo();
+    n.rest=true; n.pitch='B4'; n.accidental='';
+    dropTiesOf(state.selectedNote.m, state.selectedNote.i);
+    updateEditControls(); render();
+  }
+  // 0: pausa — troca a selecionada (se andou até ela) ou acrescenta no fim
+  function enterRest(){
+    const k=selIndex();
+    if(!state.appendMode && k>=0){
+      selectedToRest();
+      const items=allItems();
+      if(k+1<items.length) setSelection(items[k+1], false); else state.appendMode=true;
+      render();
+      return;
+    }
+    addRest(state.duration);
+  }
+  // T: nota ligada — repete a altura da nota selecionada (ou da última)
+  function addTiedNote(){
+    let ref=null;
+    const sel=selectedNoteObj();
+    if(sel && !sel.rest && state.appendMode) ref={...state.selectedNote, note:sel};
+    if(!ref){
+      const items=allItems();
+      for(let j=items.length-1;j>=0;j--){
+        const n=state.measures[items[j].m][items[j].i];
+        if(!n.rest){ ref={...items[j], note:n}; break; }
+      }
+    }
+    if(!ref) return;
+    state.lastNoteRef={m:ref.m, i:ref.i, pitch:ref.note.pitch};
+    state.tieArmed=true;
+    addNoteSplit(ref.note.pitch, false, ref.note.accidental==='n' ? 'n' : '');
+  }
+
   function removeLast(){
     if(!state.measures.length) return;
     const measures=JSON.parse(JSON.stringify(state.measures));
@@ -611,7 +818,7 @@
       console.log('Valores dos campos:', { pitch, octave, accidental });
       
       if (pitch && octave) {
-        note.pitch = pitch + (accidental || '') + octave;
+        note.pitch = pitch + (accidental === 'n' ? '' : (accidental || '')) + octave;
         note.accidental = accidental;
       }
     }
@@ -627,12 +834,19 @@
     console.log('Após render, selectedNote:', state.selectedNote);
   }
 
-  $applyEditBtn.onclick = (e) => {
-    console.log('Botão "Aplicar Mudanças" clicado!');
-    e.preventDefault();
-    e.stopPropagation();
-    applyNoteEdit();
-  };
+  // Campos da nota selecionada valem na hora (não tem mais "Aplicar");
+  // depois devolve o foco pra página, senão ← → mexeriam no campo
+  [$editPitch, $editOctave, $editDuration, $editAccidental, $editDotted, $editRest].forEach(el => {
+    el.addEventListener('change', () => { applyNoteEdit(); updateEditControls(); el.blur(); });
+  });
+  $('selPrevBtn').onclick = () => moveSel(-1);
+  $('selNextBtn').onclick = () => moveSel(1);
+  $('selUpBtn').onclick = () => stepSemitone(1);
+  $('selDownBtn').onclick = () => stepSemitone(-1);
+  $('selOctUpBtn').onclick = () => shiftOctave(1);
+  $('selOctDownBtn').onclick = () => shiftOctave(-1);
+  $('selRespellBtn').onclick = () => respell();
+  $('selRestBtn').onclick = () => selectedToRest();
 
   // ===== Render =====
   // O desenho em si (pautas/notas/feixes/ligaduras/cifras) vive em
@@ -668,7 +882,8 @@
       rect.setAttribute('width', bbox.w + 4);
       rect.setAttribute('height', bbox.h + 4);
       rect.setAttribute('fill', 'none');
-      rect.setAttribute('stroke', '#ff0000');
+      rect.setAttribute('stroke', '#7c5cff');
+      rect.setAttribute('rx', '4');
       rect.setAttribute('stroke-width', '2');
       rect.setAttribute('pointer-events', 'none');
       svg.appendChild(rect);
@@ -731,26 +946,39 @@
   $('clearBtn').onclick=clearAll;
   $('undoBtn').onclick=undo;
   $('redoBtn').onclick=redo;
-  $('octDown').onclick=()=>setOctave(state.currentOctave-1);
-  $('octUp').onclick=()=>setOctave(state.currentOctave+1);
+  $('octDown').onclick=()=>shiftOctave(-1);
+  $('octUp').onclick=()=>shiftOctave(1);
   document.querySelectorAll('.rest-btn').forEach(btn=>btn.onclick=()=>addRest(btn.dataset.dur));
 
+  // Atalhos no padrão do MuseScore Studio
+  const DUR_KEYS={'3':'16','4':'8','5':'q','6':'h','7':'w'};
   window.addEventListener('keydown',(ev)=>{
-    if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return;
-    if (ev.key==='Backspace'){ ev.preventDefault(); removeLast(); }
-    if (ev.key==='.') $dot.click();
-    if (/^[rR]$/.test(ev.key)) $isRest.click();
-    if (ev.key==='1') setDuration('w');
-    if (ev.key==='2') setDuration('h');
-    if (ev.key==='3') setDuration('q');
-    if (ev.key==='4') setDuration('8');
-    if (ev.key==='5') setDuration('16');
-    if (ev.key==='[' || ev.key==='-') setOctave(state.currentOctave-1);
-    if (ev.key===']' || ev.key==='=' || ev.key==='+') setOctave(state.currentOctave+1);
-    if (/^[cdefgab]$/i.test(ev.key)) addNoteFromLetter(ev.key.toUpperCase());
-    if (ev.key==='t' || ev.key==='T') $tie.click();
-    if ((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='z') undo();
-    if ((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='y') redo();
+    const t=ev.target;
+    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
+    const k=ev.key, kl=k.toLowerCase(), ctrl=ev.ctrlKey||ev.metaKey;
+    if (ctrl && kl==='z' && !ev.shiftKey){ ev.preventDefault(); undo(); return; }
+    if (ctrl && (kl==='y' || (kl==='z' && ev.shiftKey))){ ev.preventDefault(); redo(); return; }
+    if (ctrl && k==='ArrowUp'){ ev.preventDefault(); shiftOctave(1); return; }
+    if (ctrl && k==='ArrowDown'){ ev.preventDefault(); shiftOctave(-1); return; }
+    if (ctrl || ev.altKey) return;
+    if (k==='ArrowLeft'){ ev.preventDefault(); moveSel(-1); return; }
+    if (k==='ArrowRight'){ ev.preventDefault(); moveSel(1); return; }
+    if (k==='ArrowUp'){ ev.preventDefault(); stepSemitone(1); return; }
+    if (k==='ArrowDown'){ ev.preventDefault(); stepSemitone(-1); return; }
+    if (k==='Backspace'){ ev.preventDefault(); removeLast(); return; }
+    if (k==='Delete'){ ev.preventDefault(); selectedToRest(); return; }
+    if (k==='Escape'){ deselectNote(); return; }
+    if (k==='.'){ $dot.click(); return; }
+    if (DUR_KEYS[k]){ setDuration(DUR_KEYS[k]); return; }
+    if (k==='0'){ enterRest(); return; }
+    if (k==='+'){ setAccArmed('#'); return; }
+    if (k==='-'){ setAccArmed('b'); return; }
+    if (k==='='){ setAccArmed('n'); return; }
+    if (k==='['){ shiftOctave(-1); return; }
+    if (k===']'){ shiftOctave(1); return; }
+    if (/^[a-g]$/.test(kl)){ ev.preventDefault(); addNoteFromLetter(k.toUpperCase()); return; }
+    if (kl==='t'){ addTiedNote(); return; }
+    if (kl==='j'){ respell(); return; }
   });
 
   // ===== Zoom =====
@@ -763,71 +991,20 @@
   $('zoomOutBtn').onclick=()=>{ setZoom(state.zoomLevel-10); render(); };
 
   // ===== Funcionalidade de seleção de notas =====
-  let noteClickHandlers = [];
 
+  // Um ouvinte só, na partitura inteira (delegação): enxerga sempre as
+  // notas do desenho atual. Antes cada nota ganhava o seu 100 ms depois de
+  // cada redesenho, e um clique nesse intervalo não fazia nada.
+  // Cada nota E pausa é um .vf-stavenote, na mesma ordem da lista plana.
+  $score.addEventListener('click', (e) => {
+    const el = e.target.closest('.vf-stavenote');
+    if (!el) { deselectNote(); return; }
+    const all = [...$score.querySelectorAll('svg .vf-stavenote')];
+    const ref = allItems()[all.indexOf(el)];
+    if (ref) { setSelection(ref, false); render(); }
+  });
   function addNoteClickHandlers() {
-    // Remove handlers anteriores
-    noteClickHandlers.forEach(removeHandler => removeHandler());
-    noteClickHandlers = [];
-
-    // Adiciona evento de clique em todas as notas
-    const svg = $score.querySelector('svg');
-    if (!svg) return;
-
-    const notes = svg.querySelectorAll('.vf-stavenote');
-    notes.forEach((noteElement, globalIndex) => {
-      const clickHandler = (e) => {
-        e.stopPropagation();
-
-        // Encontra qual nota foi clicada baseado na posição
-        let foundNote = null;
-        let noteIndex = 0;
-        
-        for (let m = 0; m < state.measures.length; m++) {
-          const measure = state.measures[m];
-          for (let i = 0; i < measure.length; i++) {
-            if (!measure[i].rest) { // Só notas, não pausas
-              if (noteIndex === globalIndex) {
-                foundNote = { m, i };
-                break;
-              }
-              noteIndex++;
-            }
-          }
-          if (foundNote) break;
-        }
-
-        if (foundNote) {
-          selectNote(foundNote.m, foundNote.i);
-        }
-      };
-
-      noteElement.addEventListener('click', clickHandler);
-      noteClickHandlers.push(() => noteElement.removeEventListener('click', clickHandler));
-
-      // Adiciona cursor pointer
-      noteElement.style.cursor = 'pointer';
-    });
-
-    // Clique fora desmarca (mas não nos controles de edição)
-    const deselectHandler = (e) => {
-      if (!e.target.closest('.vf-stavenote') && 
-          !e.target.closest('#applyEditBtn') &&
-          !e.target.closest('#editPitch') &&
-          !e.target.closest('#editOctave') &&
-          !e.target.closest('#editDuration') &&
-          !e.target.closest('#editAccidental') &&
-          !e.target.closest('#editDotted') &&
-          !e.target.closest('#editRest') &&
-          !e.target.closest('#chordInput') &&
-          !e.target.closest('#addChordBtn') &&
-          !e.target.closest('#removeChordBtn')) {
-        deselectNote();
-      }
-    };
-
-    document.addEventListener('click', deselectHandler);
-    noteClickHandlers.push(() => document.removeEventListener('click', deselectHandler));
+    $score.querySelectorAll('svg .vf-stavenote').forEach(n => { n.style.cursor = 'pointer'; });
   }
 
   // Função para salvar automaticamente no localStorage
@@ -1100,6 +1277,7 @@
   setOctave(state.currentOctave);
   setDuration(state.duration||'h');
   setZoom(state.zoomLevel);
+  updateEditControls();
   render();
 </script>
 {% endblock %}
