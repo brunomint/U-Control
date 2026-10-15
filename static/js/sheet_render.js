@@ -32,6 +32,12 @@ function pitchToKey(p) {
   return m[1].toLowerCase() + '/' + m[2];
 }
 
+// Altura diatônica de uma key do VexFlow ("c/4") — pra ordenar acorde
+function keyHeight(key) {
+  const m = /^([a-g])\/(\d)$/.exec(key || '');
+  return m ? (+m[2]) * 7 + 'cdefgab'.indexOf(m[1]) : 0;
+}
+
 function measureVisualWidth(measure, baseW) {
   const NOTE_W = 14, MEASURE_PAD_R = 24;
   const count = measure?.length ?? 0;
@@ -57,6 +63,13 @@ function createBeams(Beam, notes) {
     const duration = notes[i].getDuration();
     const canBeam = ['8', '16', '32', '64'].includes(duration.replace('r', ''));
     const isRest = duration.includes('r');
+    // tercina tem feixe próprio: quebra o grupo na entrada/saída dela
+    if (currentGroup.length && (notes[i].__tup || null) !== (currentGroup[0].__tup || null)) {
+      if (currentGroup.length >= 2) {
+        try { beams.push(new Beam(currentGroup)); } catch (e) { console.warn('Erro ao criar beam:', e); }
+      }
+      currentGroup = [];
+    }
     if (canBeam && !isRest) {
       currentGroup.push(notes[i]);
     } else {
@@ -291,10 +304,15 @@ export function transposeSheetData(canonicalData, semitones) {
     keySig: newKeySig,
     measures: data.measures.map(measure => measure.map(note => {
       if (note.rest) return note;
-      const effectivePitch = resolvePitchWithKey(note.pitch, note.accidental, origKeyAccidentals);
-      const { pitch, accidental: rawAccidental } = transposePitch(effectivePitch, semitones, newKeyAccidentals);
-      const accidental = accidentalForKey(pitch[0], rawAccidental, newKeyAccidentals);
-      return { ...note, pitch, accidental };
+      const tr = (n) => {
+        const effectivePitch = resolvePitchWithKey(n.pitch, n.accidental, origKeyAccidentals);
+        const { pitch, accidental: rawAccidental } = transposePitch(effectivePitch, semitones, newKeyAccidentals);
+        return { pitch, accidental: accidentalForKey(pitch[0], rawAccidental, newKeyAccidentals) };
+      };
+      const out = { ...note, ...tr(note) };
+      // Acorde de várias notas: as de cima (note.extra) andam junto
+      if (Array.isArray(note.extra) && note.extra.length) out.extra = note.extra.map(tr);
+      return out;
     })),
     chords: data.chords.map(c => ({
       ...c,
@@ -316,7 +334,7 @@ export function transposeSheetData(canonicalData, semitones) {
  */
 export async function renderSheetMusic(container, rawOrCanonicalData, options = {}) {
   const VF = await loadVexFlow();
-  const { Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam } = VF;
+  const { Factory, StaveNote, Voice, Formatter, Accidental, StaveTie, Dot, Beam, Tuplet } = VF;
 
   const data = normalizeSheetData(rawOrCanonicalData);
   container.innerHTML = '';
@@ -428,27 +446,53 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
 
       const tickables = measureNotes.map(m => {
         const dur = m.duration + (m.rest ? 'r' : '');
-        const key = m.rest ? 'b/4' : pitchToKey(m.pitch);
-        const sn = new StaveNote({ clef: data.clef, keys: [key], duration: dur, dots: m.dotted ? 1 : 0 });
+        // Acorde de várias notas: altura principal + note.extra, de baixo
+        // pra cima (a ordem das teclas = índice dos acidentes)
+        const heads = m.rest ? [{ pitch: 'B4', accidental: '' }]
+          : [{ pitch: m.pitch, accidental: m.accidental }, ...(Array.isArray(m.extra) ? m.extra : [])]
+            .map(h => ({ ...h, key: pitchToKey(h.pitch) }))
+            .sort((x, y) => keyHeight(x.key) - keyHeight(y.key));
+        const sn = new StaveNote({ clef: data.clef, keys: heads.map(h => m.rest ? 'b/4' : h.key), duration: dur, dots: m.dotted ? 1 : 0 });
         sn.setStyle(notationStyle);
 
-        if (!m.rest && m.accidental && m.accidental !== '') {
-          const type = (m.accidental === 'n') ? 'n' : m.accidental;
+        if (!m.rest) heads.forEach((h, idx) => {
+          if (!h.accidental) return;
+          const type = (h.accidental === 'n') ? 'n' : h.accidental;
           try {
-            if (typeof sn.addAccidental === 'function') sn.addAccidental(0, new Accidental(type));
-            else if (typeof sn.addModifier === 'function') sn.addModifier(new Accidental(type), 0);
+            if (typeof sn.addAccidental === 'function') sn.addAccidental(idx, new Accidental(type));
+            else if (typeof sn.addModifier === 'function') sn.addModifier(new Accidental(type), idx);
           } catch (e) { console.warn('Falha ao anexar acidente:', e); }
-        }
+        });
         if (m.dotted) {
           if (typeof sn.addDotToAll === 'function') sn.addDotToAll();
           else Dot.buildAndAttach([sn], { all: true });
         }
+        sn.__heads = heads.length;
+        sn.__tup = m.tuplet ? m.tuplet.id : null;
         return sn;
       });
 
       vfNotesByMI[mIndex] = tickables;
 
       if (tickables.length) {
+        // Tercinas (note.tuplet = {id, n:3, of:2}): o Tuplet do VexFlow
+        // precisa existir antes de formatar (ajusta o tempo das notas)
+        const tuplets = [];
+        let grupo = null;
+        measureNotes.forEach((m, k) => {
+          const t = m.tuplet;
+          if (t && grupo && grupo.id === t.id) grupo.notes.push(tickables[k]);
+          else {
+            if (grupo) tuplets.push(grupo);
+            grupo = t ? { id: t.id, n: t.n || 3, of: t.of || 2, notes: [tickables[k]] } : null;
+          }
+        });
+        if (grupo) tuplets.push(grupo);
+        const vfTuplets = Tuplet ? tuplets.map(g => {
+          try { return new Tuplet(g.notes, { num_notes: g.n, notes_occupied: g.of, ratioed: false, bracketed: true }); }
+          catch (e) { console.warn('Falha na tercina:', e); return null; }
+        }).filter(Boolean) : [];
+
         const voice = new Voice({ num_beats: beats, beat_value: beatValue, resolution: 4 }).setStrict(false);
         voice.addTickables(tickables);
 
@@ -467,6 +511,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
         }
 
         voice.draw(ctx, stave);
+        vfTuplets.forEach(t => { try { t.setStyle?.(notationStyle); t.setContext(ctx).draw(); } catch (e) { console.warn('Erro ao desenhar tercina:', e); } });
 
         beams.forEach(beam => {
           try {
@@ -484,7 +529,9 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
     const first = vfNotesByMI[t.from.m]?.[t.from.i];
     const last = vfNotesByMI[t.to.m]?.[t.to.i];
     if (first && last) {
-      const tie = new StaveTie({ first_note: first, last_note: last });
+      const k = Math.min(first.__heads || 1, last.__heads || 1);
+      const idx = Array.from({ length: k }, (_, j) => j);
+      const tie = new StaveTie({ first_note: first, last_note: last, first_indices: idx, last_indices: idx });
       tie.setStyle(notationStyle);
       tie.setContext(ctx).draw();
     }

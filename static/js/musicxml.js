@@ -19,9 +19,10 @@ const ACC_ALTER = { '': 0, n: 0, '#': 1, b: -1, '##': 2, bb: -2 };
 const ALTER_ACC = { 0: '', 1: '#', '-1': 'b', 2: '##', '-2': 'bb' };
 const ACC_XML = { '#': 'sharp', b: 'flat', n: 'natural', '##': 'double-sharp', bb: 'flat-flat' };
 const XML_ACC = { sharp: '#', flat: 'b', natural: 'n', 'double-sharp': '##', 'sharp-sharp': '##', 'flat-flat': 'bb' };
-// divisions = 8 por semínima: a menor duração (semicolcheia pontuada) cabe inteira
-const DIVISIONS = 8;
-const DUR_DIV = { w: 32, h: 16, q: 8, 8: 4, 16: 2 };
+// divisions = 24 por semínima: semicolcheia pontuada (9) e tercina de
+// semicolcheia (4) cabem inteiras
+const DIVISIONS = 24;
+const DUR_DIV = { w: 96, h: 48, q: 24, 8: 12, 16: 6 };
 const DUR_TYPE = { w: 'whole', h: 'half', q: 'quarter', 8: 'eighth', 16: '16th' };
 const TYPE_DUR = { whole: 'w', half: 'h', quarter: 'q', eighth: '8', '16th': '16' };
 
@@ -174,25 +175,35 @@ export function toMusicXML(raw, { title = 'Partitura' } = {}) {
     notes.forEach((n, i) => {
       const ref = `${m}:${i}`;
       if (chordAt.has(ref)) body += harmonyXML(chordAt.get(ref));
-      const dur = DUR_DIV[n.duration] * (n.dotted ? 1.5 : 1);
-      body += '<note>';
-      if (n.rest) {
-        body += '<rest/>';
-      } else {
-        const p = parsePitch(n.pitch) || { letter: 'C', acc: '', oct: 4 };
-        const acc = n.accidental || p.acc;
-        const alter = acc === '' ? ACC_ALTER[keyAcc(p.letter, data.keySig)] : ACC_ALTER[acc];
-        body += `<pitch><step>${p.letter}</step>${alter ? `<alter>${alter}</alter>` : ''}<octave>${p.oct}</octave></pitch>`;
-      }
-      body += `<duration>${dur}</duration>`;
-      if (!n.rest && tieStop.has(ref)) body += '<tie type="stop"/>';
-      if (!n.rest && tieStart.has(ref)) body += '<tie type="start"/>';
-      body += `<voice>1</voice><type>${DUR_TYPE[n.duration] || 'quarter'}</type>${n.dotted ? '<dot/>' : ''}`;
-      if (!n.rest && n.accidental && ACC_XML[n.accidental]) body += `<accidental>${ACC_XML[n.accidental]}</accidental>`;
-      if (!n.rest && (tieStop.has(ref) || tieStart.has(ref))) {
-        body += '<notations>' + (tieStop.has(ref) ? '<tied type="stop"/>' : '') + (tieStart.has(ref) ? '<tied type="start"/>' : '') + '</notations>';
-      }
-      body += '</note>';
+      const tup = n.tuplet ? { n: n.tuplet.n || 3, of: n.tuplet.of || 2 } : null;
+      const dur = Math.round(DUR_DIV[n.duration] * (n.dotted ? 1.5 : 1) * (tup ? tup.of / tup.n : 1));
+      const ant = notes[i - 1], prox = notes[i + 1];
+      const tupStart = tup && !(ant && ant.tuplet && ant.tuplet.id === n.tuplet.id);
+      const tupStop = tup && !(prox && prox.tuplet && prox.tuplet.id === n.tuplet.id);
+      // Acorde: a nota principal + as de cima (<chord/>), mesma duração
+      const heads = n.rest ? [null] : [{ pitch: n.pitch, accidental: n.accidental }, ...(n.extra || [])];
+      heads.forEach((h, k) => {
+        body += '<note>';
+        if (k > 0) body += '<chord/>';
+        if (!h) {
+          body += '<rest/>';
+        } else {
+          const p = parsePitch(h.pitch) || { letter: 'C', acc: '', oct: 4 };
+          const acc = h.accidental || p.acc;
+          const alter = acc === '' ? ACC_ALTER[keyAcc(p.letter, data.keySig)] : ACC_ALTER[acc];
+          body += `<pitch><step>${p.letter}</step>${alter ? `<alter>${alter}</alter>` : ''}<octave>${p.oct}</octave></pitch>`;
+        }
+        body += `<duration>${dur}</duration>`;
+        if (h && tieStop.has(ref)) body += '<tie type="stop"/>';
+        if (h && tieStart.has(ref)) body += '<tie type="start"/>';
+        body += `<voice>1</voice><type>${DUR_TYPE[n.duration] || 'quarter'}</type>${n.dotted ? '<dot/>' : ''}`;
+        if (h && h.accidental && ACC_XML[h.accidental]) body += `<accidental>${ACC_XML[h.accidental]}</accidental>`;
+        if (tup) body += `<time-modification><actual-notes>${tup.n}</actual-notes><normal-notes>${tup.of}</normal-notes></time-modification>`;
+        const nt = (h && tieStop.has(ref) ? '<tied type="stop"/>' : '') + (h && tieStart.has(ref) ? '<tied type="start"/>' : '')
+          + (k === 0 && tupStart ? '<tuplet type="start" bracket="yes"/>' : '') + (k === 0 && tupStop ? '<tuplet type="stop"/>' : '');
+        if (nt) body += `<notations>${nt}</notations>`;
+        body += '</note>';
+      });
     });
     body += '</measure>';
   });
@@ -271,6 +282,7 @@ export function fromMusicXMLText(xml) {
   const out = { clef: 'treble', keySig: 'C', timeSig: '4/4', measures: [], ties: [], chords: [] };
   let divisions = 1, voz = null, keySet = false, timeSet = false, clefSet = false;
   let pendingChord = null;
+  let tupletSeq = 0, tupletCount = 0;
   const openTies = new Map();                                  // altura -> {m,i}
 
   [...parts[0].querySelectorAll(':scope > measure')].forEach((meas) => {
@@ -314,8 +326,34 @@ export function fromMusicXMLText(xml) {
         const v = el.querySelector('voice')?.textContent || '1';
         if (voz === null) voz = v;
         if (v !== voz) { avisos.add('O arquivo tem mais de uma voz na pauta; entrou só a primeira.'); continue; }
-        if (el.querySelector('chord')) { avisos.add('Acordes de várias notas viraram uma nota só (a primeira de cada acorde).'); continue; }
-        if (el.querySelector('time-modification')) avisos.add('Quiálteras (ex.: tercinas) ainda não existem no editor; entraram com a duração mais próxima e podem sobrar no compasso.');
+        if (el.querySelector('chord')) {
+          // nota de cima de um acorde: soma na nota anterior
+          const base = notas[notas.length - 1];
+          if (base && !base.rest && !el.querySelector('rest')) {
+            const step = el.querySelector('pitch step')?.textContent?.trim() || 'C';
+            const alter = Math.round(+(el.querySelector('pitch alter')?.textContent || 0));
+            const oct = +(el.querySelector('pitch octave')?.textContent || 4);
+            const acc = ALTER_ACC[alter] || '';
+            const shown = XML_ACC[el.querySelector('accidental')?.textContent?.trim()] || '';
+            const pitch = (!shown && acc === keyAcc(step, out.keySig)) ? `${step}${oct}` : `${step}${acc}${oct}`;
+            base.extra = [...(base.extra || []), { pitch, accidental: shown }];
+          }
+          continue;
+        }
+        const tm = el.querySelector('time-modification');
+        let tuplet = null;
+        if (tm) {
+          const an = +tm.querySelector('actual-notes')?.textContent, nn = +tm.querySelector('normal-notes')?.textContent;
+          if (an === 3 && nn === 2) {
+            const comeca = el.querySelector('notations tuplet[type="start"]');
+            const ant = notas[notas.length - 1];
+            if (comeca || !(ant && ant.tuplet && ant.tuplet.id === tupletSeq) || tupletCount >= 3) { tupletSeq++; tupletCount = 0; }
+            tupletCount++;
+            tuplet = { id: tupletSeq, n: 3, of: 2 };
+          } else {
+            avisos.add('Quiálteras que não são tercina (ex.: quintinas) entraram com a duração mais próxima e podem sobrar no compasso.');
+          }
+        }
         if (el.querySelector('lyric')) avisos.add('A letra embaixo das notas não foi importada.');
 
         let type = el.querySelector('type')?.textContent?.trim();
@@ -333,7 +371,7 @@ export function fromMusicXMLText(xml) {
 
         const i = notas.length;
         if (el.querySelector('rest')) {
-          notas.push({ pitch: 'B4', duration: dur, dotted, accidental: '', rest: true });
+          notas.push({ pitch: 'B4', duration: dur, dotted, accidental: '', rest: true, ...(tuplet ? { tuplet } : {}) });
         } else {
           const step = el.querySelector('pitch step')?.textContent?.trim() || 'C';
           const alter = Math.round(+(el.querySelector('pitch alter')?.textContent || 0));
@@ -343,7 +381,7 @@ export function fromMusicXMLText(xml) {
           // Igual o editor grava: sem sinal e com a armadura dando conta,
           // só a letra ("F4" em Sol = Fá♯)
           const pitch = (!shown && acc === keyAcc(step, out.keySig)) ? `${step}${oct}` : `${step}${acc}${oct}`;
-          notas.push({ pitch, duration: dur, dotted, accidental: shown, rest: false });
+          notas.push({ pitch, duration: dur, dotted, accidental: shown, rest: false, ...(tuplet ? { tuplet } : {}) });
           const tipos = [...el.querySelectorAll('tie')].map((t) => t.getAttribute('type'));
           if (tipos.includes('stop') && openTies.has(pitch)) {
             out.ties.push({ from: openTies.get(pitch), to: { m, i } });

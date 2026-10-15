@@ -58,6 +58,7 @@
           <span id="octDisplay" class="kbd">4</span>
           <button type="button" class="btn" id="octUp" title="Oitava acima (Ctrl+↑ ou ])">+</button>
         </div>
+        <div><button type="button" class="btn" id="chordModeBtn" title="Somar notas ao acorde da nota selecionada (ou Shift+letra / Shift+tecla do piano)" aria-pressed="false">Acorde</button></div>
         <div><button type="button" class="btn" id="tieBtn" title="Nota ligada: repete a nota selecionada com a duração escolhida (T)">Ligadura</button></div>
       </div>
       <div class="row">
@@ -79,6 +80,7 @@
         <button type="button" class="btn dur" data-dur="8"  title="Colcheia (4)"  aria-pressed="false">𝅘𝅥𝅮</button>
         <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (3)" aria-pressed="false">𝅘𝅥𝅯</button>
         <button type="button" class="btn" id="dotBtn" title="Ponto (.)">.</button>
+        <button type="button" class="btn" id="tupletBtn" title="Tercina (Ctrl+3): escolha a duração do grupo (ex.: semínima) e as próximas 3 notas dividem esse tempo">Tercina</button>
       </div>
       <div class="row">
         <label class="row"><input type="checkbox" id="isRest"> Notas viram pausa</label>
@@ -103,7 +105,11 @@
         <button type="button" class="btn" id="selOctUpBtn" title="Oitava acima (Ctrl+↑)">8va↑</button>
         <button type="button" class="btn" id="selOctDownBtn" title="Oitava abaixo (Ctrl+↓)">8va↓</button>
         <button type="button" class="btn" id="selRespellBtn" title="Trocar a grafia, ex.: Dó♯ ↔ Ré♭ (J)">♯↔♭</button>
-        <button type="button" class="btn" id="selRestBtn" title="Trocar por pausa (Del)">Pausa</button>
+        <button type="button" class="btn" id="selRestBtn" title="Trocar por pausa (Del); num acorde, tira a nota de cima">Pausa</button>
+        <button type="button" class="btn" id="selExtendBtn" title="Esticar a seleção pra próxima nota (Shift+→)">Trecho→</button>
+        <button type="button" class="btn" id="selChordBtn" title="Escrever a cifra em cima (Ctrl+K; Espaço vai pra próxima nota)">Cifra</button>
+        <button type="button" class="btn" id="copyBtn" title="Copiar a nota ou o trecho selecionado (Ctrl+C)"><i class="fas fa-copy"></i></button>
+        <button type="button" class="btn" id="pasteBtn" title="Colar no fim da partitura (Ctrl+V)"><i class="fas fa-paste"></i></button>
       </div>
       <div class="row">
         <div>
@@ -194,6 +200,9 @@
     <small class="atalhos">
       <b>Atalhos (iguais aos do MuseScore):</b> duração <kbd>3</kbd> semicolcheia · <kbd>4</kbd> colcheia · <kbd>5</kbd> semínima · <kbd>6</kbd> mínima · <kbd>7</kbd> semibreve · <kbd>.</kbd> ponto ·
       nota <kbd>A</kbd>–<kbd>G</kbd> (a oitava mais próxima da anterior) · <kbd>0</kbd> pausa · <kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd> sustenido/bemol/bequadro na próxima nota · <kbd>T</kbd> nota ligada ·
+      <kbd>Shift</kbd>+<kbd>A</kbd>–<kbd>G</kbd> soma nota ao acorde · <kbd>Ctrl</kbd>+<kbd>3</kbd> tercina ·
+      <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> seleciona um trecho · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> copia/cola no fim · <kbd>R</kbd> repete o trecho ·
+      <kbd>Ctrl</kbd>+<kbd>K</kbd> cifra (<kbd>Espaço</kbd> próxima nota) ·
       <kbd>Espaço</kbd> toca/para · <kbd>P</kbd> teclado de piano ·
       <kbd>←</kbd> <kbd>→</kbd> anda entre as notas · <kbd>↑</kbd> <kbd>↓</kbd> meio tom · <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> oitava · <kbd>J</kbd> troca a grafia · <kbd>Del</kbd> vira pausa · <kbd>Backspace</kbd> apaga a última · <kbd>Esc</kbd> tira a seleção · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd>
     </small>
@@ -256,6 +265,9 @@
     chords:[],            // [{m:0, i:0, symbol:'C'}] - acordes por posição
     ties:[],          // {from:{m,i}, to:{m,i}}
     lastNoteRef:null,
+    tupletLeft:0, tupletId:null, tupletRestore:null,   // tercina em andamento
+    chordMode:false,                                    // letras somam ao acorde
+    range:null,                                         // trecho {anchor, focus}
     // true: a seleção é a nota que acabou de entrar (letra acrescenta no
     // fim); false: a pessoa andou/clicou numa nota (letra troca a nota)
     appendMode:true,
@@ -310,7 +322,7 @@
   }
   document.addEventListener('click',(ev)=>{
     const btn=ev.target.closest('.dur'); if(!btn) return;
-    ev.preventDefault(); const d=btn.dataset.dur; if(d) setDuration(d);
+    ev.preventDefault(); const d=btn.dataset.dur; if(state.tupletLeft>0) endTuplet(); if(d) setDuration(d);
   });
 
   // ===== Notas =====
@@ -392,7 +404,8 @@
   function selectedNoteObj(){
     const s=state.selectedNote; return s ? state.measures[s.m]?.[s.i] : null;
   }
-  function setSelection(ref, append){
+  function setSelection(ref, append, keepRange){
+    if(!keepRange) state.range = null;
     state.selectedNote = ref ? {m:ref.m, i:ref.i} : null;
     state.appendMode = !!append;
     updateEditControls();
@@ -403,7 +416,7 @@
       const b=document.createElement('button');
       b.type='button'; b.className='btn'; b.textContent=L;
       b.title=`Adicionar ${L}${state.currentOctave}`;
-      b.onclick=()=>addNoteFromLetter(L);
+      b.onclick=()=> state.chordMode ? addToChord(L) : addNoteFromLetter(L);
       wrap.appendChild(b);
     });
   }
@@ -424,6 +437,7 @@
 
   function deselectNote() {
     state.selectedNote = null;
+    state.range = null;
     state.appendMode = true;
     updateEditControls();
     render();
@@ -588,7 +602,9 @@
     }
     return parts;
   }
-  const measureUsed=(m)=>m.reduce((s,n)=>s+durValue(n.duration,!!n.dotted),0);
+  // Valor de uma nota em semibreves (tercina: 2/3 do valor escrito)
+  const noteValue=(n)=>durValue(n.duration,!!n.dotted)*(n.tuplet ? (n.tuplet.of||2)/(n.tuplet.n||3) : 1);
+  const measureUsed=(m)=>m.reduce((s,n)=>s+noteValue(n),0);
 
   // Inserção (split + ties)
   function addNoteFromLetter(letter){
@@ -609,7 +625,7 @@
       pushUndo(); clearRedo();
       const {m,i}=state.selectedNote;
       const n=state.measures[m][i];
-      n.pitch=pitch; n.accidental=armed; n.rest=false;
+      n.pitch=pitch; n.accidental=armed; n.rest=false; delete n.extra;
       dropTiesOf(m,i);
       const items=allItems();
       if(k+1<items.length) setSelection(items[k+1], false);
@@ -628,73 +644,104 @@
     setDuration(prevDur); state.isRest=prevRest; state.dotted=prevDot;
     $('dotBtn').classList.toggle('active',state.dotted);
   }
-  function addNoteSplit(pitch, isRestFlag, accidental){
-    if(accidental===undefined) accidental=state.accArmed;
-    const targetVal=durValue(state.duration,state.dotted);
-    let remaining=targetVal;
-
-    const measures=JSON.parse(JSON.stringify(state.measures));
-    const ties=JSON.parse(JSON.stringify(state.ties));
-    pushUndo(); clearRedo();
-
-    let prevRef=null;
-
-    while(remaining>EPS){
-      const {capacity}=timeValues(state.timeSig);
-      let mIndex=measures.length-1;
-      let measureArr=measures[mIndex];
-
-      const used=measureUsed(measureArr);
-      const free=Math.max(0, capacity-used);
-      const chunk=Math.min(remaining, free>EPS?free:capacity);
-
-      if(free<=EPS){ measures.push([]); mIndex=measures.length-1; measureArr=measures[mIndex]; }
-
-      const parts=decomposeAmount(Math.min(chunk,capacity));
+  // Põe uma nota no fim. Se não cabe no compasso, divide com ligadura
+  // (igual antes); tercina não divide: vai inteira pro compasso seguinte.
+  // Devolve as posições criadas [{m,i}].
+  function placeNote(measures, ties, tpl){
+    const {capacity}=timeValues(state.timeSig);
+    const refs=[];
+    const base={ pitch: tpl.rest ? 'B4' : tpl.pitch, accidental: tpl.rest ? '' : (tpl.accidental||''), rest: !!tpl.rest };
+    const extra = (!tpl.rest && Array.isArray(tpl.extra) && tpl.extra.length) ? tpl.extra : null;
+    const novo = (dur, dotted) => {
+      const o = {...base, duration: dur, dotted: !!dotted};
+      if(extra) o.extra = JSON.parse(JSON.stringify(extra));
+      return o;
+    };
+    if(tpl.tuplet){
+      let m=measures.length-1;
+      const need = tpl.groupStart ? (tpl.groupTotal||noteValue(tpl)) : noteValue(tpl);
+      if(measures[m].length && capacity-measureUsed(measures[m]) < need-EPS){ measures.push([]); m++; }
+      const o=novo(tpl.duration, tpl.dotted); o.tuplet={...tpl.tuplet};
+      measures[m].push(o); refs.push({m, i:measures[m].length-1});
+      return refs;
+    }
+    let remaining=durValue(tpl.duration, !!tpl.dotted);
+    let prev=null, guard=64;
+    while(remaining>EPS && guard--){
+      let m=measures.length-1;
+      let free=Math.max(0, capacity-measureUsed(measures[m]));
+      if(free<=EPS){ measures.push([]); m++; free=capacity; }
+      const parts=decomposeAmount(Math.min(remaining, free));
+      if(!parts.length){ measures.push([]); continue; }   // sobra que nenhuma figura cobre
       for(const p of parts){
-        const noteObj={ pitch, duration:p.duration, dotted:p.dotted,
-                        accidental:(isRestFlag?'':accidental), rest:isRestFlag??state.isRest };
-        measureArr.push(noteObj);
-        const iIndex=measureArr.length-1;
-
-        if(!noteObj.rest && prevRef){
-          ties.push({from:{m:prevRef.m,i:prevRef.i}, to:{m:mIndex,i:iIndex}});
-        }
-        if(!noteObj.rest) prevRef={m:mIndex,i:iIndex};
+        const o=novo(p.duration, p.dotted);
+        measures[m].push(o);
+        const ref={m, i:measures[m].length-1};
+        if(!o.rest && prev) ties.push({from:prev, to:ref});
+        if(!o.rest) prev=ref;
+        refs.push(ref);
         remaining-=durValue(p.duration,p.dotted);
       }
     }
-
-    // tie manual com a primeira parte nova (mesma altura)
-    if(state.tieArmed && state.lastNoteRef && !isRestFlag){
-      const firstRef=findFirstNewNoteRef(state.measures,measures);
-      if(firstRef && state.lastNoteRef.pitch===pitch){
-        ties.push({from:{m:state.lastNoteRef.m,i:state.lastNoteRef.i}, to:{m:firstRef.m,i:firstRef.i}});
-      }
+    return refs;
+  }
+  function addNoteSplit(pitch, isRestFlag, accidental, extra){
+    if(accidental===undefined) accidental=state.accArmed;
+    const rest = isRestFlag ?? state.isRest;
+    const measures=JSON.parse(JSON.stringify(state.measures));
+    const ties=JSON.parse(JSON.stringify(state.ties));
+    pushUndo(); clearRedo();
+    const tpl={ pitch, rest, accidental, duration: state.duration, dotted: state.dotted, extra };
+    if(state.tupletLeft>0){
+      tpl.tuplet={ id: state.tupletId, n: 3, of: 2 };
+      tpl.dotted=false;
+      tpl.groupStart = state.tupletLeft===3;
+      tpl.groupTotal = durValue(state.duration,false)*2;
     }
-
+    const refs=placeNote(measures, ties, tpl);
+    // T: liga com a nota de antes (mesma altura)
+    if(state.tieArmed && state.lastNoteRef && !rest && refs.length && state.lastNoteRef.pitch===pitch){
+      ties.push({from:{m:state.lastNoteRef.m,i:state.lastNoteRef.i}, to:refs[0]});
+    }
     state.measures=measures; state.ties=ties;
     state.tieArmed=false;
-    {
-      const lm=state.measures.length-1;
-      setSelection({m:lm, i:state.measures[lm].length-1}, true);
-    }
-    if(!isRestFlag){
-      const lm=state.measures.length-1; const li=state.measures[lm].length-1;
-      state.lastNoteRef={m:lm,i:li,pitch};
-    }else{ state.lastNoteRef=null; }
+    const last=refs[refs.length-1];
+    setSelection(last, true);
+    state.lastNoteRef = rest ? null : {m:last.m, i:last.i, pitch};
+    if(state.tupletLeft>0){ state.tupletLeft--; if(!state.tupletLeft) endTuplet(); else updateTupletBtn(); }
     render();
   }
-  function findFirstNewNoteRef(oldM,newM){
-    let m=oldM.length-1; let i=(oldM[m]||[]).length;
-    for(let mm=m; mm<newM.length; mm++){
-      const startI=(mm===m)?i:0;
-      for(let ii=startI; ii<newM[mm].length; ii++){
-        const n=newM[mm][ii]; if(!n.rest) return {m:mm,i:ii,pitch:n.pitch};
-      }
+
+  // ===== Tercinas =====
+  const HALF={w:'h', h:'q', q:'8', '8':'16'};
+  const DOUBLE={h:'w', q:'h', '8':'q', '16':'8'};
+  function startTuplet(){
+    if(state.tupletLeft>0){ endTuplet(); return; }        // de novo: cancela
+    const inner=HALF[state.duration];
+    if(!inner){
+      if(window.ucToast) ucToast('Escolha a duração do grupo inteiro (ex.: semínima pra tercina de colcheias) — não há tercina de semicolcheia de fusas.', 'error');
+      return;
     }
-    return null;
+    state.tupletRestore={duration:state.duration, dotted:state.dotted};
+    state.tupletId=Date.now(); state.tupletLeft=3;
+    state.dotted=false; $dot.classList.remove('active');
+    setDuration(inner);
+    updateTupletBtn();
   }
+  function endTuplet(){
+    if(state.tupletRestore){
+      setDuration(state.tupletRestore.duration);
+      state.dotted=state.tupletRestore.dotted; $dot.classList.toggle('active',state.dotted);
+    }
+    state.tupletLeft=0; state.tupletRestore=null; updateTupletBtn();
+  }
+  function updateTupletBtn(){
+    const b=$('tupletBtn'); if(!b) return;
+    const on=state.tupletLeft>0;
+    b.classList.toggle('active', on);
+    b.textContent = on ? `Tercina (faltam ${state.tupletLeft})` : 'Tercina';
+  }
+
   function clearAccArmed(){ if(state.accArmed) setAccArmed(state.accArmed); }
 
   // ← →: anda entre notas e pausas
@@ -712,44 +759,62 @@
   // ↑ ↓: meio tom (↑ escreve com sustenido, ↓ com bemol — igual ao MuseScore)
   function stepSemitone(dir){
     const n=selectedNoteObj(); if(!n || n.rest) return;
-    const s0=soundingOf(n); if(s0==null) return;
-    // Grafia: a que não precisa de sinal (a armadura já dá, ex.: Fá♯ em
-    // Sol); se as duas precisam, ↑ usa sustenido e ↓ bemol (MuseScore)
-    const cands=[spell(s0+dir, dir<0), spell(s0+dir, dir>0)];
-    const sp=cands.find(c=>c.accidental==='') || cands[0];
-    if(sp.oct<state.minOctave||sp.oct>state.maxOctave) return;
+    const novos=[];
+    for(const h of headObjs(n)){
+      const s0=soundingOf(h); if(s0==null) return;
+      // Grafia: a que não precisa de sinal (a armadura já dá, ex.: Fá♯ em
+      // Sol); se as duas precisam, ↑ usa sustenido e ↓ bemol (MuseScore)
+      const cands=[spell(s0+dir, dir<0), spell(s0+dir, dir>0)];
+      const sp=cands.find(c=>c.accidental==='') || cands[0];
+      if(sp.oct<state.minOctave||sp.oct>state.maxOctave) return;
+      novos.push(sp);
+    }
     pushUndo(); clearRedo();
-    n.pitch=sp.pitch; n.accidental=sp.accidental;
+    headObjs(n).forEach((h,j)=>{ h.pitch=novos[j].pitch; h.accidental=novos[j].accidental; });
     dropTiesOf(state.selectedNote.m, state.selectedNote.i);
-    setOctave(sp.oct); updateEditControls(); render(); previewSelected();
+    setOctave(novos[0].oct); updateEditControls(); render(); previewSelected();
   }
   // Ctrl+↑ ↓ / [ ]: oitava da nota selecionada (sem seleção, da próxima)
   function shiftOctave(dir){
     const n=selectedNoteObj();
     if(!n || n.rest){ setOctave(state.currentOctave+dir); return; }
-    const p=parsePitch(n.pitch); if(!p) return;
-    const o=p.oct+dir; if(o<state.minOctave||o>state.maxOctave) return;
+    const ps=headObjs(n).map(h=>parsePitch(h.pitch));
+    if(ps.some(p=>!p || p.oct+dir<state.minOctave || p.oct+dir>state.maxOctave)) return;
     pushUndo(); clearRedo();
-    n.pitch=p.letter+p.acc+o;
+    headObjs(n).forEach((h,j)=>{ h.pitch=ps[j].letter+ps[j].acc+(ps[j].oct+dir); });
     dropTiesOf(state.selectedNote.m, state.selectedNote.i);
-    setOctave(o); updateEditControls(); render(); previewSelected();
+    setOctave(ps[0].oct+dir); updateEditControls(); render(); previewSelected();
   }
   // J: mesma altura, outra grafia (Dó♯ ↔ Ré♭)
   function respell(){
     const n=selectedNoteObj(); if(!n || n.rest) return;
-    const s0=soundingOf(n), p=parsePitch(n.pitch); if(s0==null||!p) return;
-    const alt=[spell(s0,false), spell(s0,true)].find(x=>x.letter!==p.letter);
-    if(!alt) return;
+    let mudou=false;
+    const alts=headObjs(n).map(h=>{
+      const s0=soundingOf(h), p=parsePitch(h.pitch); if(s0==null||!p) return null;
+      const alt=[spell(s0,false), spell(s0,true)].find(x=>x.letter!==p.letter);
+      if(alt) mudou=true; return alt;
+    });
+    if(!mudou) return;
     pushUndo(); clearRedo();
-    n.pitch=alt.pitch; n.accidental=alt.accidental;
+    headObjs(n).forEach((h,j)=>{ if(alts[j]){ h.pitch=alts[j].pitch; h.accidental=alts[j].accidental; } });
     updateEditControls(); render(); previewSelected();
   }
   // Del: a nota selecionada vira pausa (mesma duração)
   function selectedToRest(){
-    const n=selectedNoteObj(); if(!n || n.rest) return;
+    const refs=selectedRefs(); if(!refs.length) return;
+    const notas=refs.map(r=>state.measures[r.m][r.i]).filter(n=>!n.rest);
+    if(!notas.length) return;
     pushUndo(); clearRedo();
-    n.rest=true; n.pitch='B4'; n.accidental='';
-    dropTiesOf(state.selectedNote.m, state.selectedNote.i);
+    // Uma nota só, com acorde: tira a de cima (como apagar uma nota do acorde)
+    if(refs.length===1 && notas[0].extra && notas[0].extra.length){
+      notas[0].extra.pop(); if(!notas[0].extra.length) delete notas[0].extra;
+      updateEditControls(); render(); return;
+    }
+    refs.forEach(r=>{
+      const n=state.measures[r.m][r.i]; if(n.rest) return;
+      n.rest=true; n.pitch='B4'; n.accidental=''; delete n.extra;
+      dropTiesOf(r.m, r.i);
+    });
     updateEditControls(); render();
   }
   // 0: pausa — troca a selecionada (se andou até ela) ou acrescenta no fim
@@ -779,7 +844,165 @@
     if(!ref) return;
     state.lastNoteRef={m:ref.m, i:ref.i, pitch:ref.note.pitch};
     state.tieArmed=true;
-    addNoteSplit(ref.note.pitch, false, ref.note.accidental==='n' ? 'n' : '');
+    addNoteSplit(ref.note.pitch, false, ref.note.accidental==='n' ? 'n' : '',
+      ref.note.extra ? ref.note.extra.map(h => ({ pitch: h.pitch, accidental: h.accidental==='n' ? 'n' : '' })) : undefined);
+  }
+
+  // ===== Acordes de várias notas (note.extra) =====
+  const headObjs=(n)=>[n, ...(n.extra||[])];            // objetos com pitch/accidental
+  function chordTarget(){
+    const sel=selectedNoteObj();
+    if(sel && !sel.rest) return state.selectedNote;
+    const items=allItems();
+    for(let j=items.length-1;j>=0;j--){ const n=state.measures[items[j].m][items[j].i]; if(!n.rest) return items[j]; }
+    return null;
+  }
+  // Shift+letra: soma a nota ACIMA da mais aguda do acorde (MuseScore)
+  function addToChord(letter){
+    const ref=chordTarget(); if(!ref){ addNoteFromLetter(letter); return; }
+    const n=state.measures[ref.m][ref.i];
+    const top=headObjs(n).map(h=>parsePitch(h.pitch)).filter(Boolean)
+      .reduce((a,p)=>(!a || diatonic(p.letter,p.oct)>diatonic(a.letter,a.oct)) ? p : a, null);
+    const L=letter.toUpperCase();
+    let oct=top.oct; while(diatonic(L,oct)<=diatonic(top.letter,top.oct)) oct++;
+    if(oct>state.maxOctave) return;
+    const armed=state.accArmed, accText=(armed==='n')?'':(armed||'');
+    pushUndo(); clearRedo();
+    n.extra=[...(n.extra||[]), {pitch:`${L}${accText}${oct}`, accidental:armed}];
+    clearAccArmed();
+    setSelection(ref, state.appendMode);
+    render(); previewSelected();
+  }
+  function addSoundingToChord(semis){
+    const ref=chordTarget(); if(!ref){ enterSounding(semis); return; }
+    const n=state.measures[ref.m][ref.i];
+    if(headObjs(n).some(h=>soundingOf(h)===semis)) return;
+    const sp=spell(semis, (KEY_COUNT[state.keySig]||0) < 0);
+    pushUndo(); clearRedo();
+    n.extra=[...(n.extra||[]), {pitch:sp.pitch, accidental:sp.accidental}];
+    setSelection(ref, state.appendMode);
+    render();
+  }
+  function toggleChordMode(){
+    state.chordMode=!state.chordMode;
+    $('chordModeBtn').classList.toggle('active', state.chordMode);
+    $('chordModeBtn').setAttribute('aria-pressed', String(state.chordMode));
+  }
+
+  // ===== Trecho selecionado (Shift+← →) =====
+  function rangeBounds(){
+    if(!state.range) return null;
+    return [Math.min(state.range.anchor,state.range.focus), Math.max(state.range.anchor,state.range.focus)];
+  }
+  function extendSel(dir){
+    const items=allItems(); if(!items.length) return;
+    let k=selIndex(); if(k<0) k=items.length-1;
+    if(!state.range) state.range={anchor:k, focus:k};
+    state.range.focus=Math.max(0, Math.min(items.length-1, state.range.focus+dir));
+    setSelection(items[state.range.focus], false, true);
+    render();
+  }
+  function selectedRefs(){
+    const items=allItems(), rb=rangeBounds();
+    if(rb) return items.slice(rb[0], rb[1]+1);
+    const k=selIndex(); return k<0 ? [] : [items[k]];
+  }
+
+  // ===== Copiar / colar no fim =====
+  let clipboard=null;
+  function copySel(){
+    const sel=selectedRefs(); if(!sel.length) return;
+    const key=r=>r.m+':'+r.i, idx=new Map(sel.map((r,j)=>[key(r),j]));
+    clipboard={
+      notes: sel.map(r=>JSON.parse(JSON.stringify(state.measures[r.m][r.i]))),
+      ties: state.ties.filter(t=>idx.has(key(t.from)) && idx.has(key(t.to))).map(t=>({from:idx.get(key(t.from)), to:idx.get(key(t.to))})),
+      chords: state.chords.filter(c=>idx.has(c.m+':'+c.i)).map(c=>({j:idx.get(c.m+':'+c.i), symbol:c.symbol})),
+    };
+    if(window.ucToast) ucToast(sel.length===1 ? '1 nota copiada' : `${sel.length} notas copiadas`);
+  }
+  function pasteEnd(){
+    if(!clipboard || !clipboard.notes.length) return;
+    if(state.tupletLeft>0) endTuplet();
+    const measures=JSON.parse(JSON.stringify(state.measures));
+    const ties=JSON.parse(JSON.stringify(state.ties));
+    const chords=JSON.parse(JSON.stringify(state.chords));
+    pushUndo(); clearRedo();
+    const novoId=new Map(), placed=[];
+    clipboard.notes.forEach((n,j)=>{
+      const tpl={...n};
+      if(n.tuplet){
+        if(!novoId.has(n.tuplet.id)) novoId.set(n.tuplet.id, Date.now()+j);
+        tpl.tuplet={...n.tuplet, id:novoId.get(n.tuplet.id)};
+        const ant=clipboard.notes[j-1];
+        tpl.groupStart = !(ant && ant.tuplet && ant.tuplet.id===n.tuplet.id);
+        tpl.groupTotal = clipboard.notes.filter(x=>x.tuplet && x.tuplet.id===n.tuplet.id).reduce((s2,x)=>s2+noteValue(x),0);
+      }
+      placed.push(placeNote(measures, ties, tpl));
+    });
+    clipboard.ties.forEach(t=>{ const f=placed[t.from], to=placed[t.to]; if(f && to) ties.push({from:f[f.length-1], to:to[0]}); });
+    clipboard.chords.forEach(c=>{ const p=placed[c.j]; if(p) chords.push({m:p[0].m, i:p[0].i, symbol:c.symbol}); });
+    state.measures=measures; state.ties=ties; state.chords=chords;
+    // O que foi colado fica selecionado (R repete a frase inteira)
+    const ult=placed[placed.length-1], pri=placed[0][0], fim=ult[ult.length-1];
+    const items=allItems(), ka=items.findIndex(r=>r.m===pri.m && r.i===pri.i), kb=items.findIndex(r=>r.m===fim.m && r.i===fim.i);
+    setSelection(fim, true);
+    if(kb>ka) state.range={anchor:ka, focus:kb};
+    render();
+  }
+
+  // ===== Cifra em sequência (Ctrl+K) =====
+  let chordBox=null;
+  function openChordBox(){
+    const items=allItems(); if(!items.length) return;
+    if(!state.selectedNote) setSelection(items[0], false); else setSelection(state.selectedNote, false);
+    if(!chordBox){
+      chordBox=document.createElement('input');
+      chordBox.type='text'; chordBox.className='chord-float'; chordBox.placeholder='Cifra';
+      chordBox.setAttribute('aria-label','Cifra da nota selecionada (Espaço: próxima nota; Enter: terminar)');
+      chordBox.autocomplete='off'; chordBox.spellcheck=false;
+      $score.closest('.score-wrap').appendChild(chordBox);
+      chordBox.addEventListener('keydown', onChordKey);
+      chordBox.addEventListener('blur', ()=>{ if(chordBox && !chordBox.__mov){ commitChord(); closeChordBox(); } });
+    }
+    fillChordBox(); render();
+    setTimeout(()=>{ chordBox && chordBox.focus(); chordBox && chordBox.select(); }, 0);
+  }
+  function fillChordBox(){
+    if(!chordBox || !state.selectedNote) return;
+    const {m,i}=state.selectedNote;
+    const c=state.chords.find(x=>x.m===m && x.i===i);
+    chordBox.value=c ? c.symbol : '';
+  }
+  function commitChord(){
+    if(!chordBox || !state.selectedNote) return;
+    const {m,i}=state.selectedNote, v=chordBox.value.trim();
+    const atual=(state.chords.find(x=>x.m===m && x.i===i)||{}).symbol || '';
+    if(v===atual) return;
+    pushUndo(); clearRedo();
+    state.chords=state.chords.filter(x=>!(x.m===m && x.i===i));
+    if(v) state.chords.push({m, i, symbol:v});
+  }
+  function closeChordBox(){
+    if(!chordBox) return;
+    const b=chordBox; chordBox=null; b.remove(); render();
+  }
+  function onChordKey(e){
+    const prox = (e.key===' ' || e.key==='Tab');
+    if(prox){
+      e.preventDefault();
+      commitChord();
+      chordBox.__mov=true; moveSel(e.shiftKey ? -1 : 1); chordBox.__mov=false;
+      fillChordBox(); chordBox.select();
+    } else if(e.key==='Enter' || e.key==='Escape'){
+      e.preventDefault(); commitChord(); closeChordBox();
+    }
+  }
+  function positionChordBox(rect){
+    if(!chordBox) return;
+    const wrap=$score.closest('.score-wrap');
+    const r=rect.getBoundingClientRect(), w=wrap.getBoundingClientRect();
+    chordBox.style.left=Math.max(0, r.left - w.left + wrap.scrollLeft - 6)+'px';
+    chordBox.style.top=Math.max(0, r.top - w.top + wrap.scrollTop - 38)+'px';
   }
 
   // ===== Som (Web Audio, sem biblioteca) =====
@@ -815,8 +1038,8 @@
   function previewSelected(){
     if(!somAoDigitar || isPlaying) return;
     const n = selectedNoteObj(); if(!n || n.rest) return;
-    const s0 = soundingOf(n); if(s0 == null) return;
-    tone(s0, ac().currentTime + 0.01, 0.45);
+    const t = ac().currentTime + 0.01;
+    headObjs(n).forEach(h => { const s0 = soundingOf(h); if(s0 != null) tone(s0, t, 0.45, 0.18); });
   }
 
   // ===== Tocar a partitura =====
@@ -844,12 +1067,15 @@
     for(let k = k0; k < items.length; k++){
       const {m, i} = items[k];
       const n = state.measures[m][i];
-      const d = durValue(n.duration, !!n.dotted) * whole;
+      const d = noteValue(n) * whole;
       if(!n.rest){
         const s0 = soundingOf(n);
         // nota ligada à anterior: só estica a anterior, não toca de novo
         if(last && tieTarget.has(m + ':' + i) && last.semis === s0) last.dur += d;
-        else { last = { semis: s0, start: t, dur: d }; last.ev = last; playEvents.push(last); }
+        else {
+          last = { semis: s0, start: t, dur: d, mais: (n.extra||[]).map(h => soundingOf(h)).filter(x => x != null) };
+          playEvents.push(last);
+        }
       } else last = null;
       const ref = items[k];
       playTimers.push(setTimeout(() => {
@@ -858,7 +1084,11 @@
       }, (t0 - ctx.currentTime + t) * 1000));
       t += d;
     }
-    playEvents.forEach(e => tone(e.semis, t0 + e.start, e.dur * 0.95));
+    playEvents.forEach(e => {
+      const vol = e.mais.length ? 0.16 : 0.22;
+      tone(e.semis, t0 + e.start, e.dur * 0.95, vol);
+      e.mais.forEach(x => tone(x, t0 + e.start, e.dur * 0.95, vol));
+    });
     playEvents.length = 0;
     playTimers.push(setTimeout(() => { stopPlayback(); updateEditControls(); }, (t0 - ctx.currentTime + t) * 1000 + 300));
   }
@@ -878,7 +1108,7 @@
     if(!state.appendMode && k >= 0){
       pushUndo(); clearRedo();
       const {m, i} = state.selectedNote, note = state.measures[m][i];
-      note.pitch = sp.pitch; note.accidental = sp.accidental; note.rest = false;
+      note.pitch = sp.pitch; note.accidental = sp.accidental; note.rest = false; delete note.extra;
       dropTiesOf(m, i);
       const items = allItems();
       if(k + 1 < items.length) setSelection(items[k + 1], false); else setSelection({m, i}, true);
@@ -916,7 +1146,7 @@
     const semis = +key.dataset.semis;
     key.classList.add('down'); setTimeout(() => key.classList.remove('down'), 160);
     if(somAoDigitar) tone(semis, ac().currentTime + 0.005, 0.45);
-    enterSounding(semis);
+    if(e.shiftKey || state.chordMode) addSoundingToChord(semis); else enterSounding(semis);
   });
   $('pianoDown').onclick = () => { pianoStart = Math.max(1, pianoStart - 1); buildPiano(); };
   $('pianoUp').onclick = () => { pianoStart = Math.min(6, pianoStart + 1); buildPiano(); };
@@ -947,6 +1177,17 @@
 
   function removeLast(){
     if(!state.measures.length) return;
+    const ultM=state.measures[state.measures.length-1], ult=ultM[ultM.length-1];
+    if(ult && ult.tuplet){
+      // apagou uma nota da tercina: continua na tercina pra digitar de novo
+      setTimeout(()=>{
+        const resto=allItems().filter(r=>{ const x=state.measures[r.m][r.i]; return x.tuplet && x.tuplet.id===ult.tuplet.id; }).length;
+        if(resto>0 && resto<3){
+          if(!state.tupletRestore) state.tupletRestore={duration: DOUBLE[ult.duration] || state.duration, dotted:false};
+          state.tupletId=ult.tuplet.id; state.tupletLeft=3-resto; setDuration(ult.duration); updateTupletBtn();
+        } else if(resto===0 && state.tupletLeft>0) endTuplet();
+      }, 0);
+    }
     const measures=JSON.parse(JSON.stringify(state.measures));
     const m=measures.length-1;
     const i=(measures[m]?.length??0)-1;
@@ -1009,6 +1250,11 @@
       }
     }
 
+    if (note.tuplet && $editDuration.value && $editDuration.value !== note.duration) {
+      const id = note.tuplet.id;
+      state.measures.forEach(ms => ms.forEach(x => { if (x.tuplet && x.tuplet.id === id) delete x.tuplet; }));
+    }
+    if (isRest) delete note.extra;
     note.duration = $editDuration.value || note.duration;
     note.dotted = $editDotted.checked;
 
@@ -1033,6 +1279,12 @@
   $('selOctDownBtn').onclick = () => shiftOctave(-1);
   $('selRespellBtn').onclick = () => respell();
   $('selRestBtn').onclick = () => selectedToRest();
+  $('selExtendBtn').onclick = () => extendSel(1);
+  $('selChordBtn').onclick = () => openChordBox();
+  $('copyBtn').onclick = () => copySel();
+  $('pasteBtn').onclick = () => pasteEnd();
+  $('tupletBtn').onclick = () => startTuplet();
+  $('chordModeBtn').onclick = () => toggleChordMode();
 
   // ===== Render =====
   // O desenho em si (pautas/notas/feixes/ligaduras/cifras) vive em
@@ -1057,6 +1309,22 @@
     const oldHighlight = svg.querySelector('.note-highlight');
     if(oldHighlight) oldHighlight.remove();
 
+    svg.querySelectorAll('.range-highlight').forEach(r => r.remove());
+    const rb = rangeBounds();
+    if(rb){
+      allItems().slice(rb[0], rb[1]+1).forEach(ref => {
+        const vn = vfNotesByMI[ref.m]?.[ref.i]; if(!vn) return;
+        try {
+          const bb = vn.getBoundingBox(); if(!bb) return;
+          const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          r.setAttribute('class', 'range-highlight');
+          r.setAttribute('x', bb.x - 3); r.setAttribute('y', bb.y - 3);
+          r.setAttribute('width', bb.w + 6); r.setAttribute('height', bb.h + 6);
+          r.setAttribute('fill', 'rgba(124,92,255,.16)'); r.setAttribute('pointer-events', 'none');
+          svg.insertBefore(r, svg.firstChild);
+        } catch(e) {}
+      });
+    }
     if(!state.selectedNote) return;
     const note = vfNotesByMI[state.selectedNote.m]?.[state.selectedNote.i];
     if(!note) return;
@@ -1076,6 +1344,7 @@
       rect.setAttribute('pointer-events', 'none');
       svg.appendChild(rect);
       scrollScoreTo(rect);
+      positionChordBox(rect);
     } catch(e) {
       console.warn('Erro ao destacar nota:', e);
     }
@@ -1167,9 +1436,15 @@
     const k=ev.key, kl=k.toLowerCase(), ctrl=ev.ctrlKey||ev.metaKey;
     if (ctrl && kl==='z' && !ev.shiftKey){ ev.preventDefault(); undo(); return; }
     if (ctrl && (kl==='y' || (kl==='z' && ev.shiftKey))){ ev.preventDefault(); redo(); return; }
+    if (ctrl && kl==='c'){ ev.preventDefault(); copySel(); return; }
+    if (ctrl && kl==='v'){ ev.preventDefault(); pasteEnd(); return; }
+    if (ctrl && kl==='k'){ ev.preventDefault(); openChordBox(); return; }
+    if (ctrl && k==='3'){ ev.preventDefault(); startTuplet(); return; }
     if (ctrl && k==='ArrowUp'){ ev.preventDefault(); shiftOctave(1); return; }
     if (ctrl && k==='ArrowDown'){ ev.preventDefault(); shiftOctave(-1); return; }
     if (ctrl || ev.altKey) return;
+    if (ev.shiftKey && k==='ArrowLeft'){ ev.preventDefault(); extendSel(-1); return; }
+    if (ev.shiftKey && k==='ArrowRight'){ ev.preventDefault(); extendSel(1); return; }
     if (k==='ArrowLeft'){ ev.preventDefault(); moveSel(-1); return; }
     if (k==='ArrowRight'){ ev.preventDefault(); moveSel(1); return; }
     if (k==='ArrowUp'){ ev.preventDefault(); stepSemitone(1); return; }
@@ -1180,14 +1455,19 @@
     if (k===' '){ ev.preventDefault(); togglePlay(); return; }
     if (kl==='p'){ togglePiano(); return; }
     if (k==='.'){ $dot.click(); return; }
-    if (DUR_KEYS[k]){ setDuration(DUR_KEYS[k]); return; }
+    if (DUR_KEYS[k]){ if(state.tupletLeft>0) endTuplet(); setDuration(DUR_KEYS[k]); return; }
     if (k==='0'){ enterRest(); return; }
     if (k==='+'){ setAccArmed('#'); return; }
     if (k==='-'){ setAccArmed('b'); return; }
     if (k==='='){ setAccArmed('n'); return; }
     if (k==='['){ shiftOctave(-1); return; }
     if (k===']'){ shiftOctave(1); return; }
-    if (/^[a-g]$/.test(kl)){ ev.preventDefault(); addNoteFromLetter(k.toUpperCase()); return; }
+    if (/^[a-g]$/.test(kl)){
+      ev.preventDefault();
+      if (ev.shiftKey || state.chordMode) addToChord(k.toUpperCase()); else addNoteFromLetter(k.toUpperCase());
+      return;
+    }
+    if (kl==='r'){ copySel(); pasteEnd(); return; }
     if (kl==='t'){ addTiedNote(); return; }
     if (kl==='j'){ respell(); return; }
   });
@@ -1211,8 +1491,14 @@
     const el = e.target.closest('.vf-stavenote');
     if (!el) { deselectNote(); return; }
     const all = [...$score.querySelectorAll('svg .vf-stavenote')];
-    const ref = allItems()[all.indexOf(el)];
-    if (ref) { setSelection(ref, false); render(); }
+    const items = allItems(), k = all.indexOf(el), ref = items[k];
+    if (!ref) return;
+    if (e.shiftKey && state.selectedNote) {
+      const k0 = state.range ? state.range.anchor : selIndex();
+      state.range = { anchor: k0, focus: k };
+      setSelection(ref, false, true);
+    } else setSelection(ref, false);
+    render();
   });
   function addNoteClickHandlers() {
     $score.querySelectorAll('svg .vf-stavenote').forEach(n => { n.style.cursor = 'pointer'; });

@@ -69,7 +69,7 @@
 .zoom-controls { display: flex; align-items: center; gap: 6px; }
 .zoom-controls .btn { width: 30px; padding: 0; }
 #zoomLevel { min-width: 44px; text-align: center; font-family: var(--uc-mono); font-size: 12.5px; color: var(--uc-muted); }
-.score-wrap { overflow: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 240px; max-height: calc(100vh - var(--uc-nav-h) - 300px); }
+.score-wrap { position: relative; overflow: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 240px; max-height: calc(100vh - var(--uc-nav-h) - 300px); }
 
 /* Tocar / andamento / som / teclado */
 .score-header { gap: 8px; flex-wrap: wrap; }
@@ -109,3 +109,7 @@
 .import-notes { margin-top: 8px; padding: 8px 10px; border-radius: var(--uc-r-sm); background: var(--uc-bg); border: 1px solid var(--uc-line); font-size: 12px; color: var(--uc-muted); }
 .import-notes b { display: block; margin-bottom: 4px; color: var(--uc-text); }
 .import-notes ul { margin: 0; padding-left: 18px; }
+
+/* Cifra em sequência (Ctrl+K): caixinha em cima da nota */
+.chord-float { position: absolute; z-index: 5; width: 92px; padding: 4px 7px; border: 2px solid var(--uc-accent); border-radius: 6px; background: #fff; color: #111; font: 600 14px Arial, sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+.chord-float:focus { outline: none; }
