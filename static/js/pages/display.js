@@ -551,7 +551,8 @@ const fitSheetsToScreen = () => {
         const lyrics = document.getElementById('lyrics');
         const availW = container.clientWidth || (lyrics.clientWidth - 20) || 900;
         const availH = lyrics.getBoundingClientRect().bottom - container.getBoundingClientRect().top - 16;
-        const color = _bgDark ? '#fff' : '#000';
+        // Sempre preto: a partitura fica num "papel" branco (display.css)
+        const color = '#000';
         for (const zoom of [2.6, 2.2, 1.9, 1.65, 1.45, 1.3, 1.15, 1]) {
             await renderSheetMusic(container, sheetData, { maxWidth: Math.floor(availW / zoom), color, compact: true });
             const svg = container.querySelector('svg');
@@ -563,6 +564,14 @@ const fitSheetsToScreen = () => {
                 svg.style.width = svg.style.maxWidth = svg.style.height = '';
                 svg.setAttribute('width', Math.round(w * zoom));
                 svg.setAttribute('height', Math.round(h * zoom));
+                // Não deixa passar da borda direita do monitor (o container
+                // pode começar um pouco pra dentro)
+                const sobra = svg.getBoundingClientRect().right - (lyrics.getBoundingClientRect().right - 10);
+                if (sobra > 0) {
+                    const f = (w * zoom - sobra) / (w * zoom);
+                    svg.setAttribute('width', Math.round(w * zoom * f));
+                    svg.setAttribute('height', Math.round(h * zoom * f));
+                }
                 return;
             }
         }
@@ -637,7 +646,7 @@ const fitSheetsToScreen = () => {
         // (linhas) a partitura precisa, facilitando caber na tela.
         const availW = container.clientWidth || (document.getElementById('lyrics').clientWidth - 20) || 900;
         import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
-            renderSheetMusic(container, sheetData, { maxWidth: availW, color: _bgDark ? '#fff' : '#000', compact: true })
+            renderSheetMusic(container, sheetData, { maxWidth: availW, color: '#000', compact: true })
         ).then(() => {
             console.log('✅ Seção mista renderizada com sucesso!');
             shrink();

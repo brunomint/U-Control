@@ -324,7 +324,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
   // options.compact (editor de música e /view): aproveita a largura —
   // compasso do tamanho das notas que tem, linha esticada até a borda,
   // fórmula de compasso só na 1ª linha, menos espaço entre linhas e, em
-  // tela estreita, desenho um pouco menor pra caber mais de um compasso
+  // tela estreita (celular), desenho menor (62%) pra caber 2–3 compassos
   // por linha. Sem compact (telão, monitor, editor de partitura com
   // clique nas notas) continua o layout de antes.
   const compact = !!options.compact && !options.interactive;
@@ -333,7 +333,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
 
   const { beats, beatValue } = timeValues(data.timeSig);
   const viewportW = options.maxWidth ?? (container.clientWidth || container.parentElement?.clientWidth || 900);
-  const scale = compact && viewportW < 520 ? 0.78 : 1;
+  const scale = compact && viewportW < 520 ? 0.62 : 1;
   const logicalW = Math.round(viewportW / scale);
   const maxSystemW = logicalW - (LEFT + RIGHT);
 

@@ -39,6 +39,13 @@
             color: #fff;
         }
 
+        /* Partitura no retorno: sempre "papel" branco com notação preta,
+           mesmo com o fundo do monitor escuro (mais fácil de ler). */
+        #sheet-container svg {
+            background: #fff;
+            border-radius: 10px;
+        }
+
         #lyrics h2 {
             font-size: 1.3rem;
             margin-bottom: 5px;
