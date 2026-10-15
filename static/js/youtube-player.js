@@ -58,9 +58,9 @@ class YouTubeFloatingPlayer {
                     </select>
                 </label>
                 <div class="yt-footer-actions">
-                    <a class="yt-action yt-btn-external" href="#" target="_blank" rel="noopener" title="Abrir no YouTube" style="display:none;"><i class="fas fa-arrow-up-right-from-square"></i> YouTube</a>
-                    ${this.readOnly ? '' : '<button type="button" class="yt-action yt-btn-download" title="Baixar o áudio e guardar no U-Control" style="display:none;"><i class="fas fa-download"></i> Baixar áudio</button>'}
-                    ${this.readOnly ? '' : '<button type="button" class="yt-action yt-btn-change" title="Trocar por outro vídeo do YouTube" style="display:none;"><i class="fas fa-arrow-right-arrow-left"></i> Trocar</button>'}
+                    <a class="yt-action yt-btn-external" href="#" target="_blank" rel="noopener" title="Abrir no YouTube" style="display:none;"><i class="fas fa-arrow-up-right-from-square"></i> <span class="yt-label">YouTube</span></a>
+                    ${this.readOnly ? '' : '<button type="button" class="yt-action yt-btn-download" title="Baixar o áudio e guardar no U-Control" style="display:none;"><i class="fas fa-download"></i> <span class="yt-label">Baixar áudio</span></button>'}
+                    ${this.readOnly ? '' : '<button type="button" class="yt-action yt-btn-change" title="Trocar por outro vídeo do YouTube" style="display:none;"><i class="fas fa-arrow-right-arrow-left"></i> <span class="yt-label">Trocar</span></button>'}
                 </div>
             </div>
         `;
@@ -234,8 +234,11 @@ class YouTubeFloatingPlayer {
                 .yt-player-header { padding: 5px 5px 5px 10px; gap: 8px; }
                 .yt-player-header .yt-icon-btn { width: 28px; height: 28px; }
                 .yt-player-footer { padding: 5px 6px; gap: 6px; }
-                .yt-action { font-size: 0; gap: 0; padding: 6px 9px; }
+                .yt-action { gap: 0; padding: 0; width: 34px; height: 32px; justify-content: center; }
+                .yt-action .yt-label { display: none; }
                 .yt-action i { font-size: 13px; }
+                .yt-footer-actions { flex-wrap: nowrap; gap: 4px; }
+                .yt-speed-select { padding: 4px 4px; font-size: 12px; }
                 .yt-player-empty { padding: 14px 12px; }
                 .yt-empty-icon { font-size: 22px; }
                 .yt-player-empty p { margin: 6px 0 10px; font-size: 12px; }
@@ -470,7 +473,7 @@ class YouTubeFloatingPlayer {
         const originalHtml = downloadBtn.innerHTML;
 
         try {
-            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Baixando…';
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="yt-label">Baixando…</span>';
             downloadBtn.disabled = true;
 
             const songIdField = document.getElementById('song_id') || document.querySelector('input[name="song_id"]');
