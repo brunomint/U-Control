@@ -6,8 +6,11 @@ import logging
 import os
 import shutil
 import subprocess
+import posixpath
 import tempfile
 import threading
+import xml.etree.ElementTree as ET
+import zipfile
 
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
@@ -162,6 +165,98 @@ def _save_pdf_pages(pdf_document, target_dir, base_name, label, max_size):
     return saved
 
 
+_NS_P = '{http://schemas.openxmlformats.org/presentationml/2006/main}'
+_NS_R = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
+_NS_REL = '{http://schemas.openxmlformats.org/package/2006/relationships}'
+VIDEO_DIRECT = ('.mp4', '.m4v', '.mov', '.webm')          # o navegador do telão já toca
+VIDEO_CONVERT = ('.wmv', '.avi', '.mpg', '.mpeg', '.mkv', '.flv', '.3gp', '.asf')  # ffmpeg -> mp4
+
+
+def _low_priority():
+    """Conversões rodam com prioridade baixa: no Pi o ffmpeg/LibreOffice
+    ocupam a CPU inteira e o telão não pode travar se alguém enviar algo
+    durante o culto."""
+    nice = shutil.which('nice', path='/usr/bin:/bin')
+    return [nice, '-n', '19'] if nice else []
+
+
+def _zip_rels(zf, part):
+    """Relações (rId -> (Type, Target absoluto no zip)) de uma parte do pptx."""
+    folder, name = posixpath.split(part)
+    rels_path = posixpath.join(folder, '_rels', name + '.rels')
+    out = {}
+    if rels_path not in zf.namelist():
+        return out
+    for rel in ET.fromstring(zf.read(rels_path)).iter(_NS_REL + 'Relationship'):
+        if rel.get('TargetMode') == 'External':
+            continue  # vídeo por link (YouTube etc.) não vem no arquivo
+        out[rel.get('Id')] = (rel.get('Type', ''), posixpath.normpath(posixpath.join(folder, rel.get('Target', ''))))
+    return out
+
+
+def _pptx_videos_by_slide(pptx_path):
+    """[(número do slide na exportação, [vídeos no zip])]. O número é o da
+    página no PDF do LibreOffice, que pula os slides ocultos."""
+    result = []
+    with zipfile.ZipFile(pptx_path) as zf:
+        pres = 'ppt/presentation.xml'
+        rels = _zip_rels(zf, pres)
+        root = ET.fromstring(zf.read(pres))
+        page = 0
+        for sld in root.iter(_NS_P + 'sldId'):
+            target = rels.get(sld.get(_NS_R + 'id'), ('', ''))[1]
+            if target not in zf.namelist():
+                continue
+            if ET.fromstring(zf.read(target)).get('show') == '0':
+                continue  # slide oculto: não vira página
+            page += 1
+            media = []
+            for typ, path in _zip_rels(zf, target).values():
+                ext = posixpath.splitext(path)[1].lower()
+                if (typ.endswith('/video') or typ.endswith('/media')) and ext in VIDEO_DIRECT + VIDEO_CONVERT \
+                        and path in zf.namelist() and path not in media:
+                    media.append(path)
+            if media:
+                result.append((page, sorted(media)))
+    return result
+
+
+def _extract_pptx_videos(pptx_path, tmp_dir, target_dir, base_name, env):
+    """Põe cada vídeo do PowerPoint na galeria logo depois do slide dele:
+    <nome>_slide-0003.jpg, <nome>_slide-0003v1.mp4, <nome>_slide-0004.jpg…"""
+    saved = []
+    ffmpeg = shutil.which('ffmpeg', path=env.get('PATH'))
+    with zipfile.ZipFile(pptx_path) as zf:
+        for page, media in _pptx_videos_by_slide(pptx_path):
+            for k, path in enumerate(media, 1):
+                ext = posixpath.splitext(path)[1].lower()
+                final = os.path.join(target_dir, f"{base_name}_slide-{str(page).zfill(4)}v{k}" + ('.mov' if ext == '.mov' else '.webm' if ext == '.webm' else '.mp4'))
+                if ext in VIDEO_DIRECT:
+                    with zf.open(path) as src, open(final, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+                elif ffmpeg:
+                    raw = os.path.join(tmp_dir, f'video{page}_{k}{ext}')
+                    with zf.open(path) as src, open(raw, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+                    # escreve num temporário: a galeria não mostra vídeo pela metade
+                    part = os.path.join(tmp_dir, f'video{page}_{k}.mp4')
+                    proc = subprocess.run(
+                        _low_priority() + [ffmpeg, '-y', '-loglevel', 'error', '-threads', '2', '-i', raw, '-vf', "scale='min(1280,iw)':-2",
+                         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-pix_fmt', 'yuv420p',
+                         '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', part],
+                        capture_output=True, timeout=1800, env=env,
+                    )
+                    if proc.returncode != 0 or not os.path.exists(part):
+                        logging.error("upload: ffmpeg não converteu %s: %s", path, proc.stderr[-300:].decode(errors='replace'))
+                        continue
+                    shutil.move(part, final)
+                else:
+                    logging.error("upload: sem ffmpeg pra converter %s", path)
+                    continue
+                saved.append(os.path.basename(final))
+    return saved
+
+
 def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, soffice):
     """PowerPoint -> PDF (LibreOffice) -> um JPEG por slide. Roda fora da
     requisição: no Pi o LibreOffice leva ~50 s só pra abrir, e o Cloudflare
@@ -174,7 +269,7 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
             env = dict(os.environ)
             env['PATH'] = os.pathsep.join(filter(None, [env.get('PATH'), '/usr/local/bin', '/usr/bin', '/bin']))
             proc = subprocess.run(
-                [soffice, f'-env:UserInstallation=file://{profile}', '--headless',
+                _low_priority() + [soffice, f'-env:UserInstallation=file://{profile}', '--headless',
                  '--convert-to', 'pdf', '--outdir', tmp_dir, src_path],
                 capture_output=True, timeout=600, env=env,
             )
@@ -186,6 +281,13 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
         with fitz.open(pdf_path) as pdf_document:
             saved = _save_pdf_pages(pdf_document, target_dir, base_name, 'slide', max_size)
         logging.info("upload: %s convertido em %d slide(s)", base_name, len(saved))
+        if src_path.lower().endswith('.pptx'):
+            try:
+                videos = _extract_pptx_videos(src_path, tmp_dir, target_dir, base_name, env)
+                if videos:
+                    logging.info("upload: %s — vídeo(s) dos slides: %s", base_name, ', '.join(videos))
+            except Exception:
+                logging.exception("upload: falha tirando os vídeos de %s", src_path)
     except Exception:
         logging.exception("upload: falha convertendo %s", src_path)
     finally:
@@ -216,6 +318,7 @@ def upload_files():
     files = request.files.getlist('images')
     saved_files = []
     converting = []   # apresentações convertendo em segundo plano
+    videos_expected = {}  # pptx -> quantos vídeos vão sair dos slides
     errors = []
     max_size = (1920, 1080)  # Full HD - ótimo para projeção
 
@@ -255,6 +358,13 @@ def upload_files():
                 daemon=True,
             ).start()
             converting.append(filename)
+            if file_ext == '.pptx':
+                try:  # só lê o índice do zip — rápido
+                    n = sum(len(m) for _, m in _pptx_videos_by_slide(src_path))
+                    if n:
+                        videos_expected[filename] = n
+                except Exception:
+                    logging.exception("upload: não deu pra ler os vídeos de %s", filename)
         else:
             # Foto: gira conforme o celular gravou (EXIF), reduz pra Full HD
             # e comprime. HEIC (iPhone) e outros formatos sem PNG/JPEG viram JPEG.
@@ -290,7 +400,7 @@ def upload_files():
     if errors and not saved_files and not converting:
         return jsonify({'status': 'error', 'message': ' '.join(errors), 'errors': errors}), 400
     return jsonify({'status': 'success', 'saved_files': saved_files,
-                    'converting': converting, 'errors': errors}), 200
+                    'converting': converting, 'videos': videos_expected, 'errors': errors}), 200
 
 # Rota para deletar imagens (suporta ?folder=nome)
 @gallery_bp.route('/delete_image', methods=['POST'])

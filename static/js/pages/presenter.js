@@ -191,8 +191,10 @@
                     pctText.textContent = '100%';
                     const conv = data.converting || [];
                     const erros = data.errors || [];
+                    const nVideos = Object.values(data.videos || {}).reduce((a, b) => a + b, 0);
                     statusText.textContent = conv.length
-                        ? `✅ Enviado! Convertendo ${conv.join(', ')} — os slides aparecem aqui em cerca de 1 minuto.`
+                        ? `✅ Enviado! Convertendo ${conv.join(', ')} — os slides aparecem aqui em cerca de 1 minuto` +
+                          (nVideos ? ` (com ${nVideos} vídeo${nVideos > 1 ? 's' : ''}; vídeo em formato antigo pode levar alguns minutos).` : '.')
                         : '✅ Enviado!';
                     if (erros.length) statusText.textContent += ' ⚠️ ' + erros.join(' ');
                     loadImageGallery();
@@ -203,6 +205,9 @@
                         const pasta = getCurrentFolder();
                         // nome que o servidor dá aos slides: <nome sem extensão>_slide-0001.jpg
                         const bases = conv.map(n => n.replace(/\.[^.]+$/, '') + '_slide-');
+                        // vídeos dos slides: <nome>_slide-0003v1.mp4
+                        const videosDe = conv.map(n => [n.replace(/\.[^.]+$/, '') + '_slide-', (data.videos || {})[n] || 0]);
+                        let slidesProntos = false;
                         let voltas = 0;
                         const espera = setInterval(() => {
                             voltas++;
@@ -210,15 +215,23 @@
                                 .then(r => r.json())
                                 .then(d => {
                                     const urls = (d.fotos || []).map(f => (f && f.url) || String(f));
-                                    if (bases.every(b => urls.some(u => u.includes(b)))) {
+                                    const temSlides = bases.every(b => urls.some(u => u.includes(b) && /\d\.jpg$/.test(u)));
+                                    const temVideos = videosDe.every(([b, n]) => urls.filter(u => u.includes(b) && /\dv\d+\.\w+$/.test(u)).length >= n);
+                                    if (temSlides && temVideos) {
                                         clearInterval(espera);
                                         if (getCurrentFolder() === pasta) loadImageGallery();
-                                        statusText.textContent = '✅ Slides prontos!';
+                                        statusText.textContent = nVideos ? '✅ Slides e vídeos prontos!' : '✅ Slides prontos!';
                                         setTimeout(() => { wrap.style.display = 'none'; }, 4000);
-                                    } else if (voltas >= 60) {
+                                    } else if (temSlides && !slidesProntos) {
+                                        slidesProntos = true;
+                                        if (getCurrentFolder() === pasta) loadImageGallery();
+                                        statusText.textContent = '✅ Slides prontos! Preparando os vídeos dos slides…';
+                                    } else if (voltas >= (nVideos ? 360 : 60)) {
                                         clearInterval(espera);
                                         bar.style.background = '#e53935';
-                                        statusText.textContent = '❌ A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.';
+                                        statusText.textContent = slidesProntos
+                                            ? '⚠️ Os slides estão aí, mas algum vídeo não ficou pronto. Envie o arquivo de vídeo separado nesta pasta.'
+                                            : '❌ A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.';
                                     }
                                 })
                                 .catch(() => {});

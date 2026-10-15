@@ -1974,3 +1974,53 @@ def test_upload_pptx_converts_slides_in_background(logged_in_client, tmp_path, m
         time.sleep(0.5)
     assert sorted(p.name for p in pasta.iterdir()) == [
         "Avisos_do_culto_slide-0001.jpg", "Avisos_do_culto_slide-0002.jpg"]
+
+
+def _pptx_com_videos(tmp_path, videos):
+    """PowerPoint com um slide por item de `videos`: None = sem vídeo,
+    ('arquivo', oculto) = vídeo inserido (oculto=True esconde o slide)."""
+    import io
+    from PIL import Image
+    pptx = pytest.importorskip("pptx")
+    from pptx.util import Inches
+
+    poster = tmp_path / "poster.png"
+    Image.new("RGB", (32, 18), "black").save(poster)
+    pres = pptx.Presentation()
+    for i, item in enumerate(videos, 1):
+        slide = pres.slides.add_slide(pres.slide_layouts[5])
+        slide.shapes.title.text = f"Slide {i}"
+        if item:
+            arquivo, oculto = item
+            slide.shapes.add_movie(str(arquivo), Inches(1), Inches(2), Inches(4), Inches(3),
+                                   poster_frame_image=str(poster),
+                                   mime_type="video/x-ms-wmv" if str(arquivo).endswith(".wmv") else "video/mp4")
+            if oculto:
+                slide._element.set("show", "0")
+    buf = io.BytesIO()
+    pres.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def test_pptx_videos_mapped_to_exported_page(tmp_path):
+    """Vídeo vai pro número da página no PDF (slides ocultos não contam)."""
+    from blueprints import gallery
+
+    a, b, c = tmp_path / "a.mp4", tmp_path / "b.mp4", tmp_path / "c.wmv"
+    for f in (a, b, c):
+        f.write_bytes(b"\x00\x00\x00\x18ftypmp42" + f.name.encode())
+    buf = _pptx_com_videos(tmp_path, [None, (a, False), (b, True), (c, False)])
+    path = tmp_path / "p.pptx"
+    path.write_bytes(buf.read())
+
+    mapa = gallery._pptx_videos_by_slide(str(path))
+    assert [(pagina, [m.rsplit(".", 1)[1] for m in midias]) for pagina, midias in mapa] == [(2, ["mp4"]), (3, ["wmv"])]
+
+    destino = tmp_path / "out"
+    destino.mkdir()
+    import os
+    env = dict(os.environ, PATH="/nao/existe")  # sem ffmpeg: o WMV fica de fora, o MP4 vai
+    salvos = gallery._extract_pptx_videos(str(path), str(tmp_path), str(destino), "Avisos", env)
+    assert salvos == ["Avisos_slide-0002v1.mp4"]
+    assert (destino / "Avisos_slide-0002v1.mp4").read_bytes().endswith(b"a.mp4")
