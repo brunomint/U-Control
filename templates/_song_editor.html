@@ -55,17 +55,17 @@
 
         <!-- Barra de ferramentas do editor -->
         <div class="toolbar-fixed" role="toolbar" aria-label="Ferramentas do editor">
-            <button type="button" id="addSectionBtn" class="tool-btn"><i class="fas fa-heading"></i> Nova seção</button>
-            <button type="button" id="addTextBlockBtn" class="tool-btn"><i class="fas fa-align-left"></i> Texto</button>
-            <button type="button" id="insertSheetBtn" class="tool-btn"><i class="fas fa-music"></i> Criar partitura</button>
-            <button type="button" id="addSheetBlockBtn" class="tool-btn"><i class="fas fa-file-import"></i> Inserir partitura</button>
+            <button type="button" id="addSectionBtn" class="tool-btn" title="Nova seção" aria-label="Nova seção"><i class="fas fa-heading"></i> <span class="tool-label">Nova seção</span></button>
+            <button type="button" id="addTextBlockBtn" class="tool-btn" title="Texto" aria-label="Texto"><i class="fas fa-align-left"></i> <span class="tool-label">Texto</span></button>
+            <button type="button" id="insertSheetBtn" class="tool-btn" title="Criar partitura" aria-label="Criar partitura"><i class="fas fa-music"></i> <span class="tool-label">Criar partitura</span></button>
+            <button type="button" id="addSheetBlockBtn" class="tool-btn" title="Inserir partitura" aria-label="Inserir partitura"><i class="fas fa-file-import"></i> <span class="tool-label">Inserir partitura</span></button>
             <span class="tool-sep" aria-hidden="true"></span>
-            <button type="button" id="undoBtn" class="tool-btn" disabled><i class="fas fa-rotate-left"></i> Desfazer</button>
-            <button type="button" id="redoBtn" class="tool-btn" disabled><i class="fas fa-rotate-right"></i> Refazer</button>
+            <button type="button" id="undoBtn" class="tool-btn tool-icon-only" disabled title="Desfazer" aria-label="Desfazer"><i class="fas fa-rotate-left"></i> <span class="tool-label">Desfazer</span></button>
+            <button type="button" id="redoBtn" class="tool-btn tool-icon-only" disabled title="Refazer" aria-label="Refazer"><i class="fas fa-rotate-right"></i> <span class="tool-label">Refazer</span></button>
             <span class="tool-sep" aria-hidden="true"></span>
-            <button type="button" id="selectModeBtn" class="tool-btn"><i class="fas fa-square-check"></i> Selecionar</button>
-            <button type="button" id="deleteSelectedBtn" class="tool-btn danger" style="display: none;"><i class="fas fa-trash-can"></i> Excluir selecionados</button>
-            <button type="button" id="clearAllBtn" class="tool-btn danger-ghost"><i class="fas fa-eraser"></i> Limpar tudo</button>
+            <button type="button" id="selectModeBtn" class="tool-btn" title="Selecionar" aria-label="Selecionar"><i class="fas fa-square-check"></i> <span class="tool-label">Selecionar</span></button>
+            <button type="button" id="deleteSelectedBtn" class="tool-btn danger" style="display: none;" title="Excluir selecionados" aria-label="Excluir selecionados"><i class="fas fa-trash-can"></i> <span class="tool-label">Excluir selecionados</span></button>
+            <button type="button" id="clearAllBtn" class="tool-btn danger-ghost" title="Limpar tudo" aria-label="Limpar tudo"><i class="fas fa-eraser"></i> <span class="tool-label">Limpar tudo</span></button>
         </div>
 
         <div class="scrollable-div">

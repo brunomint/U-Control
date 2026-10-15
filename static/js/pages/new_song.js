@@ -1431,11 +1431,13 @@
                 const deleteBtn = document.getElementById('deleteSelectedBtn');
                 
                 if (selectionMode) {
-                    selectBtn.innerHTML = '<i class="fas fa-xmark"></i> Cancelar seleção';
+                    selectBtn.innerHTML = '<i class="fas fa-xmark"></i> <span class="tool-label">Cancelar seleção</span>';
+                    selectBtn.title = selectBtn.ariaLabel = 'Cancelar seleção';
                     selectBtn.classList.add('active');
                     deleteBtn.style.display = 'inline-flex';
                 } else {
-                    selectBtn.innerHTML = '<i class="fas fa-square-check"></i> Selecionar';
+                    selectBtn.innerHTML = '<i class="fas fa-square-check"></i> <span class="tool-label">Selecionar</span>';
+                    selectBtn.title = selectBtn.ariaLabel = 'Selecionar';
                     selectBtn.classList.remove('active');
                     deleteBtn.style.display = 'none';
                 }

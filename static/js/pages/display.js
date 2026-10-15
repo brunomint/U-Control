@@ -531,15 +531,7 @@ const fitSheetsToScreen = () => {
         }
 
         const container = document.getElementById('sheet-container');
-        // Usa a largura real disponível (não um valor fixo) — telas de
-        // exibição costumam ser bem largas/baixas (proporção de monitor
-        // de palco), então limitar a 900px força quebra de linha em
-        // sistemas demais, deixando a partitura mais alta do que
-        // precisava, o que dificulta caber na tela sem encolher demais.
-        const availW = document.getElementById('lyrics').clientWidth - 20 || 900;
-        import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
-            renderSheetMusic(container, sheetData, { maxWidth: availW, color: _bgDark ? '#fff' : '#000' })
-        ).then(() => {
+        desenharPartituraGrande(container, sheetData).then(() => {
             console.log('✅ Partitura renderizada com sucesso!');
             fitSheetsToScreen();
         }).catch(error => {
@@ -548,6 +540,34 @@ const fitSheetsToScreen = () => {
         });
     }
     
+    // Monitor: a partitura no MAIOR tamanho que cabe na tela. Tenta do
+    // zoom maior pro menor — com zoom maior cabem menos compassos por
+    // linha (o layout compact do sheet_render.js redistribui) — e fica
+    // com o primeiro cuja altura cabe. Largura/altura do <svg> já saem
+    // com o zoom (o viewBox continua o do desenho), então o
+    // fitSheetsToScreen() de depois só encolhe se ainda sobrar texto.
+    async function desenharPartituraGrande(container, sheetData) {
+        const { renderSheetMusic } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
+        const lyrics = document.getElementById('lyrics');
+        const availW = container.clientWidth || (lyrics.clientWidth - 20) || 900;
+        const availH = lyrics.getBoundingClientRect().bottom - container.getBoundingClientRect().top - 16;
+        const color = _bgDark ? '#fff' : '#000';
+        for (const zoom of [2.6, 2.2, 1.9, 1.65, 1.45, 1.3, 1.15, 1]) {
+            await renderSheetMusic(container, sheetData, { maxWidth: Math.floor(availW / zoom), color, compact: true });
+            const svg = container.querySelector('svg');
+            if (!svg) return;
+            const w = parseFloat(svg.getAttribute('width'));
+            const h = parseFloat(svg.getAttribute('height'));
+            if (h * zoom <= availH || zoom === 1) {
+                if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+                svg.style.width = svg.style.maxWidth = svg.style.height = '';
+                svg.setAttribute('width', Math.round(w * zoom));
+                svg.setAttribute('height', Math.round(h * zoom));
+                return;
+            }
+        }
+    }
+
     // Função para renderizar seção mista com ordem preservada
     function renderMixedSectionOrdered(title, elements) {
         console.log('🎭 Renderizando seção mista ordenada:', title, elements);
@@ -615,9 +635,9 @@ const fitSheetsToScreen = () => {
         // Mesmo motivo de renderSheet(): usa a largura real disponível
         // em vez de um valor fixo, pra minimizar quantos sistemas
         // (linhas) a partitura precisa, facilitando caber na tela.
-        const availW = document.getElementById('lyrics').clientWidth - 20 || 900;
+        const availW = container.clientWidth || (document.getElementById('lyrics').clientWidth - 20) || 900;
         import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
-            renderSheetMusic(container, sheetData, { maxWidth: availW, color: _bgDark ? '#fff' : '#000' })
+            renderSheetMusic(container, sheetData, { maxWidth: availW, color: _bgDark ? '#fff' : '#000', compact: true })
         ).then(() => {
             console.log('✅ Seção mista renderizada com sucesso!');
             shrink();

@@ -119,6 +119,8 @@
 .tool-btn.danger { background: var(--uc-danger-soft); color: var(--uc-danger); }
 .tool-btn.danger-ghost:hover { color: var(--uc-danger); background: var(--uc-danger-soft); }
 .tool-sep { width: 1px; height: 22px; background: var(--uc-line); margin: 0 4px; }
+/* Desfazer/Refazer: só as setas (nome no title), pra barra caber numa linha */
+.tool-icon-only .tool-label { display: none; }
 
 /* Folha de edição */
 #blockEditor {
@@ -204,6 +206,13 @@ textarea[name="texts[]"], #entrada { display: none; }
   .meta-grid { grid-template-columns: minmax(0, 1fr); }
   #blockEditor { padding: 12px; }
   .tool-btn { padding: 7px 9px; }
+  /* Celular: barra numa linha só, só ícones (o nome fica no title e no
+     aria-label); se não couber (ex.: modo seleção), rola de lado */
+  .toolbar-fixed { flex-wrap: nowrap; overflow-x: auto; gap: 2px; padding: 5px; scrollbar-width: none; }
+  .toolbar-fixed::-webkit-scrollbar { display: none; }
+  .toolbar-fixed .tool-btn { flex: 0 0 auto; justify-content: center; min-width: 38px; height: 36px; padding: 0 9px; font-size: 15px; }
+  .toolbar-fixed .tool-label { display: none; }
+  .toolbar-fixed .tool-sep { flex: 0 0 auto; margin: 0 2px; }
 }
 
 /* Botões das seções (subir, descer, duplicar, excluir) — sempre visíveis,
