@@ -2,13 +2,24 @@
 imagens), listagem e exclusão. IMAGE_FOLDER e get_current_image_path()
 são usadas também por /img (main.py, tela de exibição pública — parte do
 núcleo de display, não desta área), por isso ficam exportadas daqui."""
+import logging
 import os
+import shutil
+import subprocess
+import tempfile
+import threading
 
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 from werkzeug.utils import safe_join, secure_filename
-from PIL import Image
+from PIL import Image, ImageOps, UnidentifiedImageError
 import fitz  # PyMuPDF
+
+try:  # fotos de iPhone (.heic) — sem o pacote, viram erro claro em vez de 500
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:  # pragma: no cover
+    pass
 
 from extensions import csrf
 
@@ -101,7 +112,7 @@ def lista_fotos():
         prefix = f'/static/imagens/{folder}'
     if not target or not os.path.exists(target):
         return jsonify({'fotos': []})
-    IMAGE_EXTS = ('.png', '.jpg', '.jpeg', '.gif')
+    IMAGE_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
     VIDEO_EXTS = ('.mp4', '.webm', '.mov')
     items = []
     for f in os.listdir(target):
@@ -113,6 +124,72 @@ def lista_fotos():
         elif lower.endswith(VIDEO_EXTS):
             items.append({'url': f'{prefix}/{f}', 'type': 'video'})
     return jsonify({'fotos': items})
+
+
+PRESENTATION_EXTS = ('.pptx', '.ppt', '.odp')
+# Uma conversão por vez: o Pi tem ~900 MB e duas instâncias do LibreOffice
+# com o mesmo perfil brigam (a segunda sai sem converter nada).
+_lo_lock = threading.Lock()
+
+
+def _find_libreoffice():
+    """O serviço roda com PATH só do venv (ucontrol-gunicorn), então o
+    'libreoffice' do subprocess não era achado — procura nos lugares de
+    sempre também."""
+    for name in ('libreoffice', 'soffice'):
+        found = shutil.which(name)
+        if found:
+            return found
+    for path in ('/usr/bin/libreoffice', '/usr/bin/soffice', '/usr/local/bin/libreoffice',
+                 '/Applications/LibreOffice.app/Contents/MacOS/soffice'):
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def _save_pdf_pages(pdf_document, target_dir, base_name, label, max_size):
+    saved = []
+    for page_num in range(len(pdf_document)):
+        page = pdf_document[page_num]
+        # Renderiza em 2x para boa qualidade inicial
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img.thumbnail(max_size, Image.LANCZOS)
+        # JPEG otimizado (muito mais leve que PNG)
+        img_path = os.path.join(target_dir, f"{base_name}_{label}-{str(page_num + 1).zfill(4)}.jpg")
+        img.save(img_path, 'JPEG', quality=85, optimize=True)
+        saved.append(os.path.basename(img_path))
+    return saved
+
+
+def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, soffice):
+    """PowerPoint -> PDF (LibreOffice) -> um JPEG por slide. Roda fora da
+    requisição: no Pi o LibreOffice leva ~50 s só pra abrir, e o Cloudflare
+    desiste da resposta em 100 s."""
+    try:
+        with _lo_lock:
+            profile = os.path.join(tempfile.gettempdir(), 'ucontrol-libreoffice')
+            # /usr/bin/libreoffice é um script de shell: precisa de dirname,
+            # basename etc. no PATH (o do serviço só tem o venv)
+            env = dict(os.environ)
+            env['PATH'] = os.pathsep.join(filter(None, [env.get('PATH'), '/usr/local/bin', '/usr/bin', '/bin']))
+            proc = subprocess.run(
+                [soffice, f'-env:UserInstallation=file://{profile}', '--headless',
+                 '--convert-to', 'pdf', '--outdir', tmp_dir, src_path],
+                capture_output=True, timeout=600, env=env,
+            )
+        pdf_path = os.path.splitext(src_path)[0] + '.pdf'
+        if not os.path.exists(pdf_path):
+            logging.error("upload: LibreOffice não converteu %s (saída %s): %s", src_path,
+                          proc.returncode, (proc.stderr or proc.stdout or b'')[-500:].decode(errors='replace'))
+            return
+        with fitz.open(pdf_path) as pdf_document:
+            saved = _save_pdf_pages(pdf_document, target_dir, base_name, 'slide', max_size)
+        logging.info("upload: %s convertido em %d slide(s)", base_name, len(saved))
+    except Exception:
+        logging.exception("upload: falha convertendo %s", src_path)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 @gallery_bp.route('/upload', methods=['POST'])
@@ -138,6 +215,8 @@ def upload_files():
 
     files = request.files.getlist('images')
     saved_files = []
+    converting = []   # apresentações convertendo em segundo plano
+    errors = []
     max_size = (1920, 1080)  # Full HD - ótimo para projeção
 
     for file in files:
@@ -148,76 +227,70 @@ def upload_files():
         if not filename:
             return jsonify({'status': 'error', 'message': 'Nome de arquivo inválido'}), 400
 
-        file_ext = os.path.splitext(filename)[1].lower()
+        base_name, file_ext = os.path.splitext(filename)
+        file_ext = file_ext.lower()
         if file_ext in ('.mp4', '.webm', '.mov'):
             file_path = os.path.join(target_dir, filename)
             file.save(file_path)
             saved_files.append(filename)
         elif file_ext == '.pdf':
             # Converter PDF para imagens otimizadas para projeção
-            pdf_document = fitz.open(stream=file.read(), filetype="pdf")
-            for page_num in range(len(pdf_document)):
-                page = pdf_document[page_num]
-
-                # Renderiza em 2x para boa qualidade inicial
-                matrix = fitz.Matrix(2, 2)
-                pix = page.get_pixmap(matrix=matrix)
-
-                # Converte para PIL para redimensionar e comprimir
-                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                img.thumbnail(max_size, Image.LANCZOS)
-
-                # Salva como JPEG otimizado (muito mais leve que PNG)
-                img_path = os.path.join(target_dir, f"{os.path.splitext(filename)[0]}_page-{str(page_num + 1).zfill(4)}.jpg")
-                img.save(img_path, 'JPEG', quality=85, optimize=True)
-                saved_files.append(os.path.basename(img_path))
-        elif file_ext == '.pptx':
-            import subprocess, tempfile
-            with tempfile.TemporaryDirectory() as tmp:
-                pptx_path = os.path.join(tmp, filename)
-                file.save(pptx_path)
-                subprocess.run(
-                    ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', tmp, pptx_path],
-                    capture_output=True, timeout=120
-                )
-                pdf_path = os.path.splitext(pptx_path)[0] + '.pdf'
-                if not os.path.exists(pdf_path):
-                    continue
-                pdf_document = fitz.open(pdf_path)
-                base_name = os.path.splitext(filename)[0]
-                for page_num in range(len(pdf_document)):
-                    page = pdf_document[page_num]
-                    matrix = fitz.Matrix(2, 2)
-                    pix = page.get_pixmap(matrix=matrix)
-                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                    img.thumbnail(max_size, Image.LANCZOS)
-                    img_path = os.path.join(target_dir, f"{base_name}_slide-{str(page_num + 1).zfill(4)}.jpg")
-                    img.save(img_path, 'JPEG', quality=85, optimize=True)
-                    saved_files.append(os.path.basename(img_path))
+            try:
+                with fitz.open(stream=file.read(), filetype="pdf") as pdf_document:
+                    saved_files += _save_pdf_pages(pdf_document, target_dir, base_name, 'page', max_size)
+            except Exception:
+                logging.exception("upload: PDF ilegível %s", filename)
+                errors.append(f'{file.filename}: PDF não pôde ser lido.')
+        elif file_ext in PRESENTATION_EXTS:
+            soffice = _find_libreoffice()
+            if not soffice:
+                errors.append(f'{file.filename}: o servidor não tem o LibreOffice pra converter apresentações. Salve como PDF e envie o PDF.')
+                continue
+            tmp_dir = tempfile.mkdtemp(prefix='ucontrol-ppt-')
+            src_path = os.path.join(tmp_dir, filename)
+            file.save(src_path)
+            threading.Thread(
+                target=_convert_presentation,
+                args=(src_path, tmp_dir, target_dir, base_name, max_size, soffice),
+                daemon=True,
+            ).start()
+            converting.append(filename)
         else:
-            # Salvar e redimensionar imagens com compressão otimizada
-            file_path = os.path.join(target_dir, filename)
-            with Image.open(file) as img:
-                # Converte para RGB se for RGBA (PNG com transparência)
-                if img.mode == 'RGBA':
-                    background = Image.new('RGB', img.size, (0, 0, 0))  # Fundo preto
-                    background.paste(img, mask=img.split()[3])  # Alpha channel
-                    img = background
+            # Foto: gira conforme o celular gravou (EXIF), reduz pra Full HD
+            # e comprime. HEIC (iPhone) e outros formatos sem PNG/JPEG viram JPEG.
+            try:
+                with Image.open(file) as original:
+                    img = ImageOps.exif_transpose(original)
+                    # Transparência vira fundo preto (como o telão)
+                    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                        img = img.convert('RGBA')
+                        background = Image.new('RGB', img.size, (0, 0, 0))
+                        background.paste(img, mask=img.split()[3])
+                        img = background
+                    elif img.mode not in ('RGB', 'L'):
+                        img = img.convert('RGB')
 
-                # Redimensiona mantendo proporção
-                img.thumbnail(max_size, Image.LANCZOS)
+                    img.thumbnail(max_size, Image.LANCZOS)
 
-                # Salva com compressão otimizada
-                if file_ext in ['.jpg', '.jpeg']:
-                    img.save(file_path, 'JPEG', quality=85, optimize=True)
-                elif file_ext == '.png':
-                    img.save(file_path, 'PNG', optimize=True, compress_level=6)
-                else:
-                    img.save(file_path, quality=85, optimize=True)
+                    if file_ext not in ('.jpg', '.jpeg', '.png', '.gif'):
+                        file_ext = '.jpg'
+                        filename = base_name + file_ext
+                    file_path = os.path.join(target_dir, filename)
+                    if file_ext in ('.jpg', '.jpeg'):
+                        img.save(file_path, 'JPEG', quality=85, optimize=True)
+                    elif file_ext == '.png':
+                        img.save(file_path, 'PNG', optimize=True, compress_level=6)
+                    else:
+                        img.save(file_path, quality=85, optimize=True)
+                saved_files.append(filename)
+            except (UnidentifiedImageError, OSError):
+                logging.exception("upload: imagem ilegível %s", filename)
+                errors.append(f'{file.filename}: formato não reconhecido. Envie foto (JPG, PNG, HEIC), vídeo, PDF ou PowerPoint.')
 
-            saved_files.append(filename)
-
-    return jsonify({'status': 'success', 'saved_files': saved_files}), 200
+    if errors and not saved_files and not converting:
+        return jsonify({'status': 'error', 'message': ' '.join(errors), 'errors': errors}), 400
+    return jsonify({'status': 'success', 'saved_files': saved_files,
+                    'converting': converting, 'errors': errors}), 200
 
 # Rota para deletar imagens (suporta ?folder=nome)
 @gallery_bp.route('/delete_image', methods=['POST'])

@@ -48,9 +48,9 @@
     <!-- Arquivos e pastas (abre/fecha pelo botão) -->
     <section class="uc-card menu" aria-label="Arquivos e pastas">
         <div class="menu-group">
-            <div class="menu-title">Enviar fotos e vídeos para a pasta</div>
+            <div class="menu-title">Enviar fotos, vídeos, PDF ou PowerPoint para a pasta</div>
             <div class="upload-row">
-                <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/webm,video/quicktime" aria-label="Arquivos">
+                <input type="file" id="fileInput" multiple accept="image/*,.heic,.heif,video/mp4,video/webm,video/quicktime,.pdf,application/pdf,.pptx,.ppt,.odp" aria-label="Arquivos">
                 <button type="button" class="uc-btn uc-btn-primary" id="uploadBtn" onclick="uploadImages()"><i class="fas fa-upload"></i> Enviar</button>
             </div>
             <div id="uploadProgressWrap" style="display:none">

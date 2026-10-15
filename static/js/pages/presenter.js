@@ -183,20 +183,52 @@
             xhr.onload = function() {
                 btn.disabled = false;
                 btn.style.opacity = '1';
-                if (xhr.status === 200) {
-                    const data = JSON.parse(xhr.responseText);
-                    if (data.status === 'success') {
-                        bar.style.width = '100%';
-                        bar.style.background = 'linear-gradient(90deg,#4caf50,#81c784)';
-                        pctText.textContent = '100%';
-                        statusText.textContent = '✅ Enviado! Processando imagens...';
-                        loadImageGallery();
-                        fileInput.value = '';
+                let data = null;
+                try { data = JSON.parse(xhr.responseText); } catch (e) { /* página de erro */ }
+                if (xhr.status === 200 && data && data.status === 'success') {
+                    bar.style.width = '100%';
+                    bar.style.background = 'linear-gradient(90deg,#4caf50,#81c784)';
+                    pctText.textContent = '100%';
+                    const conv = data.converting || [];
+                    const erros = data.errors || [];
+                    statusText.textContent = conv.length
+                        ? `✅ Enviado! Convertendo ${conv.join(', ')} — os slides aparecem aqui em cerca de 1 minuto.`
+                        : '✅ Enviado!';
+                    if (erros.length) statusText.textContent += ' ⚠️ ' + erros.join(' ');
+                    loadImageGallery();
+                    fileInput.value = '';
+                    // PowerPoint converte em segundo plano no servidor:
+                    // recarrega a galeria até os slides chegarem (até 5 min)
+                    if (conv.length) {
+                        const pasta = getCurrentFolder();
+                        // nome que o servidor dá aos slides: <nome sem extensão>_slide-0001.jpg
+                        const bases = conv.map(n => n.replace(/\.[^.]+$/, '') + '_slide-');
+                        let voltas = 0;
+                        const espera = setInterval(() => {
+                            voltas++;
+                            fetch(`/lista-fotos?folder=${encodeURIComponent(pasta)}`)
+                                .then(r => r.json())
+                                .then(d => {
+                                    const urls = (d.fotos || []).map(f => (f && f.url) || String(f));
+                                    if (bases.every(b => urls.some(u => u.includes(b)))) {
+                                        clearInterval(espera);
+                                        if (getCurrentFolder() === pasta) loadImageGallery();
+                                        statusText.textContent = '✅ Slides prontos!';
+                                        setTimeout(() => { wrap.style.display = 'none'; }, 4000);
+                                    } else if (voltas >= 60) {
+                                        clearInterval(espera);
+                                        bar.style.background = '#e53935';
+                                        statusText.textContent = '❌ A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.';
+                                    }
+                                })
+                                .catch(() => {});
+                        }, 5000);
+                    } else if (!erros.length) {
                         setTimeout(() => { wrap.style.display = 'none'; }, 3000);
                     }
                 } else {
                     bar.style.background = '#e53935';
-                    statusText.textContent = '❌ Erro no envio.';
+                    statusText.textContent = '❌ ' + ((data && data.message) || 'Erro no envio.');
                 }
             };
 

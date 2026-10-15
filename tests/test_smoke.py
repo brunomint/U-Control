@@ -1882,3 +1882,95 @@ def test_sheet_marks_round_trip(app):
         assert sheets[0]["marks"] == marks
         assert sheets[1]["marks"] is None
         songs_store.delete_song(sid)
+
+
+import pytest  # noqa: E402  (importorskip nos testes de upload abaixo)
+
+
+def _upload(client, nome, dados, folder=None):
+    data = {"images": (dados, nome)}
+    if folder:
+        data["folder"] = folder
+    return client.post("/upload", data=data, content_type="multipart/form-data")
+
+
+def test_upload_phone_photo_is_rotated_by_exif(logged_in_client, tmp_path, monkeypatch):
+    """Foto de celular em pé vem deitada + EXIF orientação 6; o telão
+    precisa dela em pé (antes ficava deitada: o EXIF era descartado)."""
+    import io
+    from PIL import Image
+
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    buf = io.BytesIO()
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    Image.new("RGB", (400, 300), "blue").save(buf, format="JPEG", exif=exif)
+    buf.seek(0)
+
+    resp = _upload(logged_in_client, "foto.jpg", buf)
+    assert resp.status_code == 200
+    with Image.open(tmp_path / "static" / "imagens" / "foto.jpg") as img:
+        assert img.size == (300, 400)
+
+
+def test_upload_heic_and_webp_become_visible_images(logged_in_client, tmp_path, monkeypatch):
+    import io
+    from PIL import Image
+    pytest.importorskip("pillow_heif")
+
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    heic = io.BytesIO()
+    Image.new("RGB", (64, 48), "green").save(heic, format="HEIF")
+    heic.seek(0)
+    webp = io.BytesIO()
+    Image.new("RGB", (64, 48), "purple").save(webp, format="WEBP")
+    webp.seek(0)
+
+    assert _upload(logged_in_client, "IMG_0001.HEIC", heic).get_json()["saved_files"] == ["IMG_0001.jpg"]
+    assert _upload(logged_in_client, "banner.webp", webp).get_json()["saved_files"] == ["banner.jpg"]
+    urls = {f["url"] for f in logged_in_client.get("/lista-fotos").get_json()["fotos"]}
+    assert urls == {"/static/imagens/IMG_0001.jpg", "/static/imagens/banner.jpg"}
+
+
+def test_upload_unreadable_file_returns_clear_error(logged_in_client, tmp_path, monkeypatch):
+    import io
+
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    resp = _upload(logged_in_client, "planilha.xlsx", io.BytesIO(b"isto nao e imagem"))
+    assert resp.status_code == 400
+    assert "formato não reconhecido" in resp.get_json()["message"]
+
+
+def test_upload_pptx_converts_slides_in_background(logged_in_client, tmp_path, monkeypatch):
+    import io
+    import time
+    from blueprints import gallery
+    pptx = pytest.importorskip("pptx")
+    if not gallery._find_libreoffice():
+        pytest.skip("LibreOffice não instalado")
+
+    (tmp_path / "static" / "imagens" / "Avisos").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    # Sem /usr/bin no PATH, como no serviço do Pi
+    monkeypatch.setenv("PATH", "/nao/existe")
+    pres = pptx.Presentation()
+    for titulo in ("Bem-vindos", "Oração"):
+        pres.slides.add_slide(pres.slide_layouts[0]).shapes.title.text = titulo
+    buf = io.BytesIO()
+    pres.save(buf)
+    buf.seek(0)
+
+    resp = _upload(logged_in_client, "Avisos do culto.pptx", buf, folder="Avisos")
+    assert resp.status_code == 200
+    assert resp.get_json()["converting"] == ["Avisos_do_culto.pptx"]
+
+    pasta = tmp_path / "static" / "imagens" / "Avisos"
+    for _ in range(240):
+        if len(list(pasta.glob("Avisos_do_culto_slide-*.jpg"))) == 2:
+            break
+        time.sleep(0.5)
+    assert sorted(p.name for p in pasta.iterdir()) == [
+        "Avisos_do_culto_slide-0001.jpg", "Avisos_do_culto_slide-0002.jpg"]
