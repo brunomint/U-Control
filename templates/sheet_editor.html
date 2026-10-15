@@ -16,97 +16,135 @@
 <div class="sheet-head uc-page-head">
   <div>
     <h1>Editor de partitura</h1>
-    <div class="uc-page-sub">{% if song %}{{ song.title }}{% else %}Partitura nova. Salve como JSON ou abra pela música para gravar nela.{% endif %}</div>
+    <div class="uc-page-sub">{% if song %}{{ song.title }}{% else %}Partitura nova — exporte em MusicXML ou abra pela música pra gravar nela.{% endif %}</div>
+  </div>
+  <div class="sheet-head-actions" id="headerActions">
+    <button type="button" class="btn done-btn" id="doneBtn" hidden title="Fechar e voltar pra música — a partitura entra (ou é atualizada) lá"><i class="fas fa-check"></i> <span>Concluir</span></button>
   </div>
 </div>
 
-<main class="sheet-main">
-  <section class="uc-card card controls">
-    <div class="control-group">
-      <span class="control-group-title">Configurações da Partitura</span>
-      <div class="row">
-        <div>
-          <label>Clave</label>
-          <select id="clef">
-            <option value="treble">Sol (G)</option>
-            <option value="bass">Fá (F)</option>
-          </select>
-        </div>
-        <div>
-          <label>Armadura</label>
-          <select id="keysig">
-            <option>C</option><option>G</option><option>D</option><option>A</option><option>E</option><option>B</option><option>F#</option><option>C#</option>
-            <option>F</option><option>Bb</option><option>Eb</option><option>Ab</option><option>Db</option><option>Gb</option><option>Cb</option>
-          </select>
-        </div>
-        <div>
-          <label>Compasso</label>
-          <select id="timesig">
-            <option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>2/2</option>
-          </select>
-        </div>
-      </div>
+<main class="sheet-app">
+  <!-- Barra de ferramentas: o que se usa ao escrever (igual à barra de entrada do MuseScore) -->
+  <div class="sheet-toolbar" role="toolbar" aria-label="Escrever notas">
+    <div class="tb-group" role="group" aria-label="Duração">
+      <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (3)" aria-label="Semicolcheia" aria-pressed="false">𝅘𝅥𝅯</button>
+      <button type="button" class="btn dur" data-dur="8"  title="Colcheia (4)" aria-label="Colcheia" aria-pressed="false">𝅘𝅥𝅮</button>
+      <button type="button" class="btn dur" data-dur="q"  title="Semínima (5)" aria-label="Semínima" aria-pressed="false">𝅘𝅥</button>
+      <button type="button" class="btn dur active" data-dur="h" title="Mínima (6)" aria-label="Mínima" aria-pressed="true">𝅗𝅥</button>
+      <button type="button" class="btn dur" data-dur="w"  title="Semibreve (7)" aria-label="Semibreve" aria-pressed="false">𝅝</button>
+      <button type="button" class="btn dur-dot" id="dotBtn" title="Ponto de aumento (.)" aria-label="Ponto">•</button>
+      <button type="button" class="btn" id="tupletBtn" title="Tercina (Ctrl+3): escolha a duração do grupo (ex.: semínima) e as próximas 3 notas dividem esse tempo">Tercina</button>
+      <button type="button" class="btn" id="restBtn" title="Pausa com a duração escolhida (0)"><i class="fas fa-pause"></i> Pausa</button>
     </div>
+    <div class="tb-group" role="group" aria-label="Acidente na próxima nota">
+      <button type="button" class="btn acc" id="accSharpBtn" title="Sustenido na próxima nota (+)" aria-label="Sustenido">♯</button>
+      <button type="button" class="btn acc" id="accFlatBtn" title="Bemol na próxima nota (-)" aria-label="Bemol">♭</button>
+      <button type="button" class="btn acc" id="accNaturalBtn" title="Bequadro na próxima nota (=)" aria-label="Bequadro">♮</button>
+      <button type="button" class="btn acc" id="accDoubleSharpBtn" title="Dobrado sustenido na próxima nota" aria-label="Dobrado sustenido">𝄪</button>
+      <button type="button" class="btn acc" id="accDoubleFlatBtn" title="Dobrado bemol na próxima nota" aria-label="Dobrado bemol">𝄫</button>
+    </div>
+    <div class="tb-group" role="group" aria-label="Ligadura, acorde e oitava">
+      <button type="button" class="btn" id="tieBtn" title="Nota ligada: repete a nota selecionada com a duração escolhida (T)">Ligadura</button>
+      <button type="button" class="btn" id="chordModeBtn" title="Somar notas ao acorde da nota selecionada (ou Shift+letra / Shift+tecla do piano)" aria-pressed="false">Acorde</button>
+      <span class="tb-oct" title="Oitava da próxima nota (a letra escolhe a mais próxima da anterior)">
+        <button type="button" class="btn" id="octDown" title="Oitava abaixo (Ctrl+↓ ou [)" aria-label="Oitava abaixo">–</button>
+        <span id="octDisplay" class="kbd" aria-label="Oitava">4</span>
+        <button type="button" class="btn" id="octUp" title="Oitava acima (Ctrl+↑ ou ])" aria-label="Oitava acima">+</button>
+      </span>
+    </div>
+    <div class="tb-group" role="group" aria-label="Desfazer">
+      <button type="button" class="btn" id="undoBtn" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><i class="fas fa-rotate-left"></i></button>
+      <button type="button" class="btn" id="redoBtn" title="Refazer (Ctrl+Y)" aria-label="Refazer"><i class="fas fa-rotate-right"></i></button>
+    </div>
+    <div class="tb-group tb-play" role="group" aria-label="Ouvir e ver">
+      <button type="button" class="btn action-btn" id="playBtn" title="Tocar a partir da nota selecionada, ou do começo (Espaço)"><i class="fas fa-play"></i> <span>Tocar</span></button>
+      <label class="tempo" title="Andamento (semínimas por minuto)"><i class="fas fa-gauge-high"></i>
+        <input type="number" id="tempoInput" min="30" max="240" step="5" value="80" aria-label="Andamento"></label>
+      <button type="button" class="btn" id="soundToggle" title="Som ao digitar as notas" aria-pressed="true"><i class="fas fa-volume-high"></i></button>
+      <button type="button" class="btn" id="pianoToggle" title="Mostrar/esconder o teclado (P)" aria-pressed="true"><i class="fas fa-keyboard"></i></button>
+      <span class="zoom-controls">
+        <button type="button" class="btn" id="zoomOutBtn" title="Diminuir" aria-label="Diminuir">–</button>
+        <span id="zoomLevel">100%</span>
+        <button type="button" class="btn" id="zoomInBtn" title="Aumentar" aria-label="Aumentar">+</button>
+      </span>
+    </div>
+  </div>
 
-    <div class="control-group">
-      <span class="control-group-title">Notas</span>
-      <div class="row"><div id="noteButtons" class="row"></div></div>
-      <div class="row">
-        <div>
-          <span class="group-title">Oitava:</span>
-          <button type="button" class="btn" id="octDown" title="Oitava abaixo (Ctrl+↓ ou [)">–</button>
-          <span id="octDisplay" class="kbd">4</span>
-          <button type="button" class="btn" id="octUp" title="Oitava acima (Ctrl+↑ ou ])">+</button>
+  <div class="sheet-body">
+    <section class="score-col">
+      <div class="score-wrap"><div id="score"></div></div>
+      <div class="piano-panel" id="pianoPanel">
+        <button type="button" class="btn piano-shift" id="pianoDown" title="Teclado uma oitava abaixo" aria-label="Teclado uma oitava abaixo"><i class="fas fa-chevron-left"></i></button>
+        <div class="piano" id="piano" role="group" aria-label="Teclado de piano: toque pra ouvir e escrever a nota"></div>
+        <button type="button" class="btn piano-shift" id="pianoUp" title="Teclado uma oitava acima" aria-label="Teclado uma oitava acima"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </section>
+
+    <aside class="side-panel controls" aria-label="Propriedades">
+      <details class="panel-sec" open>
+        <summary>Nota selecionada</summary>
+        <div class="row sel-nav" role="group" aria-label="Mexer na nota selecionada">
+          <button type="button" class="btn" id="selPrevBtn" title="Nota anterior (←)" aria-label="Nota anterior"><i class="fas fa-chevron-left"></i></button>
+          <button type="button" class="btn" id="selNextBtn" title="Próxima nota (→)" aria-label="Próxima nota"><i class="fas fa-chevron-right"></i></button>
+          <button type="button" class="btn" id="selUpBtn" title="Meio tom acima (↑)" aria-label="Meio tom acima"><i class="fas fa-arrow-up"></i></button>
+          <button type="button" class="btn" id="selDownBtn" title="Meio tom abaixo (↓)" aria-label="Meio tom abaixo"><i class="fas fa-arrow-down"></i></button>
+          <button type="button" class="btn" id="selOctUpBtn" title="Oitava acima (Ctrl+↑)">8va↑</button>
+          <button type="button" class="btn" id="selOctDownBtn" title="Oitava abaixo (Ctrl+↓)">8va↓</button>
+          <button type="button" class="btn" id="selRespellBtn" title="Trocar a grafia, ex.: Dó♯ ↔ Ré♭ (J)">♯↔♭</button>
+          <button type="button" class="btn" id="selRestBtn" title="Trocar por pausa (Del); num acorde, tira a nota de cima">Pausa</button>
+          <button type="button" class="btn" id="selExtendBtn" title="Esticar a seleção pra próxima nota (Shift+→)">Trecho→</button>
+          <button type="button" class="btn" id="copyBtn" title="Copiar a nota ou o trecho selecionado (Ctrl+C)" aria-label="Copiar"><i class="fas fa-copy"></i></button>
+          <button type="button" class="btn" id="pasteBtn" title="Colar no fim da partitura (Ctrl+V)" aria-label="Colar no fim"><i class="fas fa-paste"></i></button>
         </div>
-        <div><button type="button" class="btn" id="chordModeBtn" title="Somar notas ao acorde da nota selecionada (ou Shift+letra / Shift+tecla do piano)" aria-pressed="false">Acorde</button></div>
-        <div><button type="button" class="btn" id="tieBtn" title="Nota ligada: repete a nota selecionada com a duração escolhida (T)">Ligadura</button></div>
-      </div>
-      <div class="row">
-        <span class="group-title">Acidentes:</span>
-        <button type="button" class="btn" id="accSharpBtn" title="Sustenido na próxima nota (+)">#</button>
-        <button type="button" class="btn" id="accFlatBtn" title="Bemol na próxima nota (-)">b</button>
-        <button type="button" class="btn" id="accNaturalBtn" title="Bequadro na próxima nota (=)">♮</button>
-        <button type="button" class="btn" id="accDoubleSharpBtn" title="Dobrado sustenido na próxima nota">𝄪</button>
-        <button type="button" class="btn" id="accDoubleFlatBtn" title="Dobrado bemol na próxima nota">𝄫</button>
-      </div>
-    </div>
+        <div class="fields">
+          <label>Altura
+            <select id="editPitch" disabled>
+              <option value="">-</option>
+              <option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option>
+              <option value="G">G</option><option value="A">A</option><option value="B">B</option>
+            </select></label>
+          <label>Oitava
+            <select id="editOctave" disabled>
+              <option value="">-</option>
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+              <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+            </select></label>
+          <label>Acidente
+            <select id="editAccidental" disabled>
+              <option value="">—</option>
+              <option value="#">♯</option><option value="b">♭</option><option value="n">♮</option>
+              <option value="##">𝄪</option><option value="bb">𝄫</option>
+            </select></label>
+          <label>Duração
+            <select id="editDuration" disabled>
+              <option value="">-</option>
+              <option value="w">𝅝</option><option value="h">𝅗𝅥</option><option value="q">𝅘𝅥</option>
+              <option value="8">𝅘𝅥𝅮</option><option value="16">𝅘𝅥𝅯</option>
+            </select></label>
+          <label class="chk"><input type="checkbox" id="editDotted" disabled> Ponto</label>
+          <label class="chk"><input type="checkbox" id="editRest" disabled> Pausa</label>
+        </div>
+        <div class="chord-row">
+          <label for="chordInput">Cifra</label>
+          <input type="text" id="chordInput" placeholder="C, Am, F#m7">
+          <button type="button" class="btn" id="addChordBtn" title="Pôr a cifra na nota selecionada (Enter)">Pôr</button>
+          <button type="button" class="btn" id="removeChordBtn" title="Tirar a cifra da nota selecionada" aria-label="Tirar cifra"><i class="fas fa-xmark"></i></button>
+          <button type="button" class="btn" id="selChordBtn" title="Escrever cifras em sequência em cima das notas (Ctrl+K; Espaço vai pra próxima)">Ctrl+K</button>
+        </div>
+        <small>Clique numa nota (ou use ← →): o que mudar aqui vale na hora. Uma letra com nota selecionada troca a nota e passa pra próxima.</small>
+      </details>
 
-    <div class="control-group">
-      <span class="control-group-title">Duração</span>
-      <div class="row">
-        <button type="button" class="btn dur" data-dur="w"  title="Semibreve (7)" aria-pressed="false">𝅝</button>
-        <button type="button" class="btn dur active" data-dur="h" title="Mínima (6)"    aria-pressed="true">𝅗𝅥</button>
-        <button type="button" class="btn dur" data-dur="q"  title="Semínima (5)"  aria-pressed="false">𝅘𝅥</button>
-        <button type="button" class="btn dur" data-dur="8"  title="Colcheia (4)"  aria-pressed="false">𝅘𝅥𝅮</button>
-        <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (3)" aria-pressed="false">𝅘𝅥𝅯</button>
-        <button type="button" class="btn" id="dotBtn" title="Ponto (.)">.</button>
-        <button type="button" class="btn" id="tupletBtn" title="Tercina (Ctrl+3): escolha a duração do grupo (ex.: semínima) e as próximas 3 notas dividem esse tempo">Tercina</button>
-      </div>
-      <div class="row">
-        <label class="row"><input type="checkbox" id="isRest"> Notas viram pausa</label>
-      </div>
-      <div class="row">
-        <span class="group-title">Pausas (0):</span>
-        <button type="button" class="btn rest-btn" data-dur="w">𝅝</button>
-        <button type="button" class="btn rest-btn" data-dur="h">𝅗𝅥</button>
-        <button type="button" class="btn rest-btn" data-dur="q">𝅘𝅥</button>
-        <button type="button" class="btn rest-btn" data-dur="8">𝅘𝅥𝅮</button>
-        <button type="button" class="btn rest-btn" data-dur="16">𝅘𝅥𝅯</button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <span class="control-group-title">Repetição</span>
-      <div class="row rep-row" role="group" aria-label="Sinais de repetição do compasso selecionado">
-        <button type="button" class="btn" id="repStartBtn" title="Início de repetição (ritornelo) no compasso da nota selecionada">𝄆 Início</button>
-        <button type="button" class="btn" id="repEndBtn" title="Fim de repetição (volta pro início ou pro último 𝄆)">𝄇 Fim</button>
-        <button type="button" class="btn rep-volta" data-volta="1" title="Casa 1 (1ª vez) — no compasso ou no trecho selecionado">Casa 1</button>
-        <button type="button" class="btn rep-volta" data-volta="2" title="Casa 2 (2ª vez)">Casa 2</button>
-        <button type="button" class="btn rep-volta" data-volta="3" title="Casa 3 (3ª vez)">Casa 3</button>
-      </div>
-      <div class="row">
+      <details class="panel-sec" open>
+        <summary>Repetição</summary>
+        <div class="row rep-row" role="group" aria-label="Sinais de repetição do compasso selecionado">
+          <button type="button" class="btn" id="repStartBtn" title="Início de repetição (ritornelo) no compasso da nota selecionada">𝄆 Início</button>
+          <button type="button" class="btn" id="repEndBtn" title="Fim de repetição (volta pro início ou pro último 𝄆)">𝄇 Fim</button>
+          <button type="button" class="btn rep-volta" data-volta="1" title="Casa 1 (1ª vez) — no compasso ou no trecho selecionado">Casa 1</button>
+          <button type="button" class="btn rep-volta" data-volta="2" title="Casa 2 (2ª vez)">Casa 2</button>
+          <button type="button" class="btn rep-volta" data-volta="3" title="Casa 3 (3ª vez)">Casa 3</button>
+        </div>
         <select id="jumpSelect" aria-label="Salto ou indicação no compasso selecionado" title="Salto ou indicação no compasso selecionado">
-          <option value="">Saltos: nenhum</option>
+          <option value="">Saltos e indicações: nenhum</option>
           <option value="SEGNO_LEFT">𝄋 Segno</option>
           <option value="CODA_LEFT">𝄌 Coda (começo da coda)</option>
           <option value="TO_CODA">To Coda (vai pra coda)</option>
@@ -118,147 +156,73 @@
           <option value="DS_AL_FINE">D.S. al Fine</option>
           <option value="DS_AL_CODA">D.S. al Coda</option>
         </select>
-      </div>
-      <div class="row"><small>Vale pro compasso da nota selecionada (casas: pros compassos do trecho selecionado). O ▶ Tocar segue as repetições.</small></div>
-    </div>
+        <small>No compasso da nota selecionada (casas: nos compassos do trecho). O ▶ Tocar segue as repetições.</small>
+      </details>
 
-    <div class="control-group">
-      <span class="control-group-title">Nota selecionada</span>
-      <div class="row sel-nav" role="group" aria-label="Mexer na nota selecionada">
-        <button type="button" class="btn" id="selPrevBtn" title="Nota anterior (←)" aria-label="Nota anterior"><i class="fas fa-chevron-left"></i></button>
-        <button type="button" class="btn" id="selNextBtn" title="Próxima nota (→)" aria-label="Próxima nota"><i class="fas fa-chevron-right"></i></button>
-        <button type="button" class="btn" id="selUpBtn" title="Meio tom acima (↑)" aria-label="Meio tom acima"><i class="fas fa-arrow-up"></i></button>
-        <button type="button" class="btn" id="selDownBtn" title="Meio tom abaixo (↓)" aria-label="Meio tom abaixo"><i class="fas fa-arrow-down"></i></button>
-        <button type="button" class="btn" id="selOctUpBtn" title="Oitava acima (Ctrl+↑)">8va↑</button>
-        <button type="button" class="btn" id="selOctDownBtn" title="Oitava abaixo (Ctrl+↓)">8va↓</button>
-        <button type="button" class="btn" id="selRespellBtn" title="Trocar a grafia, ex.: Dó♯ ↔ Ré♭ (J)">♯↔♭</button>
-        <button type="button" class="btn" id="selRestBtn" title="Trocar por pausa (Del); num acorde, tira a nota de cima">Pausa</button>
-        <button type="button" class="btn" id="selExtendBtn" title="Esticar a seleção pra próxima nota (Shift+→)">Trecho→</button>
-        <button type="button" class="btn" id="selChordBtn" title="Escrever a cifra em cima (Ctrl+K; Espaço vai pra próxima nota)">Cifra</button>
-        <button type="button" class="btn" id="copyBtn" title="Copiar a nota ou o trecho selecionado (Ctrl+C)"><i class="fas fa-copy"></i></button>
-        <button type="button" class="btn" id="pasteBtn" title="Colar no fim da partitura (Ctrl+V)"><i class="fas fa-paste"></i></button>
-      </div>
-      <div class="row">
-        <div>
-          <label>Altura:</label>
-          <select id="editPitch" disabled>
-            <option value="">-</option>
-            <option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option>
-            <option value="G">G</option><option value="A">A</option><option value="B">B</option>
-          </select>
+      <details class="panel-sec" id="sheetSec">
+        <summary>Partitura</summary>
+        <div class="fields">
+          <label>Clave
+            <select id="clef">
+              <option value="treble">Sol</option>
+              <option value="bass">Fá</option>
+            </select></label>
+          <label>Armadura
+            <select id="keysig">
+              <option>C</option><option>G</option><option>D</option><option>A</option><option>E</option><option>B</option><option>F#</option><option>C#</option>
+              <option>F</option><option>Bb</option><option>Eb</option><option>Ab</option><option>Db</option><option>Gb</option><option>Cb</option>
+            </select></label>
+          <label>Compasso
+            <select id="timesig">
+              <option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>2/2</option>
+            </select></label>
         </div>
-        <div>
-          <label>Oitava:</label>
-          <select id="editOctave" disabled>
-            <option value="">-</option>
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
-            <option value="5">5</option><option value="6">6</option><option value="7">7</option>
-          </select>
+        <div class="row">
+          <button type="button" class="btn" id="removeBtn" title="Apagar a última nota (Backspace)"><i class="fas fa-delete-left"></i> Apagar última</button>
+          <button type="button" class="btn danger-ghost" id="clearBtn" title="Apagar a partitura inteira (dá pra desfazer)"><i class="fas fa-eraser"></i> Limpar tudo</button>
         </div>
-        <div>
-          <label>Duração:</label>
-          <select id="editDuration" disabled>
-            <option value="">-</option>
-            <option value="w">𝅝</option><option value="h">𝅗𝅥</option><option value="q">𝅘𝅥</option>
-            <option value="8">𝅘𝅥𝅮</option><option value="16">𝅘𝅥𝅯</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Acidente:</label>
-          <select id="editAccidental" disabled>
-            <option value="">Nenhum</option>
-            <option value="#">♯</option><option value="b">♭</option><option value="n">♮</option>
-            <option value="##">𝄪</option><option value="bb">𝄫</option>
-          </select>
-        </div>
-        <div>
-          <label><input type="checkbox" id="editDotted" disabled> Ponto</label>
-        </div>
-        <div>
-          <label><input type="checkbox" id="editRest" disabled> Pausa</label>
-        </div>
+      </details>
 
-      </div>
-      <div class="row">
-        <small>Clique numa nota (ou use ← →) e mude aqui — vale na hora. Digitar uma letra com uma nota selecionada troca essa nota e passa pra próxima.</small>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <span class="control-group-title">Cifras</span>
-      <div class="row">
-        <div>
-          <label>Cifra:</label>
-          <input type="text" id="chordInput" placeholder="C, Am, F#m7">
+      <details class="panel-sec" id="fileSec">
+        <summary>Arquivo (MusicXML)</summary>
+        <div class="row">
+          <button type="button" class="btn action-btn" id="exportXMLBtn" title="Baixar em MusicXML: abre no MuseScore e em outros editores de partitura"><i class="fas fa-file-export"></i> Exportar MusicXML</button>
+          <label class="btn" for="loadFileInput" title="Abrir um MusicXML (.musicxml, .xml, .mxl) — ex.: exportado do MuseScore"><i class="fas fa-file-import"></i> Importar MusicXML</label>
+          <input id="loadFileInput" type="file" accept=".musicxml,.xml,.mxl,.json,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/json" hidden>
+          <button type="button" class="btn" id="exportSVGBtn" title="Baixar a imagem da partitura (SVG)">Exportar SVG</button>
         </div>
-        <div>
-          <button type="button" class="btn" id="addChordBtn">Adicionar Cifra</button>
-          <button type="button" class="btn" id="removeChordBtn">Remover Cifra</button>
-        </div>
-      </div>
-      <div class="row">
-        <small>Selecione uma nota, digite a cifra e toque em "Adicionar".</small>
-      </div>
-    </div>
+        <div id="importNotes" class="import-notes" hidden></div>
+      </details>
 
-    <div class="control-group">
-      <span class="control-group-title">Edição</span>
-      <div class="row">
-        <button type="button" class="btn" id="undoBtn">Desfazer</button>
-        <button type="button" class="btn" id="redoBtn">Refazer</button>
-        <button type="button" class="btn" id="removeBtn">Remover última</button>
-        <button type="button" class="btn" id="clearBtn">Limpar</button>
-      </div>
-    </div>
-
-    <div class="control-group">
-      <span class="control-group-title">Arquivo</span>
-      <div class="row">
-        <button type="button" class="btn action-btn" id="exportXMLBtn" title="Baixar em MusicXML: abre no MuseScore e em outros editores de partitura"><i class="fas fa-file-export"></i> Exportar MusicXML</button>
-        <label class="btn" for="loadFileInput" title="Abrir um MusicXML (.musicxml, .xml, .mxl) — ex.: exportado do MuseScore"><i class="fas fa-file-import"></i> Importar MusicXML</label>
-        <input id="loadFileInput" type="file" accept=".musicxml,.xml,.mxl,.json,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/json" hidden>
-        <button type="button" class="btn" id="exportSVGBtn" title="Baixar a imagem da partitura (SVG)">Exportar SVG</button>
-      </div>
-      <div id="importNotes" class="import-notes" hidden></div>
-    </div>
-
-    <small class="atalhos">
-      <b>Atalhos (iguais aos do MuseScore):</b> duração <kbd>3</kbd> semicolcheia · <kbd>4</kbd> colcheia · <kbd>5</kbd> semínima · <kbd>6</kbd> mínima · <kbd>7</kbd> semibreve · <kbd>.</kbd> ponto ·
-      nota <kbd>A</kbd>–<kbd>G</kbd> (a oitava mais próxima da anterior) · <kbd>0</kbd> pausa · <kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd> sustenido/bemol/bequadro na próxima nota · <kbd>T</kbd> nota ligada ·
-      <kbd>Shift</kbd>+<kbd>A</kbd>–<kbd>G</kbd> soma nota ao acorde · <kbd>Ctrl</kbd>+<kbd>3</kbd> tercina ·
-      <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> seleciona um trecho · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> copia/cola no fim · <kbd>R</kbd> repete o trecho ·
-      <kbd>Ctrl</kbd>+<kbd>K</kbd> cifra (<kbd>Espaço</kbd> próxima nota) ·
-      <kbd>Espaço</kbd> toca/para · <kbd>P</kbd> teclado de piano ·
-      <kbd>←</kbd> <kbd>→</kbd> anda entre as notas · <kbd>↑</kbd> <kbd>↓</kbd> meio tom · <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> oitava · <kbd>J</kbd> troca a grafia · <kbd>Del</kbd> vira pausa · <kbd>Backspace</kbd> apaga a última · <kbd>Esc</kbd> tira a seleção · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd>
-    </small>
-  </section>
-
-  <section class="uc-card card score-section">
-    <div class="score-header">
-      <h2>Partitura</h2>
-      <div class="play-controls">
-        <button type="button" class="btn done-btn" id="doneBtn" hidden title="Fechar e voltar pra música — a partitura entra (ou é atualizada) lá"><i class="fas fa-check"></i> <span>Concluir</span></button>
-        <button type="button" class="btn action-btn" id="playBtn" title="Tocar a partir da nota selecionada, ou do começo (Espaço)"><i class="fas fa-play"></i> <span>Tocar</span></button>
-        <label class="tempo" title="Andamento (semínimas por minuto)"><i class="fas fa-gauge-high"></i>
-          <input type="number" id="tempoInput" min="30" max="240" step="5" value="80" aria-label="Andamento"></label>
-        <button type="button" class="btn" id="soundToggle" title="Som ao digitar as notas" aria-pressed="true"><i class="fas fa-volume-high"></i></button>
-        <button type="button" class="btn" id="pianoToggle" title="Mostrar/esconder o teclado (P)" aria-pressed="true"><i class="fas fa-keyboard"></i></button>
-      </div>
-      <div class="zoom-controls">
-        <button type="button" class="btn" id="zoomOutBtn">-</button>
-        <span id="zoomLevel">100%</span>
-        <button type="button" class="btn" id="zoomInBtn">+</button>
-      </div>
-    </div>
-    <div class="score-wrap"><div id="score"></div></div>
-    <div class="piano-panel" id="pianoPanel">
-      <button type="button" class="btn piano-shift" id="pianoDown" title="Teclado uma oitava abaixo" aria-label="Teclado uma oitava abaixo"><i class="fas fa-chevron-left"></i></button>
-      <div class="piano" id="piano" role="group" aria-label="Teclado de piano: toque pra ouvir e escrever a nota"></div>
-      <button type="button" class="btn piano-shift" id="pianoUp" title="Teclado uma oitava acima" aria-label="Teclado uma oitava acima"><i class="fas fa-chevron-right"></i></button>
-    </div>
-  </section>
+      <details class="panel-sec">
+        <summary>Atalhos de teclado</summary>
+        <dl class="atalhos">
+          <dt><kbd>3</kbd>–<kbd>7</kbd></dt><dd>semicolcheia, colcheia, semínima, mínima, semibreve</dd>
+          <dt><kbd>.</kbd></dt><dd>ponto</dd>
+          <dt><kbd>A</kbd>–<kbd>G</kbd></dt><dd>nota (oitava mais próxima da anterior)</dd>
+          <dt><kbd>Shift</kbd>+<kbd>A</kbd>–<kbd>G</kbd></dt><dd>soma nota ao acorde</dd>
+          <dt><kbd>0</kbd></dt><dd>pausa</dd>
+          <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd></dt><dd>sustenido, bemol, bequadro na próxima nota</dd>
+          <dt><kbd>T</kbd></dt><dd>nota ligada</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>3</kbd></dt><dd>tercina</dd>
+          <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>anda entre as notas</dd>
+          <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>meio tom</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd></dt><dd>oitava</dd>
+          <dt><kbd>J</kbd></dt><dd>troca a grafia (Dó♯ ↔ Ré♭)</dd>
+          <dt><kbd>Del</kbd></dt><dd>vira pausa (num acorde, tira a nota de cima)</dd>
+          <dt><kbd>Backspace</kbd></dt><dd>apaga a última nota</dd>
+          <dt><kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd></dt><dd>seleciona um trecho</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd></dt><dd>copia / cola no fim</dd>
+          <dt><kbd>R</kbd></dt><dd>repete o trecho</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>cifras (<kbd>Espaço</kbd> próxima nota)</dd>
+          <dt><kbd>Espaço</kbd></dt><dd>toca / para</dd>
+          <dt><kbd>P</kbd></dt><dd>mostra/esconde o teclado</dd>
+          <dt><kbd>Esc</kbd></dt><dd>tira a seleção</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd></dt><dd>desfazer / refazer</dd>
+        </dl>
+      </details>
+    </aside>
+  </div>
 </main>
 
 <!-- Dados da música para JavaScript -->
@@ -321,7 +285,7 @@
   $clef.onchange=()=>{state.clef=$clef.value; pianoStart = state.clef==='bass' ? 2 : 4; buildPiano(); render();};
   $keysig.onchange=()=>{state.keySig=$keysig.value; render();};
   $timesig.onchange=()=>{state.timeSig=$timesig.value; render();};
-  $isRest.onchange=()=>state.isRest=$isRest.checked;
+  if($isRest) $isRest.onchange=()=>state.isRest=$isRest.checked;
   $dot.onclick=()=>{state.dotted=!state.dotted; $dot.classList.toggle('active',state.dotted);};
   $tie.onclick=()=>addTiedNote();
 
@@ -439,7 +403,7 @@
     updateEditControls();
   }
   function buildNoteButtons(){
-    const wrap=$('noteButtons');
+    const wrap=$('noteButtons'); if(!wrap) return;   // letras saíram (teclado de piano e A–G fazem isso)
     LETTERS.forEach(L=>{
       const b=document.createElement('button');
       b.type='button'; b.className='btn'; b.textContent=L;
@@ -1398,7 +1362,9 @@
   let lastVfNotes = null;
   function render(){
     if(!VF_READY) return;
-    renderSheetMusic($score, state, { interactive: true }).then(({vfNotesByMI})=>{
+    // Mesmo layout compacto do /view (4/4 só na 1ª linha, linhas até a borda)
+    const largura = ($score.closest('.score-wrap')?.clientWidth || 900) - 24;
+    renderSheetMusic($score, state, { interactive: true, compact: true, maxWidth: largura }).then(({vfNotesByMI})=>{
       lastVfNotes = vfNotesByMI;
       drawSelectionHighlight(vfNotesByMI);
     }).catch(e=>{
@@ -1531,6 +1497,7 @@
   $('octDown').onclick=()=>shiftOctave(-1);
   $('octUp').onclick=()=>shiftOctave(1);
   document.querySelectorAll('.rest-btn').forEach(btn=>btn.onclick=()=>addRest(btn.dataset.dur));
+  $('restBtn').onclick=()=>enterRest();
 
   // Atalhos no padrão do MuseScore Studio
   const DUR_KEYS={'3':'16','4':'8','5':'q','6':'h','7':'w'};
@@ -1809,6 +1776,9 @@
         }
       }
       
+      // Partitura nova (vazia): começa com Clave/Armadura/Compasso à mostra
+      if (!state.measures.some(m => m.length)) $('sheetSec').open = true;
+
       // Marca como inicializado para permitir auto-save a partir de agora
       editorInitialized = true;
       console.log('✅ Editor totalmente inicializado - auto-save habilitado');
@@ -1871,12 +1841,12 @@
     // <small> de atalhos depois do grupo Exportação faz :last-child nunca
     // casar com nada, então o botão nunca era injetado (bug corrigido na
     // Fase 2 do plano de unificação de renderização VexFlow).
-    const exportSection = document.getElementById('exportSVGBtn')?.closest('.row');
+    const exportSection = document.getElementById('headerActions');
     if (exportSection) {
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
       saveBtn.className = 'btn action-btn';
-      saveBtn.textContent = '💾 Salvar na Música';
+      saveBtn.innerHTML = '<i class="fas fa-floppy-disk"></i> Salvar na música';
       saveBtn.onclick = saveToUControl;
       exportSection.appendChild(saveBtn);
     }

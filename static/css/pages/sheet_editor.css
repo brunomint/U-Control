@@ -1,88 +1,69 @@
-/* Editor de partitura (sheet_editor.html) — controles à esquerda, partitura
-   à direita. A partitura fica numa folha branca (o VexFlow desenha em preto).
-   Base e card vêm do app.css; as classes .btn/.row/.control-group são as
-   que o script do editor usa e cria. */
+/* Editor de partitura (sheet_editor.html), no espírito do MuseScore:
+   barra de ferramentas de escrita em cima (presa no topo), partitura larga
+   com o teclado de piano embaixo e um painel de propriedades à direita, em
+   seções que abrem e fecham. A partitura fica numa folha branca (o VexFlow
+   desenha em preto). */
 
-.sheet-head { max-width: 1600px; margin: 0 auto; padding: 24px 16px 0; }
-.sheet-main {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 16px;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 16px 16px 40px;
-  align-items: start;
-}
-.sheet-main .card { padding: 14px; }
+.sheet-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; max-width: 1600px; margin: 0 auto; padding: 20px 16px 0; }
+.sheet-head-actions { display: flex; gap: 8px; }
+.sheet-head-actions .btn { min-height: 36px; padding: 6px 14px; font-size: 14px; }
 
-.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
-.row:last-child { margin-bottom: 0; }
-.controls label { display: block; font-size: 11.5px; font-weight: 700; color: var(--uc-muted); margin-bottom: 3px; }
-.controls label.btn { display: inline-flex; align-items: center; gap: 4px; margin: 0; color: var(--uc-text); font-size: 13px; font-weight: 600; cursor: pointer; }
-.controls select, .controls input[type="text"] {
-  padding: 6px 8px;
-  border: 1px solid var(--uc-line);
-  border-radius: var(--uc-r-sm);
-  background: var(--uc-bg);
-  color: var(--uc-text);
-  font: inherit;
-  font-size: 13px;
-  color-scheme: dark;
-}
-.controls select:focus, .controls input:focus { outline: none; border-color: var(--uc-accent); }
-#editPitch, #editDuration, #editAccidental { width: 70px; }
-#editOctave { width: 56px; }
-#chordInput { width: 100px; }
+.sheet-app { max-width: 1600px; margin: 0 auto; padding: 12px 16px 40px; }
 
-.control-group { padding: 10px; margin-bottom: 10px; border-radius: var(--uc-r); background: var(--uc-surface-2); border: 1px solid var(--uc-line); }
-.control-group-title { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-muted); }
-.group-title { font-size: 12px; font-weight: 600; color: var(--uc-muted); margin-right: 2px; }
-
+/* ---------- Botões base ---------- */
 .btn {
-  min-height: 30px;
-  padding: 4px 10px;
-  border-radius: var(--uc-r-sm);
-  border: 1px solid var(--uc-line);
-  background: var(--uc-surface);
-  color: var(--uc-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 32px; padding: 4px 10px;
+  border-radius: var(--uc-r-sm); border: 1px solid var(--uc-line);
+  background: var(--uc-surface); color: var(--uc-text);
+  font: inherit; font-size: 13px; font-weight: 600; line-height: 1; cursor: pointer;
 }
-.btn:hover:not(:disabled) { border-color: var(--uc-faint); }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:hover:not(:disabled) { border-color: var(--uc-faint); background: var(--uc-surface-2); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
 .btn.active { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
 .action-btn { background: var(--uc-accent); border-color: var(--uc-accent); color: #fff; }
 .action-btn:hover:not(:disabled) { background: var(--uc-accent-strong); border-color: var(--uc-accent-strong); }
-.dur, .rest-btn { min-width: 34px; font-size: 17px; padding: 2px 6px; text-align: center; }
-.kbd { display: inline-block; min-width: 26px; text-align: center; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); font-family: var(--uc-mono); font-size: 12px; }
-.controls small { display: block; margin-top: 6px; color: var(--uc-faint); font-size: 12px; line-height: 1.5; }
-.controls input[type="checkbox"] { accent-color: var(--uc-accent); }
-.controls .atalhos kbd { display: inline-block; min-width: 18px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); color: var(--uc-text); font-family: var(--uc-mono); font-size: 11px; text-align: center; }
-.controls .atalhos b { color: var(--uc-muted); }
-.sel-nav .btn { min-width: 34px; }
+.danger-ghost:hover:not(:disabled) { color: var(--uc-danger); border-color: var(--uc-danger); background: var(--uc-danger-soft); }
+.done-btn { background: var(--uc-ok, #3fcf8e); border-color: var(--uc-ok, #3fcf8e); color: #0b0e17; }
+.done-btn:hover:not(:disabled) { filter: brightness(1.08); background: var(--uc-ok, #3fcf8e); }
+.kbd { display: inline-block; min-width: 26px; text-align: center; padding: 4px 6px; border-radius: 5px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); font-family: var(--uc-mono); font-size: 12px; }
 
-.score-section { display: flex; flex-direction: column; gap: 10px; position: sticky; top: calc(var(--uc-nav-h) + 16px); }
-.score-header { display: flex; align-items: center; justify-content: space-between; }
-.score-header h2 { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--uc-muted); }
-.zoom-controls { display: flex; align-items: center; gap: 6px; }
-.zoom-controls .btn { width: 30px; padding: 0; }
-#zoomLevel { min-width: 44px; text-align: center; font-family: var(--uc-mono); font-size: 12.5px; color: var(--uc-muted); }
-.score-wrap { position: relative; overflow: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 240px; max-height: calc(100vh - var(--uc-nav-h) - 300px); }
+/* ---------- Barra de ferramentas ---------- */
+.sheet-toolbar {
+  position: sticky; top: var(--uc-nav-h); z-index: 40;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  padding: 8px 10px; margin-bottom: 12px;
+  border-radius: var(--uc-r-lg); border: 1px solid var(--uc-line);
+  background: rgba(22, 26, 43, .97); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .3);
+}
+.tb-group { display: flex; align-items: center; gap: 4px; }
+.tb-group + .tb-group { padding-left: 14px; border-left: 1px solid var(--uc-line); }
+.tb-play { margin-left: auto; }
+.sheet-toolbar .dur, .sheet-toolbar .acc { min-width: 36px; height: 36px; padding: 0 6px; font-size: 20px; font-weight: 400; }
+.sheet-toolbar .dur-dot { min-width: 32px; height: 36px; font-size: 18px; }
+.sheet-toolbar #tupletBtn, .sheet-toolbar #restBtn, .sheet-toolbar #tieBtn, .sheet-toolbar #chordModeBtn { height: 36px; }
+.tb-oct { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; }
+.tb-oct .btn { min-width: 28px; height: 36px; padding: 0; }
+.sheet-toolbar #undoBtn, .sheet-toolbar #redoBtn { width: 36px; height: 36px; padding: 0; }
+.tb-play .tempo { display: inline-flex; align-items: center; gap: 5px; margin: 0; color: var(--uc-muted); font-size: 12px; }
+.tb-play .tempo input { width: 56px; height: 34px; padding: 0 6px; border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); background: var(--uc-bg); color: var(--uc-text); font: inherit; font-size: 13px; color-scheme: dark; }
+.tb-play .btn { height: 36px; }
+.tb-play #soundToggle, .tb-play #pianoToggle { width: 36px; padding: 0; }
+.zoom-controls { display: inline-flex; align-items: center; gap: 3px; }
+.zoom-controls .btn { width: 28px; height: 36px; padding: 0; }
+#zoomLevel { min-width: 40px; text-align: center; font-family: var(--uc-mono); font-size: 12px; color: var(--uc-muted); }
 
-/* Tocar / andamento / som / teclado */
-.score-header { gap: 8px; flex-wrap: wrap; }
-.play-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-.play-controls .btn { display: inline-flex; align-items: center; gap: 6px; }
-.play-controls .tempo { display: inline-flex; align-items: center; gap: 5px; margin: 0; color: var(--uc-muted); font-size: 12px; }
-.play-controls .tempo input { width: 58px; padding: 4px 6px; border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); background: var(--uc-bg); color: var(--uc-text); font: inherit; font-size: 13px; color-scheme: dark; }
+/* ---------- Corpo: partitura + painel ---------- */
+.sheet-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
+.score-col { display: flex; flex-direction: column; gap: 10px; position: sticky; top: calc(var(--uc-nav-h) + 76px); }
+.score-wrap { position: relative; overflow: auto; padding: 12px; border-radius: var(--uc-r); background: #fff; min-height: 220px; max-height: calc(100vh - var(--uc-nav-h) - 330px); box-shadow: 0 6px 20px rgba(0, 0, 0, .25); }
 
 /* Teclado de piano (duas oitavas) */
 .piano-panel { display: flex; align-items: stretch; gap: 6px; }
 .piano-panel[hidden] { display: none; }
 .piano-shift { width: 30px; padding: 0; flex: none; }
-.piano { position: relative; flex: 1; height: 96px; user-select: none; touch-action: manipulation; }
+.piano { position: relative; flex: 1; height: 92px; user-select: none; touch-action: manipulation; }
 .pk { position: absolute; top: 0; padding: 0; border: 1px solid #9aa0b4; cursor: pointer; font: inherit; }
 .pk.white { width: calc(100% / 14); height: 100%; background: #fff; border-radius: 0 0 6px 6px; color: #8a90a6; font-size: 10px; font-weight: 700; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; z-index: 1; }
 .pk.black { width: calc(100% / 14 * 0.6); height: 60%; background: #1d2030; border-color: #1d2030; border-radius: 0 0 4px 4px; z-index: 2; }
@@ -91,25 +72,74 @@
 .pk.down.white { background: var(--uc-accent); color: #fff; }
 .pk.down.black { background: var(--uc-accent-strong); }
 
-@media (max-width: 960px) {
-  .sheet-main { grid-template-columns: minmax(0, 1fr); }
-  /* Celular/tablet: partitura + teclado ficam presos em cima enquanto os
-     controles rolam embaixo — dá pra ver a partitura ao digitar */
-  .score-section { position: sticky; top: var(--uc-nav-h); z-index: 30; order: -1; padding: 8px !important; gap: 6px; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
-  .score-header h2, .zoom-controls { display: none; }
-  .play-controls { margin-left: 0; width: 100%; }
-  .play-controls #playBtn { flex: 1; justify-content: center; }
-  .score-wrap { max-height: 30vh; min-height: 0; padding: 6px; }
-  .piano { height: 78px; }
+/* Painel de propriedades */
+.side-panel { display: flex; flex-direction: column; gap: 8px; }
+.panel-sec { border-radius: var(--uc-r); border: 1px solid var(--uc-line); background: var(--uc-surface); }
+.panel-sec > summary {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; cursor: pointer; list-style: none;
+  font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-muted);
 }
+.panel-sec > summary::-webkit-details-marker { display: none; }
+.panel-sec > summary::after { content: '▾'; font-size: 12px; transition: transform .15s; }
+.panel-sec:not([open]) > summary::after { transform: rotate(-90deg); }
+.panel-sec[open] > summary { color: var(--uc-text); border-bottom: 1px solid var(--uc-line); }
+.panel-sec { padding-bottom: 2px; }
+.panel-sec > :not(summary) { margin: 10px 12px; max-width: calc(100% - 24px); box-sizing: border-box; }
+.panel-sec small { display: block; color: var(--uc-faint); font-size: 12px; line-height: 1.45; }
 
-/* Concluir (editor aberto pela música) e avisos de importação */
-.done-btn { background: var(--uc-ok, #3fcf8e); border-color: var(--uc-ok, #3fcf8e); color: #0b0e17; }
-.done-btn:hover:not(:disabled) { filter: brightness(1.08); }
-.import-notes { margin-top: 8px; padding: 8px 10px; border-radius: var(--uc-r-sm); background: var(--uc-bg); border: 1px solid var(--uc-line); font-size: 12px; color: var(--uc-muted); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sel-nav .btn, .rep-row .btn { min-width: 34px; height: 32px; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fields label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: var(--uc-muted); }
+.fields label.chk { flex-direction: row; align-items: center; gap: 6px; color: var(--uc-text); font-weight: 600; font-size: 13px; }
+.controls select, .controls input[type="text"] {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm);
+  background: var(--uc-bg); color: var(--uc-text); font: inherit; font-size: 13px; color-scheme: dark;
+}
+.controls select:focus, .controls input:focus { outline: none; border-color: var(--uc-accent); }
+.controls input[type="checkbox"] { accent-color: var(--uc-accent); }
+.controls label.btn { display: inline-flex; margin: 0; }
+.chord-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: 6px; }
+.chord-row > label { font-size: 11.5px; font-weight: 700; color: var(--uc-muted); }
+.chord-row .btn { height: 32px; }
+#jumpSelect { margin-top: 2px; }
+
+.atalhos { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 12.5px; color: var(--uc-muted); }
+.atalhos dt { white-space: nowrap; }
+.atalhos dd { margin: 0; }
+.atalhos kbd { display: inline-block; min-width: 18px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--uc-line); border-bottom-width: 2px; background: var(--uc-bg); color: var(--uc-text); font-family: var(--uc-mono); font-size: 11px; text-align: center; }
+
+.import-notes { padding: 8px 10px; border-radius: var(--uc-r-sm); background: var(--uc-bg); border: 1px solid var(--uc-line); font-size: 12px; color: var(--uc-muted); }
 .import-notes b { display: block; margin-bottom: 4px; color: var(--uc-text); }
 .import-notes ul { margin: 0; padding-left: 18px; }
 
 /* Cifra em sequência (Ctrl+K): caixinha em cima da nota */
 .chord-float { position: absolute; z-index: 5; width: 92px; padding: 4px 7px; border: 2px solid var(--uc-accent); border-radius: 6px; background: #fff; color: #111; font: 600 14px Arial, sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
 .chord-float:focus { outline: none; }
+
+/* ---------- Telas médias: painel embaixo ---------- */
+@media (max-width: 1100px) {
+  .sheet-body { grid-template-columns: minmax(0, 1fr); }
+  .score-col { position: static; }
+  .side-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+
+/* ---------- Celular: barra numa linha (rola de lado) + partitura e
+   teclado presos em cima; painel rola embaixo ---------- */
+@media (max-width: 760px) {
+  .sheet-head { padding-top: 12px; }
+  .sheet-head h1 { font-size: 20px; }
+  .sheet-app { padding: 8px 8px 40px; }
+  .sheet-toolbar { flex-wrap: nowrap; overflow-x: auto; gap: 10px; padding: 6px; margin-bottom: 0; border-radius: var(--uc-r) var(--uc-r) 0 0; scrollbar-width: none; }
+  .sheet-toolbar::-webkit-scrollbar { display: none; }
+  .tb-group { flex: none; }
+  .tb-group + .tb-group { padding-left: 10px; }
+  .tb-play { margin-left: 0; }
+  .zoom-controls { display: none; }
+  .score-col { position: sticky; top: calc(var(--uc-nav-h) + 50px); z-index: 30; gap: 6px; padding: 6px; background: var(--uc-surface); border: 1px solid var(--uc-line); border-top: 0; border-radius: 0 0 var(--uc-r) var(--uc-r); box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+  .score-wrap { max-height: 30vh; min-height: 0; padding: 6px; }
+  .piano { height: 76px; }
+  .side-panel { display: flex; margin-top: 10px; }
+  .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

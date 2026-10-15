@@ -345,9 +345,9 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
   // compasso do tamanho das notas que tem, linha esticada até a borda,
   // fórmula de compasso só na 1ª linha, menos espaço entre linhas e, em
   // tela estreita (celular), desenho menor (62%) pra caber 2–3 compassos
-  // por linha. Sem compact (telão, monitor, editor de partitura com
-  // clique nas notas) continua o layout de antes.
-  const compact = !!options.compact && !options.interactive;
+  // por linha. Sem compact (telão e tela do operador) continua o layout de
+  // antes.
+  const compact = !!options.compact;
   const BASE_MEASURE_W = 220;
   // Casa (volta) e Segno/Coda ficam acima da pauta: abre uma faixa extra
   // em cima de cada linha (o colchete em cima, a cifra logo abaixo)
