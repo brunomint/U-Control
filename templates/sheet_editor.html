@@ -96,6 +96,10 @@
           <button type="button" class="btn" id="copyBtn" title="Copiar a nota ou o trecho selecionado (Ctrl+C)" aria-label="Copiar"><i class="fas fa-copy"></i></button>
           <button type="button" class="btn" id="pasteBtn" title="Colar no fim da partitura (Ctrl+V)" aria-label="Colar no fim"><i class="fas fa-paste"></i></button>
         </div>
+        <div class="row measure-ops" role="group" aria-label="Compassos">
+          <button type="button" class="btn" id="insMeasureBtn" title="Inserir um compasso vazio (com pausa) antes do compasso selecionado; sem seleção, no fim (Ins)"><i class="fas fa-plus"></i> Compasso antes</button>
+          <button type="button" class="btn danger-ghost" id="delMeasureBtn" title="Apagar o compasso selecionado (ou os do trecho) e puxar os seguintes (Ctrl+Del)"><i class="fas fa-trash-can"></i> Apagar compasso</button>
+        </div>
         <div class="fields">
           <label>Altura
             <select id="editPitch" disabled>
@@ -211,6 +215,8 @@
           <dt><kbd>J</kbd></dt><dd>troca a grafia (Dó♯ ↔ Ré♭)</dd>
           <dt><kbd>Del</kbd></dt><dd>vira pausa (num acorde, tira a nota de cima)</dd>
           <dt><kbd>Backspace</kbd></dt><dd>apaga a última nota</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>Del</kbd></dt><dd>apaga o compasso (ou os do trecho) e puxa os seguintes</dd>
+          <dt><kbd>Ins</kbd></dt><dd>insere um compasso vazio antes do selecionado</dd>
           <dt><kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd></dt><dd>seleciona um trecho</dd>
           <dt><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd></dt><dd>copia / cola no fim</dd>
           <dt><kbd>R</kbd></dt><dd>repete o trecho</dd>
@@ -615,16 +621,7 @@
     setOctave(oct);
     clearAccArmed();
     if(overwrite){
-      // Troca a altura da nota selecionada (mantém a duração) e anda
-      pushUndo(); clearRedo();
-      const {m,i}=state.selectedNote;
-      const n=state.measures[m][i];
-      n.pitch=pitch; n.accidental=armed; n.rest=false; delete n.extra;
-      dropTiesOf(m,i);
-      const items=allItems();
-      if(k+1<items.length) setSelection(items[k+1], false);
-      else setSelection({m,i}, true);
-      render();
+      overwriteSelected(pitch, armed);
       if(somAoDigitar){ const s0=soundingOf({pitch, accidental:armed}); if(s0!=null) tone(s0, ac().currentTime+0.01, 0.45); }
       return;
     }
@@ -734,6 +731,74 @@
     const on=state.tupletLeft>0;
     b.classList.toggle('active', on);
     b.textContent = on ? `Tercina (faltam ${state.tupletLeft})` : 'Tercina';
+  }
+
+  // Escreve uma nota em cima da selecionada e anda pra próxima. Em cima de
+  // uma pausa maior que a duração escolhida (ex.: compasso inserido), usa a
+  // duração escolhida e completa o resto com pausas, como no MuseScore.
+  function overwriteSelected(pitch, accidental){
+    pushUndo(); clearRedo();
+    const {m,i}=state.selectedNote, n=state.measures[m][i];
+    const cur=durValue(state.duration, state.dotted);
+    if(n.rest && !n.tuplet && cur < noteValue(n)-EPS){
+      const resto=decomposeAmount(noteValue(n)-cur)
+        .map(p=>({pitch:'B4', accidental:'', duration:p.duration, dotted:p.dotted, rest:true}));
+      shiftRefs(m, i+1, resto.length);
+      state.measures[m].splice(i, 1, {pitch, accidental, duration:state.duration, dotted:state.dotted, rest:false}, ...resto);
+    } else {
+      n.pitch=pitch; n.accidental=accidental; n.rest=false; delete n.extra;
+      dropTiesOf(m,i);
+    }
+    const items=allItems(), k=items.findIndex(r=>r.m===m && r.i===i);
+    if(k+1<items.length) setSelection(items[k+1], false); else setSelection({m,i}, true);
+    render();
+  }
+  // Notas a partir de fromI no compasso m mudaram de posição: cifras e
+  // ligaduras acompanham
+  function shiftRefs(m, fromI, delta){
+    state.chords.forEach(c=>{ if(c.m===m && c.i>=fromI) c.i+=delta; });
+    state.ties.forEach(t=>[t.from, t.to].forEach(r=>{ if(r.m===m && r.i>=fromI) r.i+=delta; }));
+  }
+
+  // ===== Compassos: apagar (Ctrl+Del) e inserir (Ins) =====
+  function deleteMeasures(){
+    const ms=selMeasures();
+    if(!ms.length){ if(window.ucToast) ucToast('Selecione uma nota do compasso que quer apagar.', 'error'); return; }
+    if(state.tupletLeft>0) endTuplet();
+    pushUndo(); clearRedo();
+    const del=new Set(ms), novo=(m)=>m - ms.filter(x=>x<m).length;
+    state.measures=state.measures.filter((_,m)=>!del.has(m));
+    if(!state.measures.length) state.measures=[[]];
+    state.chords=state.chords.filter(c=>!del.has(c.m)).map(c=>({...c, m:novo(c.m)}));
+    state.ties=state.ties.filter(t=>!del.has(t.from.m) && !del.has(t.to.m))
+      .map(t=>({from:{...t.from, m:novo(t.from.m)}, to:{...t.to, m:novo(t.to.m)}}));
+    const marks={};
+    Object.entries(state.marks).forEach(([k,v])=>{ if(!del.has(+k)) marks[String(novo(+k))]=v; });
+    state.marks=marks;
+    state.lastNoteRef=null;
+    const alvo=Math.min(ms[0], state.measures.length-1);
+    if(state.measures[alvo].length) setSelection({m:alvo, i:0}, false); else setSelection(null, true);
+    render();
+    if(window.ucToast) ucToast(ms.length===1 ? 'Compasso apagado' : `${ms.length} compassos apagados`);
+  }
+  function insertMeasure(){
+    const sel=state.selectedNote;
+    const vazio = state.measures.length===1 && !state.measures[0].length;
+    const m = vazio ? 0 : (sel ? sel.m : state.measures.length);
+    pushUndo(); clearRedo();
+    const {capacity}=timeValues(state.timeSig);
+    const pausas=decomposeAmount(capacity).map(p=>({pitch:'B4', accidental:'', duration:p.duration, dotted:p.dotted, rest:true}));
+    if(vazio) state.measures[0]=pausas;
+    else {
+      state.measures.splice(m, 0, pausas);
+      state.chords.forEach(c=>{ if(c.m>=m) c.m++; });
+      state.ties.forEach(t=>{ if(t.from.m>=m) t.from.m++; if(t.to.m>=m) t.to.m++; });
+      const marks={};
+      Object.entries(state.marks).forEach(([k,v])=>{ marks[String(+k>=m ? +k+1 : +k)]=v; });
+      state.marks=marks;
+    }
+    setSelection({m, i:0}, false);
+    render();
   }
 
   function clearAccArmed(){ if(state.accArmed) setAccArmed(state.accArmed); }
@@ -1170,13 +1235,7 @@
     const accText = sp.pitch.replace(/^[A-G]/, '').replace(/\d$/, '');
     const k = selIndex();
     if(!state.appendMode && k >= 0){
-      pushUndo(); clearRedo();
-      const {m, i} = state.selectedNote, note = state.measures[m][i];
-      note.pitch = sp.pitch; note.accidental = sp.accidental; note.rest = false; delete note.extra;
-      dropTiesOf(m, i);
-      const items = allItems();
-      if(k + 1 < items.length) setSelection(items[k + 1], false); else setSelection({m, i}, true);
-      setOctave(sp.oct); render(); return;
+      setOctave(sp.oct); overwriteSelected(sp.pitch, sp.accidental); return;
     }
     clearAccArmed();
     setOctave(sp.oct);
@@ -1343,6 +1402,8 @@
   $('selOctDownBtn').onclick = () => shiftOctave(-1);
   $('selRespellBtn').onclick = () => respell();
   $('selRestBtn').onclick = () => selectedToRest();
+  $('insMeasureBtn').onclick = () => insertMeasure();
+  $('delMeasureBtn').onclick = () => deleteMeasures();
   $('repStartBtn').onclick = () => toggleRepStart();
   $('repEndBtn').onclick = () => toggleRepEnd();
   document.querySelectorAll('.rep-volta').forEach(b => b.onclick = () => toggleVolta(b.dataset.volta));
@@ -1507,6 +1568,7 @@
     const k=ev.key, kl=k.toLowerCase(), ctrl=ev.ctrlKey||ev.metaKey;
     if (ctrl && kl==='z' && !ev.shiftKey){ ev.preventDefault(); undo(); return; }
     if (ctrl && (kl==='y' || (kl==='z' && ev.shiftKey))){ ev.preventDefault(); redo(); return; }
+    if (ctrl && k==='Delete'){ ev.preventDefault(); deleteMeasures(); return; }
     if (ctrl && kl==='c'){ ev.preventDefault(); copySel(); return; }
     if (ctrl && kl==='v'){ ev.preventDefault(); pasteEnd(); return; }
     if (ctrl && kl==='k'){ ev.preventDefault(); openChordBox(); return; }
@@ -1522,6 +1584,7 @@
     if (k==='ArrowDown'){ ev.preventDefault(); stepSemitone(-1); return; }
     if (k==='Backspace'){ ev.preventDefault(); removeLast(); return; }
     if (k==='Delete'){ ev.preventDefault(); selectedToRest(); return; }
+    if (k==='Insert'){ ev.preventDefault(); insertMeasure(); return; }
     if (k==='Escape'){ if(isPlaying) stopPlayback(); else deselectNote(); return; }
     if (k===' '){ ev.preventDefault(); togglePlay(); return; }
     if (kl==='p'){ togglePiano(); return; }
