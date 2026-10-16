@@ -401,10 +401,12 @@ let currentTheme = CONFIG.theme;
             for (let i = 0; i < sections.length; i++) {
                 const section = sections[i];
                 
+                // Comentário de palco (//) em itálico; acordes coloridos com a
+                // mesma regra da /view e do editor (ChordLines, chord_lines.js)
                 const styleComment = t => t.split('\n').map(l =>
                     l.trim().startsWith('//')
                         ? `<span class="stage-note">${l}</span>`
-                        : l
+                        : ChordLines.highlightLineHtml(l)
                 ).join('\n');
 
                 let content = '';

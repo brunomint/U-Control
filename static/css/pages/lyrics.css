@@ -86,6 +86,7 @@
 .section-title { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--uc-accent-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .section-link.active .section-title { color: var(--uc-live); }
 .section-link pre, .section-preview { margin: 0; color: var(--uc-text); line-height: 1.5; font-size: 13px !important; } /* o JS fixa 12px inline */
+.section-link .chord { color: var(--uc-warn); font-weight: 800; }
 .section-link .stage-note { color: var(--uc-faint); font-style: italic; font-size: .9em; }
 .section-link [id^="sheet-render-"] { border-radius: var(--uc-r-sm); }
 

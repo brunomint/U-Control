@@ -209,7 +209,11 @@
 
   // Acorde solto entre barras de compasso no meio de uma linha de letra
   // (ex.: "algumas palavras | A | mais palavras")
-  const BAR_CHORD_REGEX = /\|\s*([A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\+?(?:\/[A-G][#b]?)?)\s*\|/g;
+  // Sequência inteira de compassos "| C | Am | F |" de uma vez: com um
+  // compasso por vez, a barra que fechava um não podia abrir o próximo e
+  // os acordes saíam alternados (C colorido, C não, C colorido...).
+  const BAR_CHORD = '[A-G][#b]?(?:m|min|maj|M|sus|dim|aug|add|°|º)?(?:7M|7|9|11|13|6)?[0-9]*\\+?(?:\\/[A-G][#b]?)?';
+  const BAR_CHORD_REGEX = new RegExp(`\\|(?:\\s*${BAR_CHORD}\\s*\\|)+`, 'g');
 
   // Colore UMA linha: comentário "//" (nota de palco), linha de cifra ou
   // acorde entre barras. Regra única usada pela página /view e pelo
