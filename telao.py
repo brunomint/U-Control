@@ -261,6 +261,20 @@ def monitor_split_pane(url):
     return None
 
 
+def monitor_mostra_letra():
+    """O monitor está mostrando letra/cifra (inteira ou num lado da tela
+    dividida)? Sem conteúdo próprio, o monitor mostra o mesmo que o
+    público. Em "Só público", aí a seção nova vai pro monitor também —
+    trocar de seção só acompanha a música que já está lá; o congelamento
+    é pra não trocar O QUE o palco mostra (foto, relógio…)."""
+    m = _monitor or _public_entry()
+    if not m:
+        return False
+    if m.get('kind') == 'split':
+        return any(kind_of_url(m.get(side, '')) in ('cifra', 'lyrics') for side in ('url1', 'url2'))
+    return m.get('kind') in ('cifra', 'lyrics')
+
+
 def diverge_monitor_from_public():
     """Ação "só público": o monitor fica congelado no que o público
     mostrava até agora (se já não estava mostrando outra coisa)."""

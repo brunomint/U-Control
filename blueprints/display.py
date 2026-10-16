@@ -682,6 +682,10 @@ def _release_kind(kind, payload):
     monitor_only = mode == 'monitor'
 
     if kind == 'lyrics':
+        # "Só público" congela o monitor — mas se ele já mostra a letra/
+        # cifra, a seção nova vai pra ele também (só acompanha a música)
+        if exclude_monitor and telao.monitor_mostra_letra():
+            exclude_monitor = False
         song_id = payload.get('songId')
         section_index = payload.get('sectionIndex')
         # URL do iframe do monitor pra esta letra — host=monitor faz

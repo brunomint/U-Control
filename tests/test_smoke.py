@@ -2122,3 +2122,42 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
         telao.set_monitor(None)
         op.disconnect()
         monitor.disconnect()
+
+
+def test_public_only_mode_still_moves_lyrics_already_on_monitor(app):
+    """Só público: se o monitor já mostra a cifra, a seção nova vai pra ele
+    também; se mostra outra coisa (foto), continua congelado."""
+    import telao
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    op = _operator_socket(app)
+    secao = lambda i: {"kind": "lyrics", "label": "Coro", "payload": {
+        "songId": 1, "sectionIndex": i, "title": f"S{i}", "text": "x", "type": "text"}}
+    try:
+        op.emit("stop_live_follow", {})
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("stage_content", secao(0))
+        op.emit("release_staged_content", {"kind": "lyrics"})
+        op.emit("set_display_mode", {"exclude_monitor": True, "monitor_only": False})
+        monitor.get_received()
+
+        op.emit("stage_content", secao(1))
+        op.emit("release_staged_content", {"kind": "lyrics"})
+        titulos = [m["args"][0]["title"] for m in monitor.get_received() if m["name"] == "update_lyrics"]
+        assert titulos == ["S1"]
+
+        # Monitor com foto (só monitor), depois Só público: fica congelado
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
+        op.emit("show_monitor_content", {"url": "/static/imagens/foto.jpg"})
+        op.emit("set_display_mode", {"exclude_monitor": True, "monitor_only": False})
+        monitor.get_received()
+        op.emit("stage_content", secao(2))
+        op.emit("release_staged_content", {"kind": "lyrics"})
+        assert not [m for m in monitor.get_received() if m["name"] == "update_lyrics"]
+        assert telao._monitor["kind"] == "photo"
+    finally:
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("stop_live_follow", {})
+        telao.set_monitor(None)
+        op.disconnect()
+        monitor.disconnect()
