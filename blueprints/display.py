@@ -65,14 +65,6 @@ def save_urls(urls):
         db.session.close()
 
 
-# Rota para limpar as informações
-@display_bp.route('/limpar')
-def limpar():
-    # Aqui você pode emitir um evento para limpar as informações na tela
-    socketio.emit('limpar_tela')
-    return 'Informações limpas!', 200
-
-
 # Último caminho de imagem da galeria mostrado — tabela ImagePath (linha
 # única), substitui image_paths.json. Fallback de 3º nível em /last_image.
 def load_image_path():

@@ -2382,3 +2382,44 @@ def test_bible_goes_only_where_released(app):
         telao.set_monitor(None)
         for c in (op, monitor, publico):
             c.disconnect()
+
+
+def test_cifra_import_only_fetches_cifra_club(app, client, logged_in_client, monkeypatch):
+    """/cifra e /cifra_com_video buscavam QUALQUER endereço, sem login:
+    dava pra usar o Pi pra acessar a rede interna. Agora exigem login,
+    só aceitam cifraclub.com.br e conferem o redirecionamento."""
+    import requests
+    pedidos = []
+
+    class Resp:
+        def __init__(self, status=200, location=None, text="<html></html>"):
+            self.status_code, self.text = status, text
+            self.headers = {"Location": location} if location else {}
+            self.is_redirect = location is not None
+
+    respostas = {}
+    def fake_get(url, **kw):
+        pedidos.append(url)
+        assert kw.get("timeout") and kw.get("allow_redirects") is False
+        return respostas.get(url, Resp())
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    assert client.get("/cifra?url=https://www.cifraclub.com.br/x/y/").status_code in (302, 401)  # exige login
+    for rota in ("/cifra", "/cifra_com_video"):
+        for ruim in ("http://192.168.0.1/", "http://127.0.0.1:8585/", "https://cifraclub.com.br.evil.com/",
+                     "file:///etc/passwd", "https://user@www.cifraclub.com.br/", "https://www.cifraclub.com.br:8080/"):
+            assert logged_in_client.get(rota, query_string={"url": ruim}).status_code == 400, (rota, ruim)
+    assert pedidos == []    # nada disso foi buscado
+
+    assert logged_in_client.get("/cifra_com_video", query_string={"url": "https://www.cifraclub.com.br/a/b/"}).status_code == 200
+    assert logged_in_client.get("/cifra", query_string={"url": "https://m.cifraclub.com.br/a/b/"}).status_code == 200
+
+    # Redirecionamento pra fora do Cifra Club é barrado (sem buscar o destino)
+    pedidos.clear()
+    respostas["https://www.cifraclub.com.br/r/"] = Resp(301, "http://10.0.0.1/admin")
+    assert logged_in_client.get("/cifra", query_string={"url": "https://www.cifraclub.com.br/r/"}).status_code == 400
+    assert pedidos == ["https://www.cifraclub.com.br/r/"]
+
+
+def test_limpar_route_removed(client):
+    assert client.get("/limpar").status_code == 404
