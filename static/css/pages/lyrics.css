@@ -88,7 +88,8 @@
 .section-link pre, .section-preview { margin: 0; color: var(--uc-text); line-height: 1.5; font-size: 13px !important; } /* o JS fixa 12px inline */
 .section-link .chord { color: var(--uc-warn); font-weight: 800; }
 .section-link .stage-note { color: var(--uc-faint); font-style: italic; font-size: .9em; }
-.section-link [id^="sheet-render-"] { border-radius: var(--uc-r-sm); }
+.section-link [id^="sheet-render-"] { border-radius: var(--uc-r-sm); overflow: hidden; }
+.section-link [id^="sheet-render-"] svg { max-width: 100%; height: auto; }
 
 /* Controles flutuantes */
 .float-controls {
@@ -265,4 +266,10 @@ button#prev:hover, button#next:hover { border-color: var(--uc-accent); }
   .lyrics-title h1 { font-size: 20px; }
   #toggle-button { font-size: 0; gap: 0; padding: 9px 12px; }
   #toggle-button i { font-size: 15px; }
+}
+
+/* Celular: o botão "Tom" fica à esquerda — o menu abre alinhado por ele
+   (com right: 0 abria pra fora da tela, à esquerda) */
+@media (max-width: 640px) {
+  .tom-popover { right: auto; left: 0; max-width: calc(100vw - 32px); }
 }

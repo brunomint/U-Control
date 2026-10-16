@@ -397,6 +397,30 @@ let currentTheme = CONFIG.theme;
             });
         }
     
+        // Linha de cifra mais larga que o quadro da seção: diminui a letra
+        // daquela seção só o necessário pra caber (acordes continuam
+        // alinhados com a letra) em vez de criar barra de rolagem embaixo.
+        // Pequeno demais (< 9px): quebra a linha como último recurso.
+        function fitSectionPreviews() {
+            document.querySelectorAll('.section-link pre.section-preview').forEach(pre => {
+                pre.style.removeProperty('font-size');
+                pre.style.whiteSpace = 'pre';
+                const base = parseFloat(getComputedStyle(pre).fontSize) || 13;
+                if (pre.scrollWidth <= pre.clientWidth + 1) return;
+                const tam = Math.floor(base * (pre.clientWidth / pre.scrollWidth) * 10) / 10;
+                if (tam >= 9) {
+                    pre.style.setProperty('font-size', tam + 'px', 'important');
+                    if (pre.scrollWidth > pre.clientWidth + 1)
+                        pre.style.setProperty('font-size', (tam - 0.5) + 'px', 'important');
+                } else {
+                    pre.style.setProperty('font-size', '9px', 'important');
+                    pre.style.whiteSpace = 'pre-wrap';
+                }
+            });
+        }
+        let _fitTimer = null;
+        window.addEventListener('resize', () => { clearTimeout(_fitTimer); _fitTimer = setTimeout(fitSectionPreviews, 150); });
+
         function createSectionLinks() {
             for (let i = 0; i < sections.length; i++) {
                 const section = sections[i];
@@ -445,6 +469,7 @@ let currentTheme = CONFIG.theme;
                     renderSheetInSection(i, { sheetId: section.sheetIds[0] });
                 }
             }
+            requestAnimationFrame(fitSectionPreviews);
         }
         
         // Função para renderizar partitura dentro do bloco de seção —
@@ -472,7 +497,10 @@ let currentTheme = CONFIG.theme;
                 const container = document.getElementById(`sheet-render-${index}`);
                 const { renderSheetMusic, transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
                 const toRender = transposeOffset !== 0 ? transposeSheetData(sheet, transposeOffset) : sheet;
-                await renderSheetMusic(container, toRender, { maxWidth: 900 });
+                // Largura real do quadro da seção (antes 900 fixo: no celular e
+                // no PC a partitura passava do quadro e ficava cortada)
+                const largura = Math.max(240, (container.clientWidth || 900) - 20);
+                await renderSheetMusic(container, toRender, { maxWidth: largura, compact: true });
             } catch (error) {
                 console.error('❌ Erro ao renderizar partitura:', error);
                 renderDiv.html(`<p style="color:red;">Erro: ${error.message}</p>`);
