@@ -134,11 +134,21 @@ const fitSheetsToScreen = () => {
             svg.dataset.naturalHeight = svg.getAttribute('height');
         }
     });
+    // Texto da seção mista (acordes embaixo da partitura) encolhe junto, na
+    // mesma proporção: com o texto fixo em 24px, numa tela baixa (celular
+    // deitado no app Android) só a partitura encolhia e virava uma tirinha
+    const textos = lyrics.querySelectorAll('#sheet-container pre');
+    textos.forEach(pre => {
+        if (!pre.dataset.naturalFont) pre.dataset.naturalFont = parseFloat(getComputedStyle(pre).fontSize) || 24;
+    });
 
     const apply = (scale) => {
         svgs.forEach(svg => {
             svg.style.width = (parseFloat(svg.dataset.naturalWidth) * scale) + 'px';
             svg.style.height = (parseFloat(svg.dataset.naturalHeight) * scale) + 'px';
+        });
+        textos.forEach(pre => {
+            pre.style.fontSize = Math.max(8, parseFloat(pre.dataset.naturalFont) * scale) + 'px';
         });
     };
 
