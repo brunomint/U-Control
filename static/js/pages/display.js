@@ -611,8 +611,9 @@ const fitSheetsToScreen = () => {
         elements.forEach((element, index) => {
             if (element.type === 'text') {
                 // Renderiza texto
+                // Acordes coloridos como nas seções só de texto (antes ia
+                // como texto puro e os acordes ficavam brancos)
                 const textDiv = $('<pre></pre>')
-                    .text(element.data)
                     .css({
                         'font-size': '24px',
                         'font-weight': 'bold',
@@ -620,6 +621,7 @@ const fitSheetsToScreen = () => {
                         'margin': '0',
                         'font-family': 'Roboto, sans-serif'
                     });
+                applyChordColors(textDiv[0], element.data);
                 mainContainer.append(textDiv);
             } else if (element.type === 'sheet') {
                 // Cria div para a partitura

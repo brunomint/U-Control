@@ -74,8 +74,14 @@
             text-align: center;
         }
 
-        #section-text .chord {
+        #section-text .chord,
+        #sheet-container .chord {
             color: var(--chord-color, #fbbf24);
+        }
+        #sheet-container .private-note {
+            color: #f59e0b;
+            font-style: italic;
+            font-size: 0.82em;
         }
         #section-text .private-note {
             color: #f59e0b;
