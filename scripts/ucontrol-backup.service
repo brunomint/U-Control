@@ -1,0 +1,7 @@
+[Unit]
+Description=Backup do U-Control (Pi -> este PC)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/Documentos/1-pasta-do-dev/U-Control/scripts/backup_do_pi.sh

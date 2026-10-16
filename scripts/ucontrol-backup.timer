@@ -1,0 +1,11 @@
+[Unit]
+Description=Backup diário do U-Control (roda ao ligar o PC se perdeu o horário)
+
+[Timer]
+OnCalendar=*-*-* 12:30
+# PC desligado no horário: roda assim que ligar (com 5 min de folga pra rede)
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
