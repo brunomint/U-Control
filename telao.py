@@ -290,6 +290,24 @@ def monitor_tem_letra_propria():
     return _monitor.get('kind') in ('cifra', 'lyrics')
 
 
+_FOTO = ('photo', 'video', 'gallery')
+
+
+def publico_mostra_foto():
+    p = _public_entry()
+    return bool(p) and p.get('kind') in _FOTO
+
+
+def monitor_tem_foto_propria():
+    """Monitor com conteúdo próprio mostrando foto/vídeo — inteira ou no
+    lado da galeria da tela dividida."""
+    if not _monitor:
+        return False
+    if _monitor.get('kind') == 'split':
+        return any(kind_of_url(_monitor.get(side, '')) == 'gallery' for side in ('url1', 'url2'))
+    return _monitor.get('kind') in _FOTO
+
+
 def diverge_monitor_from_public():
     """Ação "só público": o monitor fica congelado no que o público
     mostrava até agora (se já não estava mostrando outra coisa)."""

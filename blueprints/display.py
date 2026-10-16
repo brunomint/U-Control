@@ -783,6 +783,46 @@ def _secao_onde_a_letra_esta(payload):
     return True
 
 
+def _foto_onde_a_foto_esta(payload):
+    """Mesma regra da letra (_secao_onde_a_letra_esta) pras fotos: foto
+    nova vai direto pra onde já tem foto na tela — público, monitor (foto
+    inteira ou lado da galeria na tela dividida) ou os dois. Ex.: público
+    com foto e monitor com a letra: a foto muda só no público e a letra
+    fica no palco. Exceção: em "Só público" o monitor fica congelado pras
+    fotos (dá pra deixar uma imagem fixa no palco). Foto em lugar nenhum:
+    devolve False e pede Liberar (o modo decide onde entra)."""
+    url = payload.get('image_url', '')
+    if display_state._follow_parado or not _is_media_file(url):
+        return False
+    no_publico = telao.publico_mostra_foto()
+    if display_state.device_mode() == 'public':
+        no_monitor = False
+    elif telao._monitor is not None:
+        no_monitor = telao.monitor_tem_foto_propria()
+    else:
+        no_monitor = no_publico          # monitor acompanhando o público
+    if not (no_publico or no_monitor):
+        return False
+
+    with current_app.app_context():
+        staged = db.session.get(StagedContent, 'image')
+        if staged:
+            db.session.delete(staged)
+            db.session.commit()
+
+    if no_publico and no_monitor:
+        handle_show_image(dict(payload))
+    elif no_publico:
+        handle_show_image({**payload, 'exclude_monitor': True})
+    else:
+        handle_show_monitor_content({'url': url})   # só o monitor tem foto
+
+    display_state.follow_confirma('image')
+    emit('content_released', {'kind': 'image'}, broadcast=True)
+    telao.broadcast_status()
+    return True
+
+
 def _ja_no_monitor_dividido(kind, payload):
     """Só monitor + monitor dividido com um lado desse tipo (ex.: foto +
     cifra): a cifra e a foto já estão na tela, a troca só atualiza o lado
@@ -823,6 +863,8 @@ def handle_stage_content(data):
     # nunca precisa ser "a mesma coisa" que o relógio, já que ações
     # nativas do /control não tocam o live-follow — ver display_state.py).
     if kind == 'lyrics' and _secao_onde_a_letra_esta(payload):
+        return
+    if kind == 'image' and _foto_onde_a_foto_esta(payload):
         return
 
     if display_state.follow_inclui(kind) or _ja_no_monitor_dividido(kind, payload):

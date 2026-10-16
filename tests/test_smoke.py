@@ -858,6 +858,9 @@ def test_staged_content_kinds_do_not_clobber_each_other(app):
     # (que é justamente checar que PREPARAR dois kinds ao mesmo tempo não
     # atropela um ao outro).
     display_state._live_follow_kind = None
+    import telao
+    telao.set_public('clock', '/clock')   # nem foto nem letra na tela
+    telao.set_monitor(None)
 
     socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {"kind": "image", "payload": {"image_url": "/foto.jpg"}, "label": "foto"})
@@ -2114,11 +2117,14 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
         with app.app_context():
             assert ucontrol_main.db.session.get(StagedContent, "bible") is not None
 
-        # "Os dois": trocar de tipo continua pedindo Liberar
+        # "Os dois": a foto já está no lado da galeria — vai direto pra lá
+        # (regra "onde a foto já está", _foto_onde_a_foto_esta)
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
-        op.emit("stage_content", foto)
+        monitor.get_received()
+        op.emit("stage_content", {**foto, "payload": {"image_url": "/static/imagens/outra.jpg"}})
         with app.app_context():
-            assert ucontrol_main.db.session.get(StagedContent, "image") is not None
+            assert ucontrol_main.db.session.get(StagedContent, "image") is None
+        assert telao._monitor["kind"] == "split"
     finally:
         op.emit("discard_staged_content", {"kind": "image"})
         op.emit("discard_staged_content", {"kind": "bible"})
@@ -2225,6 +2231,74 @@ def test_section_change_goes_where_lyrics_are_shown(app):
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
         op.emit("stop_live_follow", {})
         display_state._follow_parado = False
+        telao.set_monitor(None)
+        for c in (op, monitor, publico):
+            c.disconnect()
+
+
+def test_photo_goes_where_photos_are_shown(app):
+    """Foto nova vai direto pra onde já tem foto: público com foto e
+    monitor com a letra = só o público muda; monitor com foto e público
+    com a letra = só o monitor. "Só público" mantém o monitor congelado.
+    Foto em lugar nenhum = pede Liberar."""
+    import display_state
+    import telao
+    from models import StagedContent
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    publico = ucontrol_main.socketio.test_client(app)
+    publico.emit("identify", {"role": "public"})
+    op = _operator_socket(app)
+    foto = lambda n: {"kind": "image", "label": "Foto", "payload": {"image_url": f"/static/imagens/{n}.jpg"}}
+    def fotos(cli):
+        return [m["args"][0].get("image_url") or m["args"][0].get("url") for m in cli.get_received()
+                if m["name"] in ("display_image", "display_monitor_content")]
+    def pendente():
+        with app.app_context():
+            return ucontrol_main.db.session.get(StagedContent, "image") is not None
+    def modo(m):
+        op.emit("set_display_mode", {"exclude_monitor": m == "public", "monitor_only": m == "monitor"})
+    try:
+        display_state._follow_parado = False
+        display_state._live_follow_kind = None
+        modo("all")
+        telao.set_public('clock', '/clock')
+        telao.set_monitor(None)
+        op.emit("stage_content", foto("a"))
+        assert pendente()                                  # foto em lugar nenhum
+        op.emit("discard_staged_content", {"kind": "image"})
+
+        # Público com foto, monitor com a letra (só monitor)
+        telao.set_public('photo', '/static/imagens/a.jpg')
+        telao.set_monitor('cifra', '/lyrics/display?song_id=1&section=0&host=monitor')
+        display_state._live_follow_kind = None
+        monitor.get_received(); publico.get_received()
+        for m in ("all", "monitor", "public"):
+            modo(m)
+            op.emit("stage_content", foto("b"))
+            assert not pendente()
+            assert fotos(publico) == ["/static/imagens/b.jpg"] and fotos(monitor) == []
+            assert telao._monitor["kind"] == "cifra"
+
+        # Monitor com foto, público com a letra
+        telao.set_public('lyrics', '/lyrics/display/public')
+        telao.set_monitor('photo', '/static/imagens/m.jpg')
+        monitor.get_received(); publico.get_received()
+        for m in ("all", "monitor"):
+            modo(m)
+            op.emit("stage_content", foto("c"))
+            assert not pendente()
+            assert fotos(monitor) == ["/static/imagens/c.jpg"] and fotos(publico) == []
+            assert telao.build_status()["live"]["kind"] == "lyrics"
+        # "Só público": monitor congelado pras fotos → aqui a foto não tem
+        # onde ir, então pede Liberar
+        modo("public")
+        op.emit("stage_content", foto("d"))
+        assert pendente() and fotos(monitor) == []
+    finally:
+        op.emit("discard_staged_content", {"kind": "image"})
+        modo("all")
+        display_state._live_follow_kind = None
         telao.set_monitor(None)
         for c in (op, monitor, publico):
             c.disconnect()
