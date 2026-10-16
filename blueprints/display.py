@@ -739,6 +739,26 @@ def _release_kind(kind, payload):
     telao.broadcast_status()
 
 
+def _ja_no_monitor_dividido(kind, payload):
+    """Só monitor + monitor dividido com um lado desse tipo (ex.: foto +
+    cifra): a cifra e a foto já estão na tela, a troca só atualiza o lado
+    dela — não precisa pedir Liberar a cada alternância entre os dois. Em
+    "Os dois" continua pedindo: o público não divide, e alternar troca o
+    que ele vê. Bíblia fica de fora: não tem modo só-monitor (ver
+    _release_kind) e iria pro público também."""
+    if display_state.device_mode() != 'monitor':
+        return False
+    if kind == 'lyrics':
+        url = '/lyrics/display'
+    elif kind == 'image':
+        url = payload.get('image_url', '')
+        if not _is_media_file(url):
+            return False
+    else:
+        return False
+    return telao.monitor_split_pane(url) is not None
+
+
 @socketio.on('stage_content')
 def handle_stage_content(data):
     kind = data.get('kind')
@@ -757,7 +777,7 @@ def handle_stage_content(data):
     # ainda não tiver confirmado aquele tipo nesta sessão (ex: uma foto
     # nunca precisa ser "a mesma coisa" que o relógio, já que ações
     # nativas do /control não tocam o live-follow — ver display_state.py).
-    if display_state.follow_inclui(kind):
+    if display_state.follow_inclui(kind) or _ja_no_monitor_dividido(kind, payload):
         with current_app.app_context():
             staged = db.session.get(StagedContent, kind)
             if staged:

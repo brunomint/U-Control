@@ -2081,3 +2081,44 @@ def test_split_monitor_keeps_split_when_content_changes(app):
         telao.set_monitor(None)
         op.disconnect()
         monitor.disconnect()
+
+
+def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
+    """Só monitor + monitor dividido (foto + cifra): alternar entre seção e
+    foto não pede Liberar — os dois já estão na tela. Em "Os dois" pede."""
+    import telao
+    from models import StagedContent
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    op = _operator_socket(app)
+    secao = {"kind": "lyrics", "label": "Coro",
+             "payload": {"songId": 1, "sectionIndex": 1, "title": "Coro", "text": "x", "type": "text"}}
+    foto = {"kind": "image", "label": "Foto", "payload": {"image_url": "/static/imagens/foto.jpg"}}
+    try:
+        op.emit("stop_live_follow", {})
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
+        op.emit("show_monitor_two_urls", {"url1": "/img", "url2": "/lyrics/display"})
+        monitor.get_received()
+        for item, evento in ((secao, "update_lyrics"), (foto, "display_image"), (secao, "update_lyrics")):
+            op.emit("stage_content", item)
+            assert evento in [m["name"] for m in monitor.get_received()]
+            with app.app_context():
+                assert ucontrol_main.db.session.get(StagedContent, item["kind"]) is None
+        # Bíblia não tem lado aqui (e iria pro público): continua pedindo
+        op.emit("stage_content", {"kind": "bible", "label": "João 3:16", "payload": {"reference": "João 3:16", "text": "x"}})
+        with app.app_context():
+            assert ucontrol_main.db.session.get(StagedContent, "bible") is not None
+
+        # "Os dois": trocar de tipo continua pedindo Liberar
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("stage_content", foto)
+        with app.app_context():
+            assert ucontrol_main.db.session.get(StagedContent, "image") is not None
+    finally:
+        op.emit("discard_staged_content", {"kind": "image"})
+        op.emit("discard_staged_content", {"kind": "bible"})
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("stop_live_follow", {})
+        telao.set_monitor(None)
+        op.disconnect()
+        monitor.disconnect()
