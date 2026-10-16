@@ -27,9 +27,48 @@
             return u + (u.includes('?') ? '&' : '?') + 'host=monitor';
         }
 
+        // ── Tela dividida ────────────────────────────────────────────
+        // Com o monitor dividido (ex.: foto + cifra), conteúdo novo de um
+        // tipo que um dos lados já mostra vai pra ESSE lado e a divisão
+        // continua: a seção da cifra muda no lado da cifra, a foto no lado
+        // da galeria. Antes a foto (ou, em "Só monitor", a cifra) tomava o
+        // monitor inteiro e o outro lado sumia.
+        let splitOn = false;
+        function paneKind(src) {
+            let path = src || '';
+            try { path = new URL(src, location.origin).pathname; } catch (e) { /* mantém */ }
+            if (path === '/img') return 'gallery';
+            if (path.startsWith('/lyrics/display')) return 'lyrics';
+            if (path.startsWith('/bible/display')) return 'bible';
+            if (path === '/clock') return 'clock';
+            return null;
+        }
+        // Iframe do lado que mostra este tipo, ou null
+        function splitPane(kind) {
+            if (!splitOn) return null;
+            return [iframe1, iframe2].find(f => paneKind(f.getAttribute('src')) === kind) || null;
+        }
+        function isMediaUrl(url) {
+            return /^\/static\//.test(url || '') || isImageUrl(url) || isVideoUrl(url);
+        }
+        // Foto/vídeo no lado da galeria. Com o evento chegando também na
+        // /img de dentro do monitor (mesmo socket), ela troca sozinha; em
+        // "Só monitor" o evento vem só pra cá, então chama a /img direto.
+        function mediaToPane(url, direto) {
+            const pane = isMediaUrl(url) ? splitPane('gallery') : null;
+            if (!pane) return false;
+            if (direto) {
+                try {
+                    const w = pane.contentWindow;
+                    if (isVideoUrl(url)) w.playVideo(url); else w.loadImage(url);
+                } catch (e) { pane.src = noMonitor('/img'); }
+            }
+            return true;
+        }
+
         // Verifica se a URL é de uma imagem com base na extensão
         function isImageUrl(url) {
-            return /\.(jpeg|jpg|gif|png|bmp)(\?.*)?$/i.test(url || '');
+            return /\.(jpeg|jpg|gif|png|bmp|webp)(\?.*)?$/i.test(url || '');
         }
         function isVideoUrl(url) {
             return /\.(mp4|webm|mov)(\?.*)?$/i.test(url || '');
@@ -46,6 +85,7 @@
                 socket.emit('seek_video', { time: 0 });
             } else if (isImageUrl(imageUrl)) {
                 // Mostra a imagem em tela cheia, escondendo iframes e vídeo
+                splitOn = false;
                 hideVideo();
                 iframe1.style.display = 'none';
                 iframe2.style.display = 'none';
@@ -60,6 +100,7 @@
         }
 
         function playVideo(url, opts) {
+            splitOn = false;
             opts = opts || {};
             const startAt = Number(opts.startAt) || 0;
             const startPaused = !!opts.paused;
@@ -117,6 +158,7 @@
 
         // Função para ajustar layout com um iframe
         function showSingleIframe() {
+            splitOn = false;
             iframeContainer.className = 'iframe-container single-iframe';
             displayImage.style.display = 'none'; // Oculta a imagem se estiver visível
             iframe1.style.display = 'block';
@@ -125,6 +167,7 @@
 
         // Função para ajustar layout com dois iframes
         function showDoubleIframe() {
+            splitOn = true;
             iframeContainer.className = 'iframe-container double-iframe';
             displayImage.style.display = 'none'; // Oculta a imagem se estiver visível
             iframe1.style.display = 'block';
@@ -211,12 +254,14 @@
 
         socket.on('display_image', function(data) {
             const imageUrl = data.image_url;
+            if (mediaToPane(imageUrl, false)) return;
             hideVideo();
             showImage(imageUrl); // Tenta mostrar a imagem, ou oculta se não for uma imagem
         });
 
         // Eventos de vídeo (controlados pelo / e /presenter)
         socket.on('display_video', function(data) {
+            if (mediaToPane(data.video_url, false)) return;
             playVideo(data.video_url);
         });
         socket.on('video_pause', function(data) {
@@ -293,6 +338,7 @@
         // Exibe conteúdo enviado só ao monitor, sem afetar o público
         socket.on('display_monitor_content', function(data) {
             const url = data.url || '';
+            if (mediaToPane(url, true)) return;
             hideVideo();
             if (isVideoUrl(url)) {
                 playVideo(url);
@@ -305,6 +351,7 @@
         });
 
         socket.on('display_monitor_video', function(data) {
+            if (mediaToPane(data.video_url, true)) return;
             playVideo(data.video_url);
         });
 

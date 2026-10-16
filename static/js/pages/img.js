@@ -178,6 +178,9 @@ socket.on('display_image', function(data) {
     const url = data.image_url || '';
     const isStaticFile = url.startsWith('/static/') || /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(url);
     if (!isStaticFile) return;
+    // Vídeo liberado como "foto" (preparar/liberar da galeria): carrega
+    // pausado no 1º quadro, como na abertura da página (loadLastImage)
+    if (/\.(mp4|webm|mov)(\?.*)?$/i.test(url)) { playVideo(url, { paused: true }); currentImageUrl = null; return; }
     if (currentImageUrl !== url) {
         loadImage(url);
         const img = document.getElementById('imageUr');

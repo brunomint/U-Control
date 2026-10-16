@@ -282,7 +282,9 @@ def handle_show_image(data):
     append_display_log({'type': 'image', 'title': image_url})
     if data.get('exclude_monitor'):
         telao.diverge_monitor_from_public()
-    else:
+    elif not (_is_media_file(image_url) and telao.monitor_split_pane(image_url)):
+        # Monitor dividido com lado de galeria: a foto entra nesse lado
+        # (img.js dentro dele) e a divisão continua (ver monitor.js)
         telao.set_monitor(None)
     if telao.kind_of_url(image_url) == 'cifra':
         # A tela pública nunca mostra acordes (display_public.js troca a
@@ -366,7 +368,7 @@ def handle_show_video(data):
     append_display_log({'type': 'image', 'title': video_url})
     if data.get('exclude_monitor'):
         telao.diverge_monitor_from_public()
-    else:
+    elif not telao.monitor_split_pane(video_url):
         telao.set_monitor(None)
     telao.set_public('video', video_url)
     telao.broadcast_status()
@@ -453,6 +455,13 @@ def handle_show_monitor_content(data):
     """Exibe URL/imagem apenas no /monitor, sem afetar o público."""
     url = data.get('url', '')
     _end_live_follow_unless(url)
+    if _is_media_file(url) and telao.monitor_split_pane(url):
+        # Monitor dividido com lado de galeria: só esse lado troca
+        evento, chave = ('display_video', 'video_url') if telao.kind_of_url(url) == 'video' \
+            else ('display_image', 'image_url')
+        for sid in _get_monitor_sids():
+            emit(evento, {chave: url}, to=sid)
+        return
     telao.set_monitor_url(url)
     telao.broadcast_status()
     # O botão "Letra" manda o /monitor recarregar '/lyrics/display/public' num
@@ -479,6 +488,10 @@ def handle_show_monitor_content(data):
 @socketio.on('show_monitor_video')
 def handle_show_monitor_video(data):
     """Exibe vídeo apenas no /monitor."""
+    if telao.monitor_split_pane(data.get('video_url', '')):
+        for sid in _get_monitor_sids():
+            emit('display_video', {'video_url': data.get('video_url', '')}, to=sid)
+        return
     telao.set_monitor('video', data.get('video_url', ''))
     telao.broadcast_status()
     for sid in _get_monitor_sids():
@@ -568,6 +581,12 @@ def handle_show_image_zoom(data):
 # futura neles também vale pro conteúdo liberado, e os testes de
 # handler existentes continuam passando sem alteração nenhuma.
 _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
+
+
+def _is_media_file(url):
+    path = (url or '').split('?')[0]
+    return path.startswith('/static/') or \
+        bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)$', path, re.I))
 
 
 def _kind_of_url(url):
@@ -674,7 +693,15 @@ def _release_kind(kind, payload):
         if song_id is not None and section_index is not None:
             lyrics_url = f'/lyrics/display?song_id={song_id}&section={section_index}&host=monitor'
 
-        if monitor_only:
+        split_pane = telao.monitor_split_pane(lyrics_url) if lyrics_url else None
+        if monitor_only and split_pane:
+            # Monitor dividido com lado de cifra/letra: a seção nova vai só
+            # pras páginas dentro do monitor (update_lyrics; o /monitor em si
+            # não escuta esse evento) e a divisão continua. Antes o
+            # show_monitor_content trocava o monitor inteiro pela cifra.
+            for sid in _get_monitor_sids():
+                emit('update_lyrics', payload, to=sid)
+        elif monitor_only:
             # Só empurra pro iframe do monitor via show_monitor_content
             # (mesmo mecanismo que o botão de URL fixa "Letra" já usa em
             # Modo Monitor) — nunca chama handle_update_lyrics, então
@@ -693,7 +720,7 @@ def _release_kind(kind, payload):
             # atualização ao vivo — gravar aqui faria ele "pular" pra essa
             # letra na próxima vez que recarregar, o que quebraria o
             # "congela" que o modo promete.
-            if lyrics_url and not exclude_monitor:
+            if lyrics_url and not exclude_monitor and not split_pane:
                 with current_app.app_context():
                     _persist_display_state(lyrics_url, '')
     elif kind == 'bible':

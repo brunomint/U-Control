@@ -238,6 +238,29 @@ def set_monitor_split(url1, url2):
     _monitor = {'kind': 'split', 'url1': url1 or '', 'url2': url2 or ''}
 
 
+# Que lado da tela dividida do monitor recebe cada tipo de conteúdo: a
+# foto/vídeo vai pro lado da galeria (/img), a letra pro lado da cifra ou da
+# letra, e assim por diante.
+_PANE_FOR_KIND = {
+    'photo': ('gallery',), 'video': ('gallery',), 'gallery': ('gallery',),
+    'cifra': ('cifra', 'lyrics'), 'lyrics': ('lyrics', 'cifra'),
+    'bible': ('bible',), 'clock': ('clock',),
+}
+
+
+def monitor_split_pane(url):
+    """Monitor dividido com um lado que mostra este tipo de conteúdo:
+    devolve 'url1'/'url2' (esse lado é atualizado e a divisão continua);
+    senão None (conteúdo ocupa o monitor inteiro, como antes)."""
+    if not _monitor or _monitor.get('kind') != 'split':
+        return None
+    aceitos = _PANE_FOR_KIND.get(kind_of_url(url), ())
+    for side in ('url1', 'url2'):
+        if kind_of_url(_monitor.get(side, '')) in aceitos:
+            return side
+    return None
+
+
 def diverge_monitor_from_public():
     """Ação "só público": o monitor fica congelado no que o público
     mostrava até agora (se já não estava mostrando outra coisa)."""

@@ -1,5 +1,9 @@
         const socket = io();
-        socket.on('connect', () => socket.emit('identify', { role: 'public' }));
+        // Dentro do /monitor (host=monitor, tela dividida "Letra"): é o
+        // monitor — recebe o que vai só pro palco e fica parada em "Só
+        // público", igual à cifra e à galeria (display.js, img.js)
+        socket.on('connect', () => socket.emit('identify', {
+            role: new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public' }));
     
         const updateLyricsDisplay = (title, text, songId) => {
             $('#section-title').text(title);

@@ -2024,3 +2024,60 @@ def test_pptx_videos_mapped_to_exported_page(tmp_path):
     salvos = gallery._extract_pptx_videos(str(path), str(tmp_path), str(destino), "Avisos", env)
     assert salvos == ["Avisos_slide-0002v1.mp4"]
     assert (destino / "Avisos_slide-0002v1.mp4").read_bytes().endswith(b"a.mp4")
+
+
+def test_monitor_split_pane_matches_content_kind():
+    import telao
+    telao.set_monitor_split("/img", "/lyrics/display")
+    try:
+        assert telao.monitor_split_pane("/static/imagens/a.jpg") == "url1"
+        assert telao.monitor_split_pane("/static/imagens/v.mp4") == "url1"
+        assert telao.monitor_split_pane("/lyrics/display?song_id=1&section=2&host=monitor") == "url2"
+        assert telao.monitor_split_pane("/clock") is None       # nenhum lado mostra relógio
+        telao.set_monitor_split("/lyrics/display/public", "/clock")
+        assert telao.monitor_split_pane("/lyrics/display?song_id=1&section=0") == "url1"
+        assert telao.monitor_split_pane("/static/imagens/a.jpg") is None
+    finally:
+        telao.set_monitor(None)
+    assert telao.monitor_split_pane("/static/imagens/a.jpg") is None  # sem divisão
+
+
+def test_split_monitor_keeps_split_when_content_changes(app):
+    """Monitor dividido (foto + cifra): seção nova e foto nova vão pro lado
+    certo e a divisão continua — em "Só monitor" a seção ia por
+    display_monitor_content e trocava o monitor inteiro pela cifra."""
+    import telao
+    monitor = ucontrol_main.socketio.test_client(app)  # tela, sem login
+    monitor.emit("identify", {"role": "monitor"})
+    op = _operator_socket(app)
+    try:
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
+        op.emit("show_monitor_two_urls", {"url1": "/img", "url2": "/lyrics/display"})
+        monitor.get_received()
+
+        op.emit("stage_content", {"kind": "lyrics", "label": "Coro",
+                                  "payload": {"songId": 1, "sectionIndex": 2, "title": "Coro", "text": "x", "type": "text"}})
+        op.emit("release_staged_content", {"kind": "lyrics"})
+        names = [m["name"] for m in monitor.get_received()]
+        assert "update_lyrics" in names and "display_monitor_content" not in names
+        assert telao._monitor["kind"] == "split"
+
+        op.emit("show_monitor_content", {"url": "/static/imagens/foto.jpg"})
+        got = [(m["name"], m["args"][0]) for m in monitor.get_received()]
+        assert ("display_image", {"image_url": "/static/imagens/foto.jpg"}) in got
+        assert not any(n == "display_monitor_content" for n, _ in got)
+        assert telao._monitor["kind"] == "split"
+
+        # "Os dois": foto liberada também mantém a divisão
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("show_image", {"image_url": "/static/imagens/outra.jpg"})
+        assert telao._monitor["kind"] == "split"
+        # Fonte em tela cheia (relógio) continua saindo da divisão
+        op.emit("show_image", {"image_url": "/clock"})
+        assert telao._monitor is None
+    finally:
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("stop_live_follow", {})
+        telao.set_monitor(None)
+        op.disconnect()
+        monitor.disconnect()

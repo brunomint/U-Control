@@ -503,7 +503,10 @@ sendUrl = function(urlNumber) {
 // Intercepta showTwoUrls: em modo monitor, envia tela dividida só ao /monitor
 const _origShowTwoUrls = showTwoUrls;
 showTwoUrls = function(urlNum1, urlNum2) {
-    if (monitorOnlyMode) {
+    // "Monitor dividido" só existe no palco: em "Só público" também vai
+    // direto pro monitor (antes saía com exclude_monitor — o público não
+    // divide e o monitor era excluído, então o botão não fazia nada)
+    if (monitorOnlyMode || publicOnlyMode) {
         const fixedRoutes = { 4:'/lyrics/display', 5:'/clock', 6:'/img', 7:'/bible/display', 8:'/lyrics/display/public' };
         const url1 = fixedRoutes[urlNum1] || document.getElementById(`url${urlNum1}`)?.value;
         const url2 = fixedRoutes[urlNum2] || document.getElementById(`url${urlNum2}`)?.value;
