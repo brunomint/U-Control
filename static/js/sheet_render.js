@@ -55,33 +55,54 @@ function splitIntoSystems(widths, maxWidth) {
   return systems;
 }
 
-function createBeams(Beam, notes) {
+// Duração de um "tempo" pro agrupamento dos feixes, em fração da
+// semibreve: x/4 = semínima, 2/2 = mínima, compostos (6/8, 9/8, 12/8,
+// 3/8) = semínima pontuada; demais x/8 = semínima.
+function beamBeat(beats, beatValue) {
+  if (beatValue === 8 && beats % 3 === 0) return 3 / 8;
+  if (beatValue === 2) return 1 / 2;
+  if (beatValue === 4) return 1 / 4;
+  return 1 / 4;
+}
+
+// Feixes (hastes ligadas) de colcheia em diante, de TEMPO em tempo — antes
+// juntava todas as colcheias seguidas do compasso num feixe só. O grupo
+// fecha na pausa, na nota que não leva feixe, na entrada/saída de tercina
+// e ao começar um tempo novo.
+function createBeams(Beam, notes, beat = 1 / 4) {
   if (!notes.length || !Beam) return [];
+  const RES = 16384;                       // Tables.RESOLUTION: ticks da semibreve
+  const beatTicks = beat * RES;
   const beams = [];
   let currentGroup = [];
+  let groupBeat = -1;
+  let pos = 0;                             // início da nota, em ticks
+  const fecha = () => {
+    if (currentGroup.length >= 2) {
+      try { beams.push(new Beam(currentGroup)); } catch (e) { console.warn('Erro ao criar beam:', e); }
+    }
+    currentGroup = [];
+  };
   for (let i = 0; i < notes.length; i++) {
     const duration = notes[i].getDuration();
     const canBeam = ['8', '16', '32', '64'].includes(duration.replace('r', ''));
-    const isRest = duration.includes('r');
+    const isRest = duration.includes('r') || (notes[i].isRest && notes[i].isRest());
+    const tempo = Math.floor((pos + 1) / beatTicks);   // +1: tolera arredondamento de tercina
     // tercina tem feixe próprio: quebra o grupo na entrada/saída dela
-    if (currentGroup.length && (notes[i].__tup || null) !== (currentGroup[0].__tup || null)) {
-      if (currentGroup.length >= 2) {
-        try { beams.push(new Beam(currentGroup)); } catch (e) { console.warn('Erro ao criar beam:', e); }
-      }
-      currentGroup = [];
-    }
+    if (currentGroup.length && (notes[i].__tup || null) !== (currentGroup[0].__tup || null)) fecha();
+    // tempo novo (tercina fica inteira no feixe dela)
+    if (currentGroup.length && tempo !== groupBeat && !notes[i].__tup) fecha();
     if (canBeam && !isRest) {
+      if (!currentGroup.length) groupBeat = tempo;
       currentGroup.push(notes[i]);
     } else {
-      if (currentGroup.length >= 2) {
-        try { beams.push(new Beam(currentGroup)); } catch (e) { console.warn('Erro ao criar beam:', e); }
-      }
-      currentGroup = [];
+      fecha();
     }
+    let ticks = 0;
+    try { ticks = notes[i].getTicks().value(); } catch (e) { ticks = 0; }
+    pos += ticks;
   }
-  if (currentGroup.length >= 2) {
-    try { beams.push(new Beam(currentGroup)); } catch (e) { console.warn('Erro ao criar beam final:', e); }
-  }
+  fecha();
   return beams;
 }
 
@@ -526,7 +547,7 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
         const voice = new Voice({ num_beats: beats, beat_value: beatValue, resolution: 4 }).setStrict(false);
         voice.addTickables(tickables);
 
-        const beams = createBeams(Beam, tickables);
+        const beams = createBeams(Beam, tickables, beamBeat(beats, beatValue));
 
         const formatter = new Formatter();
         formatter.joinVoices([voice]);
