@@ -743,14 +743,55 @@ def _release_kind(kind, payload):
     telao.broadcast_status()
 
 
+def _secao_onde_a_letra_esta(payload):
+    """Troca de seção de uma letra que já está liberada em algum lugar:
+    vai direto (sem Liberar) pra ONDE a letra está — público, monitor ou
+    os dois —, não importa o modo. Ex.: público com foto e monitor com a
+    letra: a seção muda só no monitor e a foto continua no público.
+    Letra em lugar nenhum: devolve False e segue o preparar/liberar
+    normal (aí o modo decide onde ela entra). Depois do "parar" da
+    barrinha também pede Liberar."""
+    if display_state._follow_parado:
+        return False
+    no_publico = telao.publico_mostra_letra()
+    monitor_proprio = telao._monitor is not None
+    no_monitor = telao.monitor_tem_letra_propria() if monitor_proprio else no_publico
+    if not (no_publico or no_monitor):
+        return False
+
+    with current_app.app_context():
+        staged = db.session.get(StagedContent, 'lyrics')
+        if staged:
+            db.session.delete(staged)
+            db.session.commit()
+
+    if no_publico:
+        dados = dict(payload)
+        if not no_monitor:
+            dados['exclude_monitor'] = True   # monitor mostra outra coisa
+        handle_update_lyrics(dados)
+    else:
+        # Só o monitor tem a letra: manda só pras páginas dele (o público
+        # continua no que estava — não vira letra)
+        for sid in _get_monitor_sids():
+            emit('update_lyrics', payload, to=sid)
+
+    _marcar_feito_no_ar('lyrics', payload)
+    display_state.follow_confirma('lyrics')
+    emit('content_released', {'kind': 'lyrics'}, broadcast=True)
+    telao.broadcast_status()
+    return True
+
+
 def _ja_no_monitor_dividido(kind, payload):
     """Só monitor + monitor dividido com um lado desse tipo (ex.: foto +
     cifra): a cifra e a foto já estão na tela, a troca só atualiza o lado
     dela — não precisa pedir Liberar a cada alternância entre os dois. Em
     "Os dois" continua pedindo: o público não divide, e alternar troca o
     que ele vê. Bíblia fica de fora: não tem modo só-monitor (ver
-    _release_kind) e iria pro público também."""
-    if display_state.device_mode() != 'monitor':
+    _release_kind) e iria pro público também. Depois do "parar" da
+    barrinha, pede Liberar."""
+    if display_state._follow_parado or display_state.device_mode() != 'monitor':
         return False
     if kind == 'lyrics':
         url = '/lyrics/display'
@@ -781,6 +822,9 @@ def handle_stage_content(data):
     # ainda não tiver confirmado aquele tipo nesta sessão (ex: uma foto
     # nunca precisa ser "a mesma coisa" que o relógio, já que ações
     # nativas do /control não tocam o live-follow — ver display_state.py).
+    if kind == 'lyrics' and _secao_onde_a_letra_esta(payload):
+        return
+
     if display_state.follow_inclui(kind) or _ja_no_monitor_dividido(kind, payload):
         with current_app.app_context():
             staged = db.session.get(StagedContent, kind)
@@ -865,6 +909,7 @@ def handle_stop_live_follow(data=None):
     """Botão "parar" da barrinha do telão: o próximo preparar volta a
     pedir Liberar, mesmo do tipo que estava acompanhando ao vivo."""
     display_state._live_follow_kind = None
+    display_state._follow_parado = True
     telao.broadcast_status()
 
 

@@ -275,6 +275,21 @@ def monitor_mostra_letra():
     return m.get('kind') in ('cifra', 'lyrics')
 
 
+def publico_mostra_letra():
+    p = _public_entry()
+    return bool(p) and p.get('kind') in ('cifra', 'lyrics')
+
+
+def monitor_tem_letra_propria():
+    """Monitor com conteúdo próprio (não seguindo o público) que inclui a
+    letra/cifra — inteira ou num lado da tela dividida."""
+    if not _monitor:
+        return False
+    if _monitor.get('kind') == 'split':
+        return any(kind_of_url(_monitor.get(side, '')) in ('cifra', 'lyrics') for side in ('url1', 'url2'))
+    return _monitor.get('kind') in ('cifra', 'lyrics')
+
+
 def diverge_monitor_from_public():
     """Ação "só público": o monitor fica congelado no que o público
     mostrava até agora (se já não estava mostrando outra coisa)."""

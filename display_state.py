@@ -65,9 +65,16 @@ TEXTO = {'lyrics', 'bible'}
 _live_follow_texto = set()
 
 
+# Botão "parar" da barrinha do telão: até a próxima liberação confirmada,
+# tudo pede Liberar — inclusive a troca de seção da letra que já está na
+# tela (ver _secao_onde_a_letra_esta em blueprints/display.py).
+_follow_parado = False
+
+
 def follow_confirma(kind):
     """Liberação confirmada (_release_kind): passa a acompanhar `kind`."""
-    global _live_follow_kind, _live_follow_texto
+    global _live_follow_kind, _live_follow_texto, _follow_parado
+    _follow_parado = False
     if kind in TEXTO and _live_follow_kind in TEXTO:
         _live_follow_texto = _live_follow_texto | {kind, _live_follow_kind}
     else:

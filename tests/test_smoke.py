@@ -1661,6 +1661,9 @@ def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
     from models import StagedContent
 
     display_state._live_follow_kind = None
+    import telao
+    telao.set_public('clock', '/clock')   # letra em lugar nenhum (testes anteriores)
+    telao.set_monitor(None)
     sock = _operator_socket(app)
 
     def preparar(kind, payload):
@@ -2096,6 +2099,8 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
     foto = {"kind": "image", "label": "Foto", "payload": {"image_url": "/static/imagens/foto.jpg"}}
     try:
         op.emit("stop_live_follow", {})
+        import display_state
+        display_state._follow_parado = False   # só limpa; o "parar" é testado à parte
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
         op.emit("show_monitor_two_urls", {"url1": "/img", "url2": "/lyrics/display"})
         monitor.get_received()
@@ -2161,3 +2166,65 @@ def test_public_only_mode_still_moves_lyrics_already_on_monitor(app):
         telao.set_monitor(None)
         op.disconnect()
         monitor.disconnect()
+
+
+def test_section_change_goes_where_lyrics_are_shown(app):
+    """Seção nova vai direto pra onde a letra já está, não importa o modo:
+    público com foto + monitor com a letra = muda só no monitor, a foto
+    fica no público. Letra em lugar nenhum = pede Liberar."""
+    import display_state
+    import telao
+    from models import StagedContent
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    publico = ucontrol_main.socketio.test_client(app)
+    publico.emit("identify", {"role": "public"})
+    op = _operator_socket(app)
+    secao = lambda i: {"kind": "lyrics", "label": "Coro", "payload": {
+        "songId": 1, "sectionIndex": i, "title": f"S{i}", "text": "x", "type": "text"}}
+    def recebeu(cli):
+        return [m["args"][0]["title"] for m in cli.get_received() if m["name"] == "update_lyrics"]
+    def pendente():
+        with app.app_context():
+            return ucontrol_main.db.session.get(StagedContent, "lyrics") is not None
+    try:
+        op.emit("stop_live_follow", {})
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        telao.set_public('clock', '/clock')
+        telao.set_monitor(None)
+        # Letra em lugar nenhum: pede Liberar
+        op.emit("stage_content", secao(0))
+        assert pendente()
+        op.emit("release_staged_content", {"kind": "lyrics"})   # Os dois: público e monitor
+        monitor.get_received(); publico.get_received()
+
+        # Monitor dividido (letra + URL) e público com a letra: muda nos dois
+        op.emit("show_monitor_two_urls", {"url1": "/lyrics/display", "url2": "https://exemplo.org"})
+        op.emit("stage_content", secao(1))
+        assert not pendente() and recebeu(monitor) == ["S1"] and recebeu(publico) == ["S1"]
+
+        # Público passa pra foto (Só público); monitor segue com a letra
+        op.emit("set_display_mode", {"exclude_monitor": True, "monitor_only": False})
+        op.emit("show_image", {"image_url": "/static/imagens/foto.jpg", "exclude_monitor": True})
+        monitor.get_received(); publico.get_received()
+        for modo in ({"exclude_monitor": False, "monitor_only": False},
+                     {"exclude_monitor": True, "monitor_only": False},
+                     {"exclude_monitor": False, "monitor_only": True}):
+            op.emit("set_display_mode", modo)
+            op.emit("stage_content", secao(2))
+            assert not pendente()
+            assert recebeu(monitor) == ["S2"] and recebeu(publico) == []   # foto fica no público
+            assert telao.build_status()["live"]["kind"] == "photo"
+
+        # "parar" da barrinha: volta a pedir Liberar
+        op.emit("stop_live_follow", {})
+        op.emit("stage_content", secao(3))
+        assert pendente()
+    finally:
+        op.emit("discard_staged_content", {"kind": "lyrics"})
+        op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
+        op.emit("stop_live_follow", {})
+        display_state._follow_parado = False
+        telao.set_monitor(None)
+        for c in (op, monitor, publico):
+            c.disconnect()
