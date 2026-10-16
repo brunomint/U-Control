@@ -25,7 +25,8 @@ socket.on('connect', function() {
         .then(d => { if (d) { escondido = d.visible === false; aplicarEscondido(); } })
         .catch(() => {});
     if (shownOnce) return;
-    fetch('/api/bible/current')
+    // No monitor: o versículo liberado pra ele (pode ser outro que o do público)
+    fetch('/api/bible/current' + (new URLSearchParams(location.search).get('host') === 'monitor' ? '?host=monitor' : ''))
         .then(r => (r.ok ? r.json() : null))
         .then(data => {
             if (!shownOnce && data && (data.reference || data.text)) displayVerse(data);

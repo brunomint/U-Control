@@ -577,17 +577,50 @@ def api_bible_verse():
 # Evento WebSocket para transmitir versículos da Bíblia
 @socketio.on('update_bible')
 def handle_update_bible(data):
-    logger.debug(f'📖 Recebido update_bible: {data.get("reference", "Sem referência")}')
+    enviar_biblia(data, publico=True, monitor=True)
+
+
+def enviar_biblia(data, publico, monitor, abrir_no_monitor=False):
+    """Manda o versículo pro público e/ou pro monitor.
+
+    No monitor só a /bible/display recebe (a cifra dos músicos ignora
+    update_bible — ver display.js): o texto bíblico só aparece no palco se
+    foi liberado pra ele. abrir_no_monitor=True (Liberar com o monitor
+    incluído) troca o monitor pra página da Bíblia se ele mostra outra
+    coisa; a troca de versículo sem Liberar não faz isso."""
+    import display_state
+    import telao
+    from connections import _get_monitor_sids
+    logger.debug(f'📖 update_bible: {data.get("reference", "Sem referência")} (público={publico}, monitor={monitor})')
     mostrar_se_escondido()
     ref = data.get('reference') or str(data.get('text', ''))[:60]
     if ref:
         append_display_log({'type': 'bible', 'title': ref})
-    emit('update_bible', data, broadcast=True)
-    import display_state
-    display_state._last_bible_payload = data
-    import telao
+    monitor_sids = _get_monitor_sids()
+    # Antes de marcar o público como Bíblia: acompanhando o público, o
+    # monitor "estaria" na Bíblia só por causa desta mesma troca
+    monitor_ja_na_biblia = telao.monitor_mostra_biblia()
+    if publico and monitor:
+        emit('update_bible', data, broadcast=True)
+    elif publico:
+        emit('update_bible', data, broadcast=True, skip_sid=monitor_sids or None)
+    elif monitor:
+        for sid in monitor_sids:
+            emit('update_bible', data, to=sid)
     telao.set_bible_ref(ref)
-    telao.set_public('bible', '/bible/display')
+    if monitor:
+        display_state._last_bible_payload_monitor = data
+    if publico:
+        display_state._last_bible_payload = data
+        if not monitor:
+            telao.diverge_monitor_from_public()
+        telao.set_public('bible', '/bible/display')
+    if monitor and abrir_no_monitor and not monitor_ja_na_biblia:
+        # Direto (não via handle_show_monitor_content): aquele encerra o
+        # "acompanhar ao vivo" da letra, e a volta pra música pedia Liberar
+        telao.set_monitor_url('/bible/display')
+        for sid in monitor_sids:
+            emit('display_monitor_content', {'url': '/bible/display'}, to=sid)
     telao.broadcast_status()
 
 @bible_bp.route('/api/bible/current')
@@ -596,6 +629,8 @@ def api_bible_current():
     login: as telas do projetor/monitor não têm login, e é só o texto
     bíblico que já está sendo exibido publicamente."""
     import display_state
+    if request.args.get('host') == 'monitor' and display_state._last_bible_payload_monitor:
+        return jsonify(display_state._last_bible_payload_monitor)
     return jsonify(display_state._last_bible_payload or {})
 
 

@@ -317,6 +317,9 @@ const fitSheetsToScreen = () => {
 
     // Escuta eventos de versículos da Bíblia
     socket.on('update_bible', (data) => {
+        // Cifra dentro do monitor: o versículo só vai pro palco liberado
+        // pra ele, na página da Bíblia — a cifra dos músicos fica
+        if (_isMonitorHost) return;
         console.log('📖 Display recebeu update_bible:', data);
         
         // Formata o texto dos versículos

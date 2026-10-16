@@ -2302,3 +2302,83 @@ def test_photo_goes_where_photos_are_shown(app):
         telao.set_monitor(None)
         for c in (op, monitor, publico):
             c.disconnect()
+
+
+def test_bible_goes_only_where_released(app):
+    """Versículo: cifra no monitor não vira Bíblia; com Liberar em "Os
+    dois" o monitor passa pra Bíblia e os próximos versículos seguem lá.
+    "Só público" não mexe no monitor; foto do público não é trocada."""
+    import display_state
+    import telao
+    from models import StagedContent
+    monitor = ucontrol_main.socketio.test_client(app)
+    monitor.emit("identify", {"role": "monitor"})
+    publico = ucontrol_main.socketio.test_client(app)
+    publico.emit("identify", {"role": "public"})
+    op = _operator_socket(app)
+    ver = lambda v: {"kind": "bible", "label": f"João 3:{v}", "payload": {"reference": f"João 3:{v}", "text": "x"}}
+    refs = lambda cli: [m["args"][0]["reference"] for m in cli.get_received() if m["name"] == "update_bible"]
+    abriu = lambda cli: [m["args"][0]["url"] for m in cli.get_received() if m["name"] == "display_monitor_content"]
+    def pendente():
+        with app.app_context():
+            return ucontrol_main.db.session.get(StagedContent, "bible") is not None
+    def modo(m):
+        op.emit("set_display_mode", {"exclude_monitor": m == "public", "monitor_only": m == "monitor"})
+    try:
+        display_state._follow_parado = False
+        display_state._live_follow_kind = None
+        display_state._last_bible_payload_monitor = None
+        modo("all")
+        # Público na letra, monitor com a cifra própria
+        telao.set_public('lyrics', '/lyrics/display/public')
+        telao.set_monitor('cifra', '/lyrics/display?song_id=1&section=0&host=monitor')
+        op.emit("stage_content", ver(16))
+        assert pendente()                       # 1ª troca música → leitura pede Liberar
+        # "Só público": vai só pro público, cifra fica no monitor
+        modo("public")
+        monitor.get_received(); publico.get_received()
+        op.emit("release_staged_content", {"kind": "bible"})
+        assert refs(publico) == ["João 3:16"] and refs(monitor) == []
+        assert telao._monitor["kind"] == "cifra"
+        # Próximo versículo: direto, só no público (cifra continua)
+        modo("all")
+        op.emit("stage_content", ver(17))
+        assert not pendente() and refs(publico) == ["João 3:17"] and refs(monitor) == []
+
+        # Liberar com o monitor incluído ("Os dois"): o monitor abre a Bíblia
+        telao.set_public('photo', '/static/imagens/a.jpg')
+        display_state._live_follow_kind = None
+        op.emit("stage_content", ver(18))
+        assert pendente()                       # Bíblia em lugar nenhum
+        monitor.get_received(); publico.get_received()
+        op.emit("release_staged_content", {"kind": "bible"})
+        msgs = monitor.get_received()
+        assert any(m["name"] == "display_monitor_content" and m["args"][0]["url"] == "/bible/display" for m in msgs)
+        assert refs(publico) == ["João 3:18"]
+        assert telao.monitor_mostra_biblia()
+
+        # Público passa pra foto ("Só público"); versículo novo só no monitor
+        op.emit("show_image", {"image_url": "/static/imagens/b.jpg", "exclude_monitor": True})
+        monitor.get_received(); publico.get_received()
+        op.emit("stage_content", ver(19))
+        assert not pendente() and refs(monitor) == ["João 3:19"] and refs(publico) == []
+        assert telao.build_status()["live"]["kind"] == "photo"
+        assert ucontrol_main.app.test_client().get("/api/bible/current?host=monitor").get_json()["reference"] == "João 3:19"
+
+        # Volta pra música no público ("Os dois"): o monitor sai da Bíblia
+        # e volta pra cifra
+        telao.set_public('lyrics', '/lyrics/display/public')
+        display_state._live_follow_kind = 'lyrics'
+        monitor.get_received()
+        op.emit("stage_content", {"kind": "lyrics", "label": "Coro", "payload": {
+            "songId": 1, "sectionIndex": 3, "title": "Coro", "text": "x", "type": "text"}})
+        urls = [m["args"][0]["url"] for m in monitor.get_received() if m["name"] == "display_monitor_content"]
+        assert urls == ["/lyrics/display?song_id=1&section=3&host=monitor"]
+        assert telao._monitor["kind"] == "cifra"
+    finally:
+        op.emit("discard_staged_content", {"kind": "bible"})
+        modo("all")
+        display_state._live_follow_kind = None
+        telao.set_monitor(None)
+        for c in (op, monitor, publico):
+            c.disconnect()

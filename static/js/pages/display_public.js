@@ -322,6 +322,9 @@
         
         // Escuta eventos de versículos da Bíblia
         socket.on('update_bible', (data) => {
+            // Letra dentro do monitor (tela dividida): a Bíblia só aparece
+            // no palco na página dela, liberada pra ele
+            if (new URLSearchParams(location.search).get('host') === 'monitor') return;
             showLyricsView();
             console.log('📖 Public: Recebeu update_bible:', data);
             

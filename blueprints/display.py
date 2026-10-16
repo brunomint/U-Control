@@ -728,7 +728,12 @@ def _release_kind(kind, payload):
                 with current_app.app_context():
                     _persist_display_state(lyrics_url, '')
     elif kind == 'bible':
-        handle_update_bible(payload)
+        # Bíblia agora respeita o modo; com o monitor incluído, o Liberar
+        # troca o palco pra página da Bíblia (a cifra não vira versículo
+        # sozinha — ver enviar_biblia)
+        from blueprints.bible import enviar_biblia
+        enviar_biblia(payload, publico=not monitor_only, monitor=not exclude_monitor,
+                      abrir_no_monitor=True)
     elif kind == 'image':
         if monitor_only:
             handle_show_monitor_content({'url': payload.get('image_url', '')})
@@ -753,9 +758,15 @@ def _secao_onde_a_letra_esta(payload):
     barrinha também pede Liberar."""
     if display_state._follow_parado:
         return False
-    no_publico = telao.publico_mostra_letra()
-    monitor_proprio = telao._monitor is not None
-    no_monitor = telao.monitor_tem_letra_propria() if monitor_proprio else no_publico
+    # Público na Bíblia: a letra entra no lugar dela direto só depois que
+    # letra e Bíblia já foram liberadas (andam juntas — follow_inclui)
+    no_publico = telao.publico_mostra_letra() or \
+        (telao.publico_mostra('bible') and display_state.follow_inclui('lyrics'))
+    if telao._monitor is not None:
+        no_monitor = telao.monitor_tem_letra_propria()
+    else:   # acompanhando o público: tem letra se o público está na letra (não na Bíblia)
+        p = telao._public_entry()
+        no_monitor = bool(p) and p.get('kind') in ('cifra', 'lyrics')
     if not (no_publico or no_monitor):
         return False
 
@@ -765,20 +776,65 @@ def _secao_onde_a_letra_esta(payload):
             db.session.delete(staged)
             db.session.commit()
 
+    # Monitor na Bíblia (liberada pra ele no meio da música): voltando pra
+    # música no público, o palco volta pra cifra — senão os músicos
+    # ficavam presos no versículo (a letra ia direto pro público e o
+    # monitor nunca voltava). "Só público" deixa o monitor onde está.
+    na_biblia = (telao._monitor.get('kind') == 'bible' if telao._monitor is not None
+                 else telao.publico_mostra('bible'))   # acompanhando o público na Bíblia
+    volta_cifra = (no_publico and na_biblia
+                   and display_state.device_mode() != 'public'
+                   and payload.get('songId') is not None and payload.get('sectionIndex') is not None)
+
     if no_publico:
         dados = dict(payload)
         if not no_monitor:
             dados['exclude_monitor'] = True   # monitor mostra outra coisa
         handle_update_lyrics(dados)
-    else:
+    elif no_monitor:
         # Só o monitor tem a letra: manda só pras páginas dele (o público
         # continua no que estava — não vira letra)
         for sid in _get_monitor_sids():
             emit('update_lyrics', payload, to=sid)
+    if volta_cifra:
+        # Direto (não via handle_show_monitor_content, que encerraria o
+        # "acompanhar ao vivo" da Bíblia — letra e Bíblia andam juntas)
+        cifra_url = f"/lyrics/display?song_id={payload['songId']}&section={payload['sectionIndex']}&host=monitor"
+        telao.set_monitor_url(cifra_url)
+        for sid in _get_monitor_sids():
+            emit('display_monitor_content', {'url': cifra_url}, to=sid)
 
     _marcar_feito_no_ar('lyrics', payload)
     display_state.follow_confirma('lyrics')
     emit('content_released', {'kind': 'lyrics'}, broadcast=True)
+    telao.broadcast_status()
+    return True
+
+
+def _versiculo_onde_a_biblia_esta(payload):
+    """Versículo novo vai direto pra onde tem texto/Bíblia: a tela de
+    texto do público (letra ou Bíblia) e o monitor SÓ se ele já mostra a
+    Bíblia (liberada pra ele) — a cifra dos músicos não vira versículo.
+    Nada disso na tela: False, pede Liberar."""
+    if display_state._follow_parado:
+        return False
+    # Público na letra: a Bíblia entra no lugar dela direto só depois que
+    # as duas já foram liberadas (a 1ª troca música → leitura pede Liberar)
+    no_publico = telao.publico_mostra('bible') or \
+        (telao.publico_mostra_letra() and display_state.follow_inclui('bible'))
+    no_monitor = telao.monitor_mostra_biblia()
+    if not (no_publico or no_monitor):
+        return False
+    with current_app.app_context():
+        staged = db.session.get(StagedContent, 'bible')
+        if staged:
+            db.session.delete(staged)
+            db.session.commit()
+    from blueprints.bible import enviar_biblia
+    enviar_biblia(payload, publico=no_publico, monitor=no_monitor)
+    _marcar_feito_no_ar('bible', payload)
+    display_state.follow_confirma('bible')
+    emit('content_released', {'kind': 'bible'}, broadcast=True)
     telao.broadcast_status()
     return True
 
@@ -866,8 +922,12 @@ def handle_stage_content(data):
         return
     if kind == 'image' and _foto_onde_a_foto_esta(payload):
         return
+    if kind == 'bible' and _versiculo_onde_a_biblia_esta(payload):
+        return
 
-    if display_state.follow_inclui(kind) or _ja_no_monitor_dividido(kind, payload):
+    # Bíblia fora da tela pede Liberar mesmo acompanhando ao vivo: o
+    # versículo só aparece onde foi liberado (no palco, a cifra fica)
+    if kind != 'bible' and (display_state.follow_inclui(kind) or _ja_no_monitor_dividido(kind, payload)):
         with current_app.app_context():
             staged = db.session.get(StagedContent, kind)
             if staged:

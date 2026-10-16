@@ -275,9 +275,26 @@ def monitor_mostra_letra():
     return m.get('kind') in ('cifra', 'lyrics')
 
 
-def publico_mostra_letra():
+def publico_mostra(*kinds):
     p = _public_entry()
-    return bool(p) and p.get('kind') in ('cifra', 'lyrics')
+    return bool(p) and p.get('kind') in kinds
+
+
+def publico_mostra_letra():
+    return publico_mostra('cifra', 'lyrics')
+
+
+def monitor_mostra_biblia():
+    """O monitor mostra a Bíblia (inteira, num lado da tela dividida, ou
+    acompanhando o público que está na Bíblia)? A cifra NÃO conta: o
+    versículo só vai pro palco se foi liberado pra ele."""
+    m = _monitor
+    if m is None:
+        p = _public_entry()
+        return bool(p) and p.get('kind') == 'bible'
+    if m.get('kind') == 'split':
+        return any(kind_of_url(m.get(side, '')) == 'bible' for side in ('url1', 'url2'))
+    return m.get('kind') == 'bible'
 
 
 def monitor_tem_letra_propria():

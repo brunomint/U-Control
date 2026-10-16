@@ -20,6 +20,10 @@ _last_lyrics_payload = None
 # ou uma tela recarregada ficavam em "Aguardando versículos..." com o
 # versículo no ar
 _last_bible_payload = None
+# Versículo liberado só pro monitor ("Só monitor"): a /bible/display de
+# dentro do monitor abre nele (/api/bible/current?host=monitor) sem mudar o
+# que o público mostra ao recarregar
+_last_bible_payload_monitor = None
 
 # Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
 _current_display_mode = 'blank'
