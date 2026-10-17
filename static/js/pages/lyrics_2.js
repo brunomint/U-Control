@@ -382,6 +382,14 @@ let currentTheme = CONFIG.theme;
             if (!widget.contains(e.target)) panel.style.display = 'none';
         });
 
+        // Vídeo/áudio de referência da música (o mesmo player da /view e do
+        // editor), só leitura; começa minimizado (aqui o principal são as seções)
+        if ((CONFIG.videoUrl || CONFIG.audioUrl) && window.YouTubeFloatingPlayer) {
+            window.ytPlayer = new YouTubeFloatingPlayer({ readOnly: true, startMinimized: true });
+            if (CONFIG.audioUrl) window.ytPlayer.loadLocalAudio(CONFIG.audioUrl, CONFIG.title || '', CONFIG.author || '');
+            else window.ytPlayer.loadVideoFromUrl(CONFIG.videoUrl);
+        }
+
         const socket = io();
 
         

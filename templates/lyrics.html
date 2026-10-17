@@ -8,6 +8,7 @@
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
 <script src="{{ versioned_static('js/chord_lines.js') }}"></script>
 <script src="{{ versioned_static('js/popover_fit.js') }}"></script>
+<script src="{{ versioned_static('js/youtube-player.js') }}"></script>
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
 {% endblock %}
 
@@ -99,6 +100,8 @@
             </div>
             <button type="button" id="btn-bg" class="tool-btn" onclick="alternarFundoDisplay()" title="Alternar fundo preto/branco do monitor do músico"><i class="fas fa-moon"></i> Fundo preto</button>
             <button type="button" id="btn-tema" class="tool-btn" onclick="abrirModalTema()" title="Fundo visual da letra no telão"><i class="fas fa-image"></i> <span id="btn-tema-label">Tema</span></button>
+            <!-- Nova aba: esta página (que pode estar operando o telão) fica aberta -->
+            <a class="tool-btn" href="{{ url_for('songs.edit_song', song_id=song.id) }}" target="_blank" rel="noopener" title="Editar esta música (abre em outra aba)"><i class="fas fa-pen"></i> Editar</a>
         </div>
     </div>
 
@@ -177,7 +180,7 @@
     </div>
 </div>
 
-<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible} | tojson }}</script>
+<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible, "videoUrl": (song.video_url or ""), "audioUrl": (song.audio_url or ""), "title": song.title, "author": (song.author or "")} | tojson }}</script>
 <script>
     // Lido por lyrics_2.js pra buscar sheet_render.js (ES module, import() dinâmico) com cache-busting.
     window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";
