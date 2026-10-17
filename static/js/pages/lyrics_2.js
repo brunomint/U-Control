@@ -371,6 +371,7 @@ let currentTheme = CONFIG.theme;
             if (!panel) return;
             const isHidden = getComputedStyle(panel).display === 'none';
             panel.style.display = isHidden ? 'block' : 'none';
+            if (isHidden && window.ucFitPopover) window.ucFitPopover(panel);
         };
 
         document.addEventListener('click', function(e) {

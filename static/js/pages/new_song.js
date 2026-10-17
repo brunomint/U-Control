@@ -2190,6 +2190,7 @@
                 // computado em vez de comparar panel.style.display direto.
                 const isHidden = getComputedStyle(panel).display === 'none';
                 panel.style.display = isHidden ? 'block' : 'none';
+                if (isHidden && window.ucFitPopover) window.ucFitPopover(panel);
             };
 
             // Fecha a janelinha ao clicar fora dela (comportamento padrão

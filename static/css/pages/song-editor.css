@@ -42,7 +42,7 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: 60;
+  z-index: 10000;   /* acima do player "Vídeo de referência" (9999, youtube-player.js) */
   width: 290px;
   padding: 10px;
   background: var(--uc-surface-2);
@@ -262,3 +262,4 @@ textarea[name="texts[]"], #entrada { display: none; }
 .text-block.has-chord-backdrop::selection { color: transparent; background: var(--uc-accent-soft); }
 .chord-backdrop .chord { color: var(--uc-warn); }
 .chord-backdrop .comment-line { color: var(--uc-faint); }
+

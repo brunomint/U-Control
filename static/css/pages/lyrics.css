@@ -268,8 +268,3 @@ button#prev:hover, button#next:hover { border-color: var(--uc-accent); }
   #toggle-button i { font-size: 15px; }
 }
 
-/* Celular: o botão "Tom" fica à esquerda — o menu abre alinhado por ele
-   (com right: 0 abria pra fora da tela, à esquerda) */
-@media (max-width: 640px) {
-  .tom-popover { right: auto; left: 0; max-width: calc(100vw - 32px); }
-}
