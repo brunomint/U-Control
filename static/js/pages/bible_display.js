@@ -82,8 +82,30 @@ function displayVerse(data) {
         waiting.style.display = 'none';
         content.style.display = 'block';
         content.classList.remove('fade-out');
+        caberNaTela();
     }, 300);
 }
+
+// Texto longo (vários versículos, tela baixa como o celular deitado no
+// app) passava da borda de baixo: diminui tudo junto (referência, texto,
+// versão e espaçamentos estão em "em") até caber na altura da tela —
+// mesma ideia do ajuste da letra (display.js/display_public.js).
+function caberNaTela() {
+    const content = document.getElementById('content');
+    if (!content || content.style.display === 'none') return;
+    const cs = getComputedStyle(document.body);
+    const altura = window.innerHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const largura = window.innerWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    let tam = 16;                                   // tamanho normal (o do CSS)
+    content.style.fontSize = tam + 'px';
+    while ((content.scrollHeight > altura || content.scrollWidth > largura) && tam > 5) {
+        tam -= 0.5;
+        content.style.fontSize = tam + 'px';
+    }
+}
+window.addEventListener('resize', caberNaTela);
+// A fonte (Merriweather) chegando depois muda o tamanho do texto
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(caberNaTela);
 
 socket.on('lyrics_visibility_changed', function(data) {
     escondido = data.visible === false;
