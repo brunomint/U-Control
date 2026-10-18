@@ -519,6 +519,9 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
           else Dot.buildAndAttach([sn], { all: true });
         }
         sn.__heads = heads.length;
+        // Altura de cada cabeça (letra+oitava, na ordem das teclas): a
+        // ligadura liga a mesma nota de um acorde pro outro
+        sn.__alturas = m.rest ? [] : heads.map(h => h.key);
         sn.__tup = m.tuplet ? m.tuplet.id : null;
         return sn;
       });
@@ -576,15 +579,38 @@ export async function renderSheetMusic(container, rawOrCanonicalData, options = 
     });
   });
 
+  // Ligaduras de prolongamento. Em acorde, liga cada nota com a MESMA
+  // nota do acorde seguinte (antes ligava por posição — 1ª com 1ª — e
+  // saía em diagonal entre notas diferentes). Nota no fim de uma linha
+  // ligada a uma no começo da outra: duas meias ligaduras (até o fim da
+  // linha / a partir do começo da seguinte), como na partitura impressa.
   data.ties.forEach(t => {
     const first = vfNotesByMI[t.from.m]?.[t.from.i];
     const last = vfNotesByMI[t.to.m]?.[t.to.i];
-    if (first && last) {
+    if (!first || !last) return;
+    const ia = [], ib = [];
+    (first.__alturas || []).forEach((alt, i) => {
+      const j = (last.__alturas || []).indexOf(alt);
+      if (j >= 0 && !ib.includes(j)) { ia.push(i); ib.push(j); }
+    });
+    if (!ia.length) {   // nenhuma altura igual (dado antigo): como antes, por posição
       const k = Math.min(first.__heads || 1, last.__heads || 1);
-      const idx = Array.from({ length: k }, (_, j) => j);
-      const tie = new StaveTie({ first_note: first, last_note: last, first_indices: idx, last_indices: idx });
-      tie.setStyle(notationStyle);
-      tie.setContext(ctx).draw();
+      for (let j = 0; j < k; j++) { ia.push(j); ib.push(j); }
+    }
+    const desenha = (opts) => {
+      try {
+        const tie = new StaveTie(opts);
+        tie.setStyle(notationStyle);
+        tie.setContext(ctx).draw();
+      } catch (e) { console.warn('Erro ao desenhar ligadura:', e); }
+    };
+    let outraLinha = false;
+    try { outraLinha = first.getStave().getY() !== last.getStave().getY(); } catch (e) { /* mesma linha */ }
+    if (outraLinha) {
+      desenha({ first_note: first, last_note: null, first_indices: ia, last_indices: ia });
+      desenha({ first_note: null, last_note: last, first_indices: ib, last_indices: ib });
+    } else {
+      desenha({ first_note: first, last_note: last, first_indices: ia, last_indices: ib });
     }
   });
 
