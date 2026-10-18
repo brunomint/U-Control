@@ -108,7 +108,8 @@ def last_image_endpoint():
     if display_state._last_static_media_url:
         ext = display_state._last_static_media_url.lower().split('?')[0]
         media_type = 'video' if ext.endswith(('.mp4', '.webm', '.mov')) else 'image'
-        return jsonify({'image_url': display_state._last_static_media_url, 'media_type': media_type}), 200
+        return jsonify(_com_zoom({'image_url': display_state._last_static_media_url, 'media_type': media_type},
+                                 display_state._last_static_media_url)), 200
     # 2. Fallback: busca no banco — procura a primeira URL estática em url1 ou url2
     state = DisplayState.query.first()
     if state:
@@ -117,9 +118,9 @@ def last_image_endpoint():
                 ext = (url or '').lower().split('?')[0]
                 media_type = 'video' if ext.endswith(('.mp4', '.webm', '.mov')) else 'image'
                 display_state._last_static_media_url = url
-                return jsonify({'image_url': url, 'media_type': media_type}), 200
+                return jsonify(_com_zoom({'image_url': url, 'media_type': media_type}, url)), 200
     data = load_image_path()
-    return jsonify({'image_url': data.get('image'), 'media_type': 'image'}), 200
+    return jsonify(_com_zoom({'image_url': data.get('image'), 'media_type': 'image'}, data.get('image'))), 200
 
 
 @display_bp.route('/control')
@@ -139,7 +140,8 @@ def get_display_state():
     # Verifica se o cache ainda é válido
     current_time = time_module.time()
     if display_state._display_state_cache['data'] and (current_time - display_state._display_state_cache['timestamp']) < display_state._cache_ttl:
-        return jsonify(display_state._display_state_cache['data'])
+        d = display_state._display_state_cache['data']
+        return jsonify(_com_zoom(d, d.get('url1')) if not d.get('url2') else d)
 
     # Cache expirado ou vazio, busca do banco
     state = DisplayState.query.first()
@@ -155,7 +157,7 @@ def get_display_state():
     display_state._display_state_cache['data'] = result
     display_state._display_state_cache['timestamp'] = current_time
 
-    return jsonify(result)
+    return jsonify(_com_zoom(result, result['url1']) if not result['url2'] else result)
 
 def _persist_display_state(url1, url2=''):
     state = DisplayState.query.first()
@@ -271,7 +273,7 @@ def handle_show_image(data):
     current_app.logger.debug(f'🖼️ show_image recebido: {image_url} → modo=image')
 
     # Envia para clientes primeiro (não espera banco)
-    emit('display_image', {'image_url': image_url}, broadcast=True, skip_sid=_skip_sids(data))
+    emit('display_image', _com_zoom({'image_url': image_url}, image_url), broadcast=True, skip_sid=_skip_sids(data))
     append_display_log({'type': 'image', 'title': image_url})
     if data.get('exclude_monitor'):
         telao.diverge_monitor_from_public()
@@ -453,7 +455,7 @@ def handle_show_monitor_content(data):
         evento, chave = ('display_video', 'video_url') if telao.kind_of_url(url) == 'video' \
             else ('display_image', 'image_url')
         for sid in _get_monitor_sids():
-            emit(evento, {chave: url}, to=sid)
+            emit(evento, _com_zoom({chave: url}, url), to=sid)
         return
     telao.set_monitor_url(url)
     telao.broadcast_status()
@@ -476,7 +478,7 @@ def handle_show_monitor_content(data):
                 except (ValueError, TypeError):
                     pass
     for sid in _get_monitor_sids():
-        emit('display_monitor_content', {'url': url}, to=sid)
+        emit('display_monitor_content', _com_zoom({'url': url}, url), to=sid)
 
 @socketio.on('show_monitor_video')
 def handle_show_monitor_video(data):
@@ -565,6 +567,16 @@ def _esquece_zoom_se_outra_foto(url):
     z = display_state._image_zoom
     if z and _sem_query(z.get('image_url')) != _sem_query(url):
         display_state._image_zoom = None
+
+
+def _com_zoom(dados, url):
+    """Junta o zoom guardado ao que vai pra tela, se for a mesma foto — a
+    tela aplica antes de desenhar (sem aparecer a foto normal e depois o
+    zoom)."""
+    z = display_state._image_zoom
+    if z and url and _sem_query(z.get('image_url')) == _sem_query(url):
+        dados = {**dados, 'zoom': z}
+    return dados
 
 
 @display_bp.route('/api/image-zoom')
@@ -1140,7 +1152,8 @@ def api_current_display():
     if display_state._current_display_mode == 'image' and display_state._last_image_url:
         is_static = display_state._last_image_url.startswith('/static/') or \
             bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', display_state._last_image_url, re.I))
-        return jsonify({'mode': 'image', 'image_url': display_state._last_image_url, 'is_static': is_static})
+        return jsonify(_com_zoom({'mode': 'image', 'image_url': display_state._last_image_url, 'is_static': is_static},
+                                 display_state._last_image_url))
     if display_state._current_display_mode == 'video' and display_state._last_static_media_url:
         return jsonify({'mode': 'video', 'video_url': display_state._last_static_media_url})
     if display_state._current_display_mode == 'lyrics' and display_state._last_lyrics_payload:

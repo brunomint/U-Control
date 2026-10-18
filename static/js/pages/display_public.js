@@ -87,7 +87,7 @@
                     if (data && data.mode === 'lyrics' && data.title) {
                         updateLyricsDisplay(data.title, data.text || '', data.id || null);
                     } else if (data && data.mode === 'image' && data.image_url) {
-                        if (data.is_static) { showImage(data.image_url); }
+                        if (data.is_static) { showImage(data.image_url, data.zoom); }
                         // Rota da letra/cifra: mostra a letra aqui mesmo (abrir
                         // a própria página num iframe deixava a tela em branco)
                         else if (data.image_url.includes('/lyrics/display')) { showLyricsView(); }
@@ -163,7 +163,7 @@
         sincronizarEscondido();
         socket.on('connect', sincronizarEscondido);
 
-        function showImage(url) {
+        function showImage(url, zoom) {
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
             mediaVideo.load();
@@ -175,7 +175,7 @@
             mediaImg.style.transform = '';
             mediaImg.classList.add('photo');
             mediaImg.style.display = 'block';
-            if (window.ucRestoreZoom) window.ucRestoreZoom(mediaImg, url);
+            if (window.ucZoomOnShow) window.ucZoomOnShow(mediaImg, zoom);
         }
 
         function showLyricsView() {
@@ -232,7 +232,7 @@
             const url = data.image_url || '';
             const isStaticFile = url.startsWith('/static/') || /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(url);
             if (isStaticFile) {
-                showImage(url);
+                showImage(url, data.zoom);
                 return;
             }
             // Rotas de letras/cifra → mantém letras limpas

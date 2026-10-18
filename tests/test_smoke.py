@@ -2436,10 +2436,18 @@ def test_image_zoom_survives_screen_reload(app, client):
         op.emit("show_image_zoom", {"image_url": "/static/imagens/a.jpg", "zoom": 2, "pan": {"x": 10, "y": -5}})
         z = client.get("/api/image-zoom").get_json()   # tela sem login
         assert z["image_url"] == "/static/imagens/a.jpg" and z["zoom"] == 2 and z["pan"] == {"x": 10, "y": -5}
+        # O zoom vem JUNTO com a foto em tudo que diz à tela o que mostrar —
+        # a tela já desenha com zoom (sem a foto normal antes)
+        assert client.get("/last_image").get_json()["zoom"]["zoom"] == 2
+        assert client.get("/api/current-display").get_json()["zoom"]["zoom"] == 2
+        op.get_received()
         op.emit("show_image", {"image_url": "/static/imagens/a.jpg?t=123"})   # mesma foto de novo
+        enviado = [m["args"][0] for m in op.get_received() if m["name"] == "display_image"]
+        assert enviado and enviado[-1]["zoom"]["zoom"] == 2
         assert client.get("/api/image-zoom").get_json()["zoom"] == 2
         op.emit("show_image", {"image_url": "/static/imagens/b.jpg"})         # outra foto
         assert client.get("/api/image-zoom").get_json() == {}
+        assert "zoom" not in client.get("/last_image").get_json()
     finally:
         display_state._image_zoom = None
         op.disconnect()

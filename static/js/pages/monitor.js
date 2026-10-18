@@ -54,13 +54,13 @@
         // Foto/vídeo no lado da galeria. Com o evento chegando também na
         // /img de dentro do monitor (mesmo socket), ela troca sozinha; em
         // "Só monitor" o evento vem só pra cá, então chama a /img direto.
-        function mediaToPane(url, direto) {
+        function mediaToPane(url, direto, zoom) {
             const pane = isMediaUrl(url) ? splitPane('gallery') : null;
             if (!pane) return false;
             if (direto) {
                 try {
                     const w = pane.contentWindow;
-                    if (isVideoUrl(url)) w.playVideo(url); else w.loadImage(url);
+                    if (isVideoUrl(url)) w.playVideo(url); else w.loadImage(url, zoom);
                 } catch (e) { pane.src = noMonitor('/img'); }
             }
             return true;
@@ -75,7 +75,7 @@
         }
 
         // Função para mostrar a imagem em vez dos iframes
-        function showImage(imageUrl) {
+        function showImage(imageUrl, zoom) {
             if (isVideoUrl(imageUrl)) {
                 // Sempre carrega pausado no primeiro frame.
                 // Para tocar, o operador precisa apertar play no / ou /presenter.
@@ -92,7 +92,7 @@
                 displayImage.src = imageUrl;
                 displayImage.style.transform = '';
                 displayImage.style.display = 'block';
-                if (window.ucRestoreZoom) window.ucRestoreZoom(displayImage, imageUrl);
+                if (window.ucZoomOnShow) window.ucZoomOnShow(displayImage, zoom);
             } else {
                 // Se não for uma imagem, mostra o iframe padrão com uma URL de backup
                 iframe1.src = noMonitor(imageUrl) || "about:blank";
@@ -190,7 +190,7 @@
                     } else if (state.url1) {
                         // Uma URL - tela cheia
                         console.log(`🎵 Monitor: Carregando URL do display: ${state.url1}`);
-                        showImage(state.url1);
+                        showImage(state.url1, state.zoom);
                     } else {
                         // Se não há estado do display, tenta carregar estado das letras
                         console.log('🔄 Monitor: Nenhuma URL no display, buscando estado das letras...');
@@ -257,7 +257,7 @@
             const imageUrl = data.image_url;
             if (mediaToPane(imageUrl, false)) return;
             hideVideo();
-            showImage(imageUrl); // Tenta mostrar a imagem, ou oculta se não for uma imagem
+            showImage(imageUrl, data.zoom); // Tenta mostrar a imagem, ou oculta se não for uma imagem
         });
 
         // Eventos de vídeo (controlados pelo / e /presenter)
@@ -339,12 +339,12 @@
         // Exibe conteúdo enviado só ao monitor, sem afetar o público
         socket.on('display_monitor_content', function(data) {
             const url = data.url || '';
-            if (mediaToPane(url, true)) return;
+            if (mediaToPane(url, true, data.zoom)) return;
             hideVideo();
             if (isVideoUrl(url)) {
                 playVideo(url);
             } else if (isImageUrl(url)) {
-                showImage(url);
+                showImage(url, data.zoom);
             } else {
                 iframe1.src = noMonitor(url) || 'about:blank';
                 showSingleIframe();

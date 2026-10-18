@@ -129,14 +129,14 @@ function _loadLastImageFallback() {
                     socket.emit('seek_video', { time: 0 });
                 }
             } else {
-                loadImage(data.image_url);
+                loadImage(data.image_url, data.zoom);
             }
         })
         .catch(error => console.error('Erro ao carregar a última mídia:', error));
 }
 
 // Função otimizada para carregar imagem (usa cache quando possível)
-function loadImage(imageUrl) {
+function loadImage(imageUrl, zoom) {
     const img = document.getElementById('imageUr');
 
     if (currentImageUrl === imageUrl) {
@@ -153,7 +153,7 @@ function loadImage(imageUrl) {
         showImage();
         img.src = finalUrl;
         currentImageUrl = imageUrl;
-        if (window.ucRestoreZoom) window.ucRestoreZoom(img, imageUrl);
+        if (window.ucZoomOnShow) window.ucZoomOnShow(img, zoom);
         if (!blackoutActive) img.style.opacity = '1';
         console.log('✅ Imagem carregada:', imageUrl);
     };
@@ -183,7 +183,7 @@ socket.on('display_image', function(data) {
     // pausado no 1º quadro, como na abertura da página (loadLastImage)
     if (/\.(mp4|webm|mov)(\?.*)?$/i.test(url)) { playVideo(url, { paused: true }); currentImageUrl = null; return; }
     if (currentImageUrl !== url) {
-        loadImage(url);
+        loadImage(url, data.zoom);
         const img = document.getElementById('imageUr');
         img.style.transform = 'scale(1)';
         img.style.transformOrigin = '50% 50%';
