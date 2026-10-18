@@ -2440,6 +2440,20 @@ def test_image_zoom_survives_screen_reload(app, client):
         # a tela já desenha com zoom (sem a foto normal antes)
         assert client.get("/last_image").get_json()["zoom"]["zoom"] == 2
         assert client.get("/api/current-display").get_json()["zoom"]["zoom"] == 2
+        # Depois de reiniciar o servidor o "modo atual" em memória some e a
+        # foto vem do banco (DisplayState) — o zoom tem que vir junto também
+        import time as _t
+        modo, cache = display_state._current_display_mode, dict(display_state._display_state_cache)
+        display_state._current_display_mode = None
+        display_state._display_state_cache['data'] = None
+        _t.sleep(0.3)   # gravação do DisplayState roda numa thread
+        try:
+            for rota in ("/api/current-display", "/get_display_state", "/last_image"):
+                r = client.get(rota).get_json()
+                assert r.get("zoom", {}).get("zoom") == 2, (rota, r)
+        finally:
+            display_state._current_display_mode = modo
+            display_state._display_state_cache.update(cache)
         op.get_received()
         op.emit("show_image", {"image_url": "/static/imagens/a.jpg?t=123"})   # mesma foto de novo
         enviado = [m["args"][0] for m in op.get_received() if m["name"] == "display_image"]

@@ -1206,7 +1206,9 @@ def api_current_display():
             return jsonify({'mode': 'video', 'video_url': url1})
         is_static = url1.startswith('/static/') or \
             bool(re.search(r'\.(jpe?g|png|gif|bmp|webp|mp4|webm|mov)(\?|$)', url1, re.I))
-        return jsonify({'mode': 'image', 'image_url': url1, 'is_static': is_static})
+        # Também aqui (servidor reiniciado, estado em memória vazio): sem
+        # isto a tela pública recarregada abria a foto sem o zoom
+        return jsonify(_com_zoom({'mode': 'image', 'image_url': url1, 'is_static': is_static}, url1))
 
     return jsonify({'mode': 'blank'})
 
