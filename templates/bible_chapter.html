@@ -19,9 +19,10 @@
         <div>
             <a class="uc-link" href="/bible/{{ book_abbrev }}?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> {{ book_name }}</a>
             <h1>{{ book_name }} {{ chapter }}</h1>
-            <div class="uc-page-sub">Toque nos versículos para escolher e prepare para o telão · setas ↑↓ passam um versículo por vez</div>
+            <div class="uc-page-sub">Toque num versículo para exibir · ↑ ↓ passam um por vez</div>
         </div>
         <div class="head-controls">
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="multiBtn" aria-pressed="false" onclick="toggleModoVarios()" title="Escolher vários versículos e exibir juntos (ex.: 16 a 18)"><i class="fas fa-list-check"></i> Vários versículos</button>
             <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="Tradução">
                 {% for key, trans in translations.items() %}
                 <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.name }} ({{ trans.abbrev }})</option>
@@ -45,12 +46,9 @@
 
     <section class="uc-card verses-container">
         {% for verse in verses %}
-        <div class="verse" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="toggleVerse(this)">
+        <div class="verse" id="verse-{{ loop.index }}" data-verse="{{ loop.index }}" onclick="onVerseTap(this)">
             <span class="verse-number">{{ loop.index }}</span>
             <span class="verse-text">{{ verse }}</span>
-            <button type="button" class="verse-action-btn" onclick="event.stopPropagation(); sendSingleVerse({{ loop.index }})" title="Preparar só este versículo">
-                <i class="fas fa-display"></i> Exibir
-            </button>
         </div>
         {% endfor %}
     </section>
@@ -66,10 +64,16 @@
     </div>
 </main>
 
-<!-- Barra que aparece com versículos selecionados -->
+<!-- Passar versículos sem teclado (telas touch); as setas do teclado também -->
+<div class="uc-float-nav">
+    <button type="button" class="uc-fab" onclick="passarVerso(-1)" aria-label="Versículo anterior" title="Versículo anterior (↑)"><i class="fas fa-arrow-up"></i></button>
+    <button type="button" class="uc-fab" onclick="passarVerso(1)" aria-label="Próximo versículo" title="Próximo versículo (↓)"><i class="fas fa-arrow-down"></i></button>
+</div>
+
+<!-- Só no modo "Vários versículos": exibir/copiar os escolhidos juntos -->
 <div class="action-bar" id="actionBar">
     <span class="selected-count"><span id="selectedCount">0</span> selecionado(s)</span>
-    <button type="button" class="uc-btn uc-btn-live uc-btn-sm" onclick="sendToDisplay()"><i class="fas fa-display"></i> Preparar para o telão</button>
+    <button type="button" class="uc-btn uc-btn-live uc-btn-sm" onclick="sendToDisplay()"><i class="fas fa-display"></i> Exibir juntos</button>
     <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="copyVerses()"><i class="fas fa-copy"></i> Copiar</button>
     <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearSelection()" aria-label="Limpar seleção"><i class="fas fa-xmark"></i></button>
 </div>

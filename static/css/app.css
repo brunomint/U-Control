@@ -335,3 +335,28 @@ textarea.uc-input { resize: vertical; }
 @media (max-width: 640px) {
   .uc-page-head h1 { font-size: 22px; }
 }
+
+/* Setas flutuantes (passar item por item sem teclado, em telas touch) —
+   usado na Bíblia (bible_chapter.html); mesmo visual das setas da página
+   da música. */
+.uc-float-nav {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 900;
+  display: grid;
+  gap: 8px;
+}
+.uc-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--uc-line);
+  background: var(--uc-surface-3);
+  color: var(--uc-text);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .4);
+}
+.uc-fab:hover { border-color: var(--uc-accent); }
+.uc-fab:active { transform: scale(.94); }

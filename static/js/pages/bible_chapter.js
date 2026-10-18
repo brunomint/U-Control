@@ -5,6 +5,25 @@ const chapter = CONFIG.chapter;
 const bookAbbrev = CONFIG.bookAbbrev;
 let selectedVerses = [];
 
+// Toque num versículo exibe ele (como as setas). Pra vários juntos (ex.:
+// 16 a 18), o botão "Vários versículos" troca o toque por escolher, e a
+// barra de baixo aparece com "Exibir juntos"/"Copiar".
+let modoVarios = false;
+
+function onVerseTap(element) {
+    if (modoVarios) toggleVerse(element);
+    else sendSingleVerse(parseInt(element.dataset.verse, 10), undefined, true);
+}
+
+function toggleModoVarios() {
+    modoVarios = !modoVarios;
+    const btn = document.getElementById('multiBtn');
+    btn.setAttribute('aria-pressed', String(modoVarios));
+    btn.classList.toggle('active', modoVarios);
+    document.querySelector('.verses-container').classList.toggle('modo-varios', modoVarios);
+    if (!modoVarios) clearSelection();
+}
+
 function toggleVerse(element) {
     const verseNum = parseInt(element.dataset.verse);
     const index = selectedVerses.findIndex(v => v.num === verseNum);
@@ -82,7 +101,8 @@ function sendToDisplay() {
         label: reference
     });
 
-    showToast('Preparado. Toque em “Liberar no telão” para exibir.');
+    showToast('Preparado. Se o telão pedir, toque em “Liberar”.');
+    toggleModoVarios();   // volta pro toque = exibir
 }
 
 function sendSingleVerse(verseNum, text, silencioso) {
