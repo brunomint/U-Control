@@ -326,39 +326,17 @@
             // Letra dentro do monitor (tela dividida): a Bíblia só aparece
             // no palco na página dela, liberada pra ele
             if (new URLSearchParams(location.search).get('host') === 'monitor') return;
-            showLyricsView();
-            console.log('📖 Public: Recebeu update_bible:', data);
-            
-            // Formata o texto dos versículos
-            let verseText = '';
-            if (data.verses && Array.isArray(data.verses)) {
-                verseText = data.verses.map(v => `${v.num} ${v.text}`).join('\n');
-            } else if (data.text) {
-                verseText = data.text;
-            }
-            
-            // Exibe o texto bíblico (sem remover cifras, usa texto puro)
-            $('#section-text').html(verseText.replace(/\n/g, '<br>'));
-
-            // Referência em cima, versão embaixo — mesmo padrão do Holyrics.
-            const refEl = document.getElementById('bible-reference');
-            if (data.reference) {
-                refEl.textContent = data.reference;
-                refEl.style.display = 'block';
-            } else {
-                refEl.style.display = 'none';
-            }
-            const versionEl = document.getElementById('bible-version');
-            if (data.version) {
-                versionEl.textContent = data.version;
-                versionEl.style.display = 'block';
-            } else {
-                versionEl.style.display = 'none';
-            }
-
-            adjustFontSize();
+            // Bíblia sempre na página dela (/bible/display: letra serifada,
+            // transição) — antes, com o telão já nessa página, o versículo
+            // novo trocava pro modo texto desta tela e o visual mudava a
+            // cada toque. Já aberta, ela mesma recebe o versículo; senão
+            // abre e pega o atual (/api/bible/current).
+            console.log('📖 Public: Recebeu update_bible:', data && data.reference);
+            const naBiblia = routeLayer.style.display !== 'none' &&
+                (routeLayer.getAttribute('src') || '').startsWith('/bible/display');
+            if (!naBiblia) showRoute('/bible/display');
         });
-        
+
         // Escuta o evento para mostrar/esconder letras
         socket.on('lyrics_visibility_changed', (data) => {
             const visible = data.visible;

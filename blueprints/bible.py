@@ -612,6 +612,16 @@ def enviar_biblia(data, publico, monitor, abrir_no_monitor=False):
         display_state._last_bible_payload_monitor = data
     if publico:
         display_state._last_bible_payload = data
+        # Telão que recarrega abre a página da Bíblia (/api/current-display),
+        # não a letra que estava antes
+        display_state._current_display_mode = 'image'
+        display_state._last_image_url = '/bible/display'
+        if monitor:   # com "Só público" o monitor não pode pular pra Bíblia ao recarregar
+            try:
+                from blueprints.display import _persist_display_state
+                _persist_display_state('/bible/display', '')
+            except Exception:
+                logger.exception('Falha ao gravar DisplayState da Bíblia')
         if not monitor:
             telao.diverge_monitor_from_public()
         telao.set_public('bible', '/bible/display')
