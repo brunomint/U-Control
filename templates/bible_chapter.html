@@ -62,6 +62,8 @@
         <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary">Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i></a>
         {% endif %}
     </div>
+    {% set trad = translations.get(current_translation) %}
+    {% if trad and trad.credit %}<p class="bible-credit">{{ trad.credit }}</p>{% endif %}
 </main>
 
 <!-- Passar versículos sem teclado (telas touch); as setas do teclado também -->

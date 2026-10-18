@@ -65,3 +65,6 @@
 /* Avisos (ucToast) acima das setas flutuantes — embaixo cobriam a seta ↓,
    justo no "fim do capítulo, aperte de novo" */
 .uc-toast { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+
+/* Créditos da tradução de licença aberta (bibles/books_metadata.json "credit") */
+.bible-credit { margin: 16px auto 0; max-width: 640px; text-align: center; font-size: 12px; color: var(--uc-faint); }

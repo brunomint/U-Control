@@ -3,6 +3,8 @@
     "acf": {"name": "Almeida Corrigida Fiel", "abbrev": "ACF"},
     "nvi": {"name": "Nova Versão Internacional", "abbrev": "NVI"},
     "aa": {"name": "Almeida Atualizada", "abbrev": "AA"},
+    "blivre": {"name": "Bíblia Livre", "abbrev": "BLIVRE", "credit": "Bíblia Livre © 2018 Diego Santos, Mario Sérgio e Marco Teles — licença CC BY 4.0 (ebible.org/porbr2018). Atualizada da Almeida 1819."},
+    "nbv": {"name": "Nova Bíblia Viva", "abbrev": "NBV", "credit": "Biblica® Open Nova Bíblia Viva 2007 © Biblica, Inc. — licença CC BY-SA 4.0 (ebible.org/poronbv)."},
     "en_kjv": {"name": "King James Version", "abbrev": "KJV"},
     "en_bbe": {"name": "Bible in Basic English", "abbrev": "BBE"},
     "es_rvr": {"name": "Reina Valera", "abbrev": "RVR"},
