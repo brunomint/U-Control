@@ -92,6 +92,7 @@
                 displayImage.src = imageUrl;
                 displayImage.style.transform = '';
                 displayImage.style.display = 'block';
+                if (window.ucRestoreZoom) window.ucRestoreZoom(displayImage, imageUrl);
             } else {
                 // Se não for uma imagem, mostra o iframe padrão com uma URL de backup
                 iframe1.src = noMonitor(imageUrl) || "about:blank";

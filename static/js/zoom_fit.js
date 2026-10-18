@@ -33,6 +33,24 @@
     }
 
     window.ucApplyZoom = apply;
+
+    // Tela abriu/recarregou ou recebeu a mesma foto de novo: pergunta ao
+    // servidor se ela está com zoom e reaplica (antes o zoom se perdia).
+    // Espera a foto carregar — o limite do arraste usa o tamanho dela.
+    const semQuery = (u) => (u || '').split('?')[0];
+    function restore(img, url) {
+        if (!img || !url) return;
+        fetch('/api/image-zoom')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((z) => {
+                if (!z || !z.image_url || semQuery(z.image_url) !== semQuery(url)) return;
+                const vai = () => { if (semQuery(img.getAttribute('src')) === semQuery(url)) apply(img, z); };
+                if (img.complete && img.naturalWidth) vai();
+                else img.addEventListener('load', vai, { once: true });
+            })
+            .catch(() => {});
+    }
+    window.ucRestoreZoom = restore;
     window.addEventListener('resize', () => {
         document.querySelectorAll('img').forEach((img) => {
             const data = lastZoom.get(img);

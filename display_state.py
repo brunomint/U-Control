@@ -20,6 +20,11 @@ _last_lyrics_payload = None
 # ou uma tela recarregada ficavam em "Aguardando versículos..." com o
 # versículo no ar
 _last_bible_payload = None
+# Zoom da foto que está na tela ({image_url, zoom, origin, pan}) — as
+# telas (/img, /monitor, tela pública) pedem ao abrir/recarregar ou ao
+# receber a mesma foto de novo (antes o zoom se perdia). Some quando
+# outra foto vai pra tela.
+_image_zoom = None
 # Versículo liberado só pro monitor ("Só monitor"): a /bible/display de
 # dentro do monitor abre nele (/api/bible/current?host=monitor) sem mudar o
 # que o público mostra ao recarregar

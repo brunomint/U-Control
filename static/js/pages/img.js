@@ -153,6 +153,7 @@ function loadImage(imageUrl) {
         showImage();
         img.src = finalUrl;
         currentImageUrl = imageUrl;
+        if (window.ucRestoreZoom) window.ucRestoreZoom(img, imageUrl);
         if (!blackoutActive) img.style.opacity = '1';
         console.log('✅ Imagem carregada:', imageUrl);
     };

@@ -257,6 +257,7 @@ def handle_show_image(data):
             return
         data = {**data, 'exclude_monitor': mode == 'public'}
     _end_live_follow_unless(image_url)
+    _esquece_zoom_se_outra_foto(image_url)
     real_app = current_app._get_current_object()
 
     # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
@@ -552,7 +553,25 @@ def handle_show_image_zoom(data):
         pass
     if not image_url:
         return
+    display_state._image_zoom = {'image_url': image_url, 'zoom': zoom, 'origin': origin, 'pan': pan}
     emit('display_image_zoom', {'image_url': image_url, 'zoom': zoom, 'origin': origin, 'pan': pan}, broadcast=True)
+
+
+def _sem_query(url):
+    return (url or '').split('?')[0]
+
+
+def _esquece_zoom_se_outra_foto(url):
+    z = display_state._image_zoom
+    if z and _sem_query(z.get('image_url')) != _sem_query(url):
+        display_state._image_zoom = None
+
+
+@display_bp.route('/api/image-zoom')
+def api_image_zoom():
+    """Zoom da foto que está na tela — sem login, como as outras APIs das
+    telas (/img, /monitor e tela pública não têm login)."""
+    return jsonify(display_state._image_zoom or {})
 
 
 # ── "Preparar vs. liberar" ────────────────────────────────────────────────

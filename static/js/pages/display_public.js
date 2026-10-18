@@ -175,6 +175,7 @@
             mediaImg.style.transform = '';
             mediaImg.classList.add('photo');
             mediaImg.style.display = 'block';
+            if (window.ucRestoreZoom) window.ucRestoreZoom(mediaImg, url);
         }
 
         function showLyricsView() {
