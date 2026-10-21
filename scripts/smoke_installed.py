@@ -36,6 +36,7 @@ def main():
     ap.add_argument('--exe', required=True)
     ap.add_argument('--data-dir', default=os.path.join(os.environ.get('APPDATA', ''), 'U-Control'))
     ap.add_argument('--timeout', type=int, default=90)
+    ap.add_argument('--sem-powerpoint', action='store_true', help='instalado sem a tarefa do LibreOffice')
     args = ap.parse_args()
     exe, timeout = args.exe, args.timeout
 
@@ -90,6 +91,25 @@ def main():
         versao = f.read().strip()
     u = s.get(BASE + '/api/update-status').json()
     check(u['kind'] == 'windows' and u['current'] == versao, f"atualização: windows {u['current']}")
+
+    if not args.sem_powerpoint:
+        # PowerPoint -> slides: o instalador baixou e instalou o LibreOffice
+        # (tarefa "libreoffice" do ucontrol.iss) e o programa acha ele
+        import io
+        from pptx import Presentation
+        apresentacao = Presentation()
+        for texto in ('Slide um', 'Slide dois'):
+            apresentacao.slides.add_slide(apresentacao.slide_layouts[1]).shapes.title.text = texto
+        buf = io.BytesIO()
+        apresentacao.save(buf)
+        r = s.post(BASE + '/upload', files={'images': ('smoke.pptx', buf.getvalue())})
+        check(r.status_code == 200 and 'smoke.pptx' in r.json().get('converting', []), f'PowerPoint aceito pra converter ({r.text[:120]})')
+        fim = time.time() + 240
+        slides = []
+        while time.time() < fim and len(slides) < 2:
+            time.sleep(3)
+            slides = [u for u in s.get(BASE + '/imagens').json() if 'smoke_slide-' in u]
+        check(len(slides) == 2, f'PowerPoint virou {len(slides)} slide(s)')
 
     # e o programa acha esse ffmpeg (PATH montado pelo desktop.py)
     check(s.get(BASE + '/api/system/status').json().get('ffmpeg') is True, 'programa acha o ffmpeg')

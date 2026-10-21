@@ -160,8 +160,10 @@ def _baixar_e_instalar(instalador):
     # O instalador fecha o U-Control (CloseApplications), troca os arquivos
     # e, com /RELAUNCH, abre de novo (ver windows/ucontrol.iss). Se a
     # pessoa recusar a permissão de administrador, nada muda.
-    subprocess.Popen([destino, '/SILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/RELAUNCH'],
-                     close_fds=True)
+    # !libreoffice: atualização nunca baixa os 360 MB do LibreOffice (quem
+    # quiser marca no instalador baixado à mão)
+    subprocess.Popen([destino, '/SILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/RELAUNCH',
+                      '/MERGETASKS=!libreoffice'], close_fds=True)
 
 
 def start_install():
