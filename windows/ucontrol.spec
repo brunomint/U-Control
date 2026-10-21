@@ -30,7 +30,7 @@ hiddenimports = [
     *collect_submodules('yt_dlp'),
 ]
 # weasyprint fica com o hook do próprio PyInstaller, que traz as DLLs do
-# Pango e o fontconfig (achados por WEASYPRINT_DLL_DIRECTORIES no build)
+# Pango e o fontconfig (achados pelo PATH no build, ver build-windows.yml)
 for pacote in ('yt_dlp_ejs', 'pyphen', 'pydyf', 'tinycss2', 'cssselect2', 'zeroconf'):
     d, b, h = collect_all(pacote)
     datas += d
