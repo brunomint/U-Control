@@ -201,20 +201,52 @@ function setBlackoutButton(active) {
     if (overlay) overlay.hidden = !blackoutActive;
 }
 
-// Funções do Ticker
-function sendTicker(target) {
-    const text = document.getElementById('tickerText').value.trim();
-    if (!text) return;
-    if (target === 'public') socket.emit('stop_ticker', { target: 'monitor' });
-    else if (target === 'monitor') socket.emit('stop_ticker', { target: 'public' });
-    socket.emit('set_ticker', { text: text, target: target || 'all' });
+// Funções do Ticker — escolhe as telas (uma, duas ou as três); cada tela
+// guarda o próprio aviso, então "Mostrar"/"Tirar" só mexem nas escolhidas
+const TICKER_NOMES = { public: 'Tela pública', monitor: 'Palco', obs: 'Transmissão' };
+function tickerTelas() {
+    return [...document.querySelectorAll('.ticker-telas button[aria-pressed="true"]')].map(b => b.dataset.tela);
 }
-function stopTicker(target) {
-    socket.emit('stop_ticker', { target: target || 'all' });
+document.querySelectorAll('.ticker-telas button').forEach(btn => btn.addEventListener('click', () => {
+    btn.setAttribute('aria-pressed', String(btn.getAttribute('aria-pressed') !== 'true'));
+    try { localStorage.setItem('uc_ticker_telas', JSON.stringify(tickerTelas())); } catch (e) { /* sem storage */ }
+}));
+try {
+    const salvas = JSON.parse(localStorage.getItem('uc_ticker_telas') || 'null');
+    if (Array.isArray(salvas) && salvas.length) {
+        document.querySelectorAll('.ticker-telas button').forEach(b => b.setAttribute('aria-pressed', String(salvas.includes(b.dataset.tela))));
+    }
+} catch (e) { /* sem storage */ }
+
+function sendTicker() {
+    const text = document.getElementById('tickerText').value.trim();
+    const telas = tickerTelas();
+    if (!text) return window.ucToast && ucToast('Escreva o aviso primeiro.', 'error');
+    if (!telas.length) return window.ucToast && ucToast('Escolha pelo menos uma tela.', 'error');
+    socket.emit('set_ticker', { text: text, targets: telas });
+}
+function stopTicker() {
+    const telas = tickerTelas();
+    if (!telas.length) return window.ucToast && ucToast('Escolha de quais telas tirar.', 'error');
+    socket.emit('stop_ticker', { targets: telas });
 }
 function clearTicker() {
     document.getElementById('tickerText').value = '';
-    socket.emit('set_ticker', { text: '', target: 'all' });
+    socket.emit('stop_ticker', { target: 'all' });
+}
+
+// O que está em cada tela agora, embaixo dos botões
+function renderTickerAgora(porTela) {
+    const ul = document.getElementById('tickerAgora');
+    if (!ul) return;
+    ul.innerHTML = '';
+    Object.keys(TICKER_NOMES).forEach(t => {
+        const li = document.createElement('li');
+        const nome = document.createElement('strong');
+        nome.textContent = TICKER_NOMES[t] + ': ';
+        li.append(nome, document.createTextNode(porTela[t] ? '“' + porTela[t] + '”' : 'sem aviso'));
+        ul.appendChild(li);
+    });
 }
 
 // Preview do ticker no próprio /control (não depende do alvo escolhido —
@@ -227,8 +259,16 @@ function updateControlTickerPreview(text) {
     span.textContent = text;
     bar.style.display = 'block';
 }
-socket.on('ticker_preview_update', function (data) { updateControlTickerPreview(data.text || ''); });
-fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateControlTickerPreview(d.text || ''); });
+// Prévia mostra o aviso da tela pública (é o que a prévia representa)
+socket.on('ticker_preview_update', function (data) {
+    const porTela = data.by_target || {};
+    updateControlTickerPreview(porTela.public || '');
+    renderTickerAgora(porTela);
+});
+fetch('/api/ticker').then(r => r.json()).then(d => {
+    updateControlTickerPreview((d.by_target || {}).public || '');
+    renderTickerAgora(d.by_target || {});
+});
 
 // ── Compartilhar Tela (WebRTC) ───────────────────────────────────────────────
 // Quem assiste: static/js/screen_share_viewer.js; servidor: blueprints/screen_share.py

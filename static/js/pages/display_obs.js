@@ -148,4 +148,4 @@ function updateTicker(text) {
     bar.style.display = 'block';
 }
 socket.on('ticker_update', (data) => updateTicker(data.text || ''));
-fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateTicker(d.text || ''); }).catch(() => {});
+fetch('/api/ticker').then(r => r.json()).then(d => updateTicker((d.by_target || {}).obs || '')).catch(() => {});

@@ -164,17 +164,21 @@
                 <textarea class="uc-input" id="tickerText" rows="3" placeholder="Texto do aviso…"></textarea>
             </div>
             <div class="uc-field">
-                <label>Mostrar em</label>
-                <div class="tool-row">
-                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="sendTicker('public')">Público</button>
-                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="sendTicker('monitor')">Monitor</button>
-                    <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="sendTicker('all')">Ambos</button>
+                <label>Em quais telas</label>
+                {#- Várias ao mesmo tempo; cada tela guarda o próprio aviso (ver
+                    blueprints/ticker.py): mandar pra uma não mexe nas outras #}
+                <div class="uc-seg ticker-telas" role="group" aria-label="Telas do aviso">
+                    <button type="button" data-tela="public" aria-pressed="true"><i class="fas fa-users"></i> Tela pública</button>
+                    <button type="button" data-tela="monitor" aria-pressed="false"><i class="fas fa-tv"></i> Palco</button>
+                    <button type="button" data-tela="obs" aria-pressed="false"><i class="fas fa-video"></i> Transmissão</button>
                 </div>
             </div>
             <div class="tool-row">
-                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm grow" onclick="stopTicker('all')"><i class="fas fa-stop"></i> Parar</button>
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm grow" onclick="clearTicker()"><i class="fas fa-xmark"></i> Limpar</button>
+                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="sendTicker()"><i class="fas fa-bullhorn"></i> Mostrar</button>
+                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm grow" onclick="stopTicker()"><i class="fas fa-stop"></i> Tirar</button>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearTicker()" title="Apaga o texto e tira o aviso de todas as telas"><i class="fas fa-xmark"></i> Limpar</button>
             </div>
+            <ul class="ticker-agora uc-muted small" id="tickerAgora" aria-live="polite"></ul>
         </div>
 
         <!-- URLs -->

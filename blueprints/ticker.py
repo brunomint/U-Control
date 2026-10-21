@@ -37,11 +37,33 @@ def _save_ticker_config(text):
         db.session.close()
 
 
+# Último texto mandado (pré-preenche o campo do Controle; salvo no banco)
 _ticker_text = ''
-_ticker_active = False  # nunca ativo no boot; exige comando explícito
-# Telas com o aviso rodando agora ('public'/'monitor') — pra barrinha do
-# telão mostrar e parar (telao.py)
+# Aviso de cada tela agora: 'public' (tela pública), 'monitor' (palco),
+# 'obs' (transmissão). Cada uma tem o seu — mandar pra uma não mexe nas
+# outras (antes "Público" apagava o do palco, e o OBS só via "Ambos").
+TELAS = ('public', 'monitor', 'obs')
+_por_tela = {}
+# Compatibilidade (telao.py, barrinha "No ar"): telas com aviso / se há algum
 _ticker_targets = set()
+_ticker_active = False  # nunca ativo no boot; exige comando explícito
+
+
+def _telas(data):
+    """targets: ['public', 'obs'...]; o formato antigo target='all'|'public'|
+    'monitor' continua valendo ('all' = todas)."""
+    targets = (data or {}).get('targets')
+    if targets is None:
+        alvo = str((data or {}).get('target', 'all'))
+        targets = [alvo] if alvo in TELAS else list(TELAS)
+    return [t for t in TELAS if t in targets]
+
+
+def _sincronizar():
+    global _ticker_active
+    _ticker_targets.clear()
+    _ticker_targets.update(_por_tela)
+    _ticker_active = bool(_por_tela)
 
 
 def init_ticker_state():
@@ -59,53 +81,43 @@ def init_ticker_state():
 
 @ticker_bp.route('/api/ticker')
 def ticker_api():
-    # targets: tela que abre/recarrega só mostra o aviso se ele é pra ela
-    # (antes um aviso só "Público" aparecia no palco depois de um F5)
-    return jsonify({'text': _ticker_text, 'active': _ticker_active, 'targets': sorted(_ticker_targets)})
+    # by_target: tela que abre/recarrega mostra o aviso dela (antes pegava
+    # o último de qualquer tela)
+    return jsonify({'text': _ticker_text, 'active': _ticker_active,
+                    'targets': sorted(_ticker_targets), 'by_target': dict(_por_tela)})
+
+
+def _enviar(telas, texto):
+    for t in telas:
+        emit('ticker_update', {'text': texto}, to=t)
+    # Prévia/painel do Controle: atualiza o que está em cada tela
+    emit('ticker_preview_update', {'text': texto, 'by_target': dict(_por_tela)}, broadcast=True)
+    import telao
+    telao.broadcast_status()
 
 
 @socketio.on('set_ticker')
 def handle_set_ticker(data):
-    global _ticker_text, _ticker_active
-    _ticker_text = str(data.get('text', '')).strip()
-    target = str(data.get('target', 'all'))
-    _ticker_active = bool(_ticker_text)
-    sent_to = {'public', 'monitor'} if target not in ('public', 'monitor') else {target}
-    if _ticker_text:
-        _ticker_targets.update(sent_to)
-    else:
-        _ticker_targets.difference_update(sent_to)
-    _save_ticker_config(_ticker_text)
-    if _ticker_text:
-        append_display_log({'type': 'ticker', 'title': _ticker_text})
-    payload = {'text': _ticker_text}
-    if target == 'public':
-        emit('ticker_update', payload, to='public')
-    elif target == 'monitor':
-        emit('ticker_update', payload, to='monitor')
-    else:
-        emit('ticker_update', payload, broadcast=True)
-    # Preview no /control (não é room-scoped como o acima — o operador
-    # precisa ver o texto mandado independente de qual alvo escolheu).
-    emit('ticker_preview_update', payload, broadcast=True)
-    import telao
-    telao.broadcast_status()
+    global _ticker_text
+    texto = str((data or {}).get('text', '')).strip()
+    telas = _telas(data)
+    for t in telas:
+        if texto:
+            _por_tela[t] = texto
+        else:
+            _por_tela.pop(t, None)
+    _sincronizar()
+    if texto:
+        _ticker_text = texto
+        _save_ticker_config(texto)
+        append_display_log({'type': 'ticker', 'title': texto})
+    _enviar(telas, texto)
 
 
 @socketio.on('stop_ticker')
 def handle_stop_ticker(data):
-    global _ticker_active
-    target = str(data.get('target', 'all'))
-    if target == 'all':
-        _ticker_active = False
-    _ticker_targets.difference_update({'public', 'monitor'} if target not in ('public', 'monitor') else {target})
-    payload = {'text': ''}
-    if target == 'public':
-        emit('ticker_update', payload, to='public')
-    elif target == 'monitor':
-        emit('ticker_update', payload, to='monitor')
-    else:
-        emit('ticker_update', payload, broadcast=True)
-    emit('ticker_preview_update', payload, broadcast=True)
-    import telao
-    telao.broadcast_status()
+    telas = _telas(data)
+    for t in telas:
+        _por_tela.pop(t, None)
+    _sincronizar()
+    _enviar(telas, '')

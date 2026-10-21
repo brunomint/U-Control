@@ -180,6 +180,18 @@ def forget_client(sid):
         broadcast_status()
 
 
+def _resumo_aviso(por_tela):
+    """Aviso de cada tela -> uma linha pra barrinha: o texto, se é o mesmo
+    em todas as telas com aviso; senão 'público: A · palco: B'."""
+    if not por_tela:
+        return None
+    nomes = {'public': 'público', 'monitor': 'palco', 'obs': 'transmissão'}
+    textos = set(por_tela.values())
+    telas = [t for t in nomes if t in por_tela]  # ordem do painel
+    texto = textos.pop() if len(textos) == 1 else ' · '.join(f'{nomes[t]}: {por_tela[t]}' for t in telas)
+    return {'text': texto, 'targets': telas}
+
+
 def _extras():
     """Coisas que rodam sozinhas e o operador pode esquecer ligadas."""
     import time
@@ -187,7 +199,7 @@ def _extras():
     targets = sorted(ticker._ticker_targets)
     cd = countdown._countdown_state
     return {
-        'ticker': {'text': ticker._ticker_text, 'targets': targets} if targets and ticker._ticker_text else None,
+        'ticker': _resumo_aviso(ticker._por_tela),
         'countdown': {
             'label': cd.get('label') or '',
             'paused': bool(cd.get('paused')),

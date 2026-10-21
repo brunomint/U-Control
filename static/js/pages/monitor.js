@@ -371,7 +371,7 @@
             box.style.height = `calc(100% - ${bar.offsetHeight}px)`;
         }
         socket.on('ticker_update', function(data) { updateTicker(data.text || ''); });
-        fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active && (d.targets || []).includes('monitor')) updateTicker(d.text || ''); });
+        fetch('/api/ticker').then(r => r.json()).then(d => { updateTicker((d.by_target || {})['monitor'] || ''); });
 
         // ── Tela do PC (WebRTC, static/js/screen_share_viewer.js) ─────────
         ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), { role: 'monitor' });

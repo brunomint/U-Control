@@ -68,11 +68,15 @@ def test_start_countdown_broadcasts_and_updates_state(app):
 
 
 def test_set_ticker_broadcasts_and_updates_state(app):
+    # o aviso vai pra sala de cada tela (public/monitor/obs), não pra todo
+    # mundo — a tela se identifica pra entrar na sala
+    tela = ucontrol_main.socketio.test_client(app)
+    tela.emit("identify", {"role": "public"})
     socket_client = _operator_socket(app)
     socket_client.emit("set_ticker", {"text": "Bem-vindos!", "target": "all"})
-    received = socket_client.get_received()
-    events = [msg["name"] for msg in received]
+    events = [msg["name"] for msg in tela.get_received()]
     assert "ticker_update" in events
+    tela.disconnect()
 
     ticker_response = app.test_client().get("/api/ticker")
     data = ticker_response.get_json()
@@ -2656,3 +2660,27 @@ def test_libreoffice_found_in_windows_program_files(monkeypatch, tmp_path):
     real_exists = os.path.exists
     monkeypatch.setattr(gallery.os.path, "exists", lambda p: p == str(soffice) or (real_exists(p) and not p.startswith("/usr") and not p.startswith("/Applications")))
     assert gallery._find_libreoffice() == str(soffice)
+
+
+def test_ticker_each_screen_keeps_its_own_aviso(app):
+    """Mandar pra uma tela não mexe nas outras: aviso A no público, B no
+    palco, nada na transmissão; tirar do palco deixa o do público."""
+    op = _operator_socket(app)
+    try:
+        op.emit("stop_ticker", {"target": "all"})
+        op.emit("set_ticker", {"text": "A", "targets": ["public"]})
+        op.emit("set_ticker", {"text": "B", "targets": ["monitor"]})
+        api = app.test_client().get("/api/ticker").get_json()
+        assert api["by_target"] == {"public": "A", "monitor": "B"}
+
+        op.emit("stop_ticker", {"targets": ["monitor"]})
+        assert app.test_client().get("/api/ticker").get_json()["by_target"] == {"public": "A"}
+
+        op.emit("set_ticker", {"text": "C", "targets": ["public", "obs"]})
+        assert app.test_client().get("/api/ticker").get_json()["by_target"] == {"public": "C", "obs": "C"}
+
+        op.emit("set_ticker", {"text": "Todos", "target": "all"})  # formato antigo
+        assert set(app.test_client().get("/api/ticker").get_json()["by_target"]) == {"public", "monitor", "obs"}
+    finally:
+        op.emit("stop_ticker", {"target": "all"})
+        op.disconnect()

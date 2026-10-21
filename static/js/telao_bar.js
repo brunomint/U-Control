@@ -86,7 +86,8 @@
                 `<button type="button" class="tb-btn" data-act="stop-slideshow">parar</button></span>`);
         }
         if (st.ticker) {
-            const where = st.ticker.targets.length === 2 ? '' : st.ticker.targets[0] === 'public' ? ' (público)' : ' (monitor)';
+            const nomes = { public: 'público', monitor: 'palco', obs: 'transmissão' };
+            const where = st.ticker.targets.length === 3 ? '' : ' (' + st.ticker.targets.map(t => nomes[t] || t).join(', ') + ')';
             parts.push(
                 `<span class="tb-chip tb-running" title="Aviso rolando na base da tela${esc(where)}">` +
                 `<i class="fas fa-bullhorn"></i> Aviso${esc(where)}: <span class="tb-label">${esc(st.ticker.text)}</span>` +

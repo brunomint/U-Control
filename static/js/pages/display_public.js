@@ -369,7 +369,7 @@
         }
         socket.on('ticker_update', function(data) { updateTicker(data.text || ''); });
         const _tickerRole = new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public';
-        fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active && (d.targets || []).includes(_tickerRole)) updateTicker(d.text || ''); });
+        fetch('/api/ticker').then(r => r.json()).then(d => { updateTicker((d.by_target || {})[_tickerRole] || ''); });
 
         // ── Tela do PC (WebRTC, static/js/screen_share_viewer.js) ─────────
         ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), { role: new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public' });
