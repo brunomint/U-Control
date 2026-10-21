@@ -45,3 +45,8 @@ Android/
 build/
 dist/
 windows/bin/
+
+# Saíram do repositório quando ele ficou público (2026-10-21): letras das
+# músicas e ordens de culto antigas, e um snippet de outro projeto
+data_backup_pre_sql/
+pagbank_pix_update.js

@@ -35,10 +35,41 @@ _bible_cache = {}
 _bible_metadata = None
 
 
+# Padrão quando nada foi escolhido (ou a escolhida não existe nesta
+# instalação): a ACF se a igreja tiver o arquivo privado, senão a Bíblia
+# Livre, que vem com o programa
+_PADROES = ('acf', 'blivre')
+_NOME_VALIDO = re.compile(r'^[a-z0-9_]+$')
+
+
+def _bible_path(translation):
+    """Arquivo da tradução: primeiro as que vêm com o programa, depois as
+    privadas (paths.BIBLES_PRIVATE_DIR). None se não existir — ou se o nome
+    não for de tradução (vem da URL: ?translation=../../instance/...)."""
+    if not translation or not _NOME_VALIDO.match(translation):
+        return None
+    for pasta in (paths.BIBLES_DIR, paths.BIBLES_PRIVATE_DIR):
+        caminho = os.path.join(pasta, f'{translation}.json')
+        if os.path.isfile(caminho):
+            return caminho
+    return None
+
+
+def default_translation():
+    disponiveis = load_bible_metadata().get('translations', {})
+    for t in _PADROES:
+        if t in disponiveis:
+            return t
+    return next(iter(disponiveis), 'blivre')
+
+
 def get_preferred_translation():
     """Retorna a tradução preferida da Bíblia."""
     settings = load_settings()
-    return settings.get('bible_translation', 'acf')
+    escolhida = settings.get('bible_translation')
+    if escolhida in load_bible_metadata().get('translations', {}):
+        return escolhida
+    return default_translation()
 
 
 def set_preferred_translation(translation):
@@ -49,7 +80,9 @@ def set_preferred_translation(translation):
 
 
 def load_bible_metadata():
-    """Carrega os metadados dos livros da Bíblia."""
+    """Carrega os metadados dos livros da Bíblia. As traduções listadas são
+    só as que têm arquivo nesta instalação (as privadas só existem onde
+    alguém colocou o arquivo)."""
     global _bible_metadata
     if _bible_metadata is None:
         metadata_path = os.path.join(paths.BIBLES_DIR, 'books_metadata.json')
@@ -58,15 +91,19 @@ def load_bible_metadata():
                 _bible_metadata = json.load(f)
         else:
             _bible_metadata = {"translations": {}, "books": []}
+        _bible_metadata['translations'] = {
+            t: info for t, info in _bible_metadata.get('translations', {}).items() if _bible_path(t)
+        }
     return _bible_metadata
 
 
-def load_bible(translation='acf'):
+def load_bible(translation=None):
     """Carrega uma tradução da Bíblia do arquivo JSON."""
     global _bible_cache
+    translation = translation or default_translation()
     if translation not in _bible_cache:
-        bible_path = os.path.join(paths.BIBLES_DIR, f'{translation}.json')
-        if os.path.exists(bible_path):
+        bible_path = _bible_path(translation)
+        if bible_path:
             with open(bible_path, 'r', encoding='utf-8-sig') as f:
                 _bible_cache[translation] = json.load(f)
         else:
@@ -722,7 +759,7 @@ def bible_control_list():
 def api_set_bible_translation():
     """Salva a tradução preferida da Bíblia."""
     data = request.get_json()
-    translation = data.get('translation', 'acf')
+    translation = data.get('translation') or default_translation()
     set_preferred_translation(translation)
     return jsonify({'success': True, 'translation': translation})
 

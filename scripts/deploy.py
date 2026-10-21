@@ -43,6 +43,21 @@ FETCH_COMMAND = (
 )
 
 
+def preserve_command(branch):
+    """Antes do reset --hard: guarda em instance/ o que está saindo do git
+    mas o Pi usa. As Bíblias com direitos autorais (NVI, ACF, ARC...)
+    saíram do repositório quando ele ficou público (2026-10-21) e passaram
+    a ser lidas de instance/bibles/ (paths.BIBLES_PRIVATE_DIR); sem isto o
+    reset apagaria os arquivos do Pi. Idempotente (cp -n)."""
+    return (
+        "mkdir -p instance/bibles && "
+        "for f in bibles/*.json; do "
+        f"git cat-file -e origin/{branch}:\"$f\" 2>/dev/null || cp -n \"$f\" instance/bibles/; "
+        "done; "
+        "if [ -d data_backup_pre_sql ]; then cp -rn data_backup_pre_sql instance/; fi"
+    )
+
+
 def build_remote_commands(project_path, branch):
     """Monta a sequência de comandos remotos. Cada um só roda se o anterior
     teve sucesso (`&&`), então a primeira falha para o deploy inteiro."""
@@ -50,6 +65,7 @@ def build_remote_commands(project_path, branch):
         f"cd {project_path}",
         "git status --porcelain",  # checado à parte, não faz parte da cadeia &&
         f"cd {project_path} && {FETCH_COMMAND}",
+        f"cd {project_path} && {preserve_command(branch)}",
         f"cd {project_path} && git reset --hard origin/{branch}",
         f"cd {project_path} && venv/bin/pip install -r requirements.txt",
         f"cd {project_path} && venv/bin/python scripts/patch_flask_socketio.py",
@@ -166,6 +182,7 @@ def main():
             if not enviar_do_pc(args.user, args.host, args.path, args.branch):
                 print("\nERRO: o envio direto do PC também falhou. Deploy interrompido (nada mudou no Pi).", file=sys.stderr)
                 return 1
+        run(client, f"cd {args.path} && {preserve_command(args.branch)}", "guardar Bíblias privadas")
         run(client, f"cd {args.path} && git reset --hard origin/{args.branch}", "git reset --hard")
         run(client, f"cd {args.path} && venv/bin/pip install -r requirements.txt", "pip install")
         run(client, f"cd {args.path} && venv/bin/python scripts/patch_flask_socketio.py", "patch flask_socketio")

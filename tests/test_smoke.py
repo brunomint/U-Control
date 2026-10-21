@@ -138,7 +138,7 @@ def test_bible_verse_lookup_returns_joao_3_16(logged_in_client):
         query_string={"book": "jo", "chapter": 3, "verse_start": 16},
     )
     data = response.get_json()
-    assert "Deus amou o mundo" in data["verses"][0]["text"]
+    assert "Deus amou" in data["verses"][0]["text"]
     assert data["reference"] == "João 3:16"
 
 
@@ -146,7 +146,7 @@ def test_bible_search_by_reference_resolves_to_joao_3_16(logged_in_client):
     response = logged_in_client.get("/api/bible/search", query_string={"q": "Jo 3:16"})
     data = response.get_json()
     assert data["type"] == "reference"
-    assert any("Deus amou o mundo" in r["text"] for r in data["results"])
+    assert any("Deus amou" in r["text"] for r in data["results"])
 
 
 def test_update_bible_broadcasts_and_appends_to_display_log(app):
@@ -1598,7 +1598,9 @@ def test_every_bible_book_opens_in_every_translation(logged_in_client):
                 if logged_in_client.get(path).status_code != 200:
                     falhas.append(path)
     assert falhas == []
-    assert "Tiago" in logged_in_client.get("/bible/control/tg/1?translation=arc").get_data(as_text=True)
+    # en_kjv: abreviações em inglês, como ARC/KJA (essas só existem na pasta
+    # privada de quem tem o arquivo, ver paths.BIBLES_PRIVATE_DIR)
+    assert logged_in_client.get("/bible/control/tg/1?translation=en_kjv").status_code == 200
 
 
 def test_flash_shows_on_the_page_it_redirects_to(logged_in_client):
@@ -1617,9 +1619,9 @@ def test_bible_chapter_page_has_arrow_navigation_data(logged_in_client):
     import json
     import re
 
-    html = logged_in_client.get("/bible/tg/1?translation=kja").get_data(as_text=True)
+    html = logged_in_client.get("/bible/tg/1?translation=nbv").get_data(as_text=True)
     dados = json.loads(re.search(r'id="bible-chapter-data" type="application/json">(.*?)</script>', html).group(1))
-    assert (dados["prevChapter"], dados["nextChapter"], dados["translation"]) == (None, 2, "kja")
+    assert (dados["prevChapter"], dados["nextChapter"], dados["translation"]) == (None, 2, "nbv")
     assert "setas" in html
 
 
@@ -2525,3 +2527,26 @@ def test_first_run_creates_first_user_only_once(app):
         with app.app_context():
             User.query.filter_by(username="op").delete()
             ucontrol_main.db.session.commit()
+
+
+def test_copyrighted_bibles_only_from_private_folder(tmp_path, monkeypatch):
+    """Repositório/instalador só traz as Bíblias de licença aberta; NVI, ACF
+    etc. entram pela pasta privada (fora do git). Sem a ACF, o padrão é a
+    Bíblia Livre; nome de tradução vindo da URL não sai da pasta."""
+    import paths
+    from blueprints import bible
+
+    monkeypatch.setattr(paths, "BIBLES_PRIVATE_DIR", str(tmp_path))
+    monkeypatch.setattr(bible, "_bible_metadata", None)
+    monkeypatch.setattr(bible, "_bible_cache", {})
+    meta = bible.load_bible_metadata()
+    assert "blivre" in meta["translations"] and "nvi" not in meta["translations"]
+    assert not any(n.startswith("nvi") for n in os.listdir(paths.BIBLES_DIR))
+    assert bible.default_translation() == "blivre"
+    assert bible._bible_path("../instance/bibles/x") is None
+
+    (tmp_path / "nvi.json").write_text('[{"abbrev": "gn", "chapters": [["No princípio"]]}]', encoding="utf-8")
+    monkeypatch.setattr(bible, "_bible_metadata", None)
+    assert "nvi" in bible.load_bible_metadata()["translations"]
+    assert bible.load_bible("nvi")[0]["chapters"][0][0] == "No princípio"
+    monkeypatch.setattr(bible, "_bible_metadata", None)

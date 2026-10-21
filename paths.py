@@ -21,6 +21,7 @@ APP_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
 DATA_DIR = os.environ.get('UCONTROL_DATA_DIR') or None
 
+# Bíblias que vêm com o programa: só as de licença aberta (bibles/LICENSES.md)
 BIBLES_DIR = os.path.join(APP_DIR, 'bibles')
 MIGRATIONS_DIR = os.path.join(APP_DIR, 'migrations')
 
@@ -36,6 +37,12 @@ else:
     IMAGE_FOLDER = 'static/imagens'
     AUDIO_DIR = os.path.join(APP_DIR, 'static', 'audio')
     QRCODE_DIR = os.path.join(APP_DIR, 'static', 'qrcodes')
+
+# Traduções com direitos autorais (NVI, ACF, ARC...) que a igreja tem e
+# usa, mas que não podem ir no repositório público nem no instalador: o
+# mesmo <nome>.json colocado aqui aparece no programa como as outras.
+# Fica junto do banco, fora do git.
+BIBLES_PRIVATE_DIR = os.path.join(INSTANCE_DIR or os.path.join(APP_DIR, 'instance'), 'bibles')
 
 # Pastas servidas em /static/<nome>/ que, com DATA_DIR, saem de lá
 SERVED_DATA_DIRS = {
