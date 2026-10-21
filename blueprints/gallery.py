@@ -4,6 +4,7 @@ são usadas também por /img (main.py, tela de exibição pública — parte do
 núcleo de display, não desta área), por isso ficam exportadas daqui."""
 import logging
 import os
+import pathlib
 import shutil
 import subprocess
 import posixpath
@@ -147,8 +148,13 @@ def _find_libreoffice():
         found = shutil.which(name)
         if found:
             return found
-    for path in ('/usr/bin/libreoffice', '/usr/bin/soffice', '/usr/local/bin/libreoffice',
-                 '/Applications/LibreOffice.app/Contents/MacOS/soffice'):
+    candidatos = ['/usr/bin/libreoffice', '/usr/bin/soffice', '/usr/local/bin/libreoffice',
+                  '/Applications/LibreOffice.app/Contents/MacOS/soffice']
+    # Windows: o instalador do LibreOffice não põe no PATH
+    for base in ('ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432'):
+        if os.environ.get(base):
+            candidatos.append(os.path.join(os.environ[base], 'LibreOffice', 'program', 'soffice.exe'))
+    for path in candidatos:
         if os.path.exists(path):
             return path
     return None
@@ -273,7 +279,9 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
             env = dict(os.environ)
             env['PATH'] = os.pathsep.join(filter(None, [env.get('PATH'), '/usr/local/bin', '/usr/bin', '/bin']))
             proc = subprocess.run(
-                _low_priority() + [soffice, f'-env:UserInstallation=file://{profile}', '--headless',
+                # as_uri(): file:///C:/... no Windows (f'file://{profile}' dava
+                # file://C:\... e o LibreOffice não abria)
+                _low_priority() + [soffice, f'-env:UserInstallation={pathlib.Path(profile).as_uri()}', '--headless',
                  '--convert-to', 'pdf', '--outdir', tmp_dir, src_path],
                 capture_output=True, timeout=600, env=env,
             )

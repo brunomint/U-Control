@@ -2641,3 +2641,18 @@ def test_update_status_and_install_only_from_the_server_pc(logged_in_client, cli
 
     monkeypatch.setitem(rel, "version", "0.0.1")
     assert not logged_in_client.get("/api/update-status").get_json()["available"]
+
+
+def test_libreoffice_found_in_windows_program_files(monkeypatch, tmp_path):
+    """O instalador do LibreOffice no Windows não põe no PATH: antes o
+    U-Control nunca achava, mesmo instalado."""
+    from blueprints import gallery
+
+    soffice = tmp_path / "LibreOffice" / "program" / "soffice.exe"
+    soffice.parent.mkdir(parents=True)
+    soffice.write_text("")
+    monkeypatch.setattr(gallery.shutil, "which", lambda name: None)
+    monkeypatch.setenv("ProgramFiles", str(tmp_path))
+    real_exists = os.path.exists
+    monkeypatch.setattr(gallery.os.path, "exists", lambda p: p == str(soffice) or (real_exists(p) and not p.startswith("/usr") and not p.startswith("/Applications")))
+    assert gallery._find_libreoffice() == str(soffice)
