@@ -19,6 +19,7 @@ from flask_login import login_required
 from flask_socketio import emit
 
 from blueprints.lyrics import mostrar_se_escondido
+import paths
 from display_log import append_display_log
 from extensions import socketio
 from models import LyricsState
@@ -51,7 +52,7 @@ def load_bible_metadata():
     """Carrega os metadados dos livros da Bíblia."""
     global _bible_metadata
     if _bible_metadata is None:
-        metadata_path = os.path.join(os.getcwd(), 'bibles', 'books_metadata.json')
+        metadata_path = os.path.join(paths.BIBLES_DIR, 'books_metadata.json')
         if os.path.exists(metadata_path):
             with open(metadata_path, 'r', encoding='utf-8') as f:
                 _bible_metadata = json.load(f)
@@ -64,7 +65,7 @@ def load_bible(translation='acf'):
     """Carrega uma tradução da Bíblia do arquivo JSON."""
     global _bible_cache
     if translation not in _bible_cache:
-        bible_path = os.path.join(os.getcwd(), 'bibles', f'{translation}.json')
+        bible_path = os.path.join(paths.BIBLES_DIR, f'{translation}.json')
         if os.path.exists(bible_path):
             with open(bible_path, 'r', encoding='utf-8-sig') as f:
                 _bible_cache[translation] = json.load(f)

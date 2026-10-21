@@ -8,10 +8,12 @@ import os
 import re
 import sys
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_login import login_required
 from bs4 import BeautifulSoup
 import requests
+
+import paths
 
 logger = logging.getLogger('ucontrol')
 
@@ -260,7 +262,7 @@ def download_audio():
 
         # Define nome do arquivo (usa song_id se fornecido, senão video_id)
         filename = f"{song_id}_{video_id}" if song_id else video_id
-        audio_dir = os.path.join(current_app.static_folder, 'audio')
+        audio_dir = paths.AUDIO_DIR
         output_path = os.path.join(audio_dir, f"{filename}.mp3")
 
         # Deleta áudio antigo se fornecido e diferente do novo — só um .mp3
@@ -325,7 +327,7 @@ def download_audio():
 # Listar áudios disponíveis
 @cifras_bp.route("/list_audio")
 def list_audio():
-    audio_dir = os.path.join(current_app.static_folder, 'audio')
+    audio_dir = paths.AUDIO_DIR
     if not os.path.exists(audio_dir):
         return jsonify({"audios": []})
 
@@ -344,7 +346,7 @@ def list_audio():
 @cifras_bp.route("/delete_audio/<filename>", methods=["DELETE"])
 @login_required
 def delete_audio(filename):
-    audio_path = os.path.join(current_app.static_folder, 'audio', filename)
+    audio_path = os.path.join(paths.AUDIO_DIR, filename)
     if os.path.exists(audio_path):
         os.remove(audio_path)
         return jsonify({"success": True})

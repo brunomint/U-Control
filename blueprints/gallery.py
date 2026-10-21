@@ -24,12 +24,13 @@ try:  # fotos de iPhone (.heic) — sem o pacote, viram erro claro em vez de 500
 except ImportError:  # pragma: no cover
     pass
 
+import paths
 from extensions import csrf
 
 gallery_bp = Blueprint('gallery', __name__)
 
-# Diretório onde as imagens estão armazenadas
-IMAGE_FOLDER = 'static/imagens'
+# Diretório onde as imagens estão armazenadas (ver paths.py)
+IMAGE_FOLDER = paths.IMAGE_FOLDER
 
 
 def _safe_folder_path(*parts):

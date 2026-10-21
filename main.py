@@ -6,6 +6,7 @@ from flask import (
     url_for,
     Response,
     jsonify,
+    send_from_directory,
 )
 from werkzeug.routing import BaseConverter
 from flask_login import current_user, login_required
@@ -21,6 +22,7 @@ from zeroconf import ServiceInfo, Zeroconf
 import logging
 from logging.handlers import RotatingFileHandler
 
+import paths
 from extensions import db, migrate, login_manager, socketio, csrf
 import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
 import models_orders  # noqa: F401 — idem
@@ -109,7 +111,7 @@ def _load_or_create_secret_key(app):
 def create_app(config=None):
     """Cria e configura a instância do Flask. Chamada uma vez, na importação
     do módulo. Se config vier, sobrescreve os defaults (usado pelos testes)."""
-    app = Flask(__name__)
+    app = Flask(__name__, instance_path=paths.INSTANCE_DIR)
     _setup_logging(app)
 
     app.url_map.converters["dateslug"] = DateSlugConverter
@@ -132,7 +134,7 @@ def create_app(config=None):
         app.config.update(config)
 
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db, directory=paths.MIGRATIONS_DIR)
     login_manager.init_app(app)
     csrf.init_app(app)
     socketio.init_app(
@@ -188,6 +190,17 @@ def create_app(config=None):
 
     app.jinja_env.globals['versioned_static'] = _versioned_static
 
+    if paths.DATA_DIR:
+        # Mídia enviada e QR codes moram em UCONTROL_DATA_DIR (ver paths.py)
+        # mas continuam nas URLs /static/<pasta>/...: a regra mais específica
+        # ganha da /static/<path:filename> do Flask.
+        for name, folder in paths.SERVED_DATA_DIRS.items():
+            os.makedirs(folder, exist_ok=True)
+            app.add_url_rule(
+                f'/static/{name}/<path:filename>', f'data_{name}',
+                lambda filename, folder=folder: send_from_directory(folder, filename),
+            )
+
     @app.after_request
     def set_device_cookie(response):
         # Identifica a máquina (navegador) pro modo Só público/Só monitor de
@@ -225,8 +238,7 @@ app = create_app()
 def gerar_qrcodes(rotas):
     ip_local = obter_endereco_ip()
 
-    # Caminho dinâmico para a pasta static/qrcodes
-    caminho_pasta = os.path.join(os.getcwd(), "static", "qrcodes")
+    caminho_pasta = paths.QRCODE_DIR
     os.makedirs(caminho_pasta, exist_ok=True)  # Garante que a pasta exista
 
     for rota in rotas:

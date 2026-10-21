@@ -2465,3 +2465,34 @@ def test_image_zoom_survives_screen_reload(app, client):
     finally:
         display_state._image_zoom = None
         op.disconnect()
+
+
+def test_data_dir_keeps_state_out_of_code_folder(tmp_path):
+    """UCONTROL_DATA_DIR (instalação Windows, ver paths.py): banco, mídia e
+    QR codes vão pra pasta de dados, servidos nas mesmas URLs /static/...
+    Roda num processo à parte porque paths.py lê a variável na importação."""
+    import subprocess
+    import sys
+
+    script = (
+        "import os, main\n"
+        "d = os.environ['UCONTROL_DATA_DIR']\n"
+        "open(os.path.join(d, 'imagens', 'x.png'), 'wb').write(b'png')\n"
+        "c = main.app.test_client()\n"
+        "assert c.get('/static/imagens/x.png').data == b'png'\n"
+        "assert c.get('/static/imagens/../instance/secret_key').status_code == 404\n"
+        "assert c.get('/static/qrcodes/control_qr_code.png').status_code == 200\n"
+        "assert c.get('/static/js/telao_bar.js').status_code == 200\n"
+        "assert c.get('/imagens').get_json() == ['/static/imagens/x.png']\n"
+        "assert main.app.instance_path == os.path.join(d, 'instance')\n"
+        "from blueprints.bible import load_bible_metadata\n"
+        "assert load_bible_metadata()['books']\n"
+    )
+    env = {k: v for k, v in os.environ.items() if k != "UCONTROL_TESTING"}
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env.update(UCONTROL_DATA_DIR=str(tmp_path), UCONTROL_NO_BROWSER="1", PYTHONPATH=root)
+    # cwd fora do código: o atalho do Windows não abre na pasta do programa
+    result = subprocess.run([sys.executable, "-c", script], cwd=tmp_path, env=env,
+                            capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert (tmp_path / "instance" / "secret_key").exists()
