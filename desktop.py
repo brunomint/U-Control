@@ -147,6 +147,24 @@ def abrir_controle():
     webbrowser.open(LOCAL + '/control')
 
 
+# --- PC acordado ------------------------------------------------------------
+
+_acordado = {'ligado': True}
+
+
+def manter_acordado(ligado):
+    """Enquanto o U-Control está aberto o Windows não suspende nem apaga a
+    tela (telão no meio do culto), como o Holyrics. Vale pra thread que
+    chama — a principal, que fica viva na bandeja até "Sair"."""
+    _acordado['ligado'] = ligado
+    if sys.platform != 'win32':
+        return
+    import ctypes
+    ES_CONTINUOUS, ES_SYSTEM_REQUIRED, ES_DISPLAY_REQUIRED = 0x80000000, 0x00000001, 0x00000002
+    flags = ES_CONTINUOUS | (ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED if ligado else 0)
+    ctypes.windll.kernel32.SetThreadExecutionState(flags)
+
+
 # --- Servidor --------------------------------------------------------------
 
 def _preparar_banco(app):
@@ -197,6 +215,11 @@ def _bandeja():
         item('Links e QR codes para celular', lambda: webbrowser.open(LOCAL + '/links')),
     ]
     if sys.platform == 'win32':
+        # pystray chama o menu na thread da bandeja (a principal): o estado
+        # de "acordado" fica com ela
+        itens.append(pystray.MenuItem('Não deixar o PC dormir',
+                                      lambda _icon, _item: manter_acordado(not _acordado['ligado']),
+                                      checked=lambda _item: _acordado['ligado']))
         itens.append(item('Abrir pasta de dados', lambda: os.startfile(paths.DATA_DIR)))
     itens += [pystray.Menu.SEPARATOR, pystray.MenuItem('Sair', sair)]
     imagem = Image.open(os.path.join(paths.APP_DIR, 'static', 'U-Control_Icon.png'))
@@ -211,9 +234,12 @@ def run():
     _ffmpeg_no_path()
     _iniciar_servidor()
     abrir_controle()
+    manter_acordado(True)
     try:
         icone = _bandeja()
         if icone:
+            import logging
+            logging.getLogger('ucontrol').info('Bandeja: ícone no ar')
             icone.run()  # bloqueia até "Sair"
             # threads do servidor (socket.io, timers) não podem segurar o
             # processo aberto depois de "Sair"

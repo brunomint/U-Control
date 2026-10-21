@@ -24,6 +24,8 @@ const HELP_SECTIONS = {
             <li>Depois de instalado, abra pelo ícone <strong>U-Control</strong> na área de trabalho. O Controle abre no navegador e o programa fica na <strong>bandeja do Windows</strong>, ao lado do relógio.</li>
             <li>Pelo menu da bandeja você abre o <strong>Telão</strong> (a tela pública) e o <strong>Retorno de palco</strong>. Com um segundo monitor ou datashow ligado, elas abrem nele, em tela cheia.</li>
             <li>O menu também mostra o endereço do U-Control na rede, para abrir no celular.</li>
+            <li>Enquanto o U-Control está aberto, o Windows não suspende nem apaga a tela (opção <strong>Não deixar o PC dormir</strong> no menu da bandeja).</li>
+            <li>Para converter PowerPoint em slides, marque a opção do LibreOffice no instalador.</li>
             <li>Para desligar, use <strong>Sair</strong> no menu da bandeja. Fechar as janelas não desliga o programa.</li>
             <li>Músicas, fotos e configurações ficam guardadas à parte (opção <strong>Abrir pasta de dados</strong>). Instalar uma versão nova por cima não apaga nada.</li>
         </ul>`,
@@ -58,6 +60,8 @@ const HELP_SECTIONS = {
         </ul>
         <h3>O vídeo toca sem som no telão</h3>
         <p>Navegadores bloqueiam som automático. As telas abertas pelo menu da bandeja (Windows), pelo <strong>Abrir no datashow</strong> do Controle ou pelo script baixado no <a href="/dashboard">Início</a> já vêm com o som liberado. Numa aba comum, toque uma vez na tela do telão.</p>
+        <h3>O aviso não aparece numa tela</h3>
+        <p>No painel <strong>Avisos</strong> do Controle, confira quais telas estão marcadas (Tela pública, Palco, Transmissão). Cada tela tem o próprio aviso: mandar para uma não muda as outras. Embaixo dos botões aparece o que está em cada tela agora.</p>
         <h3>A tela não entra em tela cheia</h3>
         <p>No Controle, use <strong>Abrir no datashow</strong> para escolher em qual tela do computador a tela pública abre.</p>
         <h3>Uma tradução da Bíblia não aparece</h3>

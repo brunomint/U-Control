@@ -88,6 +88,9 @@ jobs:
           $exe = "$env:ProgramFiles\U-Control\U-Control.exe"
           Start-Process $exe
           python scripts/smoke_installed.py --exe $exe
+          # A bandeja não derruba o servidor se falhar (desktop.py) — então o
+          # teste acima passa mesmo sem ela; aqui fica visível qual foi
+          Select-String -Path "$env:APPDATA\U-Control\instance\ucontrol.log" -Pattern 'Bandeja' | ForEach-Object { $_.Line }
           if ($LASTEXITCODE -ne 0) {
             Get-Content "$env:APPDATA\U-Control\instance\ucontrol.log" -Tail 80 -ErrorAction SilentlyContinue
             Get-Content "$env:APPDATA\U-Control\console.log" -Tail 80 -ErrorAction SilentlyContinue
