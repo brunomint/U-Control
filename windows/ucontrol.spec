@@ -25,11 +25,13 @@ hiddenimports = [
     'engineio.async_drivers.threading',
     # importados só pelo migrations/env.py, que o PyInstaller não enxerga
     'logging.config',
-    *collect_submodules('alembic'),
-    # yt-dlp carrega os extractors por nome; weasyprint/pyphen têm dados
+    *collect_submodules('alembic', filter=lambda nome: '.testing' not in nome),
+    # yt-dlp carrega os extractors por nome
     *collect_submodules('yt_dlp'),
 ]
-for pacote in ('yt_dlp_ejs', 'weasyprint', 'pyphen', 'pydyf', 'tinycss2', 'cssselect2', 'zeroconf'):
+# weasyprint fica com o hook do próprio PyInstaller, que traz as DLLs do
+# Pango e o fontconfig (achados por WEASYPRINT_DLL_DIRECTORIES no build)
+for pacote in ('yt_dlp_ejs', 'pyphen', 'pydyf', 'tinycss2', 'cssselect2', 'zeroconf'):
     d, b, h = collect_all(pacote)
     datas += d
     binaries += b

@@ -55,7 +55,15 @@ jobs:
           New-Item -ItemType Directory -Force windows\bin | Out-Null
           Get-ChildItem ffmpeg-tmp -Recurse -Include ffmpeg.exe,ffprobe.exe,LICENSE.txt | Copy-Item -Destination windows\bin
 
+      # O PDF de impressão (WeasyPrint) desenha o texto com o Pango, que não
+      # vem no Windows: instala no MSYS2 da máquina do GitHub e o hook do
+      # PyInstaller copia as DLLs + fontconfig pra dentro do pacote
+      - name: Baixar o Pango (PDF de impressão)
+        run: C:\msys64\usr\bin\pacman.exe -Sy --noconfirm --needed mingw-w64-ucrt-x86_64-pango
+
       - name: Empacotar o programa (PyInstaller)
+        env:
+          WEASYPRINT_DLL_DIRECTORIES: C:\msys64\ucrt64\bin
         run: pyinstaller --noconfirm windows/ucontrol.spec
 
       - name: Montar o instalador (Inno Setup)

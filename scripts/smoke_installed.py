@@ -71,6 +71,9 @@ def main():
     check(r.status_code == 200 and r.json().get('id'), 'música salva')
     r = s.get(BASE + f'/view/{r.json()["id"]}/print')
     check(r.status_code == 200 and r.content.startswith(b'%PDF'), 'PDF de impressão (WeasyPrint)')
+    import fitz  # PyMuPDF: o texto saiu mesmo (fonte achada pelo fontconfig)?
+    with fitz.open(stream=r.content, filetype='pdf') as pdf:
+        check('Letra de teste' in pdf[0].get_text(), 'texto da letra no PDF')
 
     check(os.path.isfile(os.path.join(args.data_dir, 'instance', 'users.db')), f'banco em {args.data_dir}')
 
@@ -81,6 +84,9 @@ def main():
     check(os.path.isfile(ffmpeg), f'{ffmpeg} existe')
     r = subprocess.run([ffmpeg, '-version'], capture_output=True, text=True, timeout=30)
     check(r.returncode == 0, 'ffmpeg instalado em bin\\')
+
+    # e o programa acha esse ffmpeg (PATH montado pelo desktop.py)
+    check(s.get(BASE + '/api/system/status').json().get('ffmpeg') is True, 'programa acha o ffmpeg')
 
 
 if __name__ == '__main__':

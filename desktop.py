@@ -59,10 +59,12 @@ def _saida_sem_console():
 
 
 def _ffmpeg_no_path():
-    # O instalador traz o ffmpeg.exe em bin\ (gallery.py e o yt-dlp
-    # procuram no PATH)
+    # O instalador traz o ffmpeg.exe em bin\ ao lado do U-Control.exe
+    # (gallery.py e o yt-dlp procuram no PATH). No .exe, paths.APP_DIR é
+    # a _internal\ do PyInstaller — a pasta do programa é a do executável.
     import paths
-    pasta = os.path.join(paths.APP_DIR, 'bin')
+    programa = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else paths.APP_DIR
+    pasta = os.path.join(programa, 'bin')
     if os.path.isdir(pasta):
         os.environ['PATH'] = pasta + os.pathsep + os.environ.get('PATH', '')
 

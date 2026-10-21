@@ -1,6 +1,8 @@
 """Rotas utilitárias soltas: links/QR codes, relógio, ajuda, histórico,
 status do sistema e download do launcher do monitor. api_culto_status
 fica de fora — depende de dados de agenda, ainda não modularizados."""
+import shutil
+
 from flask import Blueprint, current_app, jsonify, make_response, render_template, request, url_for
 
 import connections
@@ -294,8 +296,10 @@ def api_system_status():
         'ram_percent': ram_percent,
         'disk_total_gb': disk_total_gb,
         'disk_free_gb': disk_free_gb,
-        'disk_used_percent': disk_used_percent
-
+        'disk_used_percent': disk_used_percent,
+        # vídeos do PowerPoint e áudio do YouTube precisam dele (no
+        # Windows vem em bin\ do instalador, ver desktop.py)
+        'ffmpeg': shutil.which('ffmpeg') is not None,
     }
     if current_app.debug and system_stats_error:
         payload['system_stats_error'] = system_stats_error
