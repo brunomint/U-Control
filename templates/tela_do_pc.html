@@ -21,11 +21,20 @@
     <p id="aguardando">Nenhuma tela compartilhada</p>
     <script src="{{ versioned_static('js/screen_share_viewer.js') }}"></script>
     <script>
-        const socket = io();
-        ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), {
-            role: 'any',
-            onChange: ligado => { document.getElementById('aguardando').hidden = ligado; },
-        });
+        // Dentro de outra página, só a metade do monitor dividido assiste.
+        // Na prévia do Controle e na camada da tela pública (que já mostra o
+        // vídeo por cima) seria mais um vídeo que o PC do operador codifica e
+        // envia, dividindo a banda e a qualidade de todas as telas.
+        const metadeDoMonitor = new URLSearchParams(location.search).get('host') === 'monitor';
+        if (window.top !== window.self && !metadeDoMonitor) {
+            document.getElementById('aguardando').textContent = 'Tela do PC';
+        } else {
+            const socket = io();
+            ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), {
+                role: 'any',
+                onChange: ligado => { document.getElementById('aguardando').hidden = ligado; },
+            });
+        }
     </script>
 </body>
 </html>

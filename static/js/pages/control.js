@@ -311,7 +311,11 @@ async function startScreenShare(target) {
         _shareStatus(e && e.name === 'NotAllowedError' ? 'Cancelado.' : 'Não deu pra capturar a tela: ' + (e && e.message || e));
         return;
     }
-    _screenStream.getVideoTracks()[0].onended = stopScreenShare;  // "Parar de compartilhar" do navegador
+    const video = _screenStream.getVideoTracks()[0];
+    video.onended = stopScreenShare;  // "Parar de compartilhar" do navegador
+    // Letra e slide: com pouca banda, o navegador mantém o texto nítido e
+    // baixa a fluidez (em vez de borrar pra manter o movimento)
+    video.contentHint = 'detail';
     socket.emit('screen_share_start', { target: _screenTarget });
     _shareContagem();
 }
@@ -337,13 +341,32 @@ socket.on('connect', function () {
     if (_screenStream) socket.emit('screen_share_start', { target: _screenTarget });
 });
 
+// O Chrome segura o vídeo em ~2,5 Mbps (pensado pra internet); na rede
+// local cabe bem mais, e é isso que deixa letra e slide nítidos
+const _SHARE_MAX_BITRATE = 8000000;
+
+async function _limitesVideo(sender) {
+    try {
+        const p = sender.getParameters();
+        if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+        p.encodings[0].maxBitrate = _SHARE_MAX_BITRATE;
+        p.degradationPreference = 'maintain-resolution';
+        await sender.setParameters(p);
+    } catch (e) {
+        console.warn('Tela do PC: limites de vídeo não aplicados', e);
+    }
+}
+
 socket.on('screen_share_request', async function(data) {
     if (!_screenStream) return;
     _fecharPeer(data.from_sid);  // tela que pediu de novo (recarregou, falhou)
     const pc = new RTCPeerConnection(_iceConfig);
     pc._pendentes = [];
     _screenPeers[data.from_sid] = pc;
-    _screenStream.getTracks().forEach(t => pc.addTrack(t, _screenStream));
+    _screenStream.getTracks().forEach(t => {
+        const sender = pc.addTrack(t, _screenStream);
+        if (t.kind === 'video') _limitesVideo(sender);
+    });
     pc.onicecandidate = e => {
         if (e.candidate) socket.emit('screen_share_ice', { target_sid: data.from_sid, candidate: e.candidate });
     };
