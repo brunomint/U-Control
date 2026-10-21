@@ -59,7 +59,9 @@ def init_ticker_state():
 
 @ticker_bp.route('/api/ticker')
 def ticker_api():
-    return jsonify({'text': _ticker_text, 'active': _ticker_active})
+    # targets: tela que abre/recarrega só mostra o aviso se ele é pra ela
+    # (antes um aviso só "Público" aparecia no palco depois de um F5)
+    return jsonify({'text': _ticker_text, 'active': _ticker_active, 'targets': sorted(_ticker_targets)})
 
 
 @socketio.on('set_ticker')

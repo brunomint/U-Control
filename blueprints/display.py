@@ -132,6 +132,13 @@ def control():
 def monitor():
     return render_template('monitor.html')
 
+
+@display_bp.route('/tela-do-pc')
+def tela_do_pc():
+    """Só a "Tela do PC" compartilhada no Controle — metade do monitor
+    dividido (ou tela avulsa). Sem login, como as outras telas."""
+    return render_template('tela_do_pc.html')
+
 # Rota para obter o estado atual do display
 @display_bp.route('/get_display_state')
 def get_display_state():

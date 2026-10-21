@@ -368,39 +368,8 @@
             bar.style.display = 'block';
         }
         socket.on('ticker_update', function(data) { updateTicker(data.text || ''); });
-        fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateTicker(d.text || ''); });
+        const _tickerRole = new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public';
+        fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active && (d.targets || []).includes(_tickerRole)) updateTicker(d.text || ''); });
 
-        // ── Compartilhar Tela (WebRTC viewer) ───────────────────────────────
-        let _screenPc = null;
-        const _iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-
-        socket.on('screen_share_start', function(data) {
-            socket.emit('screen_share_request', { broadcaster_sid: data.from_sid });
-        });
-
-        socket.on('screen_share_offer', async function(data) {
-            _screenPc = new RTCPeerConnection(_iceConfig);
-            _screenPc.onicecandidate = e => {
-                if (e.candidate) socket.emit('screen_share_ice', { target_sid: data.from_sid, candidate: e.candidate });
-            };
-            _screenPc.ontrack = e => {
-                const vid = document.getElementById('screenShareVideo');
-                vid.srcObject = e.streams[0];
-                vid.style.display = 'block';
-            };
-            await _screenPc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-            const answer = await _screenPc.createAnswer();
-            await _screenPc.setLocalDescription(answer);
-            socket.emit('screen_share_answer', { target_sid: data.from_sid, sdp: answer });
-        });
-
-        socket.on('screen_share_ice', function(data) {
-            if (_screenPc) _screenPc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
-        });
-
-        socket.on('screen_share_stop', function() {
-            const vid = document.getElementById('screenShareVideo');
-            vid.style.display = 'none';
-            vid.srcObject = null;
-            if (_screenPc) { _screenPc.close(); _screenPc = null; }
-        });
+        // ── Tela do PC (WebRTC, static/js/screen_share_viewer.js) ─────────
+        ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), { role: new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public' });

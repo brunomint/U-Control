@@ -22,7 +22,7 @@ const HELP_SECTIONS = {
         <h2>Programa no Windows</h2>
         <ul>
             <li>Depois de instalado, abra pelo ícone <strong>U-Control</strong> na área de trabalho. O Controle abre no navegador e o programa fica na <strong>bandeja do Windows</strong>, ao lado do relógio.</li>
-            <li>Pelo menu da bandeja você abre o <strong>Telão</strong>, a <strong>Tela pública de letras</strong> e o <strong>Retorno de palco</strong>. Com um segundo monitor ou datashow ligado, elas abrem nele, em tela cheia.</li>
+            <li>Pelo menu da bandeja você abre o <strong>Telão</strong> (a tela pública) e o <strong>Retorno de palco</strong>. Com um segundo monitor ou datashow ligado, elas abrem nele, em tela cheia.</li>
             <li>O menu também mostra o endereço do U-Control na rede, para abrir no celular.</li>
             <li>Para desligar, use <strong>Sair</strong> no menu da bandeja. Fechar as janelas não desliga o programa.</li>
             <li>Músicas, fotos e configurações ficam guardadas à parte (opção <strong>Abrir pasta de dados</strong>). Instalar uma versão nova por cima não apaga nada.</li>

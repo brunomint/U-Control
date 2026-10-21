@@ -23,7 +23,7 @@ login_manager.login_view = 'auth.login'
 # identificar, avisar fim de vídeo e responder ao compartilhamento de tela.
 PUBLIC_SOCKET_EVENTS = {
     'connect', 'disconnect', 'identify', 'video_ended',
-    'screen_share_request', 'screen_share_answer', 'screen_share_ice',
+    'screen_share_hello', 'screen_share_request', 'screen_share_answer', 'screen_share_ice',
 }
 
 

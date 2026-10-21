@@ -14,8 +14,8 @@ internet durante o culto.
 Baixe o `U-Control-Setup-x.y.z.exe` na página de
 [Releases](https://github.com/brunomint/U-Control/releases/latest) e
 instale. O programa fica na bandeja do Windows (ao lado do relógio), e
-pelo menu dela você abre o Controle e as telas (telão, letra pública,
-retorno de palco), que vão para o segundo monitor em tela cheia.
+pelo menu dela você abre o Controle e as telas (telão e retorno de
+palco), que vão para o segundo monitor em tela cheia.
 
 Os dados ficam em `%APPDATA%\U-Control`. Instalar uma versão nova por
 cima não apaga nada.

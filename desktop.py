@@ -10,7 +10,7 @@ que fica em volta dele:
 - as migrations rodam na abertura (no Pi quem faz é o deploy, no Docker
   o docker-entrypoint.sh);
 - abrir de novo com o programa já rodando só abre o Controle;
-- o menu da bandeja abre as telas (telão, letra pública, palco) em
+- o menu da bandeja abre as telas (telão/tela pública, palco) em
   janela de app do Chrome/Edge, em tela cheia no segundo monitor.
 
 Também roda fora do Windows (python desktop.py) — sem pystray instalado
@@ -187,8 +187,10 @@ def _bandeja():
     itens = [
         item('Abrir Controle', abrir_controle, default=True),
         pystray.Menu.SEPARATOR,
-        item('Telão (imagens e vídeos)', lambda: abrir_tela('img')),
-        item('Tela pública de letras', lambda: abrir_tela('publico')),
+        # A tela pública completa (letra, Bíblia, fotos, vídeos, avisos, Tela
+        # do PC) — não a /img, que só mostra imagens e vídeos: abrir ela
+        # como telão fazia o compartilhamento de tela e os avisos sumirem
+        item('Telão (tela pública)', lambda: abrir_tela('publico')),
         item('Retorno de palco', lambda: abrir_tela('palco')),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(endereco, None, enabled=False),

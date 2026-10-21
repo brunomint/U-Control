@@ -74,7 +74,8 @@ function sendUrl(urlNumber) {
         5: "/clock",
         6: "/img",
         7: "/bible/display",
-        8: "/lyrics/display/public"
+        8: "/lyrics/display/public",
+        9: "/tela-do-pc"
     };
 
     const urlInput = fixedRoutes[urlNumber] || document.getElementById(`url${urlNumber}`)?.value;
@@ -91,7 +92,8 @@ function showTwoUrls(urlNum1, urlNum2) {
         5: "/clock",
         6: "/img",
         7: "/bible/display",
-        8: "/lyrics/display/public"
+        8: "/lyrics/display/public",
+        9: "/tela-do-pc"
     };
 
     const url1 = fixedRoutes[urlNum1] || document.getElementById(`url${urlNum1}`)?.value;
@@ -229,38 +231,85 @@ socket.on('ticker_preview_update', function (data) { updateControlTickerPreview(
 fetch('/api/ticker').then(r => r.json()).then(d => { if (d.active) updateControlTickerPreview(d.text || ''); });
 
 // ── Compartilhar Tela (WebRTC) ───────────────────────────────────────────────
+// Quem assiste: static/js/screen_share_viewer.js; servidor: blueprints/screen_share.py
 let _screenStream = null;
+let _screenTarget = null;
 let _screenPeers = {};
 const _iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const _SHARE_ALVOS = { public: 'tela pública', monitor: 'retorno de palco', all: 'tela pública e palco' };
+
+function _shareStatus(texto) {
+    const el = document.getElementById('screenShareStatus');
+    if (el) el.textContent = texto;
+}
+
+function _shareContagem() {
+    if (!_screenStream) return;
+    const n = Object.values(_screenPeers).filter(pc => pc.connectionState === 'connected').length;
+    _shareStatus(`● Compartilhando na ${_SHARE_ALVOS[_screenTarget]} — ${n} ${n === 1 ? 'tela recebendo' : 'telas recebendo'}`);
+}
 
 async function startScreenShare(target) {
-    try {
-        _screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    } catch(e) {
-        document.getElementById('screenShareStatus').textContent = 'Cancelado.';
+    _screenTarget = target || 'all';
+    if (_screenStream) {  // já compartilhando: só troca o alvo
+        socket.emit('screen_share_start', { target: _screenTarget });
+        _shareContagem();
         return;
     }
-    _screenStream.getVideoTracks()[0].onended = stopScreenShare;
-    socket.emit('screen_share_start', { target: target || 'all' });
-    document.getElementById('screenShareStatus').textContent = '● Compartilhando...';
+    // O navegador só deixa capturar a tela em endereço seguro: no próprio PC
+    // do U-Control (127.0.0.1 / localhost) ou por HTTPS — não pelo IP da rede
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        _shareStatus('Este navegador não deixa compartilhar a tela por este endereço. Abra o Controle no próprio computador do U-Control (http://127.0.0.1:8585) ou pelo endereço https.');
+        return;
+    }
+    try {
+        _screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } },
+            audio: true,
+        });
+    } catch (e) {
+        _shareStatus(e && e.name === 'NotAllowedError' ? 'Cancelado.' : 'Não deu pra capturar a tela: ' + (e && e.message || e));
+        return;
+    }
+    _screenStream.getVideoTracks()[0].onended = stopScreenShare;  // "Parar de compartilhar" do navegador
+    socket.emit('screen_share_start', { target: _screenTarget });
+    _shareContagem();
+}
+
+function _fecharPeer(sid) {
+    const pc = _screenPeers[sid];
+    if (!pc) return;
+    pc.onconnectionstatechange = null;
+    pc.close();
+    delete _screenPeers[sid];
 }
 
 function stopScreenShare() {
     if (_screenStream) { _screenStream.getTracks().forEach(t => t.stop()); _screenStream = null; }
-    Object.values(_screenPeers).forEach(pc => pc.close());
-    _screenPeers = {};
+    Object.keys(_screenPeers).forEach(_fecharPeer);
     socket.emit('screen_share_stop', {});
-    const el = document.getElementById('screenShareStatus');
-    if (el) el.textContent = '';
+    _shareStatus('');
 }
+
+// Reconectou (Wi-Fi caiu, servidor reiniciou): avisa de novo que está
+// compartilhando, senão o servidor esquece e para as telas
+socket.on('connect', function () {
+    if (_screenStream) socket.emit('screen_share_start', { target: _screenTarget });
+});
 
 socket.on('screen_share_request', async function(data) {
     if (!_screenStream) return;
+    _fecharPeer(data.from_sid);  // tela que pediu de novo (recarregou, falhou)
     const pc = new RTCPeerConnection(_iceConfig);
+    pc._pendentes = [];
     _screenPeers[data.from_sid] = pc;
     _screenStream.getTracks().forEach(t => pc.addTrack(t, _screenStream));
     pc.onicecandidate = e => {
         if (e.candidate) socket.emit('screen_share_ice', { target_sid: data.from_sid, candidate: e.candidate });
+    };
+    pc.onconnectionstatechange = () => {
+        if (['failed', 'closed'].includes(pc.connectionState)) _fecharPeer(data.from_sid);
+        _shareContagem();
     };
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -269,12 +318,18 @@ socket.on('screen_share_request', async function(data) {
 
 socket.on('screen_share_answer', async function(data) {
     const pc = _screenPeers[data.from_sid];
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    if (!pc) return;
+    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    pc._pendentes.splice(0).forEach(c => pc.addIceCandidate(c).catch(() => {}));
 });
 
 socket.on('screen_share_ice', function(data) {
     const pc = _screenPeers[data.from_sid];
-    if (pc) pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
+    if (!pc) return;
+    const c = new RTCIceCandidate(data.candidate);
+    // ICE antes da resposta chegar: guarda (antes era descartado)
+    if (pc.remoteDescription) pc.addIceCandidate(c).catch(() => {});
+    else pc._pendentes.push(c);
 });
 
 // Funções do Cronômetro
@@ -610,6 +665,7 @@ const SOURCES = [
     { id: 'biblia',  num: 7, label: 'Bíblia',  icon: 'fa-book-bible',  sub: 'versículo',       route: '/bible/display' },
     { id: 'imagem',  num: 6, label: 'Imagem',  icon: 'fa-image',       sub: 'galeria',         route: '/img' },
     { id: 'relogio', num: 5, label: 'Relógio', icon: 'fa-clock',       sub: 'hora atual',      route: '/clock' },
+    { id: 'tela',    num: 9, label: 'Tela do PC', icon: 'fa-desktop',  sub: 'compartilhada',   route: '/tela-do-pc' },
     { id: 'url1',    num: 1, label: 'URL 1',   icon: 'fa-globe' },
     { id: 'url2',    num: 2, label: 'URL 2',   icon: 'fa-globe' },
     { id: 'url3',    num: 3, label: 'URL 3',   icon: 'fa-globe' },

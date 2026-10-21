@@ -36,6 +36,8 @@ def handle_disconnect():
     logger.info('Cliente desconectado')
     import telao
     telao.forget_client(sid)
+    from blueprints import screen_share
+    screen_share.forget(sid)
 
 
 @socketio.on('identify')

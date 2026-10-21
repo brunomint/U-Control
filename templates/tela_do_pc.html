@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
+    <title>Tela do PC</title>
+    <script src="/static/vendor/socketio/socket.io.min.js"></script>
+    <style>
+        html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+        video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+        p { position: fixed; inset: 0; display: grid; place-items: center; margin: 0;
+            color: #666; font: 600 clamp(14px, 3vw, 28px) system-ui, sans-serif; text-align: center; padding: 16px; }
+    </style>
+</head>
+<body>
+    {#- Só a tela compartilhada do Controle ("Tela do PC"): fonte do monitor
+        dividido (control.js, SOURCES) ou uma tela avulsa. role 'any':
+        recebe seja qual for o alvo escolhido no Controle. #}
+    <video id="screenShareVideo" style="display:none" autoplay playsinline></video>
+    <p id="aguardando">Nenhuma tela compartilhada</p>
+    <script src="{{ versioned_static('js/screen_share_viewer.js') }}"></script>
+    <script>
+        const socket = io();
+        ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), {
+            role: 'any',
+            onChange: ligado => { document.getElementById('aguardando').hidden = ligado; },
+        });
+    </script>
+</body>
+</html>
