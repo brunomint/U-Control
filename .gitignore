@@ -40,3 +40,8 @@ backups/
 
 # Metadados soltos do Android Studio (não há app fonte de verdade aqui ainda)
 Android/
+
+# Build do programa de Windows (PyInstaller/Inno Setup, ver windows/)
+build/
+dist/
+windows/bin/

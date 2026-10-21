@@ -209,16 +209,21 @@ def run():
     abrir_controle()
     icone = _bandeja()
     if icone:
-        icone.run()  # bloqueia até "Sair"
-        # threads do servidor (socket.io, timers) não podem segurar o
-        # processo aberto depois de "Sair"
-        os._exit(0)
-    else:
         try:
-            while True:
-                time.sleep(3600)
-        except KeyboardInterrupt:
-            pass
+            icone.run()  # bloqueia até "Sair"
+            # threads do servidor (socket.io, timers) não podem segurar o
+            # processo aberto depois de "Sair"
+            os._exit(0)
+        except Exception:
+            # Sem área de trabalho (serviço, máquina de build) a bandeja
+            # falha — o servidor segue no ar mesmo assim
+            import logging
+            logging.getLogger('ucontrol').exception('Bandeja indisponível; só o servidor')
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == '__main__':

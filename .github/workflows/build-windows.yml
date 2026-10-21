@@ -1,0 +1,95 @@
+name: Build Windows Installer
+
+# Monta o instalador do U-Control numa máquina Windows de verdade do
+# GitHub, instala, abre e testa (scripts/smoke_installed.py). Mesmo
+# modelo do QuickDeck (Stream_Deck/.github/workflows/build-windows.yml).
+#
+# - Botão "Run workflow" (aba Actions): só gera o instalador pra baixar
+#   em Artifacts — pra testar antes de lançar.
+# - Tag v1.2.3 (git tag v1.2.3 && git push origin v1.2.3): gera e publica
+#   uma Release com o instalador. A tag tem que bater com o arquivo VERSION.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write  # criar a Release
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Versão
+        id: versao
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION -Raw).Trim()
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$v") {
+            throw "Tag $env:GITHUB_REF_NAME não bate com VERSION ($v)"
+          }
+          "versao=$v" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-windows.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements-windows.txt
+
+      - name: Aplicar patch do flask_socketio (Flask 3.x)
+        run: python scripts/patch_flask_socketio.py
+
+      - name: Baixar o ffmpeg (vídeos da galeria, áudio do YouTube)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg-tmp
+          New-Item -ItemType Directory -Force windows\bin | Out-Null
+          Get-ChildItem ffmpeg-tmp -Recurse -Include ffmpeg.exe,ffprobe.exe,LICENSE.txt | Copy-Item -Destination windows\bin
+
+      - name: Empacotar o programa (PyInstaller)
+        run: pyinstaller --noconfirm windows/ucontrol.spec
+
+      - name: Montar o instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.versao.outputs.versao }}" windows\ucontrol.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC falhou" }
+
+      - name: Instalar e testar
+        shell: pwsh
+        run: |
+          $setup = "dist\U-Control-Setup-${{ steps.versao.outputs.versao }}.exe"
+          Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          $exe = "$env:ProgramFiles\U-Control\U-Control.exe"
+          Start-Process $exe
+          python scripts/smoke_installed.py --exe $exe
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content "$env:APPDATA\U-Control\instance\ucontrol.log" -Tail 80 -ErrorAction SilentlyContinue
+            Get-Content "$env:APPDATA\U-Control\console.log" -Tail 80 -ErrorAction SilentlyContinue
+            throw "Teste do programa instalado falhou"
+          }
+
+      - name: Guardar o instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: U-Control-Windows-Installer
+          path: dist/U-Control-Setup-*.exe
+
+      - name: Publicar a Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/U-Control-Setup-*.exe
+          generate_release_notes: true
