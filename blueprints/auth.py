@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
-from flask_login import login_required, login_user, logout_user
+from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from display_log import load_display_log
@@ -187,7 +187,13 @@ def visualizar_usuarios():
 @login_required
 def remover_usuario(id):
     usuario = User.query.get(id)
-    if usuario:
+    if usuario and usuario.id == current_user.id:
+        # Também evita ficar sem nenhum usuário: aí a tela de login volta a
+        # oferecer "criar o primeiro" (primeiro_acesso) pra quem chegar antes
+        flash('Você não pode remover o próprio usuário.', 'error')
+    elif usuario and User.query.count() <= 1:
+        flash('Não dá pra remover o último usuário.', 'error')
+    elif usuario:
         db.session.delete(usuario)
         db.session.commit()
         flash('Usuário removido com sucesso.')

@@ -2562,3 +2562,25 @@ def test_help_has_every_menu_section_and_no_default_password(client):
     secoes = re.findall(r'data-section="(\w+)"', html)
     assert secoes and all(re.search(rf"^    {s}: `", js, re.M) for s in secoes)
     assert "1234" not in js and "exemplo.com" not in js and "imges_help" not in js
+
+
+def test_cannot_remove_self_or_last_user(app, logged_in_client):
+    """Sem nenhum usuário, /login volta a oferecer "criar o primeiro" pra
+    quem chegar antes — então ninguém remove a si mesmo nem o último."""
+    from werkzeug.security import generate_password_hash
+
+    with app.app_context():
+        eu = User.query.filter_by(username="tester").first()
+        outro = User(username="outro", password=generate_password_hash("x", method="pbkdf2:sha256"))
+        ucontrol_main.db.session.add(outro)
+        ucontrol_main.db.session.commit()
+        eu_id, outro_id = eu.id, outro.id
+
+    logged_in_client.post(f"/remover_usuario/{eu_id}")
+    with app.app_context():
+        assert ucontrol_main.db.session.get(User, eu_id) is not None
+
+    logged_in_client.post(f"/remover_usuario/{outro_id}")
+    with app.app_context():
+        assert ucontrol_main.db.session.get(User, outro_id) is None
+        assert User.query.count() >= 1
