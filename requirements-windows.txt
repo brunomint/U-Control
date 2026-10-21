@@ -1,0 +1,7 @@
+# Dependências extras do programa de Windows (desktop.py + build do .exe),
+# além das de produção. Não vão pro Pi nem pro Docker.
+# Uso (no build do GitHub Actions): pip install -r requirements-windows.txt
+-r requirements.txt
+
+pystray==0.19.5      # ícone na bandeja (desktop.py)
+pyinstaller==6.22.3  # empacota o .exe
