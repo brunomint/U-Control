@@ -40,6 +40,9 @@ def _safe_folder_path(*parts):
 
 
 def get_current_image_path():
+    # Instalação nova (ou o CI) ainda não tem a pasta: nenhuma foto enviada
+    if not os.path.exists(IMAGE_FOLDER):
+        return ""
     images = os.listdir(IMAGE_FOLDER)
     if images:
         return f"/static/imagens/{images[0]}"
