@@ -1,114 +1,76 @@
+// Conteúdo da página /help. Só texto: as capturas de tela antigas mostravam
+// nomes de usuário reais e ensinavam uma senha padrão que não existe mais.
+const HELP_SECTIONS = {
+    funcionalidades: `
+        <h2>Principais funcionalidades</h2>
+        <p>Um computador roda o U-Control, e os outros aparelhos da mesma rede (celular, tablet, outro PC) abrem o controle ou as telas pelo navegador. Não precisa de internet durante o culto.</p>
+        <ul>
+            <li><strong>Controle:</strong> letras com cifra, versículos, fotos e vídeos vão para o telão com um toque.</li>
+            <li><strong>Telas sincronizadas:</strong> o telão do público e o retorno de palco acompanham o Controle.</li>
+            <li><strong>Preparação:</strong> monte a ordem do culto, cadastre músicas e organize as escalas antes.</li>
+        </ul>
+        <p>O telão pode ficar no próprio computador do U-Control (cabo HDMI, mais estável) ou em outro aparelho da rede.</p>`,
+
+    primeiro: `
+        <h2>Primeiro acesso e usuários</h2>
+        <p>Numa instalação nova ainda não existe nenhum usuário: a tela de login pede para <strong>criar o primeiro</strong> (nome, senha e a senha de novo). Esse pedido some assim que o primeiro usuário é criado.</p>
+        <div class="callout">Crie esse usuário logo depois de instalar: enquanto ele não existe, quem abrir a tela de login primeiro pela rede é quem cria.</div>
+        <p>Depois, cada operador ganha o próprio usuário em <a href="/usuarios">Usuários</a> (menu Sistema), onde também dá para trocar senhas e remover quem não usa mais.</p>
+        <p>Use senhas que não sejam fáceis de adivinhar, principalmente se o U-Control também for acessível pela internet.</p>`,
+
+    windows: `
+        <h2>Programa no Windows</h2>
+        <ul>
+            <li>Depois de instalado, abra pelo ícone <strong>U-Control</strong> na área de trabalho. O Controle abre no navegador e o programa fica na <strong>bandeja do Windows</strong>, ao lado do relógio.</li>
+            <li>Pelo menu da bandeja você abre o <strong>Telão</strong>, a <strong>Tela pública de letras</strong> e o <strong>Retorno de palco</strong>. Com um segundo monitor ou datashow ligado, elas abrem nele, em tela cheia.</li>
+            <li>O menu também mostra o endereço do U-Control na rede, para abrir no celular.</li>
+            <li>Para desligar, use <strong>Sair</strong> no menu da bandeja. Fechar as janelas não desliga o programa.</li>
+            <li>Músicas, fotos e configurações ficam guardadas à parte (opção <strong>Abrir pasta de dados</strong>). Instalar uma versão nova por cima não apaga nada.</li>
+        </ul>`,
+
+    celular: `
+        <h2>Usar pelo celular ou outro computador</h2>
+        <ul>
+            <li>O aparelho precisa estar na <strong>mesma rede</strong> (Wi-Fi ou cabo) do computador do U-Control.</li>
+            <li>Em <a href="/links">Links / QR</a> estão os endereços de cada tela, com QR code para apontar a câmera do celular.</li>
+            <li>O endereço tem a forma <code>http://&lt;ip-do-computador&gt;:8585</code>.</li>
+        </ul>`,
+
+    telas: `
+        <h2>Telas que abrem sem login</h2>
+        <p>As funções de controle exigem login, para ninguém mudar o telão sem querer. Estas telas abrem sem login, para os aparelhos de exibição e para quem só acompanha:</p>
+        <ul>
+            <li><strong>Telão do público</strong> (<code>/img</code>) e <strong>letra para o público</strong> (<code>/lyrics/display/public</code>)</li>
+            <li><strong>Retorno de palco</strong> (<code>/monitor</code>), para quem está no palco</li>
+            <li><strong>Bíblia</strong> (<code>/bible/display</code>), <strong>relógio</strong> e <strong>cronômetro</strong></li>
+            <li><strong>Overlay para OBS</strong> (<code>/lyrics/display/obs</code>), com fundo transparente para transmissão</li>
+            <li><strong>Enviar fotos</strong> (<code>/presenter</code>): qualquer pessoa da igreja manda fotos do celular para a galeria</li>
+            <li><strong>Ordem do culto</strong> (<code>/view</code>)</li>
+        </ul>`,
+
+    problemas: `
+        <h2>Solução de problemas</h2>
+        <h3>O celular não abre o U-Control</h3>
+        <ul>
+            <li>Confira se o celular está na mesma rede do computador, e não nos dados móveis.</li>
+            <li>No Windows, o instalador libera o U-Control no firewall. Se outro antivírus ou firewall estiver ativo, libere a porta <code>8585</code> nele.</li>
+            <li>Algumas redes de visitantes isolam os aparelhos entre si. Nesse caso, use a rede principal da igreja.</li>
+        </ul>
+        <h3>O vídeo toca sem som no telão</h3>
+        <p>Navegadores bloqueiam som automático. As telas abertas pelo menu da bandeja (Windows), pelo <strong>Abrir no datashow</strong> do Controle ou pelo script baixado no <a href="/dashboard">Início</a> já vêm com o som liberado. Numa aba comum, toque uma vez na tela do telão.</p>
+        <h3>A tela não entra em tela cheia</h3>
+        <p>No Controle, use <strong>Abrir no datashow</strong> para escolher em qual tela do computador a tela pública abre.</p>
+        <h3>Uma tradução da Bíblia não aparece</h3>
+        <p>O U-Control traz só traduções de licença aberta (como a Bíblia Livre e a Nova Bíblia Viva). Traduções com direitos autorais, como NVI e ACF, precisam ser adicionadas por quem tem o direito de usá-las.</p>`,
+
+    contato: `
+        <h2>Contato</h2>
+        <p>O U-Control é um projeto de código aberto. Para relatar um problema ou sugerir uma melhoria, abra um chamado em <a href="https://github.com/brunomint/U-Control/issues" target="_blank" rel="noopener">github.com/brunomint/U-Control/issues</a>.</p>`,
+};
+
 function loadContent(section) {
     const content = document.getElementById('content');
-    let html = '';
-
-    switch (section) {
-        case 'funcionalidades':
-    html = `
-        <h2>Principais Funcionalidades</h2>
-        <p>
-            O <strong>U-Control</strong> pode ser instalado em um único dispositivo e controlado remotamente por outros aparelhos conectados à mesma rede local, oferecendo flexibilidade e praticidade no gerenciamento de apresentações.
-        </p>
-        <p>
-            As telas de apresentação destinadas ao público podem ser exibidas de forma remota. Para maior segurança ou estabilidade, o computador pode ser conectado diretamente à tela utilizando um cabo HDMI.
-        </p>
-        <ul>
-            <li><strong>Gerenciar mídia em tempo real:</strong> Controle apresentações, vídeos e imagens com precisão.</li>
-            <li><strong>Sincronização de telas:</strong> Sincronize telas de controle e monitor com agilidade, garantindo apresentações impecáveis.</li>
-            <li><strong>Interface amigável:</strong> Navegue facilmente por um sistema desenvolvido para simplificar seu fluxo de trabalho.</li>
-            <li><strong>Controle em rede local:</strong> Instale o U-Control em uma única máquina e controle-o de outros dispositivos na mesma rede local.</li>
-        </ul>`;
-    break;
-
-        case 'iniciando':
-            html = `
-                <h2>Iniciando o Programa</h2>
-                <p>Para iniciar o programa, siga os passos abaixo:</p>
-                <ul>
-                    <li>Certifique-se de que o programa está instalado corretamente.</li>
-                    <li>Abra o programa clicando duas vezes no ícone na área de trabalho.</li>
-                    <li>Insira suas credenciais de login.</li>
-                </ul>`;
-            break;
-        case 'credenciais':
-            html = `
-                <h2>Credenciais de Login</h2>
-                <p>Para garantir a segurança do sistema, é fundamental que os usuários sejam previamente cadastrados com login e senha. Esse controle de acesso evita que pessoas não autorizadas tenham acesso às funções principais do programa, prevenindo interferências que possam comprometer a apresentação.
-                </p>
-                <p>
-                    Embora o controle de acesso com login e senha seja essencial para proteger as funções principais do programa, algumas rotas podem ser acessadas remotamente sem a necessidade de autenticação. Essas rotas incluem a Tela do Apresentador de Imagens (presenter), o Monitor de Palco e a Tela do Público, garantindo maior praticidade para exibição e acompanhamento durante as apresentações.
-                </p>
-                <p>
-                    Assim que o programa é iniciado, a seguinte página é exibida, solicitando que o usuário insira suas credenciais de acesso:
-                </p>
-                <div class="image-container">
-                    <img src="static/imges_help/Login.png" alt="Login" class="centered-image">
-                </div>
-                <p>Para o primeiro acesso, utilize as seguintes credenciais:</p>
-                <div class="callout">
-                    <strong>Usuário:</strong> <code>admin</code><br>
-                    <strong>Senha:</strong> <code>1234</code>
-                </div>
-                <p>
-                    Após o primeiro acesso ao sistema utilizando as credenciais padrão (<strong>Usuário: admin</strong>, <strong>Senha: 1234</strong>), recomendamos que o cadastro do usuário "admin" seja removido por questões de segurança. Isso garantirá que apenas usuários cadastrados com permissões específicas possam acessar as funcionalidades principais do programa.
-                </p>
-                <p>
-                    Para eliminar o cadastro do admin, siga os passos abaixo:
-                </p>
-                <ul>
-                    <li>Acesse o painel de controle do sistema clicando na opção 'Links' e em seguida 'Novo Usuário'.</li>
-                        <div class="image-container">
-                            <img src="static/imges_help/link_novo-usuario.png" alt="Login" class="centered-image">
-                        </div>
-                    <li>Na página "Usuários Registrados", localize o usuário "admin" na lista de usuários cadastrados e Selecione a opção para <strong class="danger">remover</strong>.</li>
-                        <div class="image-container">
-                            <img src="static/imges_help/remover_usuario.png" alt="Login" class="centered-image">
-                        </div>
-                </ul>
-                <p>
-                    Ao excluir o usuário "admin", o sistema estará mais seguro, garantindo que apenas pessoas autorizadas possam controlar o programa.
-                </p>
-                <p>
-                    Na página "Usuários Registrados", você pode adicionar novos usuários ao sistema de forma simples. Preencha os campos "Nome de Usuário" e "Senha" e clique no botão "Adicionar Usuário" para concluir o cadastro.
-                </p>
-                        <div class="image-container">
-                            <img src="static/imges_help/cadastrar_usuario.png" alt="Login" class="centered-image">
-                        </div> `;
-            break;
-        case 'dicas':
-            html = `
-                <h2>3. Dicas e Truques</h2>
-                <div class="highlight">
-                    <p><strong>Dica:</strong> Utilize a combinação de teclas <code>Ctrl + S</code> para salvar rapidamente seu progresso.</p>
-                </div>
-                <p>Mais algumas dicas úteis:</p>
-                <ul>
-                    <li>Pressione <code>F1</code> para acessar a ajuda a qualquer momento.</li>
-                    <li>Ative o modo escuro nas configurações para reduzir o cansaço visual.</li>
-                </ul>`;
-            break;
-        case 'problemas':
-            html = `
-                <h2>4. Solução de Problemas</h2>
-                <p>Se encontrar problemas, tente as seguintes soluções:</p>
-                <ul>
-                    <li>Reinicie o programa e tente novamente.</li>
-                    <li>Consulte o manual na seção "FAQ".</li>
-                    <li>Entre em contato com o suporte técnico pelo e-mail <a href="mailto:suporte@exemplo.com">suporte@exemplo.com</a>.</li>
-                </ul>`;
-            break;
-        case 'contato':
-            html = `
-                <h2>5. Contato</h2>
-                <p>Se precisar de mais ajuda, entre em contato conosco:</p>
-                <ul>
-                    <li><strong>Suporte:</strong> <a href="mailto:suporte@exemplo.com">suporte@exemplo.com</a></li>
-                    <li><strong>Telefone:</strong> (11) 1234-5678</li>
-                </ul>`;
-            break;
-    }
-
-    content.innerHTML = html;
+    content.innerHTML = HELP_SECTIONS[section] || '';
     document.querySelectorAll('.help-menu [data-section]').forEach(a => {
         a.classList.toggle('active', a.dataset.section === section);
     });

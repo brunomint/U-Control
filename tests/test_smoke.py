@@ -2550,3 +2550,15 @@ def test_copyrighted_bibles_only_from_private_folder(tmp_path, monkeypatch):
     assert "nvi" in bible.load_bible_metadata()["translations"]
     assert bible.load_bible("nvi")[0]["chapters"][0][0] == "No princípio"
     monkeypatch.setattr(bible, "_bible_metadata", None)
+
+
+def test_help_has_every_menu_section_and_no_default_password(client):
+    """Ajuda abre sem login (e tem QR code): já ensinou uma senha padrão
+    admin/1234 e tinha contato falso. Todo tópico do menu tem conteúdo."""
+    import re
+
+    html = client.get("/help").get_data(as_text=True)
+    js = open(os.path.join(ucontrol_main.app.static_folder, "js", "pages", "help.js"), encoding="utf-8").read()
+    secoes = re.findall(r'data-section="(\w+)"', html)
+    assert secoes and all(re.search(rf"^    {s}: `", js, re.M) for s in secoes)
+    assert "1234" not in js and "exemplo.com" not in js and "imges_help" not in js
