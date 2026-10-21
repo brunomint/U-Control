@@ -55,6 +55,21 @@ try { if (window.self !== window.top && window.top.location.origin === location.
     <button type="button" class="site-nav-toggle" aria-label="Abrir menu" aria-expanded="false">
         <i class="fas fa-bars"></i>
     </button>
+    {#- Selo de versão nova (updates.py): aparece quando há Release mais
+        nova que esta instalação e ninguém clicou "Agora não" pra ela. #}
+    <a class="site-nav-update" id="site-nav-update" href="{{ url_for('utils.atualizacao') }}" title="Nova versão disponível" hidden>
+        <i class="fas fa-circle-up"></i> <span></span>
+    </a>
+    <script>
+    fetch('/api/update-status').then(r => r.json()).then(s => {
+        let dispensada = null;
+        try { dispensada = localStorage.getItem('uc_update_dispensada'); } catch (e) { /* sem storage */ }
+        if (!s.available || dispensada === s.latest) return;
+        const selo = document.getElementById('site-nav-update');
+        selo.querySelector('span').textContent = 'Nova versão ' + s.latest;
+        selo.hidden = false;
+    }).catch(() => {});
+    </script>
     <div class="site-nav-user">
         <span class="site-nav-avatar">{{ current_user.username[0] | upper }}</span>
         <span class="site-nav-username">{{ current_user.username }}</span>

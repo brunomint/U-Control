@@ -11,6 +11,7 @@ from display_log import clear_display_log, load_display_log
 from flask_login import login_required
 from nav_config import items_for_context
 from network_utils import PORTA, obter_endereco_ip
+import updates
 
 utils_bp = Blueprint('utils', __name__)
 
@@ -202,6 +203,40 @@ def download_monitor_launcher(so):
     response.headers['Content-Type'] = mimetype
     response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+def _pedido_local():
+    """Quem pede está no próprio computador do U-Control (não no celular,
+    nem chegando pelo túnel do Cloudflare, que também conecta de
+    127.0.0.1 mas manda esses cabeçalhos)."""
+    if request.headers.get('X-Forwarded-For') or request.headers.get('CF-Connecting-IP'):
+        return False
+    return request.remote_addr in ('127.0.0.1', '::1')
+
+
+@utils_bp.route('/atualizacao')
+@login_required
+def atualizacao():
+    return render_template('atualizacao.html')
+
+
+@utils_bp.route('/api/update-status')
+@login_required
+def api_update_status():
+    return jsonify(updates.status(local=_pedido_local()))
+
+
+@utils_bp.route('/api/update/install', methods=['POST'])
+@login_required
+def api_update_install():
+    # Instalar fecha o programa: só de quem está no computador dele, nunca
+    # de um celular no meio do culto
+    if not _pedido_local():
+        return jsonify({'error': 'Instale pelo computador onde o U-Control está rodando.'}), 403
+    erro = updates.start_install()
+    if erro:
+        return jsonify({'error': erro}), 400
+    return jsonify({'ok': True})
+
 
 @utils_bp.route('/help')
 def help():

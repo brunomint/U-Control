@@ -232,6 +232,11 @@ def create_app(config=None):
 
 app = create_app()
 
+# Já começa a consultar se há versão nova (updates.py, em segundo plano):
+# a primeira página aberta não fica sem resposta
+import updates  # noqa: E402
+updates.latest_release()
+
 
 # QR CODE
 

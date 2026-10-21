@@ -2584,3 +2584,60 @@ def test_cannot_remove_self_or_last_user(app, logged_in_client):
     with app.app_context():
         assert ucontrol_main.db.session.get(User, outro_id) is None
         assert User.query.count() >= 1
+
+
+def test_update_check_compares_versions_and_reads_release(monkeypatch):
+    import updates
+
+    assert updates.parse_version("v1.10.0") > updates.parse_version("1.9.9")
+    assert updates.parse_version("lixo") < updates.parse_version("0.0.1")
+
+    class Resp:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"tag_name": "v9.9.9", "body": "Novidades", "html_url": "https://github.com/x",
+                    "assets": [{"name": "U-Control-Setup-9.9.9.exe", "size": 3, "digest": "sha256:ab",
+                                "browser_download_url": updates.DOWNLOAD_PREFIX + "v9.9.9/U-Control-Setup-9.9.9.exe"}]}
+
+    monkeypatch.setattr(updates.requests, "get", lambda *a, **kw: Resp())
+    rel = updates._fetch_latest()
+    assert rel["version"] == "9.9.9" and rel["installer"]["digest"] == "sha256:ab"
+
+    Resp.status_code = 404  # repositório ainda sem Release: consultou, não há versão
+    assert updates._fetch_latest() is None
+
+
+def test_update_status_and_install_only_from_the_server_pc(logged_in_client, client, monkeypatch):
+    """Selo/página de versão nova; "Baixar e instalar" (fecha o programa)
+    só no Windows e só pra quem está no próprio PC — nunca pelo celular
+    nem pelo túnel (que também chega de 127.0.0.1)."""
+    import updates
+
+    rel = {"version": "9.9.9", "notes": "Novidades", "url": "https://github.com/x",
+           "installer": {"name": "s.exe", "url": "https://exemplo.com/s.exe", "size": 1, "digest": None}}
+    monkeypatch.setitem(updates._cache, "release", rel)
+    monkeypatch.setitem(updates._cache, "quando", 10**12)  # não busca no GitHub
+
+    assert client.get("/api/update-status").status_code == 302  # exige login
+    s = logged_in_client.get("/api/update-status").get_json()
+    assert s["available"] and s["current"] == updates.current_version() and s["kind"] == "servidor"
+    assert not s["can_install"]
+    assert 'id="site-nav-update"' in logged_in_client.get("/dashboard").get_data(as_text=True)
+    assert logged_in_client.get("/atualizacao").status_code == 200
+
+    monkeypatch.setattr(updates, "install_kind", lambda: "windows")
+    assert logged_in_client.get("/api/update-status").get_json()["can_install"]
+    celular = {"REMOTE_ADDR": "192.168.0.20"}
+    assert not logged_in_client.get("/api/update-status", environ_base=celular).get_json()["can_install"]
+    assert logged_in_client.post("/api/update/install", environ_base=celular).status_code == 403
+    assert logged_in_client.post("/api/update/install", headers={"CF-Connecting-IP": "1.2.3.4"}).status_code == 403
+    # instalador fora das Releases do repositório: recusa, não baixa
+    r = logged_in_client.post("/api/update/install")
+    assert r.status_code == 400 and updates._instalacao["estado"] is None
+
+    monkeypatch.setitem(rel, "version", "0.0.1")
+    assert not logged_in_client.get("/api/update-status").get_json()["available"]

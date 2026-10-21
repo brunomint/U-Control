@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}Atualização - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<style>
+.update-card { max-width: 720px; display: grid; gap: 14px; }
+.update-notes { white-space: pre-wrap; background: var(--uc-surface-2); border-radius: var(--uc-r-sm); padding: 12px 14px; max-height: 360px; overflow: auto; margin: 0; font: inherit; }
+.update-progress { height: 8px; background: var(--uc-surface-2); border-radius: 99px; overflow: hidden; }
+.update-progress > div { height: 100%; width: 0; background: var(--uc-accent); transition: width .3s; }
+.update-card code { background: var(--uc-surface-2); padding: 2px 6px; border-radius: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Atualização</h1>
+            <div class="uc-page-sub" id="upd-sub">Consultando…</div>
+        </div>
+    </div>
+
+    <section class="uc-card update-card" id="upd-card" hidden>
+        <h2 id="upd-title"></h2>
+        <pre class="update-notes" id="upd-notes" hidden></pre>
+        <div id="upd-how"></div>
+        <div class="update-progress" id="upd-progress" hidden><div></div></div>
+        <p id="upd-msg" role="status"></p>
+        <div class="uc-btn-row" id="upd-actions"></div>
+    </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/atualizacao.js') }}"></script>
+{% endblock %}

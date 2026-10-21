@@ -92,6 +92,21 @@
 }
 .site-nav-menu.has-active > summary { color: var(--uc-text); }
 
+/* Selo "Nova versão" (_nav.html ← updates.py). [hidden] explícito: nav.css
+   também roda em páginas sem o app.css */
+.site-nav-update {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  margin-left: 8px; padding: 5px 10px; border-radius: 99px;
+  background: var(--uc-accent-soft); color: var(--uc-accent-text);
+  font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.site-nav-update:hover { background: var(--uc-accent); color: #fff; }
+.site-nav-update[hidden] { display: none; }
+/* Celular: só o ícone, pra não espremer o botão do Controle */
+@media (max-width: 640px) {
+  .site-nav-update { padding: 6px 8px; margin-left: 4px; }
+  .site-nav-update span { display: none; }
+}
 .site-nav-user { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
 .site-nav-avatar {
   width: 30px;

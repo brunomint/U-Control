@@ -85,6 +85,12 @@ def main():
     r = subprocess.run([ffmpeg, '-version'], capture_output=True, text=True, timeout=30)
     check(r.returncode == 0, 'ffmpeg instalado em bin\\')
 
+    # aviso de atualização: o .exe sabe que é a instalação Windows e a versão
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'VERSION')) as f:
+        versao = f.read().strip()
+    u = s.get(BASE + '/api/update-status').json()
+    check(u['kind'] == 'windows' and u['current'] == versao, f"atualização: windows {u['current']}")
+
     # e o programa acha esse ffmpeg (PATH montado pelo desktop.py)
     check(s.get(BASE + '/api/system/status').json().get('ffmpeg') is True, 'programa acha o ffmpeg')
 

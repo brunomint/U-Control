@@ -62,6 +62,16 @@ Name: "{userstartup}\U-Control"; Filename: "{app}\U-Control.exe"; Tasks: startup
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""U-Control"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""U-Control"" dir=in action=allow program=""{app}\U-Control.exe"" enable=yes profile=any"; Flags: runhidden
 Filename: "{app}\U-Control.exe"; Description: "Abrir o U-Control agora"; Flags: nowait postinstall skipifsilent
+; Atualização pelo próprio programa (updates.py roda o Setup com /SILENT
+; /RELAUNCH): abre de novo sozinho. Como o usuário, não como admin — os
+; dados ficam no %APPDATA% de quem usa.
+Filename: "{app}\U-Control.exe"; Flags: nowait runasoriginaluser; Check: RelaunchRequested
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""U-Control"""; Flags: runhidden; RunOnceId: "FirewallRule"
+
+[Code]
+function RelaunchRequested: Boolean;
+begin
+  Result := Pos('/RELAUNCH', UpperCase(GetCmdTail)) > 0;
+end;

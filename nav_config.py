@@ -91,6 +91,10 @@ NAV_ITEMS = [
         "group": "sistema", "login_required": True, "contexts": ["nav", "launcher"],
     },
     {
+        "endpoint": "utils.atualizacao", "label": "Atualização", "icon": "fa-circle-up",
+        "group": "sistema", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "utils.help", "label": "Ajuda", "icon": "fa-circle-question",
         "group": "sistema", "login_required": False, "contexts": ["nav", "qr"],
     },
