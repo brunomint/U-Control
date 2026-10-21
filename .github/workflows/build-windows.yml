@@ -84,7 +84,11 @@ jobs:
         shell: pwsh
         run: |
           $setup = "dist\U-Control-Setup-${{ steps.versao.outputs.versao }}.exe"
-          Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          $lo = "$env:ProgramFiles\LibreOffice\program\soffice.exe"
+          "LibreOffice antes de instalar: $(Test-Path $lo)"
+          Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/LOG=setup.log' -Wait
+          Select-String -Path setup.log -Pattern 'LibreOffice|libreoffice|msiexec' | ForEach-Object { $_.Line }
+          "LibreOffice depois de instalar: $(Test-Path $lo)"
           $exe = "$env:ProgramFiles\U-Control\U-Control.exe"
           Start-Process $exe
           python scripts/smoke_installed.py --exe $exe
