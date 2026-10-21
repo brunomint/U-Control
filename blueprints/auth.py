@@ -73,7 +73,30 @@ def login():
         else:
             _registrar_tentativa_falha(ip_cliente)
             flash('Usuário ou senha incorretos.')
-    return render_template('login.html')
+    # Instalação nova (Windows, Docker): sem nenhum usuário ainda, a tela
+    # de login vira "criar o primeiro" — ver primeiro_acesso()
+    return render_template('login.html', primeiro_acesso=User.query.first() is None)
+
+
+@auth_bp.route('/primeiro-acesso', methods=['POST'])
+def primeiro_acesso():
+    """Cria o primeiro usuário. Só funciona enquanto não existe nenhum —
+    depois disso usuários novos só entram por /usuarios, logado."""
+    if User.query.first() is not None:
+        return redirect(url_for('auth.login'))
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '')
+    if not username or not password:
+        flash('Preencha usuário e senha.')
+        return redirect(url_for('auth.login'))
+    if password != request.form.get('password_confirm', ''):
+        flash('As senhas não conferem.')
+        return redirect(url_for('auth.login'))
+    user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
+    db.session.add(user)
+    db.session.commit()
+    login_user(user)
+    return redirect(url_for('auth.dashboard'))
 
 
 @auth_bp.route('/dashboard')

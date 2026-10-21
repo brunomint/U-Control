@@ -2496,3 +2496,32 @@ def test_data_dir_keeps_state_out_of_code_folder(tmp_path):
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr[-2000:]
     assert (tmp_path / "instance" / "secret_key").exists()
+
+
+def test_first_run_creates_first_user_only_once(app):
+    """Instalação nova não tem usuário e /register não existe mais: a tela
+    de login oferece criar o primeiro, e só enquanto não houver nenhum."""
+    with app.app_context():
+        User.query.delete()
+        ucontrol_main.db.session.commit()
+    try:
+        c = app.test_client()
+        assert "Repita a senha" in c.get("/login").get_data(as_text=True)
+
+        c.post("/primeiro-acesso", data={"username": "op", "password": "a", "password_confirm": "b"})
+        with app.app_context():
+            assert User.query.count() == 0
+
+        r = c.post("/primeiro-acesso", data={"username": "op", "password": "a", "password_confirm": "a"})
+        assert r.status_code == 302 and r.headers["Location"].endswith("/dashboard")
+        assert c.get("/dashboard").status_code == 200
+
+        outro = app.test_client()
+        assert "Repita a senha" not in outro.get("/login").get_data(as_text=True)
+        outro.post("/primeiro-acesso", data={"username": "intruso", "password": "x", "password_confirm": "x"})
+        with app.app_context():
+            assert [u.username for u in User.query.all()] == ["op"]
+    finally:
+        with app.app_context():
+            User.query.filter_by(username="op").delete()
+            ucontrol_main.db.session.commit()

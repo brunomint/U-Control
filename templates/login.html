@@ -13,7 +13,7 @@
         <div class="login-brand">
             <img src="/static/U-Control.png" alt="">
             <h1>U-Control</h1>
-            <p class="uc-muted">Entre para operar o telão</p>
+            <p class="uc-muted">{% if primeiro_acesso %}Primeiro acesso: crie o usuário do operador{% else %}Entre para operar o telão{% endif %}</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -22,6 +22,24 @@
         {% endfor %}
         {% endwith %}
 
+        {% if primeiro_acesso %}
+        <form class="uc-form-stack" method="POST" action="{{ url_for('auth.primeiro_acesso') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="uc-field">
+                <label for="username">Usuário</label>
+                <input class="uc-input" type="text" id="username" name="username" autocomplete="username" autofocus required>
+            </div>
+            <div class="uc-field">
+                <label for="password">Senha</label>
+                <input class="uc-input" type="password" id="password" name="password" autocomplete="new-password" required>
+            </div>
+            <div class="uc-field">
+                <label for="password_confirm">Repita a senha</label>
+                <input class="uc-input" type="password" id="password_confirm" name="password_confirm" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">Criar e entrar</button>
+        </form>
+        {% else %}
         <form class="uc-form-stack" method="POST" action="/login">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
@@ -35,6 +53,7 @@
             </div>
             <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">Entrar</button>
         </form>
+        {% endif %}
     </div>
 </main>
 {% endblock %}
