@@ -2797,3 +2797,54 @@ def test_apresentacao_parse_url_recusa_caminho_de_fora():
     assert parse_url("/apresentacao?svg=/etc/passwd&slide=1")[0] is None
     assert parse_url("/apresentacao?svg=/static/imagens/a.jpg")[0] is None
     assert parse_url("/clock") == (None, 0)
+
+
+# --- Backup (blueprints/backup.py) ----------------------------------------
+
+def test_backup_exige_login(client):
+    for url in ("/backup", "/api/backup/baixar", "/api/backup/resumo"):
+        assert client.get(url).status_code in (302, 401)
+    assert client.post("/api/backup/restaurar").status_code in (302, 401)
+
+
+def test_backup_baixar_traz_manifest_banco_e_fotos(logged_in_client, tmp_path, monkeypatch):
+    import io
+    import json
+    import zipfile
+    import paths
+
+    (tmp_path / "static" / "imagens" / "Culto").mkdir(parents=True)
+    (tmp_path / "static" / "imagens" / "Culto" / "foto.jpg").write_bytes(b"jpg")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(paths, "AUDIO_DIR", str(tmp_path / "audio"))
+    monkeypatch.setattr(paths, "BIBLES_PRIVATE_DIR", str(tmp_path / "bibles"))
+
+    resp = logged_in_client.get("/api/backup/baixar")
+    assert resp.status_code == 200
+    zf = zipfile.ZipFile(io.BytesIO(resp.data))
+    assert {"manifest.json", "banco/users.db", "imagens/Culto/foto.jpg"} <= set(zf.namelist())
+    assert json.loads(zf.read("manifest.json"))["app"] == "U-Control"
+
+
+def test_backup_restaurar_recusa_arquivo_estranho(logged_in_client):
+    import io
+    import json
+    import zipfile
+
+    def enviar(dados):
+        return logged_in_client.post("/api/backup/restaurar", data={"arquivo": (io.BytesIO(dados), "b.zip")},
+                                     content_type="multipart/form-data")
+
+    assert "não é um backup" in enviar(b"qualquer coisa").get_json()["error"]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("manifest.json", json.dumps({"app": "U-Control", "formato": 1}))
+        zf.writestr("banco/users.db", b"")
+        zf.writestr("imagens/../../fora.txt", "x")
+    resp = enviar(buf.getvalue())
+    assert resp.status_code == 400 and "estranho" in resp.get_json()["error"]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("manifest.json", json.dumps({"app": "U-Control", "formato": 99}))
+        zf.writestr("banco/users.db", b"")
+    assert "mais nova" in enviar(buf.getvalue()).get_json()["error"]

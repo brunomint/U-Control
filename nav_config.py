@@ -95,6 +95,10 @@ NAV_ITEMS = [
         "group": "sistema", "login_required": True, "contexts": ["nav"],
     },
     {
+        "endpoint": "backup.backup_page", "label": "Backup", "icon": "fa-box-archive",
+        "group": "sistema", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "utils.help", "label": "Ajuda", "icon": "fa-circle-question",
         "group": "sistema", "login_required": False, "contexts": ["nav", "qr"],
     },

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}Backup - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<style>
+.backup-grid { display: grid; gap: 16px; max-width: 760px; }
+.backup-grid .uc-card { display: grid; gap: 12px; }
+.backup-grid h2 { margin: 0; font-size: 1.1rem; display: flex; gap: 8px; align-items: center; }
+.backup-grid p { margin: 0; }
+.backup-resumo { color: var(--uc-muted); }
+.backup-aviso { background: var(--uc-surface-2); border-left: 3px solid var(--uc-warn); padding: 10px 12px; border-radius: var(--uc-r-sm); }
+.backup-arquivo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.backup-arquivo input[type="file"] { flex: 1; min-width: 0; color: var(--uc-muted); }
+.backup-arquivo input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 700; color: var(--uc-text); background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); padding: 6px 12px; margin-right: 10px; cursor: pointer;
+}
+.backup-confirma { display: flex; gap: 8px; align-items: flex-start; }
+.backup-progress { height: 8px; background: var(--uc-surface-2); border-radius: 99px; overflow: hidden; }
+.backup-progress > div { height: 100%; width: 0; background: var(--uc-accent); transition: width .2s; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Backup</h1>
+            <div class="uc-page-sub">Guarde tudo num arquivo, ou leve para outro computador com o U-Control</div>
+        </div>
+    </div>
+
+    <div class="backup-grid">
+        <section class="uc-card">
+            <h2><i class="fas fa-download"></i> Fazer backup</h2>
+            <p>Um arquivo <code>.zip</code> com as músicas e cifras, as ordens de culto, os usuários, as configurações,
+               as fotos, os slides, os vídeos e os áudios deste U-Control.</p>
+            <p class="backup-resumo" id="backup-resumo">&nbsp;</p>
+            <div class="uc-btn-row">
+                <a class="uc-btn uc-btn-primary" id="backup-baixar" href="/api/backup/baixar"><i class="fas fa-box-archive"></i> Baixar backup</a>
+            </div>
+            <p class="uc-muted" id="backup-baixando" hidden>Montando o arquivo… com muitas fotos pode levar um minuto.</p>
+        </section>
+
+        <section class="uc-card">
+            <h2><i class="fas fa-upload"></i> Restaurar backup</h2>
+            <p>Use para trazer os dados de outro U-Control (do Raspberry Pi para o Windows, de um computador antigo…)
+               ou voltar a um backup guardado.</p>
+            <p class="backup-aviso"><strong>Substitui tudo</strong> o que está neste U-Control pelo que está no arquivo,
+               inclusive os usuários: depois, entre com um usuário do backup. O que existe agora fica guardado
+               numa cópia automática, na pasta de dados (<code>instance/backups</code>).</p>
+            <p class="uc-muted">Backup grande (muitas fotos e vídeos)? Restaure pela rede da igreja, com o endereço
+               <code>http://&lt;ip&gt;:8585</code> ou no próprio computador: pelo endereço da internet, arquivos acima
+               de 100 MB são barrados no caminho.</p>
+            <div class="backup-arquivo">
+                <input type="file" id="backup-arquivo" accept=".zip,application/zip" aria-label="Arquivo do backup">
+            </div>
+            <label class="backup-confirma">
+                <input type="checkbox" id="backup-confirmo">
+                <span>Entendi que tudo o que está neste U-Control vai ser substituído pelo backup.</span>
+            </label>
+            <div class="backup-progress" id="backup-progress" hidden><div></div></div>
+            <p id="backup-msg" role="status"></p>
+            <div class="uc-btn-row">
+                <button type="button" class="uc-btn uc-btn-danger" id="backup-restaurar" disabled><i class="fas fa-rotate-left"></i> Restaurar</button>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/backup.js') }}"></script>
+{% endblock %}

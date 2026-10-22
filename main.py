@@ -37,6 +37,7 @@ from network_utils import PORTA, obter_endereco_ip
 from blueprints.utils import utils_bp
 from blueprints.gallery import gallery_bp
 from blueprints.apresentacao import apresentacao_bp
+from blueprints.backup import backup_bp
 from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
@@ -173,6 +174,7 @@ def create_app(config=None):
     app.register_blueprint(utils_bp)
     app.register_blueprint(gallery_bp)
     app.register_blueprint(apresentacao_bp)
+    app.register_blueprint(backup_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(agenda_bp)
     app.register_blueprint(lyrics_bp)
