@@ -2930,3 +2930,43 @@ def test_desligar_exige_login(client, monkeypatch):
     import desktop_ponte
     monkeypatch.setattr(desktop_ponte, "_desligar", lambda: None)
     assert client.post("/api/desligar").status_code in (302, 401)
+
+
+# --- Fontes e imagens do PowerPoint (pptx_fontes.py, pptx_imagens.py) ----
+
+def test_fonte_embutida_sai_do_eot():
+    import struct
+    import pptx_fontes
+
+    ttf = b"\x00\x01\x00\x00" + b"fonte de verdade"
+    def eot(flags, dados):
+        cabecalho = bytearray(82)
+        struct.pack_into("<IIII", cabecalho, 0, len(cabecalho) + len(dados), len(dados), 0x20002, flags)
+        struct.pack_into("<H", cabecalho, 34, 0x504C)
+        return bytes(cabecalho) + dados
+
+    assert pptx_fontes._ttf_do_eot(eot(0, ttf)) == ttf
+    assert pptx_fontes._ttf_do_eot(eot(0x10000000, bytes(b ^ 0x50 for b in ttf))) == ttf  # XOR
+    assert pptx_fontes._ttf_do_eot(eot(0x4, ttf)) is None  # comprimida (MTX): não dá
+    assert pptx_fontes._ttf_do_eot(ttf) == ttf  # TTF puro
+    assert pptx_fontes._ttf_do_eot(b"qualquer coisa") is None
+
+
+def test_gif_girado_volta_a_girar_no_svg():
+    import pptx_imagens
+
+    # GIF do Canva girado -111,9°: o LibreOffice grava a caixa do giro
+    # (x=-27189 y=-11318 46238x59704) com o GIF reto e esticado dentro
+    pic = ('<p:pic><a:blip r:embed="rId2"/><a:xfrm flipH="false" flipV="false" rot="-6714334">'
+           '<a:off x="-10978702" y="1527947"/><a:ext cx="19028773" cy="10288223"/></a:xfrm></p:pic>')
+
+    class Zip:
+        def read(self, _):
+            return pic.encode()
+
+    girados = pptx_imagens._gifs_girados(Zip(), "s", {"rId2": "ppt/media/a.gif"}, {"ppt/media/a.gif"})
+    attrs = pptx_imagens._girar(' x="-27189" y="-11318" width="46238" height="59704" ', girados)
+    assert 'transform="rotate(-111.906' in attrs
+    assert 'width="52858" height="28578"' in attrs  # tamanho reto do PowerPoint
+    sem = ' x="0" y="0" width="100" height="100" '
+    assert pptx_imagens._girar(sem, girados) == sem  # outra imagem: não mexe

@@ -27,6 +27,8 @@ except ImportError:  # pragma: no cover
     pass
 
 import paths
+import pptx_fontes
+import pptx_imagens
 from extensions import csrf
 
 gallery_bp = Blueprint('gallery', __name__)
@@ -342,6 +344,7 @@ def _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile
     svg_dir = os.path.join(tmp_dir, 'svg')
     os.makedirs(svg_dir, exist_ok=True)
     with _lo_lock:
+        pptx_fontes.preparar(src_path, profile)
         proc = subprocess.run(
             _low_priority() + [soffice, f'-env:UserInstallation={pathlib.Path(profile).as_uri()}', '--headless',
              '--convert-to', 'svg:impress_svg_Export', '--outdir', svg_dir, origem],
@@ -352,6 +355,14 @@ def _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile
         logging.error("upload: LibreOffice não gerou o SVG animado de %s (saída %s): %s", base_name,
                       proc.returncode, (proc.stderr or proc.stdout or b'')[-300:].decode(errors='replace'))
         return
+    try:
+        pptx_imagens.corrigir_svg(svg, src_path)
+    except Exception:
+        logging.exception("upload: não deu pra corrigir as imagens do SVG de %s", base_name)
+    try:
+        pptx_fontes.embutir_no_svg(svg, src_path)
+    except Exception:
+        logging.exception("upload: não deu pra pôr as fontes no SVG de %s", base_name)
     shutil.move(svg, os.path.join(target_dir, base_name + ANIMADO_SUFIXO))
     logging.info("upload: %s — versão animada pronta", base_name)
 
@@ -367,6 +378,7 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
             # basename etc. no PATH (o do serviço só tem o venv)
             env = dict(os.environ)
             env['PATH'] = os.pathsep.join(filter(None, [env.get('PATH'), '/usr/local/bin', '/usr/bin', '/bin']))
+            pptx_fontes.preparar(src_path, profile)
             proc = subprocess.run(
                 # as_uri(): file:///C:/... no Windows (f'file://{profile}' dava
                 # file://C:\... e o LibreOffice não abria)
@@ -390,7 +402,7 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
             except Exception:
                 logging.exception("upload: falha tirando os vídeos de %s", src_path)
             try:
-                if _pptx_animado(src_path):
+                if _pptx_animado(src_path) or pptx_imagens.tem_gif_animado(src_path):
                     _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile, env)
             except Exception:
                 logging.exception("upload: falha gerando a versão animada de %s", src_path)
