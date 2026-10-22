@@ -95,7 +95,10 @@ def esquecer(sid):
 
 
 def _navegar(direcao):
+    import navegador_telao
     from blueprints import apresentacao
+    if navegador_telao.aberto():  # site no telão por cima de tudo
+        return _site('pagina-baixo' if direcao > 0 else 'pagina-cima')
     if apresentacao.no_ar():
         _handler(apresentacao.handle_apresentacao_cmd)({'cmd': 'next' if direcao > 0 else 'prev'})
         return {'ok': True, 'em': 'apresentação'}
@@ -183,6 +186,20 @@ def _socket(nome_modulo, nome_funcao, dados=None):
     return fazer
 
 
+def _site(acao):
+    import navegador_telao
+    try:
+        if acao == 'fechar':
+            navegador_telao.fechar()
+            estado = navegador_telao.estado()
+        else:
+            estado = navegador_telao.comando(acao)
+    except navegador_telao.SiteErro as e:
+        return {'ok': False, 'erro': str(e)}
+    socketio.emit('site_estado', estado)
+    return {'ok': True, 'em': 'site'}
+
+
 def _relogio():
     from blueprints.display import handle_show_image
     _handler(handle_show_image)({'image_url': '/clock'})
@@ -191,7 +208,7 @@ def _relogio():
 
 # nome -> (descrição na página, função)
 COMANDOS = {
-    'proximo': ('Próximo: estrofe ou versículo aberto no painel do Controle, ou animação do PowerPoint no ar', lambda: _navegar(1)),
+    'proximo': ('Próximo: estrofe ou versículo aberto no painel do Controle, animação do PowerPoint ou página do site no ar', lambda: _navegar(1)),
     'anterior': ('Anterior', lambda: _navegar(-1)),
     'liberar': ('Liberar o que está preparado', _liberar),
     'tela-preta': ('Tela preta liga/desliga', lambda: _tela_preta('alternar')),
@@ -205,6 +222,9 @@ COMANDOS = {
     'cronometro-continuar': ('Continuar o cronômetro', _socket('blueprints.countdown', 'handle_resume_countdown')),
     'cronometro-zerar': ('Zerar o cronômetro', _socket('blueprints.countdown', 'handle_reset_countdown')),
     'relogio': ('Relógio no telão', _relogio),
+    'site-baixo': ('Site no telão: descer uma página (Page Down)', lambda: _site('pagina-baixo')),
+    'site-cima': ('Site no telão: subir uma página (Page Up)', lambda: _site('pagina-cima')),
+    'site-fechar': ('Site no telão: fechar', lambda: _site('fechar')),
 }
 
 

@@ -93,3 +93,6 @@ Werkzeug==3.1.6
 wsproto==1.3.2
 xlsxwriter==3.2.9
 zeroconf==0.148.0
+# websockets: o site no telão (navegador_telao.py) comanda o Chrome/Edge
+# pelo protocolo de depuração dele. Já vinha com o yt-dlp[default].
+websockets>=13

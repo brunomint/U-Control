@@ -3147,3 +3147,46 @@ def test_atalhos_exigem_chave_e_comandam_o_telao(app, client, logged_in_client):
     with app.test_request_context():
         nova = atalhos.trocar_chave()
     assert nova != chave and client.get(f"/api/atalho/relogio?chave={chave}").status_code == 401
+
+
+# --- Site no telão (navegador_telao.py, blueprints/site.py) --------------
+
+def test_site_no_telao_so_aparece_com_area_de_trabalho(logged_in_client, monkeypatch):
+    import desktop_ponte
+    import navegador_telao
+
+    monkeypatch.setattr(desktop_ponte, "_janelas", {})  # Pi/Docker: sem navegador registrado
+    html = logged_in_client.get("/control").get_data(as_text=True)
+    assert 'data-open-tool="site"' not in html
+    r = logged_in_client.post("/api/site/abrir", json={"url": "igreja.com.br"})
+    assert r.status_code == 409 and "Windows" in r.get_json()["erro"]
+
+    monkeypatch.setattr(desktop_ponte, "_janelas", {"navegador": lambda: "/bin/chrome", "monitor_telao": lambda: None,
+                                                   "perfil_site": "/tmp/x"})
+    assert 'data-open-tool="site"' in logged_in_client.get("/control").get_data(as_text=True)
+    assert navegador_telao.normalizar("igreja.com.br/agenda") == "https://igreja.com.br/agenda"
+    for ruim in ("", "ftp://x", "javascript:alert(1)"):
+        with pytest.raises(navegador_telao.SiteErro):
+            navegador_telao.normalizar(ruim)
+
+
+def test_site_no_telao_rotas_e_sites_salvos(logged_in_client, monkeypatch, tmp_path):
+    import navegador_telao
+
+    chamadas = []
+    monkeypatch.setattr(navegador_telao, "abrir", lambda url: chamadas.append(("abrir", url)) or {"aberto": True, "url": url})
+    monkeypatch.setattr(navegador_telao, "comando", lambda a: chamadas.append(("cmd", a)) or {"aberto": True, "zoom": 1.15})
+    monkeypatch.setattr(navegador_telao, "fechar", lambda: chamadas.append(("fechar",)))
+    assert logged_in_client.post("/api/site/abrir", json={"url": "x.org"}).get_json()["ok"]
+    assert logged_in_client.post("/api/site/comando", json={"acao": "zoom-mais"}).get_json()["zoom"] == 1.15
+    logged_in_client.post("/api/site/fechar")
+    assert chamadas == [("abrir", "x.org"), ("cmd", "zoom-mais"), ("fechar",)]
+
+    monkeypatch.setattr(logged_in_client.application, "instance_path", str(tmp_path))
+    r = logged_in_client.post("/api/site/salvos", json={"url": "igreja.com.br", "nome": "Igreja"}).get_json()
+    assert r["salvos"] == [{"nome": "Igreja", "url": "https://igreja.com.br"}]
+    logged_in_client.post("/api/site/salvos", json={"url": "https://igreja.com.br", "nome": "De novo"})
+    assert [s["nome"] for s in logged_in_client.get("/api/site/salvos").get_json()] == ["De novo"]  # sem repetir
+    r = logged_in_client.post("/api/site/salvos/remover", json={"url": "https://igreja.com.br"}).get_json()
+    assert r["salvos"] == []
+    assert logged_in_client.post("/api/site/salvos", json={"url": "ftp://x"}).status_code == 400

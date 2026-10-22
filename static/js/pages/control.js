@@ -876,7 +876,7 @@ function updateModePill() {
 const PANEL_PAGES = { musica: 'Música', biblia: 'Bíblia', fotos: 'Fotos', ordem: 'Ordem do culto' };
 const PANEL_TOOLS = {
     timer: 'Cronômetro', ticker: 'Avisos', split: 'Monitor dividido',
-    urls: 'URLs', share: 'Tela do PC', links: 'Abrir telas',
+    urls: 'URLs', share: 'Tela do PC', site: 'Site no telão', links: 'Abrir telas',
 };
 const panelState = { open: true, expanded: false, view: 'musica' };
 const panelFrames = {};

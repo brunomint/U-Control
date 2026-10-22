@@ -1,0 +1,16 @@
+/* Painel "Site" do Controle (templates/_site_telao.html, js/site_telao.js) */
+.site-telao { display: grid; gap: 10px; }
+.site-abrir { display: flex; gap: 6px; }
+.site-abrir .uc-input { flex: 1; min-width: 0; }
+.site-salvos { display: flex; flex-wrap: wrap; gap: 6px; }
+.site-salvos:empty { display: none; }
+.site-salvo { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--uc-line); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: 13px; }
+.site-salvo button { background: none; border: 0; color: inherit; cursor: pointer; padding: 2px 6px; font: inherit; }
+.site-salvo .site-tirar { color: var(--uc-muted); }
+.site-aberto { display: grid; gap: 8px; }
+.site-aberto[hidden] { display: none; }
+.site-agora { font-weight: 700; overflow-wrap: anywhere; }
+.site-teclas { display: grid; grid-template-columns: repeat(3, minmax(0, 72px)); gap: 6px; justify-content: center; }
+.site-teclas .uc-btn { justify-content: center; }
+.site-linha { display: flex; flex-wrap: wrap; gap: 6px; }
+.site-telao .uc-note:empty { display: none; }

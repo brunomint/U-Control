@@ -10,6 +10,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/control.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/site_telao.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -87,6 +88,7 @@
             <button type="button" class="tool-btn tool-btn-monitor" data-open-tool="split" title="Monitor dividido (só no retorno de palco)"><i class="fas fa-table-columns"></i><span>Monitor dividido</span></button>
             <button type="button" class="tool-btn" data-open-tool="urls" title="URLs com nome"><i class="fas fa-globe"></i><span>URLs</span></button>
             <button type="button" class="tool-btn" data-open-tool="share" title="Mostrar a tela deste computador"><i class="fas fa-desktop"></i><span>Tela do PC</span></button>
+            {% if site_no_telao_disponivel() %}<button type="button" class="tool-btn" data-open-tool="site" title="Abrir um site no telão e comandar daqui"><i class="fas fa-globe"></i><span>Site</span></button>{% endif %}
             <button type="button" class="tool-btn" data-open-tool="links" title="Abrir telas em outra aba"><i class="fas fa-up-right-from-square"></i><span>Abrir telas</span></button>
         </div>
         <button type="button" class="uc-btn uc-btn-secondary panel-reopen" id="panel-reopen"><i class="fas fa-table-columns"></i> Abrir painel</button>
@@ -199,6 +201,8 @@
             <p class="uc-note">Cada URL vira um botão em "O que mostrar", com o nome que você der (ex.: Câmera, Slides do pastor).</p>
         </div>
 
+        {% if site_no_telao_disponivel() %}{% include "_site_telao.html" %}{% endif %}
+
         <!-- Compartilhar tela -->
         <div class="tool panel-pane" data-panel="share" hidden>
             <p class="uc-muted small">Mostra a tela deste computador no telão. Para ela ocupar só metade do palco, compartilhe em "Público" e escolha "Tela do PC" num dos lados do Monitor dividido.</p>
@@ -256,4 +260,5 @@
 {% block scripts %}
 <script src="{{ versioned_static('js/pages/control.js') }}"></script>
 <script src="{{ versioned_static('js/screen_picker.js') }}"></script>
+<script src="{{ versioned_static('js/site_telao.js') }}"></script>
 {% endblock %}

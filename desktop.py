@@ -285,11 +285,15 @@ def run():
     if sys.platform == 'win32':
         threading.Thread(target=_vigia_acordado, daemon=True).start()
     import desktop_ponte
+    import navegador_telao
+    base = os.environ.get('LocalAppData') or os.environ.get('UCONTROL_DATA_DIR') or os.path.expanduser('~/.config')
+    desktop_ponte.registrar_janelas(_navegador, _monitor_secundario, os.path.join(base, 'UControl-site'))
 
     def sair_de_vez():
         # threads do servidor (socket.io, timers) não podem segurar o
         # processo aberto depois de sair
         _fechar_janelas()
+        navegador_telao.fechar()
         os._exit(0)
 
     desktop_ponte.registrar_desligar(sair_de_vez)

@@ -28,6 +28,8 @@ hiddenimports = [
     *collect_submodules('alembic', filter=lambda nome: '.testing' not in nome),
     # yt-dlp carrega os extractors por nome
     *collect_submodules('yt_dlp'),
+    # site no telão (navegador_telao.py) importa dentro da função
+    *collect_submodules('websockets'),
 ]
 # weasyprint fica com o hook do próprio PyInstaller, que traz as DLLs do
 # Pango e o fontconfig (achados pelo PATH no build, ver build-windows.yml)

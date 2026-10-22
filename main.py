@@ -42,6 +42,7 @@ from blueprints.pacote import pacote_bp
 from blueprints.desligar import desligar_bp
 from blueprints.importar import importar_bp
 from blueprints.atalhos import atalhos_bp
+from blueprints.site import site_bp
 from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
@@ -183,6 +184,7 @@ def create_app(config=None):
     app.register_blueprint(desligar_bp)
     app.register_blueprint(importar_bp)
     app.register_blueprint(atalhos_bp)
+    app.register_blueprint(site_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(agenda_bp)
     app.register_blueprint(lyrics_bp)
