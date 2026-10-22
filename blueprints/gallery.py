@@ -26,6 +26,7 @@ try:  # fotos de iPhone (.heic) — sem o pacote, viram erro claro em vez de 500
 except ImportError:  # pragma: no cover
     pass
 
+import conversoes
 import paths
 import pptx_fontes
 import pptx_imagens
@@ -367,10 +368,12 @@ def _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile
     logging.info("upload: %s — versão animada pronta", base_name)
 
 
-def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, soffice):
-    """PowerPoint -> PDF (LibreOffice) -> um JPEG por slide. Roda fora da
-    requisição: no Pi o LibreOffice leva ~50 s só pra abrir, e o Cloudflare
-    desiste da resposta em 100 s."""
+def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, soffice,
+                          pasta=None, animada=False):
+    """PowerPoint -> PDF (LibreOffice) -> um JPEG por slide (e, com
+    animação ou GIF, a versão animada). Roda fora da requisição: no Pi o
+    LibreOffice leva ~50 s só pra abrir, e o Cloudflare desiste da resposta
+    em 100 s. O andamento fica em conversoes.py (pasta = nome na galeria)."""
     try:
         with _lo_lock:
             profile = os.path.join(tempfile.gettempdir(), 'ucontrol-libreoffice')
@@ -390,10 +393,18 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
         if not os.path.exists(pdf_path):
             logging.error("upload: LibreOffice não converteu %s (saída %s): %s", src_path,
                           proc.returncode, (proc.stderr or proc.stdout or b'')[-500:].decode(errors='replace'))
+            conversoes.etapa(pasta, base_name, 'erro')
             return
+        # Grava ao lado e põe na galeria todos juntos: a galeria mostrava os
+        # slides chegando um a um (3 de 10) e a aba Fotos já dizia "prontos"
+        paginas = os.path.join(tmp_dir, 'paginas')
+        os.makedirs(paginas, exist_ok=True)
         with fitz.open(pdf_path) as pdf_document:
-            saved = _save_pdf_pages(pdf_document, target_dir, base_name, 'slide', max_size)
+            saved = _save_pdf_pages(pdf_document, paginas, base_name, 'slide', max_size)
+        for nome in saved:
+            os.replace(os.path.join(paginas, nome), os.path.join(target_dir, nome))
         logging.info("upload: %s convertido em %d slide(s)", base_name, len(saved))
+        conversoes.etapa(pasta, base_name, 'animada' if animada else 'videos', slides=len(saved))
         if src_path.lower().endswith('.pptx'):
             try:
                 videos = _extract_pptx_videos(src_path, tmp_dir, target_dir, base_name, env)
@@ -402,12 +413,15 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
             except Exception:
                 logging.exception("upload: falha tirando os vídeos de %s", src_path)
             try:
-                if _pptx_animado(src_path) or pptx_imagens.tem_gif_animado(src_path):
+                if animada:
                     _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile, env)
             except Exception:
                 logging.exception("upload: falha gerando a versão animada de %s", src_path)
+        conversoes.etapa(pasta, base_name, 'pronto',
+                         animada=os.path.isfile(os.path.join(target_dir, base_name + ANIMADO_SUFIXO)))
     except Exception:
         logging.exception("upload: falha convertendo %s", src_path)
+        conversoes.etapa(pasta, base_name, 'erro')
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -470,9 +484,17 @@ def upload_files():
             tmp_dir = tempfile.mkdtemp(prefix='ucontrol-ppt-')
             src_path = os.path.join(tmp_dir, filename)
             file.save(src_path)
+            animada = False
+            if file_ext == '.pptx':
+                try:  # só lê o zip — rápido
+                    animada = _pptx_animado(src_path) or pptx_imagens.tem_gif_animado(src_path)
+                except Exception:
+                    logging.exception("upload: não deu pra ver se %s tem animação", filename)
+            conversoes.comecar(folder, base_name, animada)
             threading.Thread(
                 target=_convert_presentation,
                 args=(src_path, tmp_dir, target_dir, base_name, max_size, soffice),
+                kwargs={'pasta': folder, 'animada': animada},
                 daemon=True,
             ).start()
             converting.append(filename)
@@ -519,6 +541,12 @@ def upload_files():
         return jsonify({'status': 'error', 'message': ' '.join(errors), 'errors': errors}), 400
     return jsonify({'status': 'success', 'saved_files': saved_files,
                     'converting': converting, 'videos': videos_expected, 'errors': errors}), 200
+
+@gallery_bp.route('/api/conversoes')
+def api_conversoes():
+    """Andamento das apresentações convertendo nesta pasta (conversoes.py)."""
+    return jsonify(conversoes.da_pasta(request.args.get('folder', 'Geral')))
+
 
 # Rota para deletar imagens (suporta ?folder=nome)
 @gallery_bp.route('/delete_image', methods=['POST'])

@@ -149,6 +149,51 @@
                 .catch(error => console.error('Erro ao carregar as imagens:', error));
         }
 
+        // Nomes no servidor passam por secure_filename: espaço vira "_",
+        // acento cai. Compara sem isso.
+        function _semAcento(t) { return t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w.-]+/g, '_'); }
+
+        function acompanharConversao(pasta, nomes, nVideos) {
+            const wrap = document.getElementById('uploadProgressWrap');
+            const bar = document.getElementById('uploadProgressBar');
+            const statusText = document.getElementById('uploadStatusText');
+            const meus = new Set(nomes.map(_semAcento));
+            const vistos = {};
+            const inicio = Date.now();
+            const espera = setInterval(() => {
+                fetch(`/api/conversoes?folder=${encodeURIComponent(pasta)}`).then(r => r.json()).then(lista => {
+                    const itens = lista.filter(c => meus.has(c.nome));
+                    if (!itens.length) return;
+                    let mudou = false;
+                    itens.forEach(c => { if (vistos[c.nome] !== c.etapa) { vistos[c.nome] = c.etapa; mudou = true; } });
+                    // slides chegaram ou ficou pronto: a galeria mostra (e a etiqueta "Animado")
+                    if (mudou && itens.some(c => c.etapa !== 'slides') && getCurrentFolder() === pasta) loadImageGallery();
+                    const em = etapa => itens.filter(c => c.etapa === etapa);
+                    if (em('slides').length) {
+                        statusText.textContent = '⏳ Convertendo a apresentação… os slides aparecem aqui todos juntos.';
+                    } else if (em('animada').length) {
+                        const n = em('animada').reduce((a, c) => a + (c.slides || 0), 0);
+                        statusText.textContent = `✅ ${n} slides prontos (já dá pra usar). ⏳ Preparando a versão animada…`;
+                    } else if (em('videos').length) {
+                        statusText.textContent = '✅ Slides prontos! ⏳ Preparando os vídeos dos slides…';
+                    } else {
+                        clearInterval(espera);
+                        const erro = em('erro').length;
+                        const animadas = itens.filter(c => c.etapa === 'pronto' && c.animada).length;
+                        if (erro) {
+                            bar.style.background = '#e53935';
+                            statusText.textContent = '❌ A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.';
+                            return;
+                        }
+                        statusText.textContent = animadas ? '✅ Pronto, com a versão animada (slides marcados "Animado").'
+                            : nVideos ? '✅ Slides e vídeos prontos!' : '✅ Slides prontos!';
+                        setTimeout(() => { wrap.style.display = 'none'; }, 5000);
+                    }
+                }).catch(() => {});
+                if (Date.now() - inicio > 15 * 60 * 1000) clearInterval(espera);
+            }, 3000);
+        }
+
         function uploadImages() {
             const fileInput = document.getElementById('fileInput');
             if (!fileInput.files.length) { if (window.ucToast) window.ucToast('Escolha os arquivos primeiro.', 'error'); return; }
@@ -204,43 +249,11 @@
                     if (erros.length) statusText.textContent += ' ⚠️ ' + erros.join(' ');
                     loadImageGallery();
                     fileInput.value = '';
-                    // PowerPoint converte em segundo plano no servidor:
-                    // recarrega a galeria até os slides chegarem (até 5 min)
+                    // PowerPoint converte em segundo plano no servidor: acompanha
+                    // as etapas (blueprints/gallery.py, conversoes.py) e recarrega
+                    // a galeria quando os slides chegam e quando fica pronto
                     if (conv.length) {
-                        const pasta = getCurrentFolder();
-                        // nome que o servidor dá aos slides: <nome sem extensão>_slide-0001.jpg
-                        const bases = conv.map(n => n.replace(/\.[^.]+$/, '') + '_slide-');
-                        // vídeos dos slides: <nome>_slide-0003v1.mp4
-                        const videosDe = conv.map(n => [n.replace(/\.[^.]+$/, '') + '_slide-', (data.videos || {})[n] || 0]);
-                        let slidesProntos = false;
-                        let voltas = 0;
-                        const espera = setInterval(() => {
-                            voltas++;
-                            fetch(`/lista-fotos?folder=${encodeURIComponent(pasta)}`)
-                                .then(r => r.json())
-                                .then(d => {
-                                    const urls = (d.fotos || []).map(f => (f && f.url) || String(f));
-                                    const temSlides = bases.every(b => urls.some(u => u.includes(b) && /\d\.jpg$/.test(u)));
-                                    const temVideos = videosDe.every(([b, n]) => urls.filter(u => u.includes(b) && /\dv\d+\.\w+$/.test(u)).length >= n);
-                                    if (temSlides && temVideos) {
-                                        clearInterval(espera);
-                                        if (getCurrentFolder() === pasta) loadImageGallery();
-                                        statusText.textContent = nVideos ? '✅ Slides e vídeos prontos!' : '✅ Slides prontos!';
-                                        setTimeout(() => { wrap.style.display = 'none'; }, 4000);
-                                    } else if (temSlides && !slidesProntos) {
-                                        slidesProntos = true;
-                                        if (getCurrentFolder() === pasta) loadImageGallery();
-                                        statusText.textContent = '✅ Slides prontos! Preparando os vídeos dos slides…';
-                                    } else if (voltas >= (nVideos ? 360 : 60)) {
-                                        clearInterval(espera);
-                                        bar.style.background = '#e53935';
-                                        statusText.textContent = slidesProntos
-                                            ? '⚠️ Os slides estão aí, mas algum vídeo não ficou pronto. Envie o arquivo de vídeo separado nesta pasta.'
-                                            : '❌ A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.';
-                                    }
-                                })
-                                .catch(() => {});
-                        }, 5000);
+                        acompanharConversao(getCurrentFolder(), conv.map(n => n.replace(/\.[^.]+$/, '')), nVideos);
                     } else if (!erros.length) {
                         setTimeout(() => { wrap.style.display = 'none'; }, 3000);
                     }

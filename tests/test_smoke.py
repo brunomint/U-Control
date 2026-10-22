@@ -2970,3 +2970,17 @@ def test_gif_girado_volta_a_girar_no_svg():
     assert 'width="52858" height="28578"' in attrs  # tamanho reto do PowerPoint
     sem = ' x="0" y="0" width="100" height="100" '
     assert pptx_imagens._girar(sem, girados) == sem  # outra imagem: não mexe
+
+
+def test_conversoes_mostram_a_etapa_por_pasta(client):
+    import conversoes
+    conversoes.comecar("Culto", "Avisos", animada=True)
+    conversoes.comecar("Outra", "Fotos", animada=False)
+    assert [c["etapa"] for c in client.get("/api/conversoes?folder=Culto").get_json()] == ["slides"]
+    conversoes.etapa("Culto", "Avisos", "animada", slides=10)
+    c = client.get("/api/conversoes?folder=Culto").get_json()[0]
+    assert (c["nome"], c["etapa"], c["slides"]) == ("Avisos", "animada", 10)
+    conversoes.etapa("Culto", "Avisos", "pronto", animada=True)
+    conversoes.etapa(None, "Avisos", "erro")  # conversão sem registro: ignora
+    assert client.get("/api/conversoes?folder=Culto").get_json()[0]["etapa"] == "pronto"
+    conversoes._estado.clear()
