@@ -2897,3 +2897,36 @@ def test_pacote_paginas_exigem_login(client):
         assert client.get(url).status_code in (302, 401)
     for url in ("/api/pacote/exportar", "/api/pacote/analisar", "/api/pacote/importar"):
         assert client.post(url).status_code in (302, 401)
+
+
+# --- Desligar o U-Control (blueprints/desligar.py, só Windows) -----------
+
+def test_desligar_so_aparece_no_windows_e_no_proprio_pc(logged_in_client, monkeypatch):
+    import desktop_ponte
+
+    # Pi/Docker: ninguém registrou -> sem botão e sem rota
+    monkeypatch.setattr(desktop_ponte, "_desligar", None)
+    assert "Desligar o U-Control" not in logged_in_client.get("/control").get_data(as_text=True)
+    assert logged_in_client.get("/desligar").status_code == 404
+    assert logged_in_client.post("/api/desligar").status_code == 403
+
+    chamado = []
+    monkeypatch.setattr(desktop_ponte, "_desligar", lambda: chamado.append(1))
+    monkeypatch.setattr(desktop_ponte.threading, "Timer", lambda _s, f: type("T", (), {"start": staticmethod(f)}))
+    # pelo túnel / celular: não
+    tunel = {"X-Forwarded-For": "200.1.2.3"}
+    assert "Desligar o U-Control" not in logged_in_client.get("/control", headers=tunel).get_data(as_text=True)
+    assert logged_in_client.post("/api/desligar", headers=tunel).status_code == 403
+    assert logged_in_client.post("/api/desligar", environ_base={"REMOTE_ADDR": "192.168.0.20"}).status_code == 403
+    assert not chamado
+    # no próprio computador: sim
+    assert "Desligar o U-Control" in logged_in_client.get("/control").get_data(as_text=True)
+    assert logged_in_client.get("/desligar").status_code == 200
+    assert logged_in_client.post("/api/desligar").get_json() == {"ok": True}
+    assert chamado == [1]
+
+
+def test_desligar_exige_login(client, monkeypatch):
+    import desktop_ponte
+    monkeypatch.setattr(desktop_ponte, "_desligar", lambda: None)
+    assert client.post("/api/desligar").status_code in (302, 401)

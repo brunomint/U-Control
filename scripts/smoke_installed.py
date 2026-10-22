@@ -100,6 +100,10 @@ def main():
         apresentacao = Presentation()
         for texto in ('Slide um', 'Slide dois'):
             apresentacao.slides.add_slide(apresentacao.slide_layouts[1]).shapes.title.text = texto
+        # transição no 2º slide: ganha também a versão animada (SVG)
+        from lxml import etree
+        apresentacao.slides[1]._element.append(etree.fromstring(
+            '<p:transition xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:fade/></p:transition>'))
         buf = io.BytesIO()
         apresentacao.save(buf)
         r = s.post(BASE + '/upload', files={'images': ('smoke.pptx', buf.getvalue())})
@@ -110,9 +114,39 @@ def main():
             time.sleep(3)
             slides = [u for u in s.get(BASE + '/imagens').json() if 'smoke_slide-' in u]
         check(len(slides) == 2, f'PowerPoint virou {len(slides)} slide(s)')
+        fim = time.time() + 240
+        animados = []
+        while time.time() < fim and len(animados) < 2:
+            animados = [f for f in s.get(BASE + '/lista-fotos').json()['fotos'] if f.get('animado')]
+            if len(animados) < 2:
+                time.sleep(3)
+        check(len(animados) == 2, 'PowerPoint com transição ganhou a versão animada')
+        if animados:
+            svg = s.get(BASE + animados[0]['animado']['svg'])
+            check(svg.status_code == 200 and b'aSlideShow' in svg.content, 'SVG animado com o tocador do LibreOffice')
 
     # e o programa acha esse ffmpeg (PATH montado pelo desktop.py)
     check(s.get(BASE + '/api/system/status').json().get('ffmpeg') is True, 'programa acha o ffmpeg')
+
+    import io
+    import zipfile
+    r = s.get(BASE + '/api/backup/baixar')
+    check(r.status_code == 200 and 'banco/users.db' in zipfile.ZipFile(io.BytesIO(r.content)).namelist(),
+          f'backup baixado ({len(r.content) // 1024} KB)')
+
+    # Por último: "Desligar o U-Control" fecha o programa (bandeja inclusive)
+    r = s.get(BASE + '/control')
+    check('Desligar o U-Control' in r.text, 'menu Sistema tem "Desligar o U-Control"')
+    r = s.post(BASE + '/api/desligar', headers={'X-CSRFToken': csrf(r.text)})
+    check(r.status_code == 200, 'pedido de desligar aceito')
+    nome = os.path.basename(exe)
+    fim = time.time() + 20
+    while time.time() < fim:
+        tarefas = subprocess.run(['tasklist', '/FI', f'IMAGENAME eq {nome}'], capture_output=True, text=True).stdout
+        if nome.lower() not in tarefas.lower():
+            break
+        time.sleep(1)
+    check(nome.lower() not in tarefas.lower(), f'{nome} fechou')
 
 
 if __name__ == '__main__':

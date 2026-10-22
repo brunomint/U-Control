@@ -140,7 +140,18 @@ def abrir_tela(chave):
     posicao = _monitor_secundario()
     if posicao:
         args += [f'--window-position={posicao[0]},{posicao[1]}', '--start-fullscreen']
-    subprocess.Popen(args)
+    _janelas.append(subprocess.Popen(args))
+
+
+# Janelas de telão abertas pela bandeja: fecham junto ao desligar (senão
+# ficavam mostrando o último quadro, sem servidor)
+_janelas = []
+
+
+def _fechar_janelas():
+    for p in _janelas:
+        if p.poll() is None:
+            p.terminate()
 
 
 def abrir_controle():
@@ -149,20 +160,36 @@ def abrir_controle():
 
 # --- PC acordado ------------------------------------------------------------
 
-_acordado = {'ligado': True}
+# 'ligado': a opção do menu da bandeja; 'segurando': se o Windows está
+# sendo impedido de dormir agora
+_acordado = {'ligado': True, 'segurando': None}
+VIGIA_SEGUNDOS = 20
 
 
 def manter_acordado(ligado):
-    """Enquanto o U-Control está aberto o Windows não suspende nem apaga a
-    tela (telão no meio do culto), como o Holyrics. Vale pra thread que
-    chama — a principal, que fica viva na bandeja até "Sair"."""
     _acordado['ligado'] = ligado
-    if sys.platform != 'win32':
-        return
+
+
+def _alguem_usando():
+    """Alguma tela, Controle ou celular conectado (socket aberto)."""
+    import connections
+    return bool(connections.socketio_clients_by_sid)
+
+
+def _vigia_acordado():
+    """Com o telão ou o Controle aberto o Windows não suspende nem apaga a
+    tela (no meio do culto), como o Holyrics. Com tudo fechado ele volta a
+    dormir normalmente, mesmo com o U-Control esquecido na bandeja.
+    SetThreadExecutionState vale pra thread que chama: só esta mexe nele."""
     import ctypes
     ES_CONTINUOUS, ES_SYSTEM_REQUIRED, ES_DISPLAY_REQUIRED = 0x80000000, 0x00000001, 0x00000002
-    flags = ES_CONTINUOUS | (ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED if ligado else 0)
-    ctypes.windll.kernel32.SetThreadExecutionState(flags)
+    while True:
+        segurar = _acordado['ligado'] and _alguem_usando()
+        if segurar != _acordado['segurando']:
+            flags = ES_CONTINUOUS | (ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED if segurar else 0)
+            ctypes.windll.kernel32.SetThreadExecutionState(flags)
+            _acordado['segurando'] = segurar
+        time.sleep(VIGIA_SEGUNDOS)
 
 
 # --- Servidor --------------------------------------------------------------
@@ -217,13 +244,34 @@ def _bandeja():
     if sys.platform == 'win32':
         # pystray chama o menu na thread da bandeja (a principal): o estado
         # de "acordado" fica com ela
-        itens.append(pystray.MenuItem('Não deixar o PC dormir',
+        itens.append(pystray.MenuItem('Não deixar o PC dormir com o telão aberto',
                                       lambda _icon, _item: manter_acordado(not _acordado['ligado']),
                                       checked=lambda _item: _acordado['ligado']))
         itens.append(item('Abrir pasta de dados', lambda: os.startfile(paths.DATA_DIR)))
     itens += [pystray.Menu.SEPARATOR, pystray.MenuItem('Sair', sair)]
     imagem = Image.open(os.path.join(paths.APP_DIR, 'static', 'U-Control_Icon.png'))
     return pystray.Icon('U-Control', imagem, 'U-Control', pystray.Menu(*itens))
+
+
+def _ao_aparecer(icon):
+    """setup do pystray: roda numa thread quando o ícone vai pra bandeja."""
+    icon.visible = True
+    _aviso_primeira_vez(icon)
+
+
+def _aviso_primeira_vez(icon):
+    """Quem vem do Holyrics fecha a janela e acha que fechou o programa:
+    na primeira vez, avisa onde ele fica."""
+    import paths
+    marca = os.path.join(paths.DATA_DIR or paths.APP_DIR, 'aviso-bandeja-mostrado')
+    if os.path.exists(marca):
+        return
+    try:
+        icon.notify('Fechar as janelas não desliga o U-Control: ele continua aqui, ao lado do relógio. '
+                    'Para desligar, use este ícone → Sair, ou Sistema → Desligar o U-Control.', 'U-Control')
+        open(marca, 'w').close()
+    except Exception:
+        pass  # sem notificação nessa versão do Windows: tenta de novo na próxima
 
 
 def run():
@@ -234,21 +282,32 @@ def run():
     _ffmpeg_no_path()
     _iniciar_servidor()
     abrir_controle()
-    manter_acordado(True)
+    if sys.platform == 'win32':
+        threading.Thread(target=_vigia_acordado, daemon=True).start()
+    import desktop_ponte
+
+    def sair_de_vez():
+        # threads do servidor (socket.io, timers) não podem segurar o
+        # processo aberto depois de sair
+        _fechar_janelas()
+        os._exit(0)
+
+    desktop_ponte.registrar_desligar(sair_de_vez)
     try:
         icone = _bandeja()
         if icone:
             import logging
             logging.getLogger('ucontrol').info('Bandeja: ícone no ar')
-            icone.run()  # bloqueia até "Sair"
-            # threads do servidor (socket.io, timers) não podem segurar o
-            # processo aberto depois de "Sair"
-            os._exit(0)
+            # "Desligar o U-Control" no site: tira o ícone da bandeja antes
+            desktop_ponte.registrar_desligar(icone.stop)
+            icone.run(setup=_ao_aparecer)  # bloqueia até "Sair"
+            sair_de_vez()
     except Exception:
         # Sem área de trabalho (serviço, máquina de build) a bandeja
         # falha — o servidor segue no ar mesmo assim
         import logging
         logging.getLogger('ucontrol').exception('Bandeja indisponível; só o servidor')
+        desktop_ponte.registrar_desligar(sair_de_vez)
     try:
         while True:
             time.sleep(3600)

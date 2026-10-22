@@ -35,6 +35,12 @@ try { if (window.self !== window.top && window.top.location.origin === location.
                         <i class="fas {{ item.icon }}"></i> {{ item.label }}
                     </a>
                     {% endfor %}
+                    {% if group.key == 'sistema' and pode_desligar() %}
+                    <a href="{{ url_for('desligar.desligar_page') }}"
+                       class="site-nav-link{% if request.endpoint == 'desligar.desligar_page' %} active{% endif %}">
+                        <i class="fas fa-power-off"></i> Desligar o U-Control
+                    </a>
+                    {% endif %}
                 </div>
             </details>
             {% else %}

@@ -39,6 +39,7 @@ from blueprints.gallery import gallery_bp
 from blueprints.apresentacao import apresentacao_bp
 from blueprints.backup import backup_bp
 from blueprints.pacote import pacote_bp
+from blueprints.desligar import desligar_bp
 from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
@@ -177,6 +178,7 @@ def create_app(config=None):
     app.register_blueprint(apresentacao_bp)
     app.register_blueprint(backup_bp)
     app.register_blueprint(pacote_bp)
+    app.register_blueprint(desligar_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(agenda_bp)
     app.register_blueprint(lyrics_bp)
