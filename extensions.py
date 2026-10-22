@@ -24,6 +24,7 @@ login_manager.login_view = 'auth.login'
 PUBLIC_SOCKET_EVENTS = {
     'connect', 'disconnect', 'identify', 'video_ended',
     'screen_share_hello', 'screen_share_request', 'screen_share_answer', 'screen_share_ice',
+    'apresentacao_pos',  # cada tela conta onde a apresentação está (ver blueprints/apresentacao.py)
 }
 
 

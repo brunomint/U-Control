@@ -8,6 +8,7 @@ import pathlib
 import shutil
 import subprocess
 import posixpath
+import re
 import tempfile
 import threading
 import xml.etree.ElementTree as ET
@@ -128,13 +129,31 @@ def lista_fotos():
             continue
         lower = f.lower()
         if lower.endswith(IMAGE_EXTS):
-            items.append({'url': f'{prefix}/{f}', 'type': 'image'})
+            item = {'url': f'{prefix}/{f}', 'type': 'image'}
+            animado = _slide_animado(target, prefix, f)
+            if animado:
+                item['animado'] = animado
+            items.append(item)
         elif lower.endswith(VIDEO_EXTS):
             items.append({'url': f'{prefix}/{f}', 'type': 'video'})
     return jsonify({'fotos': items})
 
 
 PRESENTATION_EXTS = ('.pptx', '.ppt', '.odp')
+# PowerPoint com animação/transição ganha, além de um JPEG por slide, a
+# apresentação inteira em SVG com o tocador do próprio LibreOffice
+# (<nome>_slide.svg), que o telão toca em /apresentacao
+ANIMADO_SUFIXO = '_slide.svg'
+_RE_SLIDE = re.compile(r'^(.+)_slide-(\d{4})\.jpg$')
+
+
+def _slide_animado(folder, prefix, filename):
+    """<nome>_slide-0003.jpg com <nome>_slide.svg ao lado -> {'svg', 'slide'}
+    (slide contado a partir de 0, como no tocador do LibreOffice)."""
+    m = _RE_SLIDE.match(filename)
+    if not m or not os.path.isfile(os.path.join(folder, m.group(1) + ANIMADO_SUFIXO)):
+        return None
+    return {'svg': f'{prefix}/{m.group(1)}{ANIMADO_SUFIXO}', 'slide': int(m.group(2)) - 1}
 # Uma conversão por vez: o Pi tem ~900 MB e duas instâncias do LibreOffice
 # com o mesmo perfil brigam (a segunda sai sem converter nada).
 _lo_lock = threading.Lock()
@@ -267,6 +286,76 @@ def _extract_pptx_videos(pptx_path, tmp_dir, target_dir, base_name, env):
     return saved
 
 
+def _apagar_animado_orfao(folder, filename):
+    """Excluiu o último slide de uma apresentação: a versão animada vai junto."""
+    m = _RE_SLIDE.match(filename)
+    if not m:
+        return
+    prefixo = m.group(1) + '_slide-'
+    if not any(f.startswith(prefixo) and f.endswith('.jpg') for f in os.listdir(folder)):
+        svg = os.path.join(folder, m.group(1) + ANIMADO_SUFIXO)
+        if os.path.isfile(svg):
+            os.remove(svg)
+
+
+def _pptx_animado(pptx_path):
+    """Algum slide visível tem transição ou animação?"""
+    with zipfile.ZipFile(pptx_path) as zf:
+        for name in zf.namelist():
+            if not re.match(r'ppt/slides/slide\d+\.xml$', name):
+                continue
+            xml = zf.read(name).decode('utf-8', 'replace')
+            if 'show="0"' in xml[:2000]:
+                continue
+            if '<p:transition' in xml or ('<p:timing' in xml and 'presetClass' in xml):
+                return True
+    return False
+
+
+def _pptx_sem_ocultos(pptx_path, tmp_dir):
+    """Cópia sem os slides ocultos: o SVG do LibreOffice inclui os ocultos
+    e o PDF não, e o slide N do SVG tem que ser a imagem N da galeria."""
+    with zipfile.ZipFile(pptx_path) as zf:
+        pres = 'ppt/presentation.xml'
+        rels = _zip_rels(zf, pres)
+        xml = zf.read(pres).decode('utf-8')
+        ocultos = []
+        for rid, (tipo, target) in rels.items():
+            if tipo.endswith('/slide') and target in zf.namelist() \
+                    and ET.fromstring(zf.read(target)).get('show') == '0':
+                ocultos.append(rid)
+        if not ocultos:
+            return pptx_path
+        for rid in ocultos:
+            xml = re.sub(r'<p:sldId\b[^>]*\br:id="%s"[^>]*/>' % re.escape(rid), '', xml)
+        out = os.path.join(tmp_dir, 'sem-ocultos.pptx')
+        with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as dst:
+            for item in zf.infolist():
+                dst.writestr(item, xml.encode('utf-8') if item.filename == pres else zf.read(item.filename))
+    return out
+
+
+def _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile, env):
+    """Segunda passada do LibreOffice: a apresentação em SVG animado.
+    Falhar aqui não atrapalha: os slides em imagem já estão na galeria."""
+    origem = _pptx_sem_ocultos(src_path, tmp_dir)
+    svg_dir = os.path.join(tmp_dir, 'svg')
+    os.makedirs(svg_dir, exist_ok=True)
+    with _lo_lock:
+        proc = subprocess.run(
+            _low_priority() + [soffice, f'-env:UserInstallation={pathlib.Path(profile).as_uri()}', '--headless',
+             '--convert-to', 'svg:impress_svg_Export', '--outdir', svg_dir, origem],
+            capture_output=True, timeout=600, env=env,
+        )
+    svg = os.path.join(svg_dir, os.path.splitext(os.path.basename(origem))[0] + '.svg')
+    if not os.path.exists(svg):
+        logging.error("upload: LibreOffice não gerou o SVG animado de %s (saída %s): %s", base_name,
+                      proc.returncode, (proc.stderr or proc.stdout or b'')[-300:].decode(errors='replace'))
+        return
+    shutil.move(svg, os.path.join(target_dir, base_name + ANIMADO_SUFIXO))
+    logging.info("upload: %s — versão animada pronta", base_name)
+
+
 def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, soffice):
     """PowerPoint -> PDF (LibreOffice) -> um JPEG por slide. Roda fora da
     requisição: no Pi o LibreOffice leva ~50 s só pra abrir, e o Cloudflare
@@ -300,6 +389,11 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
                     logging.info("upload: %s — vídeo(s) dos slides: %s", base_name, ', '.join(videos))
             except Exception:
                 logging.exception("upload: falha tirando os vídeos de %s", src_path)
+            try:
+                if _pptx_animado(src_path):
+                    _exportar_animado(src_path, tmp_dir, target_dir, base_name, soffice, profile, env)
+            except Exception:
+                logging.exception("upload: falha gerando a versão animada de %s", src_path)
     except Exception:
         logging.exception("upload: falha convertendo %s", src_path)
     finally:
@@ -428,6 +522,7 @@ def delete_image():
         return jsonify({'status': 'error', 'message': 'Caminho inválido.'}), 400
     if os.path.exists(image_path):
         os.remove(image_path)
+        _apagar_animado_orfao(os.path.dirname(image_path), os.path.basename(image_path))
         return jsonify({'status': 'success', 'message': 'Imagem deletada com sucesso.'})
     else:
         return jsonify({'status': 'error', 'message': 'Imagem não encontrada.'})
@@ -448,6 +543,7 @@ def delete_images():
         image_path = safe_join(target_dir, name) if target_dir else None
         if image_path and os.path.exists(image_path):
             os.remove(image_path)
+            _apagar_animado_orfao(os.path.dirname(image_path), os.path.basename(image_path))
             deleted.append(name)
         else:
             errors.append(name)

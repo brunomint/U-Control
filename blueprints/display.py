@@ -21,6 +21,7 @@ from flask_socketio import emit
 
 import display_state
 import telao
+from blueprints import apresentacao
 from blueprints.bible import handle_update_bible, parse_reference
 from blueprints.gallery import get_current_image_path
 from blueprints.lyrics import handle_update_lyrics
@@ -268,6 +269,17 @@ def handle_show_image(data):
     _end_live_follow_unless(image_url)
     _esquece_zoom_se_outra_foto(image_url)
     real_app = current_app._get_current_object()
+
+    # PowerPoint animado: outro slide da apresentação que já está no ar
+    # pula lá dentro, sem recarregar as telas (ver blueprints/apresentacao.py)
+    svg, _ = apresentacao.parse_url(image_url)
+    if svg:
+        no_ar = display_state._last_image_url if display_state._current_display_mode == 'image' else None
+        if apresentacao.parse_url(no_ar)[0] == svg:
+            display_state._last_image_url = image_url
+            apresentacao.ir_para(image_url)
+            return
+        apresentacao.comecar(image_url)
 
     # Imagem substituiu o vídeo no monitor: limpa estado de reprodução
     display_state._video_state['url'] = None

@@ -13,6 +13,7 @@ Guarda só o tipo + a URL do que está no ar; o rótulo legível é montado
 na hora (build_status), então "Letra" sempre mostra a seção atual mesmo
 que ela tenha mudado depois."""
 import re
+from urllib.parse import parse_qs, urlsplit
 
 import display_state
 from extensions import socketio
@@ -128,6 +129,10 @@ def describe(entry):
         return {'kind': kind, 'label': 'Relógio'}
     if kind == 'countdown':
         return {'kind': kind, 'label': 'Cronômetro'}
+    if kind == 'page' and url.startswith('/apresentacao?'):
+        svg = parse_qs(urlsplit(url).query).get('svg', [''])[0]
+        nome = _file_name(svg).removesuffix('_slide.svg').replace('_', ' ')
+        return {'kind': kind, 'label': 'Apresentação' + (f' · {nome}' if nome else '')}
     if kind == 'page':
         short = re.sub(r'^https?://(www\.)?', '', url).rstrip('/')
         return {'kind': kind, 'label': f'Página · {short}'}

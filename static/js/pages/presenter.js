@@ -126,9 +126,14 @@
                                     </div>
                                 `;
                             } else {
+                                // Slide de PowerPoint com animação: vai ao ar a apresentação
+                                // tocando a partir dele (ver blueprints/apresentacao.py)
+                                const show = item.animado ? apresentacaoUrl(item.animado) : item.url;
                                 imgContainer.innerHTML = `
-                                    <div class="thumb-wrap">
-                                        <img src="${item.url}" alt="Imagem ${index + 1}" onclick="resetView('${item.url}')">
+                                    <div class="thumb-wrap${item.animado ? ' is-animado' : ''}">
+                                        <img src="${item.url}" alt="Imagem ${index + 1}" data-show="${show}"
+                                             ${item.animado ? `data-svg="${item.animado.svg}" data-slide="${item.animado.slide}"` : ''}
+                                             onclick="resetView('${show}')">
                                         <button type="button"
                                                 class="zoom-btn"
                                                 aria-label="Abrir zoom"
@@ -423,12 +428,18 @@
             currentVideoPaused = false;
             updateVideoOverlayIcons();
             const url = (data && data.image_url) || '';
+            liveApres = null;
             if (isStaticMedia(url)) {
                 liveImageUrl = url;
                 if (stagedImageUrl === url) stagedImageUrl = null;
+            } else if (url.startsWith('/apresentacao?')) {
+                liveImageUrl = null;
+                if (stagedImageUrl === url) stagedImageUrl = null;
+                carregarApresentacao();
             } else if (url !== '/img') {
                 liveImageUrl = null;  // telão foi pra letra, relógio etc.
             }
+            renderApresentacao();
             markGallery();
             onLivePhotoChanged();
         });
@@ -520,12 +531,65 @@
 
         function markGallery() {
             document.querySelectorAll('#imageGallery img').forEach(img => {
-                const url = img.getAttribute('src');
-                const live = !!liveImageUrl && url === liveImageUrl;
+                const url = img.dataset.show || img.getAttribute('src');
+                const live = img.dataset.svg
+                    ? !!liveApres && liveApres.svg === img.dataset.svg && liveApres.slide === Number(img.dataset.slide)
+                    : !!liveImageUrl && url === liveImageUrl;
                 img.classList.toggle('selecionada', live);
                 img.closest('.thumb-wrap').classList.toggle('is-preparada', !live && url === stagedImageUrl);
             });
         }
+
+        // ===== PowerPoint animado =====
+        // O slide vai ao ar como /apresentacao (o tocador do LibreOffice nas
+        // telas); daí Avançar/Voltar (ou as setas, ou o pedal) passam cada
+        // animação e cada slide em todas as telas juntas.
+        let liveApres = null;  // {svg, slide, step, slides, steps} da apresentação no ar
+
+        function apresentacaoUrl(animado) {
+            return '/apresentacao?svg=' + encodeURIComponent(animado.svg) + '&slide=' + animado.slide;
+        }
+
+        function carregarApresentacao() {
+            fetch('/api/apresentacao').then(r => r.json()).then(e => {
+                if (e && e.svg) { liveApres = e; renderApresentacao(); markGallery(); }
+            }).catch(() => {});
+        }
+
+        function renderApresentacao() {
+            const bar = document.getElementById('apresentacaoBar');
+            if (!bar) return;
+            bar.hidden = !liveApres;
+            if (!liveApres) return;
+            const nome = decodeURIComponent(liveApres.svg.split('/').pop()).replace(/_slide\.svg$/, '').replace(/_/g, ' ');
+            let txt = `${nome} — slide ${liveApres.slide + 1}` + (liveApres.slides ? ` de ${liveApres.slides}` : '');
+            if (liveApres.steps) txt += ` · animação ${liveApres.step} de ${liveApres.steps}`;
+            document.getElementById('apresentacaoPos').textContent = txt;
+        }
+
+        function apresentacao(cmd) {
+            if (liveApres) socket.emit('apresentacao_cmd', { cmd: cmd });
+        }
+
+        socket.on('apresentacao_pos', function (e) {
+            if (!liveApres || !e || e.svg !== liveApres.svg) return;
+            liveApres = e;
+            renderApresentacao();
+            markGallery();
+        });
+
+        // Setas, espaço e pedal (PageUp/PageDown) com a apresentação no ar
+        document.addEventListener('keydown', (ev) => {
+            if (!liveApres || ev.defaultPrevented) return;
+            if (ev.target.closest && ev.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+            const zoom = document.getElementById('zoom-modal');
+            if (zoom && zoom.classList.contains('open')) return;
+            const cmd = { ArrowRight: 'next', ArrowDown: 'next', PageDown: 'next', ' ': 'next',
+                          ArrowLeft: 'prev', ArrowUp: 'prev', PageUp: 'prev' }[ev.key];
+            if (!cmd) return;
+            ev.preventDefault();
+            apresentacao(cmd);
+        });
 
         function isStaticMedia(url) {
             return !!url && (url.startsWith('/static/') || /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(url));
@@ -990,6 +1054,7 @@
                 .then(r => r.json())
                 .then(d => {
                     if (d.mode === 'image' && d.is_static) { liveImageUrl = d.image_url; markGallery(); onLivePhotoChanged(); }
+                    else if (d.mode === 'image' && (d.image_url || '').startsWith('/apresentacao?')) carregarApresentacao();
                 })
                 .catch(() => {});
             loadFolders();

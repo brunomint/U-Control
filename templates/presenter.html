@@ -36,6 +36,14 @@
         <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="btnSlideshow" onclick="toggleSlideshow()"><i class="fas fa-play"></i> Iniciar</button>
     </div>
 
+    <!-- PowerPoint animado no ar (presenter.js, renderApresentacao) -->
+    <div class="apresentacao-bar" id="apresentacaoBar" hidden>
+        <i class="fas fa-person-chalkboard"></i>
+        <span id="apresentacaoPos" class="grow"></span>
+        <button type="button" class="uc-btn uc-btn-secondary" onclick="apresentacao('prev')" title="Voltar (seta ←)"><i class="fas fa-backward-step"></i> Voltar</button>
+        <button type="button" class="uc-btn uc-btn-primary" onclick="apresentacao('next')" title="Avançar (seta →, espaço ou pedal)">Avançar <i class="fas fa-forward-step"></i></button>
+    </div>
+
     <!-- Seleção pra excluir -->
     <div class="select-bar" id="selectBar" hidden>
         <span><b id="selectedCount">0</b> selecionada(s)</span>

@@ -2684,3 +2684,116 @@ def test_ticker_each_screen_keeps_its_own_aviso(app):
     finally:
         op.emit("stop_ticker", {"target": "all"})
         op.disconnect()
+
+
+# --- PowerPoint animado (blueprints/apresentacao.py) ---------------------
+
+def _pptx_simples(tmp_path, nome, oculto=None, transicao=False):
+    import io
+    pptx = pytest.importorskip("pptx")
+    from lxml import etree
+    pres = pptx.Presentation()
+    for i in range(3):
+        slide = pres.slides.add_slide(pres.slide_layouts[5])
+        slide.shapes.title.text = f"Slide {i + 1}"
+        if i == oculto:
+            slide._element.set("show", "0")
+        if transicao and i == 1:
+            slide._element.append(etree.fromstring(
+                '<p:transition xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:fade/></p:transition>'))
+    path = tmp_path / nome
+    buf = io.BytesIO()
+    pres.save(buf)
+    path.write_bytes(buf.getvalue())
+    return path
+
+
+def test_pptx_animado_detecta_transicao_e_tira_ocultos(tmp_path):
+    import zipfile
+    from blueprints import gallery
+
+    assert not gallery._pptx_animado(str(_pptx_simples(tmp_path, "parado.pptx")))
+    animado = _pptx_simples(tmp_path, "animado.pptx", oculto=0, transicao=True)
+    assert gallery._pptx_animado(str(animado))
+
+    # SVG do LibreOffice inclui slide oculto e o PDF não: a cópia sem os
+    # ocultos mantém o slide N do SVG = imagem N da galeria
+    copia = gallery._pptx_sem_ocultos(str(animado), str(tmp_path))
+    with zipfile.ZipFile(copia) as zf:
+        assert zf.read("ppt/presentation.xml").decode().count("<p:sldId ") == 2
+    sem_oculto = _pptx_simples(tmp_path, "todos.pptx", transicao=True)
+    assert gallery._pptx_sem_ocultos(str(sem_oculto), str(tmp_path)) == str(sem_oculto)
+
+
+def test_lista_fotos_marca_slides_animados_e_exclusao_leva_o_svg(logged_in_client, tmp_path, monkeypatch):
+    pasta = tmp_path / "static" / "imagens" / "Culto"
+    pasta.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    for nome in ("Avisos_slide-0001.jpg", "Avisos_slide-0002.jpg", "foto.jpg", "Outro_slide-0001.jpg"):
+        (pasta / nome).write_bytes(b"jpg")
+    (pasta / "Avisos_slide.svg").write_text("<svg/>")
+
+    fotos = {f["url"].rsplit("/", 1)[1]: f for f in logged_in_client.get("/lista-fotos?folder=Culto").get_json()["fotos"]}
+    assert fotos["Avisos_slide-0002.jpg"]["animado"] == {"svg": "/static/imagens/Culto/Avisos_slide.svg", "slide": 1}
+    assert "animado" not in fotos["foto.jpg"]
+    assert "animado" not in fotos["Outro_slide-0001.jpg"]  # sem SVG ao lado
+    assert "Avisos_slide.svg" not in fotos  # o SVG não aparece como foto
+
+    logged_in_client.post("/delete_images", json={"folder": "Culto", "image_names": ["Avisos_slide-0001.jpg"]})
+    assert (pasta / "Avisos_slide.svg").exists()  # ainda tem um slide
+    logged_in_client.post("/delete_images", json={"folder": "Culto", "image_names": ["Avisos_slide-0002.jpg"]})
+    assert not (pasta / "Avisos_slide.svg").exists()
+
+
+def test_apresentacao_sincroniza_telas(app, client):
+    from urllib.parse import quote
+    import telao
+    from blueprints import apresentacao
+
+    svg = "/static/imagens/Culto/Avisos_slide.svg"
+    url = lambda n: f"/apresentacao?svg={quote(svg)}&slide={n}"
+    assert client.get(url(0)).status_code == 200  # tela: sem login
+
+    tela = ucontrol_main.socketio.test_client(app)  # sem login
+    operador = _operator_socket(app)
+    try:
+        operador.emit("show_image", {"image_url": url(1)})
+        assert client.get("/api/apresentacao").get_json()["slide"] == 1
+        assert telao.describe({"kind": "page", "url": url(1)})["label"] == "Apresentação · Avisos"
+        tela.get_received()
+
+        # a tela conta onde parou (sem login); o servidor guarda e repassa
+        tela.emit("apresentacao_pos", {"svg": svg, "slide": 1, "step": 1, "slides": 3, "steps": 2})
+        e = client.get("/api/apresentacao").get_json()
+        assert (e["slide"], e["step"], e["slides"]) == (1, 1, 3)
+        tela.emit("apresentacao_pos", {"svg": "/static/imagens/x_slide.svg", "slide": 9, "step": 0, "slides": 9, "steps": 0})
+        assert client.get("/api/apresentacao").get_json()["slide"] == 1  # outra apresentação: ignora
+
+        # Avançar vai pra todas com a posição de partida
+        tela.get_received()
+        operador.emit("apresentacao_cmd", {"cmd": "next"})
+        cmds = [m["args"][0] for m in tela.get_received() if m["name"] == "apresentacao_cmd"]
+        assert cmds == [{"cmd": "next", "svg": svg, "slide": 1, "step": 1}]
+
+        # tela sem login não comanda
+        tela.emit("apresentacao_cmd", {"cmd": "next"})
+        assert not [m for m in tela.get_received() if m["name"] == "apresentacao_cmd"]
+
+        # outro slide da mesma apresentação: pula sem recarregar as telas
+        operador.emit("show_image", {"image_url": url(2)})
+        recebidos = tela.get_received()
+        assert not [m for m in recebidos if m["name"] == "display_image"]
+        assert [m["args"][0] for m in recebidos if m["name"] == "apresentacao_cmd"] == [
+            {"cmd": "goto", "svg": svg, "slide": 2, "step": 0}]
+    finally:
+        tela.disconnect()
+        operador.disconnect()
+        apresentacao._estado.update(svg=None, slide=0, step=0, slides=None, steps=None)
+
+
+def test_apresentacao_parse_url_recusa_caminho_de_fora():
+    from blueprints.apresentacao import parse_url
+    assert parse_url("/apresentacao?svg=/static/imagens/a_slide.svg&slide=3") == ("/static/imagens/a_slide.svg", 3)
+    assert parse_url("/apresentacao?svg=/etc/passwd&slide=1")[0] is None
+    assert parse_url("/apresentacao?svg=/static/imagens/a.jpg")[0] is None
+    assert parse_url("/clock") == (None, 0)

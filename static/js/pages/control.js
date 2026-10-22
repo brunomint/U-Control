@@ -1046,11 +1046,12 @@ function setupPanel() {
     // Setas (e pedal: PageUp/PageDown) com o foco no Controle passam a
     // música ou o versículo aberto no painel — sem precisar clicar dentro
     // dele antes. Repassa a tecla pra página do painel, que já sabe o que
-    // fazer com ela (lyrics_2.js, bible_chapter.js).
+    // fazer com ela (lyrics_2.js, bible_chapter.js; presenter.js passa o
+    // PowerPoint animado que estiver no ar).
     document.addEventListener('keydown', (e) => {
         if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
         if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-        if (!panelState.open || !['musica', 'biblia'].includes(panelState.view)) return;
+        if (!panelState.open || !['musica', 'biblia', 'fotos'].includes(panelState.view)) return;
         const frame = panelFrames[panelState.view];
         let doc = null;
         try { doc = frame && frame.contentDocument; } catch (err) { /* outra origem */ }
