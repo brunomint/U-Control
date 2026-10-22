@@ -28,6 +28,7 @@
                 <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.name }} ({{ trans.abbrev }})</option>
                 {% endfor %}
             </select>
+            {% include "_bible_segunda.html" %}
             <div class="chapter-nav">
                 {% if prev_chapter %}
                 <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="Capítulo {{ prev_chapter }}"><i class="fas fa-chevron-left"></i></a>

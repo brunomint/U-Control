@@ -340,8 +340,15 @@ const fitSheetsToScreen = () => {
             verseText = data.text;
         }
         
+        // Segunda versão (blueprints/bible.py: com_segunda_versao) depois de uma linha em branco
+        let versao = data.version;
+        if (Array.isArray(data.verses2) && data.verses2.length) {
+            verseText += '\n\n' + data.verses2.map(v => `${v.num} ${v.text}`).join('\n');
+            versao = [data.version_abbrev || data.version, data.version2_abbrev].filter(Boolean).join(' · ');
+        }
+
         // Exibe com quebra de linha para Bíblia
-        updateBibleDisplay(data.reference || 'Bíblia', verseText, data.version);
+        updateBibleDisplay(data.reference || 'Bíblia', verseText, versao);
     });
 
     // Detecção de linha de cifra via ChordLines.isChordLine

@@ -3066,3 +3066,38 @@ def test_importar_confere_e_soma_sem_estragar_as_daqui(logged_in_client):
         assert musica["sections"][0]["text"] == ["versao de casa"] and musica["video_url"] == "https://youtu.be/x"
         assert chave_musica("Importada Nova", "") in musicas_por_chave()
     assert logged_in_client.post("/api/importar-musicas/importar", json={"token": a["token"]}).status_code == 400
+
+
+# --- Bíblia em duas versões (blueprints/bible.py: com_segunda_versao) ----
+
+def test_biblia_segunda_versao_vai_junto_pro_telao(app, logged_in_client):
+    from blueprints import bible
+
+    payload = {"reference": "João 3:16", "book": "João", "chapter": 3,
+               "verses": [{"num": 16, "text": "Porque Deus amou"}], "version": "Bíblia Livre"}
+    with app.app_context():
+        bible.set_second_translation("")
+        assert bible.com_segunda_versao(payload) is payload  # desligado: igual
+
+    assert logged_in_client.post("/api/bible/set_translation2", json={"translation": "xyz"}).status_code == 400
+    assert logged_in_client.post("/api/bible/set_translation2", json={"translation": "nbv"}).get_json()["success"]
+    assert 'value="nbv" selected' in logged_in_client.get("/bible/jo/3?translation=blivre").get_data(as_text=True)
+
+    operador = _operator_socket(app)
+    tela = ucontrol_main.socketio.test_client(app)
+    try:
+        tela.get_received()
+        operador.emit("update_bible", payload)
+        recebido = next(m["args"][0] for m in tela.get_received() if m["name"] == "update_bible")
+        assert recebido["version2_abbrev"] == "NBV" and recebido["version_abbrev"] == "BLIVRE"
+        assert recebido["verses2"][0]["num"] == 16 and "Deus" in recebido["verses2"][0]["text"]
+        # tela que abre depois recebe as duas
+        assert logged_in_client.get("/api/bible/current").get_json()["version2"] == "Nova Bíblia Viva"
+        with app.app_context():
+            # a mesma versão nas duas, ou versículo que não existe: só uma
+            assert "verses2" not in bible.com_segunda_versao({**payload, "version": "Nova Bíblia Viva"})
+            assert "verses2" not in bible.com_segunda_versao({**payload, "verses": [{"num": 999, "text": "x"}]})
+    finally:
+        operador.disconnect()
+        tela.disconnect()
+        logged_in_client.post("/api/bible/set_translation2", json={"translation": ""})

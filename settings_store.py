@@ -24,6 +24,8 @@ def load_settings():
     settings = {}
     if row.bible_translation is not None:
         settings['bible_translation'] = row.bible_translation
+    if row.bible_translation_2:
+        settings['bible_translation_2'] = row.bible_translation_2
     if row.display_bg_dark is not None:
         settings['display_bg_dark'] = row.display_bg_dark
     return settings
@@ -36,6 +38,8 @@ def save_settings(settings):
     row = _get_or_create()
     if 'bible_translation' in settings:
         row.bible_translation = settings['bible_translation']
+    if 'bible_translation_2' in settings:
+        row.bible_translation_2 = settings['bible_translation_2'] or None
     if 'display_bg_dark' in settings:
         row.display_bg_dark = settings['display_bg_dark']
     try:

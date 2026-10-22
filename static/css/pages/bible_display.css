@@ -99,6 +99,22 @@ body {
     50% { opacity: 1; transform: scale(1.1); }
 }
 
+/* Duas versões (segunda embaixo): menos espaço em volta, sigla em cada quadro */
+.verse-container-2 { margin-top: 1em; }
+#content:has(#verseBox2:not([hidden])) .reference { margin-bottom: 1em; }
+#content:has(#verseBox2:not([hidden])) .verse-container { padding: 1.6em 2.4em; }
+.verse-sigla {
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.95em;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #ffd700;
+    opacity: 0.85;
+    text-align: left;
+    margin-bottom: 0.5em;
+}
+.verse-sigla[hidden], .verse-container-2[hidden] { display: none; }
+
 /* Estilos para diferentes tamanhos de texto */
 .verse-text.small {
     font-size: 2em;

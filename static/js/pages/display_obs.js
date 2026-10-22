@@ -118,13 +118,17 @@ socket.on('update_lyrics', (data) => {
 });
 
 socket.on('update_bible', (data) => {
+    const versos = vs => vs.map(v => `<sup style="font-size:0.55em;vertical-align:super">${v.num}</sup>${v.text}`).join('<br>');
     let text = '';
     if (data.verses && Array.isArray(data.verses)) {
-        text = data.verses.map(v => `<sup style="font-size:0.55em;vertical-align:super">${v.num}</sup>${v.text}`).join('<br>');
+        text = versos(data.verses);
     } else if (data.text) {
         text = data.text.replace(/\n/g, '<br>');
     }
-    setBibleLabels(data.reference, data.version);
+    // Segunda versão (blueprints/bible.py: com_segunda_versao) logo embaixo
+    const duas = Array.isArray(data.verses2) && data.verses2.length;
+    if (duas) text += `<br><span style="opacity:.8">${versos(data.verses2)}</span>`;
+    setBibleLabels(data.reference, duas ? [data.version_abbrev || data.version, data.version2_abbrev].filter(Boolean).join(' · ') : data.version);
     setContent(text);
 });
 

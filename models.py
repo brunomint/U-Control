@@ -78,6 +78,8 @@ class DisplayLog(db.Model):
 class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     bible_translation = db.Column(db.String(20), nullable=True)
+    # Segunda versão mostrada junto no telão ('' / None = só uma)
+    bible_translation_2 = db.Column(db.String(20), nullable=True)
     display_bg_dark = db.Column(db.Boolean, nullable=True, default=False)
 
 

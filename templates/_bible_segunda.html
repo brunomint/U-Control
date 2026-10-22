@@ -1,0 +1,10 @@
+{#- Segunda versão no telão (blueprints/bible.py: com_segunda_versao).
+    Incluído ao lado do seletor de tradução nas páginas da Bíblia. #}
+<select class="uc-input" id="translation2Select" aria-label="Segunda versão no telão"
+        title="Mostrar também outra versão no telão, embaixo da primeira">
+    <option value="">+ 2ª versão: nenhuma</option>
+    {% for key, trans in translations.items() %}
+    <option value="{{ key }}" {% if key == segunda_versao() %}selected{% endif %}>+ {{ trans.abbrev }}</option>
+    {% endfor %}
+</select>
+<script src="{{ versioned_static('js/bible_segunda.js') }}" defer></script>

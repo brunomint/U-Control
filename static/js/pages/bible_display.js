@@ -53,30 +53,24 @@ function displayVerse(data) {
     setTimeout(() => {
         // Atualiza conteúdo
         reference.textContent = data.reference || '';
-        version.textContent = data.version || '';
+        const duas = Array.isArray(data.verses2) && data.verses2.length > 0;
+        version.textContent = duas ? [data.version, data.version2].filter(Boolean).join(' · ') : (data.version || '');
 
-        // Formata versículos
-        let html = '';
-        if (data.verses && Array.isArray(data.verses)) {
-            data.verses.forEach(verse => {
-                html += `<span class="verse-number">${verse.num}</span>${verse.text} `;
-            });
-        } else if (data.text) {
-            html = data.text;
-        }
+        verseText.innerHTML = versosHtml(data.verses, data.text);
+        // Segunda versão embaixo, cada uma com a sigla
+        document.getElementById('verseBox2').hidden = !duas;
+        document.getElementById('verseSigla').hidden = !duas;
+        document.getElementById('verseSigla').textContent = data.version_abbrev || '';
+        document.getElementById('verseSigla2').textContent = data.version2_abbrev || '';
+        const verseText2 = document.getElementById('verseText2');
+        verseText2.innerHTML = duas ? versosHtml(data.verses2, data.text2) : '';
 
-        verseText.innerHTML = html;
-
-        // Ajusta tamanho do texto baseado no comprimento
-        const textLength = verseText.textContent.length;
-        verseText.classList.remove('small', 'medium', 'large');
-        if (textLength > 500) {
-            verseText.classList.add('small');
-        } else if (textLength > 200) {
-            verseText.classList.add('medium');
-        } else {
-            verseText.classList.add('large');
-        }
+        // Ajusta tamanho do texto baseado no comprimento (as duas somadas)
+        const textLength = verseText.textContent.length + verseText2.textContent.length;
+        [verseText, verseText2].forEach(el => {
+            el.classList.remove('small', 'medium', 'large');
+            el.classList.add(textLength > 500 ? 'small' : textLength > 200 ? 'medium' : 'large');
+        });
 
         // Mostra conteúdo
         waiting.style.display = 'none';
@@ -84,6 +78,14 @@ function displayVerse(data) {
         content.classList.remove('fade-out');
         caberNaTela();
     }, 300);
+}
+
+function versosHtml(verses, text) {
+    const esc = t => String(t == null ? '' : t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+    if (Array.isArray(verses)) {
+        return verses.map(v => `<span class="verse-number">${esc(v.num)}</span>${esc(v.text)} `).join('');
+    }
+    return text ? esc(text) : '';
 }
 
 // Texto longo (vários versículos, tela baixa como o celular deitado no

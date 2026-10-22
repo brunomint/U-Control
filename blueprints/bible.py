@@ -79,6 +79,66 @@ def set_preferred_translation(translation):
     save_settings(settings)
 
 
+# --- Segunda versão (duas traduções no telão ao mesmo tempo) -------------
+# O operador escolhe uma segunda tradução (ex.: ACF + NVI, ou português +
+# inglês pra visitantes); enviar_biblia() acrescenta o mesmo trecho nela
+# ao que vai pras telas. Fica no servidor, num lugar só: todas as páginas
+# que mandam versículo (Bíblia, controle da Bíblia, Bíblia na música)
+# ganham sem mudar nada.
+
+def get_second_translation():
+    """Tradução extra mostrada junto ('' = só uma)."""
+    escolhida = load_settings().get('bible_translation_2') or ''
+    return escolhida if escolhida in load_bible_metadata().get('translations', {}) else ''
+
+
+def set_second_translation(translation):
+    settings = load_settings()
+    settings['bible_translation_2'] = translation or ''
+    save_settings(settings)
+
+
+def _abbrev_do_livro(nome):
+    for book in load_bible_metadata().get('books', []):
+        if book['name'] == nome or book['abbrev'] == nome:
+            return book['abbrev']
+    return None
+
+
+def com_segunda_versao(data):
+    """Mesmo trecho na segunda versão: verses2, text2, version2(_abbrev).
+    Sem segunda versão, ou igual à primeira, ou trecho que não existe nela
+    (livro/versículo faltando no arquivo), volta como veio."""
+    t2 = get_second_translation()
+    versos = data.get('verses') if isinstance(data, dict) else None
+    if not t2 or not versos or not data.get('chapter') or data.get('version') == get_translation_name(t2):
+        return data
+    book = get_book_by_abbrev(t2, _abbrev_do_livro(data.get('book')) or '')
+    try:
+        capitulo = book['chapters'][int(data['chapter']) - 1] if book else None
+        versos2 = [{'num': int(v['num']), 'text': capitulo[int(v['num']) - 1]} for v in versos] if capitulo else []
+    except (KeyError, IndexError, TypeError, ValueError):
+        versos2 = []
+    if not versos2:
+        return data
+    return {**data, 'verses2': versos2,
+            'text2': '\n'.join(f"{v['num']} {v['text']}" for v in versos2),
+            'version2': get_translation_name(t2), 'version2_abbrev': get_translation_abbrev(t2),
+            'version_abbrev': data.get('version_abbrev') or _sigla_pelo_nome(data.get('version'))}
+
+
+def _sigla_pelo_nome(nome):
+    for info in load_bible_metadata().get('translations', {}).values():
+        if info.get('name') == nome:
+            return info.get('abbrev')
+    return ''
+
+
+@bible_bp.app_context_processor
+def _segunda_versao_nos_templates():
+    return {'segunda_versao': get_second_translation}
+
+
 def load_bible_metadata():
     """Carrega os metadados dos livros da Bíblia. As traduções listadas são
     só as que têm arquivo nesta instalação (as privadas só existem onde
@@ -629,6 +689,7 @@ def enviar_biblia(data, publico, monitor, abrir_no_monitor=False):
     import display_state
     import telao
     from connections import _get_monitor_sids
+    data = com_segunda_versao(data)
     logger.debug(f'📖 update_bible: {data.get("reference", "Sem referência")} (público={publico}, monitor={monitor})')
     mostrar_se_escondido()
     ref = data.get('reference') or str(data.get('text', ''))[:60]
@@ -761,6 +822,16 @@ def api_set_bible_translation():
     data = request.get_json()
     translation = data.get('translation') or default_translation()
     set_preferred_translation(translation)
+    return jsonify({'success': True, 'translation': translation})
+
+@bible_bp.route('/api/bible/set_translation2', methods=['POST'])
+@login_required
+def api_set_bible_translation2():
+    """Segunda versão mostrada junto no telão ('' desliga)."""
+    translation = (request.get_json(silent=True) or {}).get('translation') or ''
+    if translation and translation not in load_bible_metadata().get('translations', {}):
+        return jsonify({'error': 'Tradução não encontrada.'}), 400
+    set_second_translation(translation)
     return jsonify({'success': True, 'translation': translation})
 
 @bible_bp.route('/bible/control/<book_abbrev>/<int:chapter>')
