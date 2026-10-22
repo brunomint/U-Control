@@ -64,6 +64,10 @@ NAV_ITEMS = [
         "group": "criar", "login_required": True, "contexts": ["nav"],
     },
     {
+        "endpoint": "importar.importar_page", "label": "Importar Músicas", "icon": "fa-file-import",
+        "group": "criar", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "songs.sheet_editor", "label": "Editor de Partitura", "icon": "fa-file-pen",
         "group": "criar", "login_required": True, "contexts": ["nav"],
     },

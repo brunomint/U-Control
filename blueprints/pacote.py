@@ -21,7 +21,6 @@ import re
 import shutil
 import tempfile
 import time
-import unicodedata
 import uuid
 import zipfile
 
@@ -33,7 +32,7 @@ import updates
 from blueprints.gallery import _safe_folder_path
 from extensions import db
 from orders_store import get_order, save_order
-from songs_store import get_song, next_song_id, save_song
+from songs_store import chave_musica, get_song, musicas_por_chave, next_song_id, save_song
 
 pacote_bp = Blueprint('pacote', __name__)
 
@@ -42,12 +41,7 @@ _RE_LYRICS = re.compile(r'^/lyrics/(\d+)(?=$|[?#/])')
 _VALIDADE = 3600  # pacote enviado e não importado: apagado depois de 1 h
 
 
-def _chave(titulo, autor):
-    """'Santo Pra Sempre' / 'Gabriel  Guedes' e 'santo pra sempre' /
-    'Gabriel Guedes' são a mesma música."""
-    t = unicodedata.normalize('NFKD', f'{titulo or ""}\x00{autor or ""}')
-    t = ''.join(c for c in t if not unicodedata.combining(c))
-    return re.sub(r'\s+', ' ', t).strip().casefold()
+_chave = chave_musica  # (também usada pelo importar.py, via songs_store)
 
 
 def _conteudo(song):
@@ -56,10 +50,7 @@ def _conteudo(song):
                       sort_keys=True, ensure_ascii=False)
 
 
-def _musicas_daqui():
-    """chave -> id, sem carregar seções e partituras de todas."""
-    from models_songs import Song
-    return {_chave(t, a): i for i, t, a in db.session.query(Song.id, Song.title, Song.author)}
+_musicas_daqui = musicas_por_chave
 
 
 def _pasta_dir(nome):

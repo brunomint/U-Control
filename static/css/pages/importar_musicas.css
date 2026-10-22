@@ -1,0 +1,37 @@
+/* Importar músicas (importar_musicas.html) — lista montada por
+   importar_musicas.js. Base, card e botões vêm do app.css. */
+
+.imp-grid { display: grid; gap: 16px; max-width: 900px; }
+.imp-grid .uc-card { display: grid; gap: 12px; min-width: 0; }
+.imp-grid h2 { margin: 0; font-size: 1.1rem; display: flex; gap: 8px; align-items: center; }
+.imp-grid p { margin: 0; }
+.imp-formatos { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--uc-muted); }
+.imp-formatos strong { color: var(--uc-text); }
+
+.imp-arquivo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.imp-arquivo input[type="file"] { flex: 1; min-width: 0; color: var(--uc-muted); }
+.imp-arquivo input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 700; color: var(--uc-text); background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); padding: 6px 12px; margin-right: 10px; cursor: pointer;
+}
+
+.imp-resumo { font-weight: 700; }
+.imp-erros { background: var(--uc-surface-2); border-left: 3px solid var(--uc-warn); padding: 8px 12px; border-radius: var(--uc-r-sm); font-size: 13px; }
+.imp-ferramentas { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.imp-ferramentas .uc-input { flex: 1; min-width: 180px; }
+
+.imp-lista { max-height: 60vh; overflow: auto; border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); }
+.imp-item { border-bottom: 1px solid var(--uc-line); padding: 8px 10px; display: grid; gap: 4px; }
+.imp-item:last-child { border-bottom: 0; }
+.imp-linha { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.imp-linha label { display: flex; gap: 8px; align-items: baseline; cursor: pointer; flex: 1; min-width: 200px; }
+.imp-linha .titulo { font-weight: 600; overflow-wrap: anywhere; }
+.imp-linha .detalhe { color: var(--uc-muted); font-size: 13px; }
+.imp-item details summary { cursor: pointer; color: var(--uc-muted); font-size: 12px; }
+.imp-item pre { margin: 4px 0 0; white-space: pre-wrap; font: 12.5px/1.4 ui-monospace, monospace; background: var(--uc-surface-2); padding: 8px; border-radius: 6px; }
+.imp-substituir { font-size: 13px; display: flex; gap: 4px; align-items: center; cursor: pointer; }
+
+.selo { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.selo-nova { background: var(--uc-ok); color: #04210f; }
+.selo-igual, .selo-repetida { background: var(--uc-surface-3); color: var(--uc-muted); }
+.selo-diferente { background: var(--uc-warn); color: #1a1400; }

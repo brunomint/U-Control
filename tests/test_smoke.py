@@ -2984,3 +2984,85 @@ def test_conversoes_mostram_a_etapa_por_pasta(client):
     conversoes.etapa(None, "Avisos", "erro")  # conversão sem registro: ignora
     assert client.get("/api/conversoes?folder=Culto").get_json()[0]["etapa"] == "pronto"
     conversoes._estado.clear()
+
+
+# --- Importar músicas (importar_musicas.py, blueprints/importar.py) ------
+
+def test_importar_le_os_formatos_e_poe_acorde_em_cima_da_letra():
+    import io
+    import json
+    import zipfile
+    import importar_musicas as im
+
+    assert im._linha_com_acordes("[G]Santo, [D/F#]santo") == "G      D/F#\nSanto, santo"
+    assert im._linha_com_acordes("sem acorde") == "sem acorde"
+
+    cho = im.ler("x.cho", b"{title: Santo}\n{artist: Fulano}\n[G]Quem [D]vem\n\n{soc}\n[C]Coro\n{eoc}\n")[0]
+    assert (cho["title"], cho["author"]) == ("Santo", "Fulano")
+    assert [s["title"] for s in cho["sections"]] == ["Verse 1", "Chorus"]
+    assert cho["sections"][0]["text"] == ["G    D\nQuem vem"]
+
+    ol = ('<song xmlns="http://openlyrics.info/namespace/2009/song"><properties><titles><title>Graça</title></titles>'
+          '<authors><author>Newton</author></authors></properties><lyrics><verse name="v1"><lines>'
+          '<chord name="D"/>Graça <chord name="G"/>sublime<br/>linha dois</lines></verse><verse name="c">'
+          '<lines>Coro</lines></verse></lyrics></song>').encode()
+    m = im.ler("g.xml", ol)[0]
+    assert [s["title"] for s in m["sections"]] == ["Verse 1", "Chorus"]
+    assert m["sections"][0]["text"] == ["D     G\nGraça sublime\nlinha dois"]
+
+    holy = json.dumps([{"title": "Hino", "artist": "Harpa", "slides": [{"text": "a\nb", "slide_description": "Coro"}]},
+                       {"title": "Antigo", "lyrics": {"paragraphs": [{"text": "x"}]}}]).encode()
+    h = im.ler("h.json", holy)
+    assert [(x["title"], x["sections"][0]["title"]) for x in h] == [("Hino", "Coro"), ("Antigo", "Verse 1")]
+
+    t = im.ler("Hino da Casa.txt", "Primeiro\n\n[Refrão]\nGlória\n".encode("cp1252"))[0]
+    assert t["title"] == "Hino da Casa" and [s["title"] for s in t["sections"]] == ["Verse 1", "Refrão"]
+
+    z = io.BytesIO()
+    with zipfile.ZipFile(z, "w") as zf:
+        zf.writestr("a.cho", "{title: A}\nla")
+        zf.writestr("b.txt", "lb")
+        zf.writestr("c.muf", "?")
+    assert sorted(m["title"] for m in im.ler("lote.zip", z.getvalue())) == ["A", "b"]
+    with pytest.raises(im.ArquivoInvalido, match="muf"):
+        im.ler("x.muf", b"?")
+    with pytest.raises(im.ArquivoInvalido):
+        im.ler("x.json", b"{nao e json")
+
+
+def test_importar_confere_e_soma_sem_estragar_as_daqui(logged_in_client):
+    import io
+    from songs_store import get_song, musicas_por_chave, chave_musica, save_song, next_song_id
+
+    with logged_in_client.application.app_context():
+        nid = next_song_id()
+        save_song({"id": nid, "title": "Importada Daqui", "author": "Igreja",
+                   "sections": [{"title": "V", "text": ["versão daqui"]}], "video_url": "https://youtu.be/x"})
+
+    def enviar(*arquivos):
+        return logged_in_client.post("/api/importar-musicas/analisar", content_type="multipart/form-data",
+                                     data={"arquivos": [(io.BytesIO(d), n) for n, d in arquivos]}).get_json()
+
+    a = enviar(("a.cho", b"{title: importada daqui}\n{artist: IGREJA}\nversao de casa"),
+               ("b.cho", b"{title: Importada Nova}\nnova"), ("c.muf", b"?"))
+    st = {m["title"]: m["status"] for m in a["musicas"]}
+    assert st == {"importada daqui": "diferente", "Importada Nova": "nova"} and len(a["erros"]) == 1
+    i_dif = next(m["i"] for m in a["musicas"] if m["status"] == "diferente")
+    todas = [m["i"] for m in a["musicas"]]
+
+    # sem marcar "substituir": a daqui fica
+    r = logged_in_client.post("/api/importar-musicas/importar", json={"token": a["token"], "importar": todas}).get_json()
+    assert (r["novas"], r["puladas"], r["substituidas"]) == (1, 1, 0)
+    with logged_in_client.application.app_context():
+        assert get_song(nid)["sections"][0]["text"] == ["versão daqui"]
+
+    # substituindo: troca a letra, mantém id e o que só existe aqui (vídeo)
+    a = enviar(("a.cho", b"{title: importada daqui}\n{artist: IGREJA}\nversao de casa"))
+    r = logged_in_client.post("/api/importar-musicas/importar",
+                              json={"token": a["token"], "importar": [0], "substituir": [0]}).get_json()
+    assert r["substituidas"] == 1
+    with logged_in_client.application.app_context():
+        musica = get_song(nid)
+        assert musica["sections"][0]["text"] == ["versao de casa"] and musica["video_url"] == "https://youtu.be/x"
+        assert chave_musica("Importada Nova", "") in musicas_por_chave()
+    assert logged_in_client.post("/api/importar-musicas/importar", json={"token": a["token"]}).status_code == 400

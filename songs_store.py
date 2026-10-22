@@ -24,6 +24,7 @@ theme/last_played) são sempre atribuídas — o SQLAlchemy já não gera
 UPDATE se o valor não mudou — mas as listas-filhas (sections/sheet_data)
 só são recriadas quando o conteúdo comparado realmente difere do que já
 está no banco."""
+import re
 from datetime import datetime
 
 from sqlalchemy import func
@@ -265,3 +266,17 @@ def next_song_id():
 def get_next_id(songs):
     """Obtém o próximo ID disponível para uma nova música."""
     return max((song['id'] for song in songs), default=0) + 1
+
+
+def chave_musica(titulo, autor):
+    """'Santo Pra Sempre' / 'Gabriel  Guedes' e 'santo pra sempre' /
+    'Gabriel Guedes' são a mesma música (pacote.py, importar.py)."""
+    import unicodedata
+    t = unicodedata.normalize('NFKD', f'{titulo or ""}\x00{autor or ""}')
+    t = ''.join(c for c in t if not unicodedata.combining(c))
+    return re.sub(r'\s+', ' ', t).strip().casefold()
+
+
+def musicas_por_chave():
+    """chave_musica -> id, sem carregar seções e partituras de todas."""
+    return {chave_musica(t, a): i for i, t, a in db.session.query(Song.id, Song.title, Song.author)}

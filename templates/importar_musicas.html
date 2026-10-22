@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}Importar músicas - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/importar_musicas.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Importar músicas</h1>
+            <div class="uc-page-sub">Traga as músicas de outro programa sem redigitar. As que já existem aqui não são estragadas.</div>
+        </div>
+    </div>
+
+    <div class="imp-grid">
+        <section class="uc-card">
+            <h2><i class="fas fa-file-import"></i> Arquivos</h2>
+            <ul class="imp-formatos">
+                <li><strong>Holyrics</strong>: arquivo <code>.json</code> ou <code>.txt</code> exportado pelo Holyrics</li>
+                <li><strong>OpenLP</strong> e outros: <code>.xml</code> no formato OpenLyrics (Músicas → Exportar)</li>
+                <li><strong>ChordPro</strong>: <code>.cho</code>, <code>.chordpro</code>, <code>.crd</code> — cifras com <code>[G]</code> no meio da letra</li>
+                <li><strong>Texto</strong>: <code>.txt</code>, um trecho por parágrafo; o nome do arquivo vira o título</li>
+                <li>Muitas de uma vez: junte num <code>.zip</code></li>
+            </ul>
+            <div class="imp-arquivo">
+                <input type="file" id="imp-arquivos" multiple accept=".json,.xml,.txt,.zip,.cho,.chordpro,.chopro,.crd,.pro" aria-label="Arquivos das músicas">
+                <button type="button" class="uc-btn uc-btn-primary" id="imp-conferir" disabled><i class="fas fa-magnifying-glass"></i> Conferir</button>
+            </div>
+            <p id="imp-msg" role="status"></p>
+        </section>
+
+        <section class="uc-card" id="imp-resultado" hidden>
+            <h2><i class="fas fa-list-check"></i> O que vai entrar</h2>
+            <p id="imp-resumo" class="imp-resumo"></p>
+            <div id="imp-erros" class="imp-erros" hidden></div>
+            <div class="imp-ferramentas">
+                <input class="uc-input" type="search" id="imp-busca" placeholder="Buscar por título ou artista" aria-label="Buscar">
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="imp-todas">Marcar todas</button>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="imp-nenhuma">Desmarcar todas</button>
+            </div>
+            <div id="imp-lista" class="imp-lista"></div>
+            <div class="uc-btn-row">
+                <button type="button" class="uc-btn uc-btn-primary" id="imp-importar" disabled><i class="fas fa-file-import"></i> Importar</button>
+            </div>
+            <p id="imp-feito" role="status"></p>
+        </section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/importar_musicas.js') }}"></script>
+{% endblock %}
