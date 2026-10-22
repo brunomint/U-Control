@@ -134,6 +134,16 @@ def main():
     check(r.status_code == 200 and 'banco/users.db' in zipfile.ZipFile(io.BytesIO(r.content)).namelist(),
           f'backup baixado ({len(r.content) // 1024} KB)')
 
+    # Site no telão: abre no Edge/Chrome do Windows e responde aos comandos
+    h = {'X-CSRFToken': csrf(s.get(BASE + '/control').text)}
+    r = s.post(BASE + '/api/site/abrir', json={'url': BASE + '/help'}, headers=h)
+    check(r.status_code == 200 and r.json().get('aberto'), f'site no telão abre ({r.text[:150]})')
+    for acao in ('pagina-baixo', 'rolar-baixo', 'zoom-mais', 'enter', 'recarregar'):
+        r = s.post(BASE + '/api/site/comando', json={'acao': acao}, headers=h)
+        check(r.status_code == 200 and r.json().get('ok'), f'site no telão: {acao} ({r.text[:120]})')
+    r = s.post(BASE + '/api/site/fechar', headers=h)
+    check(r.status_code == 200 and not r.json().get('aberto'), 'site no telão fecha')
+
     # Por último: "Desligar o U-Control" fecha o programa (bandeja inclusive)
     r = s.get(BASE + '/control')
     check('Desligar o U-Control' in r.text, 'menu Sistema tem "Desligar o U-Control"')
