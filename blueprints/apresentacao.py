@@ -62,6 +62,15 @@ def ir_para(url):
     socketio.emit('apresentacao_pos', estado)
 
 
+def no_ar():
+    """Uma apresentação animada é o que está no telão agora (atalhos.py)."""
+    import display_state
+    if display_state._current_display_mode != 'image':
+        return False
+    svg, _ = parse_url(display_state._last_image_url)
+    return bool(svg) and svg == _estado['svg']
+
+
 # Sem login, como /tela-do-pc: é uma tela
 @apresentacao_bp.route('/apresentacao')
 def apresentacao():

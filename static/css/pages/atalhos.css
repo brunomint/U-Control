@@ -1,0 +1,23 @@
+/* Atalhos (atalhos.html). Base, card e botões vêm do app.css. */
+
+.at-grid { display: grid; gap: 16px; max-width: 980px; }
+.at-grid .uc-card { display: grid; gap: 12px; min-width: 0; }
+.at-grid h2 { margin: 0; font-size: 1.1rem; display: flex; gap: 8px; align-items: center; }
+.at-grid p { margin: 0; }
+.at-grid ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.at-grid details summary { cursor: pointer; }
+.at-grid details p { margin-top: 8px; }
+
+.at-chave { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.at-chave code { background: var(--uc-surface-2); padding: 6px 10px; border-radius: var(--uc-r-sm); font-size: 15px; overflow-wrap: anywhere; }
+
+.at-lista { display: grid; gap: 2px; }
+.at-item { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 1.4fr); gap: 6px 12px; align-items: center;
+           padding: 8px 0; border-bottom: 1px solid var(--uc-line); }
+.at-item:last-child { border-bottom: 0; }
+.at-desc { display: grid; gap: 2px; min-width: 0; }
+.at-desc strong { font-family: ui-monospace, monospace; }
+.at-desc span { color: var(--uc-muted); font-size: 13px; }
+.at-url { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.at-url .uc-input { flex: 1; min-width: 0; font: 12px ui-monospace, monospace; }
+@media (max-width: 700px) { .at-item { grid-template-columns: 1fr; } }

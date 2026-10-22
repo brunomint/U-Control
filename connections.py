@@ -38,6 +38,8 @@ def handle_disconnect():
     telao.forget_client(sid)
     from blueprints import screen_share
     screen_share.forget(sid)
+    from blueprints import atalhos
+    atalhos.esquecer(sid)
 
 
 @socketio.on('identify')

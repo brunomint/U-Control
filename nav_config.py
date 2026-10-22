@@ -107,6 +107,10 @@ NAV_ITEMS = [
         "group": "sistema", "login_required": True, "contexts": ["nav"],
     },
     {
+        "endpoint": "atalhos.atalhos_page", "label": "Atalhos (Stream Deck)", "icon": "fa-keyboard",
+        "group": "sistema", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "utils.help", "label": "Ajuda", "icon": "fa-circle-question",
         "group": "sistema", "login_required": False, "contexts": ["nav", "qr"],
     },

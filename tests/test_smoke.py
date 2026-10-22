@@ -3101,3 +3101,49 @@ def test_biblia_segunda_versao_vai_junto_pro_telao(app, logged_in_client):
         operador.disconnect()
         tela.disconnect()
         logged_in_client.post("/api/bible/set_translation2", json={"translation": ""})
+
+
+# --- Atalhos / Stream Deck (blueprints/atalhos.py) -----------------------
+
+def test_atalhos_exigem_chave_e_comandam_o_telao(app, client, logged_in_client):
+    import display_state
+    from blueprints import atalhos
+
+    with app.test_request_context():
+        chave = atalhos.chave()
+    assert chave in logged_in_client.get("/atalhos").get_data(as_text=True)
+    assert client.get("/api/atalho/tela-preta").status_code == 401
+    assert client.get("/api/atalho/tela-preta?chave=errada").status_code == 401
+    assert client.get(f"/api/atalho/nao-existe?chave={chave}").status_code == 404
+
+    tela = ucontrol_main.socketio.test_client(app)
+    try:
+        tela.get_received()
+        r = client.post("/api/atalho/tela-preta-ligar", headers={"X-UControl-Chave": chave})
+        assert r.get_json() == {"ok": True, "tela_preta": True} and display_state._blackout_active is True
+        assert any(m["name"] == "blackout" and m["args"][0]["active"] for m in tela.get_received())
+        assert client.get(f"/api/atalho/tela-preta?chave={chave}").get_json()["tela_preta"] is False
+
+        r = client.get(f"/api/atalho/aviso?chave={chave}&texto=Culto%2019h&telas=public")
+        assert r.get_json()["ok"] and client.get("/api/ticker").get_json()["by_target"]["public"] == "Culto 19h"
+        assert client.get(f"/api/atalho/aviso?chave={chave}").status_code == 409  # sem texto
+        client.get(f"/api/atalho/aviso-tirar?chave={chave}")
+
+        # liberar: o que está preparado vai ao ar
+        operador = _operator_socket(app)
+        operador.emit("stage_content", {"kind": "image", "payload": {"image_url": "/clock"}, "label": "Relógio"})
+        r = client.get(f"/api/atalho/liberar?chave={chave}").get_json()
+        assert r == {"ok": True, "liberado": "Relógio"}
+        assert client.get(f"/api/atalho/liberar?chave={chave}").get_json()["ok"] is False
+        operador.disconnect()
+
+        # sem Controle aberto, "próximo" explica
+        r = client.get(f"/api/atalho/proximo?chave={chave}")
+        assert r.status_code == 409 and "Controle" in r.get_json()["erro"]
+    finally:
+        tela.disconnect()
+        display_state._blackout_active = False
+
+    with app.test_request_context():
+        nova = atalhos.trocar_chave()
+    assert nova != chave and client.get(f"/api/atalho/relogio?chave={chave}").status_code == 401

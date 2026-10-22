@@ -1048,16 +1048,42 @@ function setupPanel() {
     // dele antes. Repassa a tecla pra página do painel, que já sabe o que
     // fazer com ela (lyrics_2.js, bible_chapter.js; presenter.js passa o
     // PowerPoint animado que estiver no ar).
-    document.addEventListener('keydown', (e) => {
-        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
-        if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-        if (!panelState.open || !['musica', 'biblia', 'fotos'].includes(panelState.view)) return;
+    // Repassa a tecla pra página aberta no painel; diz se tinha pra quem
+    function repassarTecla(key) {
+        if (!panelState.open || !['musica', 'biblia', 'fotos'].includes(panelState.view)) return null;
         const frame = panelFrames[panelState.view];
         let doc = null;
         try { doc = frame && frame.contentDocument; } catch (err) { /* outra origem */ }
-        if (!doc || !doc.body) return;
-        e.preventDefault();
-        doc.body.dispatchEvent(new KeyboardEvent('keydown', { key: e.key, bubbles: true, cancelable: true }));
+        if (!doc || !doc.body) return null;
+        doc.body.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true, cancelable: true }));
+        return panelState.view;
+    }
+    document.addEventListener('keydown', (e) => {
+        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
+        if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (repassarTecla(e.key)) e.preventDefault();
+    });
+
+    // Atalhos (Stream Deck/QuickDeck, blueprints/atalhos.py): "próximo" e
+    // "anterior" chegam no Controle usado por último, que faz o mesmo que
+    // a seta do teclado. O servidor só precisa saber qual é esse Controle.
+    let _ultimoAviso = 0;
+    function avisarAtivo() {
+        if (Date.now() - _ultimoAviso < 10000) return;
+        _ultimoAviso = Date.now();
+        socket.emit('atalho_ativo');
+    }
+    socket.on('connect', () => { _ultimoAviso = 0; avisarAtivo(); });
+    if (socket.connected) avisarAtivo();
+    ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, avisarAtivo, true));
+    socket.on('atalho_navegar', (d, responder) => {
+        const responda = typeof responder === 'function' ? responder : () => {};
+        if (panelState.open && panelState.view === 'fotos') {
+            responda({ ok: false, erro: 'Na aba Fotos, próximo/anterior vale para PowerPoint animado no ar.' });
+            return;
+        }
+        const onde = repassarTecla(d && d.direcao < 0 ? 'ArrowUp' : 'ArrowDown');
+        responda(onde ? { ok: true, em: onde } : { ok: false, erro: 'Abra a música ou a Bíblia no painel do Controle.' });
     });
 
     panelApply();
