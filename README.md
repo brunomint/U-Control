@@ -34,7 +34,13 @@ venv/bin/python scripts/patch_flask_socketio.py
 O `ucontrol.sh` aplica as migrations do banco e sobe o gunicorn (ver
 `gunicorn.conf.py`); no Pi ele roda como serviço do systemd.
 O `ffmpeg` (pacote do sistema) é usado para vídeos de PowerPoint e
-áudio do YouTube; o LibreOffice, para converter apresentações.
+áudio do YouTube; o LibreOffice, para converter apresentações. Instale
+junto as fontes livres que substituem as do Office com as mesmas medidas
+(Calibri, Cambria, Arial…), senão o texto dos slides sai mais largo e quebra:
+
+```sh
+sudo apt install ffmpeg libreoffice-impress fonts-crosextra-carlito fonts-crosextra-caladea fonts-liberation2
+```
 
 ### Docker
 

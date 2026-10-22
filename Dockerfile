@@ -17,8 +17,14 @@ WORKDIR /app
 
 # libreoffice: conversão de PPTX->slides na galeria (blueprints/gallery.py).
 # ffmpeg: yt-dlp precisa pra extrair/converter áudio em mp3 (blueprints/cifras.py).
+# fonts-*: substitutas livres, com as mesmas medidas, de Calibri (Carlito),
+# Cambria (Caladea) e Arial/Times/Courier (Liberation) — sem elas o
+# LibreOffice troca por fontes mais largas e o texto dos slides quebra.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libreoffice \
+        fonts-crosextra-carlito \
+        fonts-crosextra-caladea \
+        fonts-liberation2 \
         ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
