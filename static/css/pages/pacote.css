@@ -1,0 +1,39 @@
+/* Exportar e importar (pacote.html) — listas montadas por pacote.js.
+   Base, card e botões vêm do app.css. */
+
+.pacote-grid { display: grid; gap: 16px; max-width: 820px; }
+.pacote-grid .uc-card { display: grid; gap: 12px; min-width: 0; }
+.pacote-grid h2 { margin: 0; font-size: 1.1rem; display: flex; gap: 8px; align-items: center; }
+.pacote-grid p { margin: 0; }
+
+.pacote-lista { border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); padding: 8px 12px; display: grid; gap: 8px; }
+.pacote-lista summary { cursor: pointer; font-weight: 700; }
+.pacote-lista[open] summary { margin-bottom: 4px; }
+.pacote-itens { display: grid; gap: 2px; }
+.pacote-itens-longa { max-height: 340px; overflow: auto; }
+.pacote-item { display: flex; gap: 10px; align-items: baseline; padding: 6px 4px; border-radius: 6px; cursor: pointer; min-width: 0; }
+.pacote-item:hover { background: var(--uc-surface-2); }
+.pacote-item input { flex: none; }
+.pacote-item .titulo { font-weight: 600; overflow-wrap: anywhere; }
+.pacote-item .detalhe { color: var(--uc-muted); font-size: 13px; }
+.pacote-separador { color: var(--uc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin: 8px 4px 2px; }
+.pacote-resumo { font-weight: 700; }
+
+.pacote-arquivo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pacote-arquivo input[type="file"] { flex: 1; min-width: 0; color: var(--uc-muted); }
+.pacote-arquivo input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 700; color: var(--uc-text); background: var(--uc-surface-2);
+  border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); padding: 6px 12px; margin-right: 10px; cursor: pointer;
+}
+
+/* Prévia da importação */
+#imp-previa { display: grid; gap: 10px; }
+#imp-previa h3 { margin: 4px 0 0; font-size: 1rem; }
+.previa-linha { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--uc-line); }
+.previa-linha .titulo { flex: 1; min-width: 180px; overflow-wrap: anywhere; }
+.selo { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.selo-novo { background: var(--uc-ok); color: #04210f; }
+.selo-igual { background: var(--uc-surface-3); color: var(--uc-muted); }
+.selo-diferente { background: var(--uc-warn); color: #1a1400; }
+.escolha { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.escolha label { display: flex; gap: 4px; align-items: center; cursor: pointer; }

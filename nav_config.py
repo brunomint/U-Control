@@ -99,6 +99,10 @@ NAV_ITEMS = [
         "group": "sistema", "login_required": True, "contexts": ["nav"],
     },
     {
+        "endpoint": "pacote.pacote_page", "label": "Exportar e importar", "icon": "fa-right-left",
+        "group": "sistema", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "utils.help", "label": "Ajuda", "icon": "fa-circle-question",
         "group": "sistema", "login_required": False, "contexts": ["nav", "qr"],
     },

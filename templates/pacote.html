@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}Exportar e importar - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/pacote.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>Exportar e importar</h1>
+            <div class="uc-page-sub">Leve músicas, cultos e fotos para outro U-Control — por exemplo, preparar em casa e usar no PC da igreja.
+                Soma ao que já existe; para copiar tudo, use o <a href="/backup">Backup</a>.</div>
+        </div>
+    </div>
+
+    <div class="pacote-grid">
+        <section class="uc-card">
+            <h2><i class="fas fa-file-export"></i> Levar daqui</h2>
+
+            <details class="pacote-lista" open>
+                <summary>Cultos <span class="uc-muted">— levam junto as músicas da ordem</span></summary>
+                <div id="lista-cultos" class="pacote-itens"><p class="uc-muted">Carregando…</p></div>
+            </details>
+
+            <details class="pacote-lista">
+                <summary>Músicas</summary>
+                <input class="uc-input" type="search" id="busca-musicas" placeholder="Buscar por título ou artista" aria-label="Buscar música">
+                <div id="lista-musicas" class="pacote-itens pacote-itens-longa"></div>
+            </details>
+
+            <details class="pacote-lista">
+                <summary>Fotos e slides <span class="uc-muted">— pastas inteiras</span></summary>
+                <div id="lista-pastas" class="pacote-itens"></div>
+            </details>
+
+            <p id="exp-resumo" class="pacote-resumo">Nada escolhido.</p>
+            <p id="exp-msg" role="status"></p>
+            <div class="uc-btn-row">
+                <button type="button" class="uc-btn uc-btn-primary" id="exp-baixar" disabled><i class="fas fa-download"></i> Baixar pacote</button>
+            </div>
+        </section>
+
+        <section class="uc-card">
+            <h2><i class="fas fa-file-import"></i> Trazer para cá</h2>
+            <p>Escolha o pacote baixado no outro computador. Antes de importar, o U-Control mostra o que é novo e o que já
+               existe aqui.</p>
+            <div class="pacote-arquivo">
+                <input type="file" id="imp-arquivo" accept=".zip,application/zip" aria-label="Arquivo do pacote">
+                <button type="button" class="uc-btn uc-btn-secondary" id="imp-conferir" disabled><i class="fas fa-magnifying-glass"></i> Conferir</button>
+            </div>
+            <div id="imp-previa" hidden></div>
+            <p id="imp-msg" role="status"></p>
+            <div class="uc-btn-row">
+                <button type="button" class="uc-btn uc-btn-primary" id="imp-importar" hidden><i class="fas fa-file-import"></i> Importar</button>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/pacote.js') }}"></script>
+{% endblock %}

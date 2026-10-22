@@ -102,6 +102,8 @@ def _conferir(zf, tmp):
         manifest = json.loads(zf.read('manifest.json'))
     except (KeyError, ValueError):
         raise BackupInvalido('Este arquivo não é um backup do U-Control.')
+    if manifest.get('tipo') == 'pacote':
+        raise BackupInvalido('Este arquivo é um pacote de músicas/cultos: importe em Sistema → Exportar e importar.')
     if manifest.get('app') != 'U-Control' or 'banco/users.db' not in zf.namelist():
         raise BackupInvalido('Este arquivo não é um backup do U-Control.')
     if manifest.get('formato', 0) > FORMATO:

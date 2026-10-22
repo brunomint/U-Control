@@ -2848,3 +2848,52 @@ def test_backup_restaurar_recusa_arquivo_estranho(logged_in_client):
         zf.writestr("manifest.json", json.dumps({"app": "U-Control", "formato": 99}))
         zf.writestr("banco/users.db", b"")
     assert "mais nova" in enviar(buf.getvalue()).get_json()["error"]
+
+
+# --- Exportar e importar (blueprints/pacote.py) ---------------------------
+
+def test_pacote_mesma_musica_ignora_maiuscula_acento_e_espaco():
+    from blueprints.pacote import _chave
+    assert _chave("Grande é o Senhor", "Adhemar ") == _chave("grande e o  senhor", "ADHEMAR")
+    assert _chave("Santo", "A") != _chave("Santo", "B")
+
+
+def test_pacote_reescreve_links_do_culto_pros_ids_daqui():
+    from blueprints.pacote import _reescrever_ordem
+    ordem = {"tipo": "Culto", "itens": [
+        {"title": "a", "url": "/lyrics/3"}, {"title": "b", "url": "/lyrics/30?x=1"},
+        {"title": "c", "url": "/order/2026-10-25"}, {"anyText": "Avisos"}]}
+    nova = _reescrever_ordem(ordem, {3: 101, 30: 7})
+    assert [i.get("url") for i in nova["itens"]] == ["/lyrics/101", "/lyrics/7?x=1", "/order/2026-10-25", None]
+    assert ordem["itens"][0]["url"] == "/lyrics/3"  # não mexe no original
+
+
+def test_pacote_recusa_backup_e_caminho_malicioso(tmp_path):
+    import json
+    import zipfile
+    from blueprints.pacote import PacoteInvalido, ler_pacote
+
+    def zipar(nome, manifest, extra=()):
+        caminho = tmp_path / nome
+        with zipfile.ZipFile(caminho, "w") as zf:
+            zf.writestr("manifest.json", json.dumps(manifest))
+            zf.writestr("pacote.json", json.dumps({"musicas": [], "cultos": {}, "pastas": ["Fotos"]}))
+            for n in extra:
+                zf.writestr(n, "x")
+        return str(caminho)
+
+    with pytest.raises(PacoteInvalido, match="backup completo"):
+        ler_pacote(zipar("b.zip", {"app": "U-Control", "formato": 1}))
+    with pytest.raises(PacoteInvalido, match="estranho"):
+        ler_pacote(zipar("m.zip", {"app": "U-Control", "tipo": "pacote", "formato": 1}, ["imagens/Fotos/../../x.jpg"]))
+    with pytest.raises(PacoteInvalido, match="estranho"):
+        ler_pacote(zipar("o.zip", {"app": "U-Control", "tipo": "pacote", "formato": 1}, ["imagens/Outra/x.jpg"]))
+    _, dados, arquivos = ler_pacote(zipar("ok.zip", {"app": "U-Control", "tipo": "pacote", "formato": 1}, ["imagens/Fotos/a.jpg"]))
+    assert arquivos == {"Fotos": [("a.jpg", 1)]}
+
+
+def test_pacote_paginas_exigem_login(client):
+    for url in ("/pacote", "/api/pacote/itens"):
+        assert client.get(url).status_code in (302, 401)
+    for url in ("/api/pacote/exportar", "/api/pacote/analisar", "/api/pacote/importar"):
+        assert client.post(url).status_code in (302, 401)
