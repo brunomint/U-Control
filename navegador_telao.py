@@ -10,8 +10,8 @@ perfil próprio (UControl-site): login feito uma vez num site fica salvo.
 Não precisa da janela em foco — o teclado do PC continua do operador."""
 import json
 import logging
+import os
 import re
-import socket
 import subprocess
 import threading
 import time
@@ -84,14 +84,22 @@ def aberto():
         return bool(proc and proc.poll() is None)
 
 
-def _porta_livre():
-    with socket.socket() as s:
-        s.bind(('127.0.0.1', 0))
-        return s.getsockname()[1]
+# Conexão local ao navegador: sem proxy do sistema no meio
+_LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _porta_do_arquivo(perfil):
+    """Com --remote-debugging-port=0 o próprio navegador escolhe a porta e
+    grava em <perfil>/DevToolsActivePort (1ª linha) — sem disputa de porta."""
+    try:
+        with open(os.path.join(perfil, 'DevToolsActivePort'), encoding='utf-8') as f:
+            return int(f.readline().strip())
+    except (OSError, ValueError):
+        return None
 
 
 def _json(caminho):
-    with urllib.request.urlopen(f"http://127.0.0.1:{_estado['porta']}{caminho}", timeout=2) as r:
+    with _LOCAL.open(f"http://127.0.0.1:{_estado['porta']}{caminho}", timeout=3) as r:
         return json.loads(r.read().decode())
 
 
@@ -134,8 +142,13 @@ def abrir(url):
         navegador = desktop_ponte.navegador()
         if not navegador:
             raise SiteErro('Site no telão só funciona no computador do U-Control (instalação Windows).')
-        porta = _porta_livre()
-        args = [navegador, f'--remote-debugging-port={porta}', f'--user-data-dir={desktop_ponte.perfil_site()}',
+        perfil = desktop_ponte.perfil_site()
+        os.makedirs(perfil, exist_ok=True)
+        try:  # de uma abertura anterior: não pode ser confundido com o novo
+            os.remove(os.path.join(perfil, 'DevToolsActivePort'))
+        except OSError:
+            pass
+        args = [navegador, '--remote-debugging-port=0', f'--user-data-dir={perfil}',
                 '--no-first-run', '--no-default-browser-check', '--autoplay-policy=no-user-gesture-required',
                 f'--app={url}']
         posicao = desktop_ponte.monitor_telao()
@@ -143,18 +156,26 @@ def abrir(url):
             args += [f'--window-position={posicao[0]},{posicao[1]}', '--start-fullscreen']
         else:
             args += ['--window-size=1280,720']  # um monitor só: janela comum, não cobre o Controle
-        _estado.update(proc=subprocess.Popen(args), porta=porta, zoom=1.0)
-        fim = time.time() + 20
+        _estado.update(proc=subprocess.Popen(args), porta=None, zoom=1.0)
+        fim = time.time() + 45  # 1ª vez com perfil novo pode demorar
+        erro = None
         while time.time() < fim:
-            try:
-                _pagina()
-                break
-            except Exception:
-                if _estado['proc'].poll() is not None:
-                    raise SiteErro('O navegador fechou ao abrir o site.')
-                time.sleep(0.3)
+            _estado['porta'] = _estado['porta'] or _porta_do_arquivo(perfil)
+            if _estado['porta']:
+                try:
+                    _pagina()
+                    break
+                except Exception as e:
+                    erro = e
+            if _estado['proc'].poll() is not None and not _estado['porta']:
+                raise SiteErro(f'O navegador fechou ao abrir o site ({os.path.basename(navegador)}).')
+            time.sleep(0.3)
         else:
-            raise SiteErro('O navegador demorou demais pra abrir.')
+            detalhe = (f"porta {_estado['porta']}, último erro: {erro!r}" if _estado['porta']
+                       else 'o navegador não informou a porta de controle')
+            logging.getLogger('ucontrol').error('Site no telão: %s não respondeu (%s)', navegador, detalhe)
+            fechar()
+            raise SiteErro(f'O navegador demorou demais pra abrir ({detalhe}).')
         logging.getLogger('ucontrol').info('Site no telão: %s', url)
         return estado()
 
