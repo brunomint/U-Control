@@ -8,7 +8,7 @@ Um computador roda o U-Control (Windows, Raspberry Pi ou Docker) e
 qualquer aparelho na mesma rede abre o Controle ou as telas pelo endereço
 `http://<ip>:8585`. Não precisa de internet durante o culto.
 
-**[⬇ Baixar para Windows](https://github.com/brunomint/U-Control/releases/latest)**
+**[⬇ Baixar para Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Site do projeto](https://brunomint.github.io/U-Control/)
 
 ![Controle: a música no painel e o que está no telão ao lado](docs/imagens/controle.png)
 
