@@ -1,11 +1,42 @@
 # U-Control
 
-Projeção para igrejas: letras com cifra, Bíblia, fotos, vídeos e ordem
-do culto no telão, controlados pelo navegador do PC, celular ou tablet.
+**Projeção gratuita e de código aberto para igrejas.** Letras com cifra,
+Bíblia, fotos, vídeos, PowerPoint e a ordem do culto no telão,
+controlados pelo navegador do PC, do celular ou do tablet.
 
-Um computador roda o servidor, e qualquer aparelho na mesma rede abre o
-controle ou as telas pelo endereço `http://<ip>:8585`. Não precisa de
-internet durante o culto.
+Um computador roda o U-Control (Windows, Raspberry Pi ou Docker) e
+qualquer aparelho na mesma rede abre o Controle ou as telas pelo endereço
+`http://<ip>:8585`. Não precisa de internet durante o culto.
+
+**[⬇ Baixar para Windows](https://github.com/brunomint/U-Control/releases/latest)**
+
+![Controle: a música no painel e o que está no telão ao lado](docs/imagens/controle.png)
+
+| Telão | Monitor de palco (músicos) |
+|---|---|
+| ![Letra no telão](docs/imagens/telao-letra.png) | ![Cifra no monitor de palco, com a próxima parte embaixo](docs/imagens/monitor-cifra.png) |
+| **Bíblia em duas versões** | **Pelo celular** |
+| ![Salmos 46:1 em duas traduções no telão](docs/imagens/telao-biblia.jpg) | <img src="docs/imagens/celular.png" alt="Controle no celular" width="240"> |
+
+## O que ele faz
+
+- **Músicas com cifra:** o telão mostra só a letra e o monitor de palco
+  mostra a cifra, com a próxima parte embaixo. Cada músico pode mudar o
+  tom no próprio aparelho, sem mexer no dos outros. Também guarda partitura.
+- **Bíblia:** traduções livres incluídas, busca por referência e duas
+  versões ao mesmo tempo no telão.
+- **Ordem do culto e agenda:** a ordem de cada culto abre as músicas e
+  leituras na sequência.
+- **Fotos, vídeos e PowerPoint:** apresentações com animação e transição
+  continuam animadas no telão (convertidas pelo LibreOffice).
+- **Tela do PC:** compartilha a tela de um computador no telão pela rede.
+- **Site no telão** (Windows): abre um site em tela cheia e o Controle
+  rola, avança e dá zoom.
+- **Relógio, cronômetro e avisos** passando no rodapé.
+- **Atalhos para Stream Deck** e outros botões, por endereço web.
+- **Importar músicas** do Holyrics, OpenLP/OpenLyrics, ChordPro ou texto.
+- **Backup** e exportar/importar músicas e cultos entre instalações.
+- **Atualização** avisada no próprio programa (Windows).
 
 ## Instalação
 
@@ -72,6 +103,12 @@ venv/bin/pytest
 O instalador do Windows é montado pelo GitHub Actions
 (`.github/workflows/build-windows.yml`). Uma tag `vX.Y.Z`, igual ao
 arquivo `VERSION`, publica uma Release.
+
+## Contribuir
+
+Achou um problema ou tem uma ideia? Abra uma
+[issue](https://github.com/brunomint/U-Control/issues). Correções e
+melhorias por pull request são bem-vindas.
 
 ## Licença
 
