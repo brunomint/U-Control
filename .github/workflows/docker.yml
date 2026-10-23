@@ -1,0 +1,96 @@
+name: Docker Image
+
+# Publica a imagem pronta em ghcr.io/brunomint/u-control, pra quem roda
+# com Docker não precisar montar nada (docker-compose.yml já aponta pra
+# ela). Duas arquiteturas: amd64 (PC/servidor) e arm64 (Raspberry Pi 4/5).
+#
+# - Tag v1.2.3: publica as tags 1.2.3 e latest. A tag tem que bater com
+#   o arquivo VERSION, igual ao instalador do Windows.
+# - Botão "Run workflow" (aba Actions): publica de novo a versão do
+#   arquivo VERSION (ex.: imagem de uma versão já lançada).
+#
+# Antes de publicar, a imagem amd64 sobe de verdade e tem que responder
+# na porta 8585 — imagem que não abre não vai pro ar.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write  # publicar no ghcr.io
+
+env:
+  IMAGEM: ghcr.io/brunomint/u-control
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Versão
+        id: versao
+        run: |
+          versao="$(tr -d '[:space:]' < VERSION)"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${versao}" ]; then
+            echo "A tag ${GITHUB_REF_NAME} não bate com o VERSION (${versao})" >&2
+            exit 1
+          fi
+          echo "versao=${versao}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Montar a imagem (amd64) pra testar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          platforms: linux/amd64
+          load: true
+          tags: ucontrol-teste
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Testar a imagem
+        run: |
+          docker run -d --name teste -p 8585:8585 ucontrol-teste
+          for i in $(seq 1 45); do
+            codigo="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8585/login || true)"
+            if [ "$codigo" = "200" ]; then
+              echo "U-Control respondeu em ${i}x2 s"
+              curl -s http://127.0.0.1:8585/login | grep -q "U-Control"
+              docker rm -f teste
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs teste
+          exit 1
+
+      - name: Entrar no ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publicar (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGEM }}:${{ steps.versao.outputs.versao }}
+            ${{ env.IMAGEM }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.versao.outputs.versao }}
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

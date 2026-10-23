@@ -27,3 +27,6 @@ backups/
 data_backup_pre_sql/
 Android/
 *.zip
+
+# Site do projeto (GitHub Pages) — não faz parte do servidor.
+docs/

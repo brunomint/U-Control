@@ -1,6 +1,10 @@
 services:
   ucontrol:
     container_name: ucontrol
+    # Imagem pronta (.github/workflows/docker.yml): `docker compose up -d`
+    # baixa e roda, sem montar nada. Pra rodar o código desta pasta em vez
+    # dela: docker compose up -d --build
+    image: ghcr.io/brunomint/u-control:latest
     build:
       context: .
       dockerfile: Dockerfile

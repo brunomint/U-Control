@@ -75,11 +75,27 @@ sudo apt install ffmpeg libreoffice-impress fonts-crosextra-carlito fonts-crosex
 
 ### Docker
 
+A imagem pronta (PC e Raspberry Pi 4/5, 64 bits) fica em
+`ghcr.io/brunomint/u-control`. Com o
+[`docker-compose.yml`](docker-compose.yml) numa pasta:
+
 ```sh
 docker compose up -d
 ```
 
-Dados em `docker-data/` (ver `docker-compose.yml`).
+Ou direto, sem o compose:
+
+```sh
+docker run -d --name ucontrol --network host --restart unless-stopped \
+  -v ./docker-data/instance:/app/instance \
+  -v ./docker-data/imagens:/app/static/imagens \
+  -v ./docker-data/audio:/app/static/audio \
+  ghcr.io/brunomint/u-control:latest
+```
+
+Os dados ficam em `docker-data/`. Para atualizar: `docker compose pull`
+e `docker compose up -d`. Quem clonou o repositório e quer rodar o
+próprio código usa `docker compose up -d --build`.
 
 ### Primeiro acesso
 
