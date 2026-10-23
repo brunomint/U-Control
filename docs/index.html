@@ -113,6 +113,8 @@
   .platform h3 { margin: 0 0 8px; }
   .platform p { color: var(--muted); margin: 0 0 18px; flex: 1; }
   .platform code { background: var(--surface-2); padding: 2px 6px; border-radius: 5px; font-size: 14px; }
+  .platform pre.cmd { margin: 0 0 18px; padding: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; white-space: pre-wrap; word-break: break-all; }
+  .platform pre.cmd code { background: none; padding: 0; font-size: 13px; }
 
   .faq { display: grid; gap: 12px; max-width: 820px; }
   details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 20px; }
@@ -242,12 +244,14 @@
         </div>
         <div class="platform">
           <h3>Raspberry Pi / Linux</h3>
-          <p>Um Raspberry Pi ligado ao telão vira o servidor da igreja, ligado o tempo todo e gastando pouca energia.</p>
+          <p>Ubuntu, Debian, Mint ou Raspberry Pi OS. Um Raspberry Pi vira o servidor da igreja, gastando pouca energia. Um comando instala:</p>
+          <pre class="cmd"><code>curl -fsSL https://brunomint.github.io/U-Control/instalar.sh | bash</code></pre>
           <a class="btn btn-ghost" href="https://github.com/brunomint/U-Control#raspberry-pi--linux">Ver instruções</a>
         </div>
         <div class="platform">
           <h3>Docker</h3>
-          <p>Para quem já tem um servidor: <code>docker compose up -d</code> e pronto.</p>
+          <p>Para quem já tem um servidor. Imagem pronta para PC e Raspberry Pi:</p>
+          <pre class="cmd"><code>docker compose up -d</code></pre>
           <a class="btn btn-ghost" href="https://github.com/brunomint/U-Control#docker">Ver instruções</a>
         </div>
       </div>

@@ -53,6 +53,20 @@ cima não apaga nada.
 
 ### Raspberry Pi / Linux
 
+No Ubuntu, Debian, Linux Mint ou Raspberry Pi OS (64 bits), um comando
+instala tudo e deixa o U-Control ligando junto com o computador:
+
+```sh
+curl -fsSL https://brunomint.github.io/U-Control/instalar.sh | bash
+```
+
+Rodar de novo atualiza para a última versão (com cópia do banco antes).
+Com `| bash -s -- --telao`, o telão também abre em tela cheia ao entrar
+na área de trabalho. As outras opções estão no começo do
+[script](docs/instalar.sh).
+
+Para instalar à mão:
+
 ```sh
 git clone https://github.com/brunomint/U-Control.git
 cd U-Control
