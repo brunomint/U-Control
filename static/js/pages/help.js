@@ -5,11 +5,70 @@ const HELP_SECTIONS = {
         <h2>Principais funcionalidades</h2>
         <p>Um computador roda o U-Control, e os outros aparelhos da mesma rede (celular, tablet, outro PC) abrem o controle ou as telas pelo navegador. Não precisa de internet durante o culto.</p>
         <ul>
-            <li><strong>Controle:</strong> letras com cifra, versículos, fotos e vídeos vão para o telão com um toque.</li>
+            <li><strong>Controle:</strong> letras com cifra, versículos, fotos, vídeos e PowerPoint vão para o telão com um toque.</li>
             <li><strong>Telas sincronizadas:</strong> o telão do público e o retorno de palco acompanham o Controle.</li>
             <li><strong>Preparação:</strong> monte a ordem do culto, cadastre músicas e organize as escalas antes.</li>
+            <li><strong>Bíblia em duas versões</strong> ao mesmo tempo no telão.</li>
+            <li><strong>Tela do PC</strong> e <strong>site no telão</strong>, comandados pelo Controle.</li>
+            <li><strong>Atalhos</strong> para Stream Deck e outros botões.</li>
+            <li><strong>Importar músicas</strong> de outros programas, <strong>backup</strong> e levar músicas e cultos para outro computador.</li>
         </ul>
         <p>O telão pode ficar no próprio computador do U-Control (cabo HDMI, mais estável) ou em outro aparelho da rede.</p>`,
+
+    importar: `
+        <h2>Importar músicas de outro programa</h2>
+        <p>Em <a href="/importar-musicas">Criar → Importar Músicas</a>, escolha um ou mais arquivos. O U-Control mostra o que encontrou antes de gravar qualquer coisa.</p>
+        <ul>
+            <li><strong>Holyrics:</strong> músicas exportadas em JSON.</li>
+            <li><strong>OpenLP, OpenSong e outros:</strong> arquivos OpenLyrics (<code>.xml</code>), inclusive com cifra.</li>
+            <li><strong>ChordPro</strong> (<code>.cho</code>, <code>.chordpro</code>, <code>.pro</code>…): os acordes entre colchetes viram a linha de cifra em cima da letra.</li>
+            <li><strong>Texto</strong> (<code>.txt</code>), um arquivo por música, e <strong>.zip</strong> com vários desses arquivos dentro.</li>
+        </ul>
+        <p>Vêm marcadas só as músicas novas. As que já existem aqui (mesmo título e autor) só são trocadas se você marcar <strong>substituir a deste computador</strong>.</p>
+        <div class="callout">O formato próprio do Holyrics (<code>.muf</code>) ainda não é lido. No Holyrics, exporte as músicas em JSON.</div>`,
+
+    biblia: `
+        <h2>Bíblia em duas versões</h2>
+        <p>Nas páginas da Bíblia, ao lado da tradução, escolha uma <strong>2ª versão</strong>. O telão passa a mostrar o versículo nas duas, uma embaixo da outra, cada uma com a sigla. Para voltar a uma só, escolha <strong>+ 2ª versão: nenhuma</strong>.</p>
+        <p>A escolha vale para todos os Controles e continua depois de reiniciar o programa.</p>`,
+
+    powerpoint: `
+        <h2>PowerPoint e apresentações</h2>
+        <ul>
+            <li>No Controle, em <strong>Fotos</strong>, envie o arquivo <code>.pptx</code> (ou PDF). Ele vira uma imagem por slide, e os slides aparecem todos juntos em cerca de 1 minuto.</li>
+            <li>Se a apresentação tem <strong>animações ou transições</strong>, o U-Control prepara também uma versão animada, marcada com a etiqueta <strong>Animado</strong>. Os slides comuns já podem ser usados enquanto ela fica pronta.</li>
+            <li>Na versão animada, use <strong>Avançar</strong> e <strong>Voltar</strong> (ou as setas, o espaço e o pedal) para passar cada animação. Todas as telas acompanham juntas.</li>
+            <li>As fontes embutidas no arquivo (como as do Canva) são usadas, e na versão animada os GIFs se mexem.</li>
+            <li>Vídeos dentro dos slides são separados e aparecem na galeria para tocar no telão.</li>
+        </ul>
+        <div class="callout">No Windows, a conversão precisa do LibreOffice: marque a opção dele no instalador.</div>`,
+
+    site: `
+        <h2>Tela do PC e site no telão</h2>
+        <h3>Tela do PC</h3>
+        <p>No computador que vai compartilhar, abra o Controle e use a ferramenta <strong>Tela do PC</strong>: o navegador pergunta o que mostrar no telão (uma janela, uma aba ou a tela inteira). A qualidade depende da rede: no cabo ou num Wi-Fi bom, o texto fica nítido.</p>
+        <h3>Site no telão (Windows)</h3>
+        <p>A ferramenta <strong>Site</strong> abre um site em tela cheia no monitor do telão, num navegador de verdade (Chrome ou Edge), e o Controle comanda: rolar, página abaixo e acima, setas, Enter, zoom, voltar e recarregar. Funciona também pelo celular.</p>
+        <ul>
+            <li>Guarde os sites que você usa sempre para abrir com um toque.</li>
+            <li>O navegador do site tem um perfil próprio: um login feito nele uma vez fica salvo.</li>
+            <li>Só existe na instalação Windows, porque precisa abrir uma janela no monitor do telão.</li>
+        </ul>`,
+
+    atalhos: `
+        <h2>Atalhos (Stream Deck)</h2>
+        <p>Em <a href="/atalhos">Sistema → Atalhos (Stream Deck)</a> estão os endereços que comandam o telão: próximo e anterior, liberar, tela preta, aviso, cronômetro, relógio e o site no telão. Qualquer botão que chame um endereço web serve: Stream Deck pelo Companion, QuickDeck e outros.</p>
+        <ul>
+            <li>Cada endereço leva uma <strong>chave de acesso</strong>. Se ela vazar, troque na mesma página: os endereços antigos param de funcionar.</li>
+            <li><strong>Próximo</strong> e <strong>anterior</strong> seguem o que estiver no ar: o site no telão, a apresentação animada ou o que está aberto no Controle usado por último.</li>
+        </ul>`,
+
+    backup: `
+        <h2>Backup e levar para outro computador</h2>
+        <h3>Backup (tudo)</h3>
+        <p>Em <a href="/backup">Sistema → Backup</a>, baixe um arquivo com tudo: músicas, cultos, configurações, usuários, fotos e áudios. Para restaurar, envie esse arquivo na mesma página, inclusive noutro computador com o U-Control. Antes de restaurar, o programa guarda uma cópia do que existia.</p>
+        <h3>Exportar e importar (só o que escolher)</h3>
+        <p>Em <a href="/pacote">Sistema → Exportar e importar</a>, escolha músicas, cultos e fotos e leve para outro U-Control. Por exemplo: preparar em casa e usar no PC da igreja. Ao importar, você vê o que vem e o que já existe aqui antes de confirmar.</p>`,
 
     primeiro: `
         <h2>Primeiro acesso e usuários</h2>
@@ -24,9 +83,10 @@ const HELP_SECTIONS = {
             <li>Depois de instalado, abra pelo ícone <strong>U-Control</strong> na área de trabalho. O Controle abre no navegador e o programa fica na <strong>bandeja do Windows</strong>, ao lado do relógio.</li>
             <li>Pelo menu da bandeja você abre o <strong>Telão</strong> (a tela pública) e o <strong>Retorno de palco</strong>. Com um segundo monitor ou datashow ligado, elas abrem nele, em tela cheia.</li>
             <li>O menu também mostra o endereço do U-Control na rede, para abrir no celular.</li>
-            <li>Enquanto o U-Control está aberto, o Windows não suspende nem apaga a tela (opção <strong>Não deixar o PC dormir</strong> no menu da bandeja).</li>
+            <li>Enquanto o U-Control está aberto, o Windows não suspende nem apaga a tela (opção <strong>Não deixar o PC dormir com o telão aberto</strong> no menu da bandeja).</li>
             <li>Para converter PowerPoint em slides, marque a opção do LibreOffice no instalador.</li>
-            <li>Para desligar, use <strong>Sair</strong> no menu da bandeja. Fechar as janelas não desliga o programa.</li>
+            <li>Para desligar, use <strong>Sair</strong> no menu da bandeja ou <strong>Sistema → Desligar o U-Control</strong>. Fechar as janelas não desliga o programa.</li>
+            <li>Quando sai uma versão nova, o U-Control avisa. A instalação é em <strong>Sistema → Atualização</strong>.</li>
             <li>Músicas, fotos e configurações ficam guardadas à parte (opção <strong>Abrir pasta de dados</strong>). Instalar uma versão nova por cima não apaga nada.</li>
         </ul>`,
 
