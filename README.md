@@ -1,5 +1,7 @@
 # U-Control
 
+🇺🇸 [English](README.en.md)
+
 **Projeção gratuita e de código aberto para igrejas.** Letras com cifra,
 Bíblia, fotos, vídeos, PowerPoint e a ordem do culto no telão,
 controlados pelo navegador do PC, do celular ou do tablet.

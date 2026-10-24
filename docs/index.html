@@ -10,6 +10,8 @@
 <meta property="og:image" content="https://brunomint.github.io/U-Control/imagens/controle.png">
 <meta property="og:type" content="website">
 <link rel="icon" href="imagens/favicon.png">
+<link rel="alternate" hreflang="pt-BR" href="https://brunomint.github.io/U-Control/">
+<link rel="alternate" hreflang="en" href="https://brunomint.github.io/U-Control/en/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -51,6 +53,8 @@
   header.top nav { display: flex; gap: 22px; margin-left: auto; }
   header.top nav a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 15px; }
   header.top nav a:hover { color: var(--text); }
+  .lang { color: var(--text); text-decoration: none; font-weight: 700; font-size: 14px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .lang:hover { border-color: var(--accent); }
 
   .btn {
     display: inline-flex; align-items: center; gap: 8px;
@@ -133,6 +137,7 @@
     .gallery { grid-template-columns: 1fr; }
     .gallery .phone { flex-direction: column; text-align: center; }
     header.top nav { display: none; }
+    .lang { margin-left: auto; }
     .hero { padding-top: 48px; }
     .hero .ctas .btn { width: 100%; justify-content: center; }
     section { padding: 48px 0; }
@@ -151,6 +156,7 @@
       <a href="#baixar">Baixar</a>
       <a href="https://github.com/brunomint/U-Control">GitHub</a>
     </nav>
+    <a class="lang" href="en/" hreflang="en" lang="en">English</a>
   </div>
 </header>
 
