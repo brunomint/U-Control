@@ -218,6 +218,9 @@
 
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload');
+            // XMLHttpRequest (pela barra de progresso): o csrf.js só cobre fetch e jQuery
+            const token = document.querySelector('meta[name="csrf-token"]');
+            if (token) xhr.setRequestHeader('X-CSRFToken', token.content);
 
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {

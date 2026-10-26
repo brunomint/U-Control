@@ -30,7 +30,6 @@ import conversoes
 import paths
 import pptx_fontes
 import pptx_imagens
-from extensions import csrf
 
 gallery_bp = Blueprint('gallery', __name__)
 
@@ -427,14 +426,12 @@ def _convert_presentation(src_path, tmp_dir, target_dir, base_name, max_size, so
 
 
 @gallery_bp.route('/upload', methods=['POST'])
-@csrf.exempt
+@login_required
 def upload_files():
-    # Sem @login_required de propósito: /presenter é acessado sem login (via
-    # QR code, pra qualquer pessoa da igreja enviar fotos durante o culto) e
-    # chama esta rota diretamente. A proteção aqui é a validação de caminho
-    # abaixo (_safe_folder_path + secure_filename), não autenticação. Também
-    # isenta de CSRF: exigir token quebraria o caso de alguém abrir o link
-    # direto num celular sem ter carregado a página com o meta tag antes.
+    # Quem envia é o /presenter, que exige login desde que os comandos do
+    # telão passaram a exigir. Antes esta rota era aberta (e sem CSRF) pro
+    # QR code de fotos — no Pi, exposto na internet, qualquer um gravava
+    # arquivos no disco. O token CSRF vai no cabeçalho (presenter.js).
     if 'images' not in request.files:
         return jsonify({'status': 'error', 'message': 'Nenhum arquivo enviado'}), 400
 

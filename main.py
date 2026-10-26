@@ -24,6 +24,7 @@ from logging.handlers import RotatingFileHandler
 
 import paths
 from extensions import db, migrate, login_manager, socketio, csrf
+import seguranca
 import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
 import models_orders  # noqa: F401 — idem
 from blueprints.countdown import countdown_bp, init_countdown_state
@@ -144,9 +145,10 @@ def create_app(config=None):
     migrate.init_app(app, db, directory=paths.MIGRATIONS_DIR)
     login_manager.init_app(app)
     csrf.init_app(app)
+    seguranca.init_app(app)
     socketio.init_app(
         app,
-        cors_allowed_origins="*",
+        cors_allowed_origins=seguranca.mesmo_site,
         async_mode='threading',
         logger=False,
         engineio_logger=False,

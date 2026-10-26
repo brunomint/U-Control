@@ -3190,3 +3190,39 @@ def test_site_no_telao_rotas_e_sites_salvos(logged_in_client, monkeypatch, tmp_p
     r = logged_in_client.post("/api/site/salvos/remover", json={"url": "https://igreja.com.br"}).get_json()
     assert r["salvos"] == []
     assert logged_in_client.post("/api/site/salvos", json={"url": "ftp://x"}).status_code == 400
+
+
+def test_upload_requires_login(client):
+    """/upload era aberto (QR code antigo); no Pi exposto na internet
+    qualquer um gravava arquivos no disco."""
+    response = client.post("/upload", data={}, content_type="multipart/form-data")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_socket_only_accepts_same_site_origin():
+    import seguranca
+
+    environ = {"HTTP_HOST": "ucontrolibrjoaoxxiii.com"}
+    # atrás do Cloudflare o servidor vê http e o navegador manda https
+    assert seguranca.mesmo_site("https://ucontrolibrjoaoxxiii.com", environ)
+    assert seguranca.mesmo_site("http://192.168.0.10:8585", {"HTTP_HOST": "192.168.0.10:8585"})
+    assert seguranca.mesmo_site(None, environ)   # não é navegador
+    assert not seguranca.mesmo_site("https://outro-site.com", environ)
+    assert not seguranca.mesmo_site("null", environ)
+
+
+def test_security_headers_and_screens_stay_embeddable(client):
+    login = client.get("/login")
+    assert login.headers["X-Frame-Options"] == "SAMEORIGIN"
+    assert login.headers["X-Content-Type-Options"] == "nosniff"
+    # o site da igreja (site-igreja, "ao vivo") mostra o telão num iframe
+    tela = client.get("/lyrics/display/public")
+    assert "X-Frame-Options" not in tela.headers
+    assert tela.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_login_cookie_is_samesite_lax(client):
+    cookies = client.get("/login").headers.getlist("Set-Cookie")
+    sessao = next(c for c in cookies if c.startswith("session="))
+    assert "SameSite=Lax" in sessao
