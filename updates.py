@@ -31,7 +31,8 @@ _lock = threading.Lock()
 # consultado: o GitHub respondeu (mesmo que sem Release nenhuma ainda)
 _cache = {'release': None, 'quando': 0.0, 'buscando': False, 'consultado': False}
 # Download/instalação no Windows: estado lido pela página /atualizacao
-_instalacao = {'estado': None, 'progresso': 0, 'erro': None}
+# libreoffice: este download é o do botão "Instalar LibreOffice"
+_instalacao = {'estado': None, 'progresso': 0, 'erro': None, 'libreoffice': False}
 
 
 def current_version():
@@ -107,9 +108,10 @@ def latest_release():
         return _cache['release']
 
 
-def status(local=False):
+def status(local=False, tem_libreoffice=True):
     """O que a página /atualizacao e o selo da barra mostram. local=True
-    quando quem pede está no próprio computador do U-Control."""
+    quando quem pede está no próprio computador do U-Control;
+    tem_libreoffice: achou o LibreOffice (blueprints/gallery.py)."""
     release = latest_release()
     atual = current_version()
     disponivel = bool(release) and parse_version(release['version']) > parse_version(atual)
@@ -125,12 +127,18 @@ def status(local=False):
         'release_url': release and release['url'],
         'can_install': disponivel and kind == 'windows' and local and bool(release.get('installer')),
         'install': dict(_instalacao),
+        # Windows sem LibreOffice: PowerPoint não vira slide. Quem instalou
+        # a 1.0.0, desmarcou a opção ou teve o download falhando ficava sem,
+        # e a atualização pelo programa nunca baixa (ver _baixar_e_instalar)
+        'libreoffice': tem_libreoffice,
+        'can_install_libreoffice': (kind == 'windows' and local and not tem_libreoffice
+                                    and bool(release) and bool(release.get('installer'))),
     }
 
 
 # --- Windows: baixar e rodar o instalador -----------------------------------
 
-def _baixar_e_instalar(instalador):
+def _baixar_e_instalar(instalador, libreoffice=False):
     pasta = os.path.join(paths.DATA_DIR or paths.APP_DIR, 'atualizacoes')
     os.makedirs(pasta, exist_ok=True)
     destino = os.path.join(pasta, os.path.basename(instalador['name']))
@@ -160,25 +168,31 @@ def _baixar_e_instalar(instalador):
     # O instalador fecha o U-Control (CloseApplications), troca os arquivos
     # e, com /RELAUNCH, abre de novo (ver windows/ucontrol.iss). Se a
     # pessoa recusar a permissão de administrador, nada muda.
-    # !libreoffice: atualização nunca baixa os 360 MB do LibreOffice (quem
-    # quiser marca no instalador baixado à mão)
+    # !libreoffice: atualização nunca baixa os 360 MB do LibreOffice; só o
+    # botão "Instalar LibreOffice" liga essa opção do instalador
+    # (windows/ucontrol.iss — ela some sozinha se o LibreOffice já existe)
+    tarefa = '/MERGETASKS=libreoffice' if libreoffice else '/MERGETASKS=!libreoffice'
     subprocess.Popen([destino, '/SILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/RELAUNCH',
-                      '/MERGETASKS=!libreoffice'], close_fds=True)
+                      tarefa], close_fds=True)
 
 
-def start_install():
+def start_install(libreoffice=False):
     """Começa a baixar o instalador da última versão. Retorna mensagem de
-    erro, ou None se começou."""
+    erro, ou None se começou. libreoffice=True: o mesmo instalador, com a
+    opção de baixar e instalar o LibreOffice — vale mesmo sem versão nova
+    (reinstala a mesma por cima, sem apagar nada)."""
     if install_kind() != 'windows':
         return 'Atualização automática só no programa do Windows.'
     if _instalacao['estado'] in ('baixando', 'instalando'):
         return None
     release = latest_release()
-    if not release or parse_version(release['version']) <= parse_version(current_version()):
+    if not release:
+        return 'Não deu pra consultar o GitHub. Confira a internet deste computador.'
+    if not libreoffice and parse_version(release['version']) <= parse_version(current_version()):
         return 'Não há versão nova.'
     instalador = release.get('installer')
     if not instalador or not instalador['url'].startswith(DOWNLOAD_PREFIX):
         return 'Esta versão não tem instalador para Windows.'
-    _instalacao.update(estado='baixando', progresso=0, erro=None)
-    threading.Thread(target=_baixar_e_instalar, args=(instalador,), daemon=True).start()
+    _instalacao.update(estado='baixando', progresso=0, erro=None, libreoffice=libreoffice)
+    threading.Thread(target=_baixar_e_instalar, args=(instalador, libreoffice), daemon=True).start()
     return None

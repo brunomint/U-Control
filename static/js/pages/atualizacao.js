@@ -12,29 +12,34 @@
     };
     let acompanhando = null;
 
-    function botao(texto, classe, acao) {
+    function botao(texto, classe, acao, onde = 'upd-actions') {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'uc-btn ' + classe;
         b.innerHTML = texto;
         b.addEventListener('click', acao);
-        $('upd-actions').appendChild(b);
+        $(onde).appendChild(b);
         return b;
     }
 
+    // O mesmo download serve à atualização e ao "Instalar LibreOffice"
+    // (inst.libreoffice): o progresso aparece no quadro de quem começou
     function mostrarInstalacao(inst) {
-        const barra = $('upd-progress');
+        const p = inst.libreoffice ? 'lo' : 'upd';
+        const barra = $(p + '-progress');
         if (inst.estado === 'baixando') {
             barra.hidden = false;
             barra.firstElementChild.style.width = inst.progresso + '%';
-            $('upd-msg').textContent = `Baixando… ${inst.progresso}%`;
+            $(p + '-msg').textContent = `Baixando o instalador do U-Control… ${inst.progresso}%`;
         } else if (inst.estado === 'instalando') {
             barra.hidden = false;
             barra.firstElementChild.style.width = '100%';
-            $('upd-msg').textContent = 'Instalando. O Windows vai pedir permissão; o U-Control fecha e abre de novo sozinho.';
+            $(p + '-msg').textContent = inst.libreoffice
+                ? 'Instalando. O Windows vai pedir permissão; o instalador baixa o LibreOffice (~360 MB, alguns minutos) e o U-Control abre de novo sozinho.'
+                : 'Instalando. O Windows vai pedir permissão; o U-Control fecha e abre de novo sozinho.';
         } else if (inst.estado === 'erro') {
             barra.hidden = true;
-            $('upd-msg').textContent = 'Não deu pra baixar: ' + inst.erro;
+            $(p + '-msg').textContent = 'Não deu pra baixar: ' + inst.erro;
         }
         // continua acompanhando enquanto instala: é assim que a página
         // percebe o U-Control fechar e abrir de novo
@@ -51,6 +56,7 @@
         }
         $('upd-sub').textContent = `Versão instalada: ${s.current}`;
         $('upd-card').hidden = false;
+        mostrarLibreOffice(s);
         $('upd-actions').innerHTML = '';
         if (!s.checked && s.checking) {
             // consulta ao GitHub ainda em andamento (servidor acabou de ligar)
@@ -93,6 +99,28 @@
             try { localStorage.setItem('uc_update_dispensada', s.latest); } catch (e) { /* sem storage */ }
             location.href = '/dashboard';
         });
+    }
+
+    function mostrarLibreOffice(s) {
+        $('lo-card').hidden = !(s.kind === 'windows' && !s.libreoffice);
+        if ($('lo-card').hidden) return;
+        $('lo-actions').innerHTML = '';
+        if (!s.can_install_libreoffice) {
+            $('lo-how').innerHTML = s.checked
+                ? COMO.windows_remoto.replace('Para instalar', 'Para instalar o LibreOffice')
+                : '<p class="uc-muted">Para instalar daqui, este computador precisa de internet.</p>';
+            return;
+        }
+        $('lo-how').innerHTML = '<p>O U-Control baixa o instalador oficial do LibreOffice (~360 MB) e instala sozinho. '
+            + 'Ele fecha por alguns minutos enquanto isso: não faça durante o culto.</p>';
+        const b = botao('<i class="fas fa-download"></i> Instalar LibreOffice', 'uc-btn-primary', async () => {
+            b.disabled = true;
+            const r = await fetch('/api/update/install-libreoffice', { method: 'POST' });
+            const dados = await r.json().catch(() => ({}));
+            if (!r.ok) { $('lo-msg').textContent = dados.error || 'Não deu pra começar.'; b.disabled = false; return; }
+            acompanhar();
+        }, 'lo-actions');
+        if (s.install.libreoffice && mostrarInstalacao(s.install)) { b.disabled = true; acompanhar(); }
     }
 
     function acompanhar() {

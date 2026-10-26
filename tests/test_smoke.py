@@ -2684,6 +2684,57 @@ def test_update_status_and_install_only_from_the_server_pc(logged_in_client, cli
     assert not logged_in_client.get("/api/update-status").get_json()["available"]
 
 
+def test_install_libreoffice_button_on_windows(logged_in_client, monkeypatch):
+    """Windows sem LibreOffice: a atualização pelo programa nunca baixa
+    (/MERGETASKS=!libreoffice), então quem instalou a 1.0.0 ou desmarcou a
+    opção ficava sem converter PowerPoint. O botão roda o mesmo instalador
+    com a opção ligada — mesmo sem versão nova — e só do próprio PC."""
+    import updates
+    from blueprints import gallery
+
+    rel = {"version": updates.current_version(), "notes": "", "url": "https://github.com/x",
+           "installer": {"name": "s.exe", "url": updates.DOWNLOAD_PREFIX + "v1/s.exe", "size": 1, "digest": None}}
+    monkeypatch.setitem(updates._cache, "release", rel)
+    monkeypatch.setitem(updates._cache, "quando", 10**12)
+    monkeypatch.setattr(updates, "install_kind", lambda: "windows")
+    monkeypatch.setattr(gallery, "_find_libreoffice", lambda: None)
+    chamadas = []
+    monkeypatch.setattr(updates, "_baixar_e_instalar", lambda inst, libreoffice=False: chamadas.append(libreoffice))
+    monkeypatch.setattr(updates.threading, "Thread",
+                        lambda target, args, daemon: type("T", (), {"start": lambda self: target(*args)})())
+    monkeypatch.setitem(updates._instalacao, "estado", None)
+
+    s = logged_in_client.get("/api/update-status").get_json()
+    assert s["libreoffice"] is False and s["can_install_libreoffice"] and not s["available"]
+    celular = {"REMOTE_ADDR": "192.168.0.20"}
+    assert not logged_in_client.get("/api/update-status", environ_base=celular).get_json()["can_install_libreoffice"]
+    assert logged_in_client.post("/api/update/install-libreoffice", environ_base=celular).status_code == 403
+    assert chamadas == []
+
+    assert logged_in_client.post("/api/update/install-libreoffice").get_json() == {"ok": True}
+    assert chamadas == [True] and updates._instalacao["libreoffice"] is True
+    monkeypatch.setitem(updates._instalacao, "estado", None)
+    # sem versão nova, o Baixar e instalar comum continua recusando
+    assert logged_in_client.post("/api/update/install").status_code == 400
+
+    monkeypatch.setattr(gallery, "_find_libreoffice", lambda: "C:/LibreOffice/program/soffice.exe")
+    assert not logged_in_client.get("/api/update-status").get_json()["can_install_libreoffice"]
+    assert logged_in_client.post("/api/update/install-libreoffice").status_code == 400
+
+
+def test_pptx_without_libreoffice_on_windows_says_how_to_install(logged_in_client, monkeypatch, tmp_path):
+    import io
+    import updates
+    from blueprints import gallery
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(gallery, "IMAGE_FOLDER", str(tmp_path))
+    monkeypatch.setattr(gallery, "_find_libreoffice", lambda: None)
+    monkeypatch.setattr(updates, "install_kind", lambda: "windows")
+    r = logged_in_client.post("/upload", data={"images": (io.BytesIO(b"x"), "culto.pptx")},
+                              content_type="multipart/form-data")
+    assert "Instalar LibreOffice" in r.get_data(as_text=True)
+
+
 def test_libreoffice_found_in_windows_program_files(monkeypatch, tmp_path):
     """O instalador do LibreOffice no Windows não põe no PATH: antes o
     U-Control nunca achava, mesmo instalado."""

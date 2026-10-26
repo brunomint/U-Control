@@ -222,7 +222,8 @@ def atualizacao():
 @utils_bp.route('/api/update-status')
 @login_required
 def api_update_status():
-    return jsonify(updates.status(local=_pedido_local()))
+    from blueprints.gallery import _find_libreoffice
+    return jsonify(updates.status(local=_pedido_local(), tem_libreoffice=bool(_find_libreoffice())))
 
 
 @utils_bp.route('/api/update/install', methods=['POST'])
@@ -233,6 +234,21 @@ def api_update_install():
     if not _pedido_local():
         return jsonify({'error': 'Instale pelo computador onde o U-Control está rodando.'}), 403
     erro = updates.start_install()
+    if erro:
+        return jsonify({'error': erro}), 400
+    return jsonify({'ok': True})
+
+
+@utils_bp.route('/api/update/install-libreoffice', methods=['POST'])
+@login_required
+def api_install_libreoffice():
+    # Mesmo cuidado do Baixar e instalar: o instalador fecha o programa
+    if not _pedido_local():
+        return jsonify({'error': 'Instale pelo computador onde o U-Control está rodando.'}), 403
+    from blueprints.gallery import _find_libreoffice
+    if _find_libreoffice():
+        return jsonify({'error': 'O LibreOffice já está instalado neste computador.'}), 400
+    erro = updates.start_install(libreoffice=True)
     if erro:
         return jsonify({'error': erro}), 400
     return jsonify({'ok': True})

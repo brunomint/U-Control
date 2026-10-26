@@ -35,6 +35,17 @@
         <p id="upd-msg" role="status"></p>
         <div class="uc-btn-row" id="upd-actions"></div>
     </section>
+
+    <!-- Só no Windows sem LibreOffice (atualizacao.js) -->
+    <section class="uc-card update-card" id="lo-card" hidden>
+        <h2><i class="fas fa-file-powerpoint"></i> PowerPoint em slides</h2>
+        <p>Falta o LibreOffice neste computador. É ele que transforma o arquivo do PowerPoint (.pptx) em slides para o telão;
+           sem ele, só dá para enviar a apresentação salva como PDF.</p>
+        <div id="lo-how"></div>
+        <div class="update-progress" id="lo-progress" hidden><div></div></div>
+        <p id="lo-msg" role="status"></p>
+        <div class="uc-btn-row" id="lo-actions"></div>
+    </section>
 </main>
 {% endblock %}
 

@@ -28,6 +28,7 @@ except ImportError:  # pragma: no cover
 
 import conversoes
 import paths
+import updates
 import pptx_fontes
 import pptx_imagens
 
@@ -476,7 +477,12 @@ def upload_files():
         elif file_ext in PRESENTATION_EXTS:
             soffice = _find_libreoffice()
             if not soffice:
-                errors.append(f'{file.filename}: o servidor não tem o LibreOffice pra converter apresentações. Salve como PDF e envie o PDF.')
+                if updates.install_kind() == 'windows':
+                    errors.append(f'{file.filename}: falta o LibreOffice neste computador, que converte o PowerPoint em slides. '
+                                  'Instale no computador do U-Control em Sistema → Atualização → Instalar LibreOffice, '
+                                  'ou salve a apresentação como PDF e envie o PDF.')
+                else:
+                    errors.append(f'{file.filename}: o servidor não tem o LibreOffice pra converter apresentações. Salve como PDF e envie o PDF.')
                 continue
             tmp_dir = tempfile.mkdtemp(prefix='ucontrol-ppt-')
             src_path = os.path.join(tmp_dir, filename)
