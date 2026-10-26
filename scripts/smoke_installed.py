@@ -106,7 +106,9 @@ def main():
             '<p:transition xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:fade/></p:transition>'))
         buf = io.BytesIO()
         apresentacao.save(buf)
-        r = s.post(BASE + '/upload', files={'images': ('smoke.pptx', buf.getvalue())})
+        # /upload exige login e token CSRF desde a 1.0.5 (antes era aberto)
+        r = s.post(BASE + '/upload', files={'images': ('smoke.pptx', buf.getvalue())},
+                   headers={'X-CSRFToken': token})
         check(r.status_code == 200 and 'smoke.pptx' in r.json().get('converting', []), f'PowerPoint aceito pra converter ({r.text[:120]})')
         fim = time.time() + 240
         slides = []
