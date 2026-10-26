@@ -26,7 +26,7 @@
     <section class="uc-card order-header">
         <div class="order-when"><span id="orderWeekday"></span></div>
         <h1 class="order-date" id="orderDate"></h1>
-        <div class="order-type">{{ order.tipo or _('Culto') }}</div>
+        <div class="order-type">{{ _(order.tipo) if order.tipo else _('Culto') }}</div>
         <div class="order-meta">
             {% if order.horario or order.horario_culto %}<span><i class="fas fa-clock"></i> {{ order.horario or order.horario_culto }}</span>{% endif %}
             {% if order.dirigente %}<span><i class="fas fa-user"></i> {{ _('Dirigente:') }} <b>{{ order.dirigente }}</b></span>{% endif %}

@@ -34,7 +34,7 @@ window.AgendaCultos = (function () {
     function dayItems(day) {
         if (!day) return [];
         return [
-            ...day.cultos.map(c => ({ kind: 'culto', titulo: c.tipo, hora: c.hora,
+            ...day.cultos.map(c => ({ kind: 'culto', titulo: window._t ? _t(c.tipo) : c.tipo, hora: c.hora,
                 meta: [['Dirigente', c.dirigente], ['Pregador', c.pregador]] })),
             ...day.eventos.map(e => ({ kind: 'evento', titulo: e.titulo.trim(), hora: e.hora || '',
                 meta: [['Resp', e.responsavel], ['Obs', e.obs]] })),

@@ -74,7 +74,7 @@ function downloadPDF() {
     ); y += 10;
 
     const o = CONFIG.order;
-    if (o.tipo) { doc.text(_t('Tipo:') + ' ' + o.tipo, 20, y); y += 7; }
+    if (o.tipo) { doc.text(_t('Tipo:') + ' ' + _t(o.tipo), 20, y); y += 7; }
     if (o.dirigente) { doc.text(_t('Dirigente:') + ' ' + o.dirigente, 20, y); y += 7; }
     if (o.pregador) { doc.text(_t('Pregador:') + ' ' + o.pregador, 20, y); y += 7; }
     if (o.horario) { doc.text(_t('Horário:') + ' ' + o.horario, 20, y); y += 7; }
@@ -97,7 +97,7 @@ function copyWhatsapp() {
     const weekday = document.getElementById('orderWeekday').textContent;
     let text = `*${_t('Ordem do Culto')} — ${date}*\n_${weekday}_`;
     const o = CONFIG.order;
-    if (o.tipo) text += `\n*${_t('Tipo:')}* ` + o.tipo;
+    if (o.tipo) text += `\n*${_t('Tipo:')}* ` + _t(o.tipo);
     if (o.dirigente) text += `\n*${_t('Dirigente:')}* ` + o.dirigente;
     if (o.pregador) text += `\n*${_t('Pregador:')}* ` + o.pregador;
     if (o.horario) text += `\n*${_t('Horário:')}* ` + o.horario;

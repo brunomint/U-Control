@@ -507,7 +507,7 @@ async function renderCopiarGrid() {
                 if (!datas.length) return;
                 const qual = info.seq > 1 ? ` (${_t('{n}º culto do dia', { n: info.seq })})` : '';
                 html += `<div class="copiar-group">
-                    <div class="copiar-group-title">${NOMES_DIA_PLURAL[dow]} — ${info.tipo}${qual}</div>
+                    <div class="copiar-group-title">${NOMES_DIA_PLURAL[dow]} — ${_t(info.tipo)}${qual}</div>
                     <div class="copiar-group-dates">${datas.map(d => {
                         const key = info.seq > 1 ? `${isoDate(d)}-${info.seq}` : isoDate(d);
                         return `<label class="mes-check"><input type="checkbox" name="copiar-date" data-grupo="${grupo}" value="${key}" checked><span>${d.getDate()} ${NOMES_MES[d.getMonth()]}</span></label>`;

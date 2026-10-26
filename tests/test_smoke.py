@@ -3092,7 +3092,7 @@ def test_importar_le_os_formatos_e_poe_acorde_em_cima_da_letra():
 
     cho = im.ler("x.cho", b"{title: Santo}\n{artist: Fulano}\n[G]Quem [D]vem\n\n{soc}\n[C]Coro\n{eoc}\n")[0]
     assert (cho["title"], cho["author"]) == ("Santo", "Fulano")
-    assert [s["title"] for s in cho["sections"]] == ["Verse 1", "Chorus"]
+    assert [s["title"] for s in cho["sections"]] == ["Verso 1", "Refrão"]
     assert cho["sections"][0]["text"] == ["G    D\nQuem vem"]
 
     ol = ('<song xmlns="http://openlyrics.info/namespace/2009/song"><properties><titles><title>Graça</title></titles>'
@@ -3100,16 +3100,16 @@ def test_importar_le_os_formatos_e_poe_acorde_em_cima_da_letra():
           '<chord name="D"/>Graça <chord name="G"/>sublime<br/>linha dois</lines></verse><verse name="c">'
           '<lines>Coro</lines></verse></lyrics></song>').encode()
     m = im.ler("g.xml", ol)[0]
-    assert [s["title"] for s in m["sections"]] == ["Verse 1", "Chorus"]
+    assert [s["title"] for s in m["sections"]] == ["Verso 1", "Refrão"]
     assert m["sections"][0]["text"] == ["D     G\nGraça sublime\nlinha dois"]
 
     holy = json.dumps([{"title": "Hino", "artist": "Harpa", "slides": [{"text": "a\nb", "slide_description": "Coro"}]},
                        {"title": "Antigo", "lyrics": {"paragraphs": [{"text": "x"}]}}]).encode()
     h = im.ler("h.json", holy)
-    assert [(x["title"], x["sections"][0]["title"]) for x in h] == [("Hino", "Coro"), ("Antigo", "Verse 1")]
+    assert [(x["title"], x["sections"][0]["title"]) for x in h] == [("Hino", "Coro"), ("Antigo", "Verso 1")]
 
     t = im.ler("Hino da Casa.txt", "Primeiro\n\n[Refrão]\nGlória\n".encode("cp1252"))[0]
-    assert t["title"] == "Hino da Casa" and [s["title"] for s in t["sections"]] == ["Verse 1", "Refrão"]
+    assert t["title"] == "Hino da Casa" and [s["title"] for s in t["sections"]] == ["Verso 1", "Refrão"]
 
     z = io.BytesIO()
     with zipfile.ZipFile(z, "w") as zf:
@@ -3465,3 +3465,28 @@ def test_bible_reference_in_english(app, logged_in_client):
     r = logged_in_client.get("/api/bible/search", query_string={"q": "John 3:16", "translation": "en_kjv"},
                              headers={"Accept-Language": "en"}).get_json()
     assert r["results"] and r["results"][0]["reference"] == "John 3:16"
+
+
+def test_section_names_follow_the_interface_language(app):
+    """Importar (e os editores) criavam seções "Verse 1"/"Chorus" em
+    inglês pra todo mundo, e o editor "VERSO 1"/"REFRÃO" em português pra
+    todo mundo. Agora seguem o idioma da interface."""
+    import importar_musicas as im
+    cho = b"{title: Santo}\n[G]Quem vem\n\n{soc}\n[C]Coro\n{eoc}\n{sob}\nPonte\n{eob}\n"
+    with app.test_request_context(headers={"Accept-Language": "en"}):
+        assert [s["title"] for s in im.ler("x.cho", cho)[0]["sections"]] == ["Verse 1", "Chorus", "Bridge"]
+    with app.test_request_context(headers={"Accept-Language": "pt-BR"}):
+        assert [s["title"] for s in im.ler("x.cho", cho)[0]["sections"]] == ["Verso 1", "Refrão", "Ponte"]
+
+
+def test_service_types_translated_only_on_screen(logged_in_client):
+    """Tipos de culto ficam gravados em português (ordens e /api/orders, que o
+    site da igreja usa); em inglês só o texto mostrado muda."""
+    logged_in_client.post("/api/orders/2099-03-01", json={"tipo": "Culto Dominical", "itens": []})
+    en = {"Accept-Language": "en"}
+    html = logged_in_client.get("/order/2099-03-01", headers=en).get_data(as_text=True)
+    assert '<option value="Culto Dominical" selected>Sunday service</option>' in html
+    assert "Sunday service" in logged_in_client.get("/view/order/2099-03-01", headers=en).get_data(as_text=True)
+    assert logged_in_client.get("/api/orders/2099-03-01", headers=en).get_json()["tipo"] == "Culto Dominical"
+    html_pt = logged_in_client.get("/order/2099-03-01").get_data(as_text=True)
+    assert '<option value="Culto Dominical" selected>Culto Dominical</option>' in html_pt

@@ -7,7 +7,8 @@
 {% set outro = tipo_atual and tipo_atual not in tipos %}
 <select class="{{ input_class }}" id="{{ id }}" data-outro="{{ id }}Outro">
     {% for t in tipos %}
-    <option value="{{ t }}" {{ 'selected' if tipo_atual == t else '' }}>{{ t }}</option>
+    {#- valor gravado continua em português (ordens e /api/orders); só o texto é traduzido #}
+    <option value="{{ t }}" {{ 'selected' if tipo_atual == t else '' }}>{{ _(t) }}</option>
     {% endfor %}
     <option value="Outro" {{ 'selected' if outro else '' }}>{{ _('Outro') }}</option>
 </select>

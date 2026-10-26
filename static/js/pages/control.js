@@ -983,7 +983,7 @@ function panelLoadOrder() {
             return;
         }
         const when = d.date ? d.date.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '';
-        const label = [d.tipo, when, d.horario].filter(Boolean).join(' · ');
+        const label = [d.tipo && _t(d.tipo), when, d.horario].filter(Boolean).join(' · ');
         document.getElementById('ordem-title').textContent = _t('Ordem do culto') + (label ? ` · ${label}` : '');
         if (!d.itens.length) {
             list.innerHTML = `<li class="ordem-empty">${_t('Esta ordem ainda não tem itens.')} <a href="/order/${d.date}" target="_blank" rel="noopener">${_t('Montar a ordem')}</a></li>`;

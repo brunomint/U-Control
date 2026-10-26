@@ -15,7 +15,7 @@ function populateTypeOptions() {
         if (o && o.tipo) dynamic.add(o.tipo);
     });
     const merged = Array.from(new Set([...baseOptions, ...dynamic]));
-    select.innerHTML = merged.map(v => `<option value="${v}">${v || _t('Todos')}</option>`).join('');
+    select.innerHTML = merged.map(v => `<option value="${v}">${v ? _t(v) : _t('Todos')}</option>`).join('');
 }
 
 function applyFilters() {
@@ -186,7 +186,7 @@ function createOrderCard(dateStr, order) {
                     <span class="month">${date.month}</span>
                 </div>
                 <div class="order-head">
-                    <div class="order-tipo">${escapeHtml(order.tipo || _t('Culto'))}</div>
+                    <div class="order-tipo">${escapeHtml(order.tipo ? _t(order.tipo) : _t('Culto'))}</div>
                     <div class="order-when">${date.weekday}${horario ? ` · ${escapeHtml(horario)}` : ''}</div>
                 </div>
                 ${badge}

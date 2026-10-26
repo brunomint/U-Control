@@ -24,7 +24,7 @@
         const proximos = itens.cultos.filter(c => !c.passado);
         const passados = itens.cultos.filter(c => c.passado);
         const um = c => linha('cultos', c.chave, dataCulto(c.chave),
-            [c.tipo, c.tema, c.musicas ? plural(c.musicas, _t('{n} música'), _t('{n} músicas')) : ''].filter(Boolean).join(' · '));
+            [c.tipo && _t(c.tipo), c.tema, c.musicas ? plural(c.musicas, _t('{n} música'), _t('{n} músicas')) : ''].filter(Boolean).join(' · '));
         let html = '';
         if (proximos.length) html += '<div class="pacote-separador">' + _t('Próximos') + '</div>' + proximos.map(um).join('');
         if (passados.length) html += '<div class="pacote-separador">' + _t('Anteriores') + '</div>' + passados.map(um).join('');
@@ -155,7 +155,7 @@
         let html = '';
         if (d.cultos.length) {
             html += '<h3>' + _t('Cultos') + '</h3>' + d.cultos.map(c => `<div class="previa-linha"><span class="titulo">${esc(dataCulto(c.chave))}
-                ${c.tipo ? `<span class="uc-muted">· ${esc(c.tipo)}</span>` : ''}</span>${selo(c.status)}
+                ${c.tipo ? `<span class="uc-muted">· ${esc(_t(c.tipo))}</span>` : ''}</span>${selo(c.status)}
                 ${c.status === 'diferente' ? escolha('cultos', c.chave) : ''}</div>`).join('');
         }
         if (d.musicas.length) {

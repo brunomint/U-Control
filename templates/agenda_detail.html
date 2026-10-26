@@ -32,7 +32,7 @@
         <div class="culto-head">
             {% if hora %}<span class="culto-time">{{ hora }}</span>{% endif %}
             <div>
-                <h2>{{ order.get('tipo') or _('Culto') }}</h2>
+                <h2>{{ _(order.get('tipo')) if order.get('tipo') else _('Culto') }}</h2>
                 {% if order.get('dirigente') or order.get('pregador') %}
                 <div class="culto-meta">
                     {%- if order.get('dirigente') %}{{ _('Dirigente') }} <b>{{ order.get('dirigente') }}</b>{% endif %}

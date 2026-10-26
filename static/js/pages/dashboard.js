@@ -69,7 +69,7 @@ function renderNextService(data) {
     }
 
     const title = formatServiceDate(data.date) + (data.horario ? ` · ${data.horario}` : '');
-    const meta = [data.tipo, data.dirigente && _t('dirigente: {nome}', { nome: data.dirigente }), data.pregador && _t('pregação: {nome}', { nome: data.pregador })]
+    const meta = [data.tipo && _t(data.tipo), data.dirigente && _t('dirigente: {nome}', { nome: data.dirigente }), data.pregador && _t('pregação: {nome}', { nome: data.pregador })]
         .filter(Boolean).map(escapeHtml).join(' · ');
 
     const itens = data.itens.length

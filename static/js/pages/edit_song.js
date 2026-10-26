@@ -311,7 +311,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 console.log('📄 Tem linhas em branco:', hasDoubleLineBreaks);
                 
                 // Verifica se contém palavras típicas de estrutura musical
-                const musicalStructureWords = /\b(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)\b/i;
+                const musicalStructureWords = /\b(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte|chorus|verse|bridge|pre-chorus|outro)\b/i;
                 const hasMusicalStructure = musicalStructureWords.test(cleanText);
                 console.log('🎵 Tem estrutura musical:', hasMusicalStructure);
                 
@@ -338,7 +338,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 const looksLikeList = /^\s*[-*•]/.test(cleanText);
                 
                 // Se tem seções musicais entre colchetes, não é código
-                const hasMusicSections = /\[(intro|refrão|coro|verso|estrofe|ponte|final|bis|primeira parte|pré-refrão|segunda parte)\]/i.test(cleanText);
+                const hasMusicSections = /\[(intro|refrão|coro|verso|estrofe|ponte|final|bis|primeira parte|pré-refrão|segunda parte|chorus|verse|bridge|pre-chorus|outro)\]/i.test(cleanText);
                 
                 console.log('💻 Parece código/lista:', looksLikeCode || looksLikeList);
                 console.log('🎵 Tem seções musicais:', hasMusicSections);
@@ -425,7 +425,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 }
                 
                 // PRIORIDADE 3: Tenta separar por marcadores de seção explícitos
-                const sectionMarkers = /\n(?=\s*(Refrão|Coro|Verso|Estrofe|Ponte|Intro|Final|Bis|Primeira Parte|Pré-Refrão|Segunda Parte)\s*:?\s*\n)/gi;
+                const sectionMarkers = /\n(?=\s*(Refrão|Coro|Verso|Estrofe|Ponte|Intro|Final|Bis|Primeira Parte|Pré-Refrão|Segunda Parte|Chorus|Verse|Bridge|Pre-Chorus|Outro)\s*:?\s*\n)/gi;
                 if (sectionMarkers.test(cleanText)) {
                     console.log('✅ Separação por marcadores explícitos!');
                     sections = cleanText.split(sectionMarkers);
@@ -507,7 +507,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 }
                 
                 // Verifica se já tem um título explícito
-                const explicitTitles = /^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)\s*:?/i;
+                const explicitTitles = /^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte|chorus|verse|bridge|pre-chorus|outro)\s*:?/i;
                 const match = content.match(explicitTitles);
                 if (match) {
                     return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
@@ -516,32 +516,32 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 // Sugere títulos baseado no padrão e posição
                 if (index === 0) {
                     if (lowerContent.includes('intro') || content.length < 50) {
-                        return 'Intro';
+                        return _t('Intro');
                     }
-                    return 'Verso 1';
+                    return _t('Verso {n}', { n: 1 });
                 }
                 
                 // Verifica se parece ser um refrão (texto repetitivo ou com palavras-chave)
                 const chorusKeywords = /\b(refrão|coro|chorus|hey|oh|yeah|na na|la la)\b/i;
                 if (chorusKeywords.test(content)) {
-                    return 'Refrão';
+                    return _t('Refrão');
                 }
                 
                 // Verifica se é uma ponte
-                if (lowerContent.includes('ponte') || (index > 2 && content.length < 100)) {
-                    return 'Ponte';
+                if (lowerContent.includes('ponte') || lowerContent.includes('bridge') || (index > 2 && content.length < 100)) {
+                    return _t('Ponte');
                 }
                 
                 // Verifica se é o final
                 if (index >= 3 && (lowerContent.includes('final') || lowerContent.includes('fim'))) {
-                    return 'Final';
+                    return _t('Final');
                 }
                 
                 // Padrão padrão: alterna entre verso e refrão
                 if (index % 2 === 0) {
-                    return `Verso ${Math.floor(index / 2) + 1}`;
+                    return _t('Verso {n}', { n: Math.floor(index / 2) + 1 });
                 } else {
-                    return 'Refrão';
+                    return _t('Refrão');
                 }
             }
             
@@ -589,7 +589,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         cleanContent = cleanContent.replace(/^\s*\[[^\]]+\][ \t]*\n?/i, '');
 
                         // Remove títulos explícitos do início
-                        cleanContent = cleanContent.replace(/^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte)[ \t]*:?[ \t]*\n?/i, '');
+                        cleanContent = cleanContent.replace(/^\s*(refrão|coro|verso|estrofe|ponte|intro|final|bis|primeira parte|pré-refrão|segunda parte|chorus|verse|bridge|pre-chorus|outro)[ \t]*:?[ \t]*\n?/i, '');
 
                         // Remove indicação de tom se estiver no início
                         cleanContent = cleanContent.replace(/^\s*Tom:[ \t]*[A-G][#b]?[ \t]*\n?/i, '');
@@ -962,7 +962,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 if (type === 'text') {
                     newBlock = { type: 'text', content: '', id: Date.now() };
                 } else if (type === 'section') {
-                    const sectionName = prompt(_t('Nome da seção (ex: Coro, Verso 1, Ponte...):'), 'Coro');
+                    const sectionName = prompt(_t('Nome da seção (ex: Coro, Verso 1, Ponte...):'), _t('Coro'));
                     if (!sectionName) return;
                     newBlock = { type: 'section', title: sectionName, id: Date.now() };
                     // Seção já vem com o bloco de texto embaixo
@@ -1772,7 +1772,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 let lastFromMarker = false;
                 
                 paragraphs.forEach((paragraph, index) => {
-                    let sectionName = 'VERSO ' + verseCount;
+                    let sectionName = _t('VERSO {n}', { n: verseCount });
                     
                     // Usa o marcador do próprio Cifra Club quando o parágrafo
                     // começa com um ("[Tab - Solo Intro]", "[Primeira Parte]").
@@ -1792,14 +1792,14 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     const text = paragraph.toLowerCase();
                     if (marker) {
                         sectionName = marker[1].trim().toUpperCase();
-                    } else if (text.includes('refrão') || text.includes('coro')) {
-                        sectionName = 'REFRÃO';
+                    } else if (text.includes('refrão') || text.includes('coro') || text.includes('chorus')) {
+                        sectionName = _t('REFRÃO');
                     } else if (text.includes('intro')) {
-                        sectionName = 'INTRO';
-                    } else if (text.includes('ponte')) {
-                        sectionName = 'PONTE';
+                        sectionName = _t('INTRO');
+                    } else if (text.includes('ponte') || text.includes('bridge')) {
+                        sectionName = _t('PONTE');
                     } else if (text.includes('final')) {
-                        sectionName = 'FINAL';
+                        sectionName = _t('FINAL');
                     } else {
                         verseCount++;
                     }
@@ -1907,13 +1907,13 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 // Adiciona bloco de referência
                 blocks.push({
                     type: 'section',
-                    title: '🔗 REFERÊNCIA',
+                    title: '🔗 ' + _t('REFERÊNCIA'),
                     id: Date.now()
                 });
                 
                 blocks.push({
                     type: 'text',
-                    content: `Link original: ${url}\nArtista: ${info.artist}\nMúsica: ${info.song}`,
+                    content: `${_t('Link original:')} ${url}\n${_t('Artista:')} ${info.artist}\n${_t('Música:')} ${info.song}`,
                     id: Date.now() + 1
                 });
                 

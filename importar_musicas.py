@@ -30,8 +30,10 @@ EXT_CHORDPRO = ('.cho', '.chordpro', '.chopro', '.crd', '.pro')
 EXT_ACEITAS = ('.json', '.xml', '.txt', '.zip') + EXT_CHORDPRO
 
 _NS_OL = '{http://openlyrics.info/namespace/2009/song}'
-# v1 -> Verse 1; c -> Chorus ... (nome das seções do OpenLyrics/OpenLP)
-_TIPOS = {'v': 'Verse', 'c': 'Chorus', 'b': 'Bridge', 'p': 'Pre-Chorus', 'i': 'Intro', 'e': 'Final', 'o': ''}
+# v1 -> Verso 1 (Verse 1 em inglês); c -> Refrão ... (seções do OpenLyrics/OpenLP)
+# Nomes no idioma da interface (traduzidos onde são usados): antes ficavam
+# sempre em inglês, mesmo pra quem usa em português
+_TIPOS = {'v': 'Verso', 'c': 'Refrão', 'b': 'Ponte', 'p': 'Pré-refrão', 'i': 'Intro', 'e': 'Final', 'o': ''}
 _RE_CABECALHO = re.compile(
     r'^\s*(?:\[([^\]]{1,40})\]|((?:verso|verse|refr[aã]o|coro|chorus|ponte|bridge|pr[eé][- ]?refr[aã]o|pre[- ]?chorus|intro|final|solo|tag|interl[uú]dio)\b[^:\n]{0,20}):?)\s*$',
     re.I)
@@ -94,7 +96,7 @@ def _holyrics_json(dados, nome):
             if not isinstance(s, dict):
                 continue
             texto = s.get('text') or ''
-            secoes.append((s.get('slide_description') or s.get('description') or f'Verse {i}', texto))
+            secoes.append((s.get('slide_description') or s.get('description') or tr('Verso {n}', n=i), texto))
         m = _musica(item.get('title'), item.get('artist') or item.get('author'), secoes, f'Holyrics ({nome})')
         if m:
             musicas.append(m)
@@ -111,7 +113,7 @@ def _nome_secao(nome):
         return nome or ''
     base = _TIPOS.get(m.group(1), '')
     num = m.group(2)
-    return f'{base} {num}'.strip() if base else ''
+    return f'{tr(base)} {num}'.strip() if base else ''
 
 
 def _texto_lines(lines):
@@ -193,11 +195,11 @@ def _chordpro(texto, nome):
             elif chave in ('artist', 'subtitle', 'st', 'composer') and not autor:
                 autor = valor
             elif chave in ('start_of_chorus', 'soc'):
-                fechar(); atual = valor or 'Chorus'
+                fechar(); atual = valor or tr('Refrão')
             elif chave in ('start_of_verse', 'sov'):
-                fechar(); n_verso += 1; atual = valor or f'Verse {n_verso}'
+                fechar(); n_verso += 1; atual = valor or tr('Verso {n}', n=n_verso)
             elif chave in ('start_of_bridge', 'sob'):
-                fechar(); atual = valor or 'Bridge'
+                fechar(); atual = valor or tr('Ponte')
             elif chave in ('end_of_chorus', 'eoc', 'end_of_verse', 'eov', 'end_of_bridge', 'eob'):
                 fechar()
             elif chave in ('comment', 'c', 'comment_italic', 'ci', 'comment_box', 'cb'):
@@ -211,7 +213,7 @@ def _chordpro(texto, nome):
             continue
         if atual is None and not linhas:
             n_verso += 1
-            atual = f'Verse {n_verso}'
+            atual = tr('Verso {n}', n=n_verso)
         linhas.append(linha.rstrip())
     fechar()
     m = _musica(titulo or os.path.splitext(nome)[0], autor, secoes, f'ChordPro ({nome})')
@@ -234,7 +236,7 @@ def _texto(texto, nome):
             secoes.append(((m.group(1) or m.group(2)).strip(), '\n'.join(linhas[1:])))
         else:
             n_verso += 1
-            secoes.append((f'Verse {n_verso}', p))
+            secoes.append((tr('Verso {n}', n=n_verso), p))
     m = _musica(titulo, '', secoes, f'Texto ({nome})')
     if not m:
         raise ArquivoInvalido(tr('{nome}: arquivo de texto vazio.', nome=nome))

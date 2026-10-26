@@ -73,7 +73,7 @@ function formatDate(dateStr) {
 // Data + qual culto (num dia pode haver mais de um)
 function orderLabel(key) {
     const o = availableOrders[key] || {};
-    const culto = [o.tipo !== 'Nenhum' && o.tipo, o.horario_culto].filter(Boolean).join(' ');
+    const culto = [o.tipo !== 'Nenhum' && o.tipo && _t(o.tipo), o.horario_culto].filter(Boolean).join(' ');
     if (culto) return `${formatDate(key)} · ${culto}`;
     return hasCulto(key) ? formatDate(key) : `${formatDate(key)} · ${_t('sem culto cadastrado')}`;
 }

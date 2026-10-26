@@ -13,7 +13,7 @@ async function loadOrders() {
         }
         container.innerHTML = dates.map(d => {
             const o = data[d] || {};
-            const tipo = o.tipo || _t('Sem tipo');
+            const tipo = o.tipo ? _t(o.tipo) : _t('Sem tipo');
             const horario = o.horario_culto || o.horario;
             const hora = horario ? ` • ${horario}` : '';
             const formatted = new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString(ucLocale(), { timeZone: 'UTC' });

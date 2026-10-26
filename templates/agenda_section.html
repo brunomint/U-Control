@@ -31,7 +31,7 @@
     <nav class="culto-tabs" aria-label="{{ _('Cultos do dia') }}">
         <div class="uc-seg">
             {% for c in cultos %}
-            <a href="/agenda/{{ c.key }}/{{ section }}" aria-current="{{ 'page' if c.key == date else 'false' }}"><span class="t">{{ c.hora or '--:--' }}</span> {{ c.tipo }}</a>
+            <a href="/agenda/{{ c.key }}/{{ section }}" aria-current="{{ 'page' if c.key == date else 'false' }}"><span class="t">{{ c.hora or '--:--' }}</span> {{ _(c.tipo) }}</a>
             {% endfor %}
         </div>
         {% if not is_new %}
