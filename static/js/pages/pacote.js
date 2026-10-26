@@ -43,7 +43,41 @@
             || '<p class="uc-muted">Nenhuma foto na galeria.</p>';
     }
 
+    // Valores que a lista mostra agora — "Selecionar todas" das músicas vale
+    // só pro resultado da busca (ex.: buscar um artista e levar as dele).
+    // 'proximos' é o "Só os próximos" dos cultos: os que ainda vão acontecer.
+    const conjunto = tipo => tipo === 'proximos' ? 'cultos' : tipo;
+    function visiveis(tipo) {
+        if (tipo === 'cultos') return itens.cultos.map(c => c.chave);
+        if (tipo === 'proximos') return itens.cultos.filter(c => !c.passado).map(c => c.chave);
+        if (tipo === 'pastas') return itens.pastas.map(p => p.nome);
+        const termo = $('busca-musicas').value.trim().toLowerCase();
+        return itens.musicas.filter(m => !termo || `${m.title} ${m.author}`.toLowerCase().includes(termo)).map(m => String(m.id));
+    }
+
+    function renderTodos() {
+        for (const tipo of ['cultos', 'proximos', 'musicas', 'pastas']) {
+            const caixa = document.querySelector(`[data-todos="${tipo}"]`);
+            const lista = visiveis(tipo);
+            const marcados = lista.filter(v => escolhido[conjunto(tipo)].has(v)).length;
+            caixa.closest('label').hidden = !lista.length;
+            caixa.checked = lista.length > 0 && marcados === lista.length;
+            caixa.indeterminate = marcados > 0 && marcados < lista.length;
+            if (tipo === 'musicas') {
+                caixa.nextElementSibling.textContent = lista.length < itens.musicas.length
+                    ? `Selecionar ${plural(lista.length, 'encontrada', 'encontradas')}` : 'Selecionar todas';
+            }
+            if (tipo === 'proximos') {
+                caixa.nextElementSibling.textContent = `Só os próximos (${lista.length})`;
+                continue;
+            }
+            const total = itens[tipo].length;
+            $('conta-' + tipo).textContent = escolhido[tipo].size ? `(${escolhido[tipo].size} de ${total})` : '';
+        }
+    }
+
     function renderResumo() {
+        renderTodos();
         const partes = [];
         if (escolhido.cultos.size) partes.push(plural(escolhido.cultos.size, 'culto', 'cultos'));
         if (escolhido.musicas.size) partes.push(plural(escolhido.musicas.size, 'música', 'músicas'));
@@ -54,18 +88,26 @@
 
     document.addEventListener('change', e => {
         const t = e.target;
+        if (t.dataset && t.dataset.todos) {
+            const tipo = conjunto(t.dataset.todos);
+            visiveis(t.dataset.todos).forEach(v => t.checked ? escolhido[tipo].add(v) : escolhido[tipo].delete(v));
+            ({ cultos: renderCultos, musicas: renderMusicas, pastas: renderPastas })[tipo]();
+            renderResumo();
+            return;
+        }
         if (!t.dataset || !t.dataset.tipo) return;
         if (t.checked) escolhido[t.dataset.tipo].add(t.value);
         else escolhido[t.dataset.tipo].delete(t.value);
         renderResumo();
     });
-    $('busca-musicas').addEventListener('input', renderMusicas);
+    $('busca-musicas').addEventListener('input', () => { renderMusicas(); renderTodos(); });
 
     fetch('/api/pacote/itens').then(r => r.json()).then(d => {
         itens = d;
         renderCultos();
         renderMusicas();
         renderPastas();
+        renderTodos();
     }).catch(() => { $('lista-cultos').textContent = 'Não deu pra carregar.'; });
 
     $('exp-baixar').addEventListener('click', async () => {

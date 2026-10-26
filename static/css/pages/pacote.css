@@ -18,6 +18,13 @@
 .pacote-item .detalhe { color: var(--uc-muted); font-size: 13px; }
 .pacote-separador { color: var(--uc-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin: 8px 4px 2px; }
 .pacote-resumo { font-weight: 700; }
+.pacote-conta { color: var(--uc-accent-text); font-weight: 600; font-size: 13px; }
+/* "Selecionar todos": mesma linha de um item, separada da lista por um traço */
+.pacote-todos { display: flex; gap: 10px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--uc-line); font-weight: 700; cursor: pointer; }
+.pacote-todos[hidden] { display: none; }
+/* Cultos: "Só os próximos" e "Selecionar todos" lado a lado, um traço só */
+.pacote-todos-linha { display: flex; flex-wrap: wrap; gap: 0 24px; border-bottom: 1px solid var(--uc-line); }
+.pacote-todos-linha .pacote-todos { border-bottom: 0; }
 
 .pacote-arquivo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .pacote-arquivo input[type="file"] { flex: 1; min-width: 0; color: var(--uc-muted); }

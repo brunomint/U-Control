@@ -27,18 +27,24 @@
             <h2><i class="fas fa-file-export"></i> Levar daqui</h2>
 
             <details class="pacote-lista" open>
-                <summary>Cultos <span class="uc-muted">— levam junto as músicas da ordem</span></summary>
-                <div id="lista-cultos" class="pacote-itens"><p class="uc-muted">Carregando…</p></div>
+                <summary>Cultos <span class="uc-muted">— levam junto as músicas da ordem</span> <span class="pacote-conta" id="conta-cultos"></span></summary>
+                <div class="pacote-todos-linha">
+                    <label class="pacote-todos" hidden><input type="checkbox" data-todos="proximos"> <span>Só os próximos</span></label>
+                    <label class="pacote-todos" hidden><input type="checkbox" data-todos="cultos"> <span>Selecionar todos</span></label>
+                </div>
+                <div id="lista-cultos" class="pacote-itens pacote-itens-longa"><p class="uc-muted">Carregando…</p></div>
             </details>
 
             <details class="pacote-lista">
-                <summary>Músicas</summary>
+                <summary>Músicas <span class="pacote-conta" id="conta-musicas"></span></summary>
                 <input class="uc-input" type="search" id="busca-musicas" placeholder="Buscar por título ou artista" aria-label="Buscar música">
+                <label class="pacote-todos" hidden><input type="checkbox" data-todos="musicas"> <span>Selecionar todas</span></label>
                 <div id="lista-musicas" class="pacote-itens pacote-itens-longa"></div>
             </details>
 
             <details class="pacote-lista">
-                <summary>Fotos e slides <span class="uc-muted">— pastas inteiras</span></summary>
+                <summary>Fotos e slides <span class="uc-muted">— pastas inteiras</span> <span class="pacote-conta" id="conta-pastas"></span></summary>
+                <label class="pacote-todos" hidden><input type="checkbox" data-todos="pastas"> <span>Selecionar todas</span></label>
                 <div id="lista-pastas" class="pacote-itens"></div>
             </details>
 
