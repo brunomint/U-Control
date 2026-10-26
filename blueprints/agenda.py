@@ -5,7 +5,7 @@ mesmo template `order_edit.html` de blueprints/orders.py (mesmo form).
 Um dia pode ter vários cultos: `date` nas rotas é a chave do culto
 (YYYY-MM-DD ou YYYY-MM-DD-N, ver orders_store.key_date). A página do dia
 mostra todos; louvor/mídia/edição são de um culto; eventos são do dia."""
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from i18n import gettext as _
@@ -15,6 +15,38 @@ from orders_store import day_orders, get_order, key_date, key_seq, load_orders, 
 SECTION_ROUTES = {'louvor': 'agenda.agenda_louvor', 'midia': 'agenda.agenda_midia'}
 
 agenda_bp = Blueprint('agenda', __name__)
+
+
+def nome_igreja():
+    """Nome da igreja no calendário (Setting.church_name). Antes era
+    "João XXIII" escrito no template — aparecia pra qualquer igreja que
+    instalasse o U-Control."""
+    from models import Setting
+    try:
+        row = Setting.query.first()
+    except Exception:  # banco ainda sem a coluna (antes do flask db upgrade)
+        return ''
+    return (row.church_name or '').strip() if row else ''
+
+
+@agenda_bp.app_context_processor
+def _nome_igreja():
+    return {'nome_igreja': nome_igreja}
+
+
+@agenda_bp.route('/api/agenda/nome-igreja', methods=['POST'])
+@login_required
+def api_nome_igreja():
+    from extensions import db
+    from models import Setting
+    nome = ((request.get_json(silent=True) or {}).get('nome') or '').strip()[:120]
+    row = Setting.query.first()
+    if not row:
+        row = Setting()
+        db.session.add(row)
+    row.church_name = nome or None
+    db.session.commit()
+    return jsonify({'ok': True, 'nome': nome})
 
 
 @agenda_bp.route("/agenda/hoje")

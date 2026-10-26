@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}{{ _('Calendário') }} - Igreja João XXIII{% endblock %}
+{% block title %}{{ _('Calendário') }}{% if nome_igreja() %} - {{ nome_igreja() }}{% endif %}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,7 +16,8 @@
 <main class="uc-page cal-page">
     <div class="uc-page-head cal-head">
         <div>
-            <h1>{{ _('Calendário {igreja}', igreja='João XXIII') }}</h1>
+            {% set igreja = nome_igreja() %}
+            <h1>{% if igreja %}{{ _('Calendário {igreja}', igreja=igreja) }}{% else %}{{ _('Calendário') }}{% endif %}</h1>
             <div class="uc-page-sub">{{ _('Cultos, escalas e eventos do mês') }}</div>
         </div>
         <div class="month-nav">

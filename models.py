@@ -83,6 +83,8 @@ class Setting(db.Model):
     display_bg_dark = db.Column(db.Boolean, nullable=True, default=False)
     # Idioma da interface ('pt', 'en'); None = o do navegador (i18n.py)
     language = db.Column(db.String(5), nullable=True)
+    # Nome da igreja no calendário da Agenda (vazio = só "Calendário")
+    church_name = db.Column(db.String(120), nullable=True)
 
 
 # Rótulo salvo da última contagem regressiva — substitui countdown_config.json.

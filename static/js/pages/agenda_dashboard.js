@@ -41,3 +41,18 @@ function handleDateRedirect(ev) {
 }
 
 loadOrders();
+
+// Nome da igreja no calendário público (blueprints/agenda.py)
+document.getElementById('salvarNomeIgreja').addEventListener('click', async () => {
+    const msg = document.getElementById('nomeIgrejaMsg');
+    try {
+        const r = await fetch('/api/agenda/nome-igreja', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome: document.getElementById('nomeIgreja').value }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        msg.textContent = _t('Salvo.');
+    } catch (e) {
+        msg.textContent = _t('Não deu pra salvar: {erro}', { erro: e.message });
+    }
+});

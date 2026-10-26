@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}{{ _('Próximo culto') }} - Igreja João XXIII{% endblock %}
+{% block title %}{{ _('Próximo culto') }}{% if nome_igreja() %} - {{ nome_igreja() }}{% endif %}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">

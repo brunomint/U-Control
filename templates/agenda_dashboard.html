@@ -48,6 +48,21 @@
                 </form>
             </section>
 
+            <section class="uc-card" aria-labelledby="igreja-title">
+                <div class="uc-card-head"><h2 id="igreja-title">{{ _('Nome da igreja') }}</h2></div>
+                <div class="uc-form-stack">
+                    <div class="uc-field">
+                        <label for="nomeIgreja">{{ _('Aparece no calendário público') }}</label>
+                        <input class="uc-input" type="text" id="nomeIgreja" maxlength="120" value="{{ nome_igreja() }}"
+                               placeholder="{{ _('Ex.: Igreja Batista Central') }}">
+                    </div>
+                    <p id="nomeIgrejaMsg" class="uc-muted" role="status"></p>
+                    <div class="uc-btn-row">
+                        <button type="button" class="uc-btn uc-btn-secondary" id="salvarNomeIgreja"><i class="fas fa-check"></i> {{ _('Salvar') }}</button>
+                    </div>
+                </div>
+            </section>
+
             <section class="uc-card" aria-labelledby="links-title">
                 <div class="uc-card-head"><h2 id="links-title">{{ _('Atalhos') }}</h2></div>
                 <ul class="uc-rows">

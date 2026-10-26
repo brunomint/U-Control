@@ -3395,3 +3395,18 @@ def test_every_marked_text_has_an_english_translation():
         if nav_config.GROUP_LABELS[chave] not in en:
             faltando.add(f"nav_config.py: {nav_config.GROUP_LABELS[chave]}")
     assert not faltando, "Sem tradução em translations/en.json:\n" + "\n".join(sorted(faltando))
+
+
+def test_church_name_comes_from_settings_not_the_template(app, client, logged_in_client):
+    """O calendário dizia "João XXIII" pra qualquer igreja que instalasse."""
+    from models import Setting
+    html = client.get("/agenda").get_data(as_text=True)
+    assert "João XXIII" not in html
+    assert logged_in_client.post("/api/agenda/nome-igreja", json={"nome": "Igreja Central"}).get_json()["ok"]
+    html = client.get("/agenda").get_data(as_text=True)
+    assert "Calendário Igreja Central" in html and "<title>Calendário - Igreja Central" in html
+    assert 'value="Igreja Central"' in logged_in_client.get("/agenda/dashboard").get_data(as_text=True)
+    logged_in_client.post("/api/agenda/nome-igreja", json={"nome": ""})
+    with app.app_context():
+        assert Setting.query.first().church_name is None
+    assert client.post("/api/agenda/nome-igreja", json={"nome": "x"}).status_code in (302, 401)
