@@ -112,6 +112,17 @@ class CifraUrlInvalida(Exception):
     pass
 
 
+class CifraIndisponivel(Exception):
+    """O Cifra Club respondeu, mas sem a cifra: recusou o pedido (403 —
+    o site bloqueia pedidos que não vêm de um navegador, em algumas
+    conexões sim e em outras não) ou a página mudou. Antes a página de
+    bloqueio era lida como se fosse a música e o editor recebia "Cifra
+    não encontrada" como se tivesse dado certo."""
+
+    MENSAGEM = ('O Cifra Club não deixou o U-Control abrir essa página{}. '
+                'Abra a música no navegador, copie a cifra e cole numa caixa de texto do editor.')
+
+
 def _baixar_cifra(url):
     """GET numa página do Cifra Club, seguindo no máximo 5 redirecionamentos
     e só pra endereços do Cifra Club; 15 s de limite."""
@@ -127,6 +138,19 @@ def _baixar_cifra(url):
     raise CifraUrlInvalida('O link do Cifra Club redirecionou demais.')
 
 
+def _pagina_da_cifra(url):
+    """Baixa e lê a página; CifraIndisponivel se não veio a cifra."""
+    r = _baixar_cifra(url)
+    if r.status_code != 200:
+        logger.warning('Cifra Club respondeu %s para %s', r.status_code, url)
+        raise CifraIndisponivel(CifraIndisponivel.MENSAGEM.format(f' (código {r.status_code})'))
+    soup = BeautifulSoup(r.text, 'html.parser')
+    titulo, compositor, cifra = _extrair_titulo_compositor_cifra(soup)
+    if cifra == 'Cifra não encontrada':
+        raise CifraIndisponivel(CifraIndisponivel.MENSAGEM.format(''))
+    return soup, titulo, compositor, cifra
+
+
 #Extrair Cifras do Cifra-CLub
 @cifras_bp.route("/cifra")
 @login_required
@@ -138,10 +162,7 @@ def pegar_cifra():
         return "Só dá pra importar links do Cifra Club (cifraclub.com.br).", 400
 
     try:
-        r = _baixar_cifra(url)
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        titulo, compositor, cifra = _extrair_titulo_compositor_cifra(soup)
+        _, titulo, compositor, cifra = _pagina_da_cifra(url)
 
         # Monta texto puro com título e compositor na frente, separados por linhas em branco
         texto_puro = f"{titulo}\n\n{compositor}\n\n{cifra}"
@@ -150,6 +171,8 @@ def pegar_cifra():
 
     except CifraUrlInvalida as e:
         return str(e), 400
+    except CifraIndisponivel as e:
+        return str(e), 502
     except requests.Timeout:
         return "O Cifra Club demorou demais pra responder. Tente de novo.", 504
     except Exception as e:
@@ -166,10 +189,7 @@ def pegar_cifra_com_video():
         return jsonify({"error": "Só dá pra importar links do Cifra Club (cifraclub.com.br)."}), 400
 
     try:
-        r = _baixar_cifra(url)
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        titulo, compositor, cifra = _extrair_titulo_compositor_cifra(soup)
+        soup, titulo, compositor, cifra = _pagina_da_cifra(url)
 
         # Extrair URL do vídeo do YouTube
         video_url = None
@@ -220,6 +240,8 @@ def pegar_cifra_com_video():
 
     except CifraUrlInvalida as e:
         return jsonify({"error": str(e)}), 400
+    except CifraIndisponivel as e:
+        return jsonify({"error": str(e)}), 502
     except requests.Timeout:
         return jsonify({"error": "O Cifra Club demorou demais pra responder. Tente de novo."}), 504
     except Exception as e:

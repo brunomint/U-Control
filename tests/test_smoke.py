@@ -2398,7 +2398,8 @@ def test_cifra_import_only_fetches_cifra_club(app, client, logged_in_client, mon
     pedidos = []
 
     class Resp:
-        def __init__(self, status=200, location=None, text="<html></html>"):
+        def __init__(self, status=200, location=None,
+                     text='<html><pre data-chord-content="true">G  D\nLetra</pre></html>'):
             self.status_code, self.text = status, text
             self.headers = {"Location": location} if location else {}
             self.is_redirect = location is not None
@@ -2425,6 +2426,26 @@ def test_cifra_import_only_fetches_cifra_club(app, client, logged_in_client, mon
     respostas["https://www.cifraclub.com.br/r/"] = Resp(301, "http://10.0.0.1/admin")
     assert logged_in_client.get("/cifra", query_string={"url": "https://www.cifraclub.com.br/r/"}).status_code == 400
     assert pedidos == ["https://www.cifraclub.com.br/r/"]
+
+
+def test_cifra_club_recusando_vira_erro_claro(logged_in_client, monkeypatch):
+    """O Cifra Club recusa pedidos que não vêm de navegador em algumas
+    conexões (403 no Windows, e no Pi não). Antes a página de bloqueio
+    era lida como música e voltava "Cifra não encontrada" com 200."""
+    import requests
+
+    class Resp:
+        is_redirect, headers = False, {}
+        def __init__(self, status, text):
+            self.status_code, self.text = status, text
+
+    for resp in (Resp(403, "<html>Forbidden</html>"), Resp(200, "<html><h1>Outra coisa</h1></html>")):
+        monkeypatch.setattr(requests, "get", lambda url, **kw: resp)
+        r = logged_in_client.get("/cifra_com_video", query_string={"url": "https://www.cifraclub.com.br/a/b/"})
+        assert r.status_code == 502
+        assert "copie a cifra e cole" in r.get_json()["error"]
+        r = logged_in_client.get("/cifra", query_string={"url": "https://www.cifraclub.com.br/a/b/"})
+        assert r.status_code == 502
 
 
 def test_limpar_route_removed(client):

@@ -1842,6 +1842,7 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 console.log('🔄 Extraindo cifra e vídeo...');
                 let lyrics = null;
                 let videoUrl = null;
+                let erro = null;   // motivo que o servidor explicou (ex.: Cifra Club recusou)
                 
                 try {
                     const response = await fetch(`/cifra_com_video?url=${encodeURIComponent(url)}`);
@@ -1877,8 +1878,10 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                             console.log('⚠️ Nenhum vídeo encontrado na página');
                         }
                     } else {
-                        // Fallback para rota antiga
-                        lyrics = await extractLyricsFromCifraClub(url);
+                        // 400/502 já vêm explicados — tentar a rota antiga
+                        // só repetiria o mesmo pedido recusado
+                        erro = (await response.json().catch(() => ({}))).error || null;
+                        if (!erro) lyrics = await extractLyricsFromCifraClub(url);
                     }
                 } catch (error) {
                     console.error('❌ Erro ao extrair cifra com vídeo:', error);
@@ -1909,23 +1912,11 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                     blocks.push(...lyricsBlocks);
                     console.log('✅ Letra dividida em blocos automáticos!');
                 } else {
-                    // Se não conseguiu extrair, cria estrutura básica
-                    console.log('⚠️ Não foi possível extrair a letra. Criando estrutura básica...');
-                    const sections = ['INTRO', 'VERSO 1', 'REFRÃO', 'VERSO 2', 'REFRÃO', 'PONTE', 'REFRÃO FINAL'];
-                    
-                    sections.forEach((section, index) => {
-                        blocks.push({
-                            type: 'section',
-                            title: section,
-                            id: Date.now() + index + 2
-                        });
-                        
-                        blocks.push({
-                            type: 'text',
-                            content: `[Cole aqui a ${section.toLowerCase()}]`,
-                            id: Date.now() + index + 10
-                        });
-                    });
+                    // Não veio a cifra: uma caixa vazia pra colar o que a
+                    // pessoa copiar da página — a colagem separa as seções
+                    // sozinha (tratarColagem). Antes criava 7 seções com
+                    // "[Cole aqui a intro]" pra preencher uma por uma.
+                    blocks.push({ type: 'text', content: '', id: Date.now() + 2 });
                 }
                 
                 // Atualiza a referência global para o formulário poder acessar
@@ -1934,11 +1925,18 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 renderBlocks();
                 
                 // Notifica o usuário
-                const message = lyrics 
-                    ? `🎵 Link processado com sucesso!\n\nArtista: ${info.artist}\nMúsica: ${info.song}\n\n✅ Letra extraída e dividida automaticamente em blocos!\n🎼 Seções: Intro, Versos, Refrão, Ponte, etc.`
-                    : `🎵 Link processado!\n\nArtista: ${info.artist}\nMúsica: ${info.song}\n\n⚠️ Não foi possível extrair a letra automaticamente.\nEstrutura básica criada para preenchimento manual.`;
-                
-                alert(message);
+                if (lyrics) {
+                    alert(`🎵 Link processado com sucesso!\n\nArtista: ${info.artist}\nMúsica: ${info.song}\n\n✅ Letra extraída e dividida automaticamente em blocos!\n🎼 Seções: Intro, Versos, Refrão, Ponte, etc.`);
+                } else {
+                    const motivo = erro || 'Não foi possível buscar a cifra automaticamente.';
+                    if (confirm(`⚠️ ${motivo}\n\nO título e o artista já foram preenchidos. Na página do Cifra Club, selecione a cifra, copie e cole na caixa de texto vazia: o editor separa as seções sozinho.\n\nAbrir a música no Cifra Club agora?`)) {
+                        // Sem 'noopener' no open: com ele o retorno é sempre null
+                        // e não dá pra saber se o navegador bloqueou a aba
+                        const aba = window.open(url, '_blank');
+                        if (aba) aba.opener = null;
+                        else alert('O navegador bloqueou a nova aba. Abra o link no navegador:\n\n' + url);
+                    }
+                }
                 
                 console.log('✅ Link do Cifra Club processado:', info);
                 return true;
