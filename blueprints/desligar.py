@@ -6,6 +6,7 @@ from flask import Blueprint, abort, jsonify, render_template
 from flask_login import login_required
 
 import desktop_ponte
+from i18n import gettext as _
 from blueprints.utils import _pedido_local
 
 desligar_bp = Blueprint('desligar', __name__)
@@ -33,6 +34,6 @@ def desligar_page():
 @login_required
 def api_desligar():
     if not _pode():
-        return jsonify({'error': 'Desligue pelo computador onde o U-Control está rodando.'}), 403
+        return jsonify({'error': _('Desligue pelo computador onde o U-Control está rodando.')}), 403
     desktop_ponte.desligar()
     return jsonify({'ok': True})

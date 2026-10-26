@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Usuários - U-Control{% endblock %}
+{% block title %}{{ _('Usuários') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link href="/static/vendor/fontawesome/css/all.min.css" rel="stylesheet">
@@ -16,8 +16,8 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Usuários</h1>
-            <div class="uc-page-sub">Quem pode entrar no painel e operar o telão</div>
+            <h1>{{ _('Usuários') }}</h1>
+            <div class="uc-page-sub">{{ _('Quem pode entrar no painel e operar o telão') }}</div>
         </div>
     </div>
 
@@ -30,11 +30,11 @@
     {% endwith %}
 
     <div class="users-grid">
-        <section class="uc-card" aria-label="Lista de usuários">
+        <section class="uc-card" aria-label="{{ _('Lista de usuários') }}">
             <div class="uc-table-wrap">
                 <table class="uc-table">
                     <thead>
-                        <tr><th>Usuário</th><th class="actions-col">Ações</th></tr>
+                        <tr><th>{{ _('Usuário') }}</th><th class="actions-col">{{ _('Ações') }}</th></tr>
                     </thead>
                     <tbody>
                         {% for usuario in usuarios %}
@@ -44,39 +44,39 @@
                                 <div class="user-cell">
                                     <span class="uc-avatar">{{ usuario.username[0] | upper }}</span>
                                     <span>{{ usuario.username }}</span>
-                                    {% if is_me %}<span class="uc-pill uc-pill-muted">você</span>{% endif %}
+                                    {% if is_me %}<span class="uc-pill uc-pill-muted">{{ _('você') }}</span>{% endif %}
                                 </div>
                             </td>
                             <td>
                                 <!-- Estado normal -->
                                 <div class="row-actions" data-state="idle">
-                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-action="password"><i class="fas fa-key"></i> Trocar senha</button>
+                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-action="password"><i class="fas fa-key"></i> {{ _('Trocar senha') }}</button>
                                     {% if not is_me %}
-                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text" data-action="remove"><i class="fas fa-trash-can"></i> Remover</button>
+                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text" data-action="remove"><i class="fas fa-trash-can"></i> {{ _('Remover') }}</button>
                                     {% endif %}
                                 </div>
                                 <!-- Trocar senha -->
                                 <form class="row-actions" data-state="password" hidden
                                       action="{{ url_for('auth.alterar_senha', id=usuario.id) }}" method="post">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input class="uc-input pass-input" type="password" name="password" placeholder="Nova senha de {{ usuario.username }}" aria-label="Nova senha de {{ usuario.username }}" required>
-                                    <button type="submit" class="uc-btn uc-btn-primary uc-btn-sm">Salvar</button>
-                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-action="cancel">Cancelar</button>
+                                    <input class="uc-input pass-input" type="password" name="password" placeholder="{{ _('Nova senha de {nome}', nome=usuario.username) }}" aria-label="{{ _('Nova senha de {nome}', nome=usuario.username) }}" required>
+                                    <button type="submit" class="uc-btn uc-btn-primary uc-btn-sm">{{ _('Salvar') }}</button>
+                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-action="cancel">{{ _('Cancelar') }}</button>
                                 </form>
                                 <!-- Confirmar remoção (sem confirm() do navegador) -->
                                 {% if not is_me %}
                                 <form class="row-actions confirm" data-state="remove" hidden
                                       action="{{ url_for('auth.remover_usuario', id=usuario.id) }}" method="post">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <span>Remover {{ usuario.username }}?</span>
-                                    <button type="submit" class="uc-btn uc-btn-danger uc-btn-sm">Remover</button>
-                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-action="cancel">Cancelar</button>
+                                    <span>{{ _('Remover {nome}?', nome=usuario.username) }}</span>
+                                    <button type="submit" class="uc-btn uc-btn-danger uc-btn-sm">{{ _('Remover') }}</button>
+                                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-action="cancel">{{ _('Cancelar') }}</button>
                                 </form>
                                 {% endif %}
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="2"><div class="uc-empty">Nenhum usuário cadastrado.</div></td></tr>
+                        <tr><td colspan="2"><div class="uc-empty">{{ _('Nenhum usuário cadastrado.') }}</div></td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -84,22 +84,22 @@
         </section>
 
         <section class="uc-card" aria-labelledby="add-title">
-            <div class="uc-card-head"><h2 id="add-title">Adicionar usuário</h2></div>
+            <div class="uc-card-head"><h2 id="add-title">{{ _('Adicionar usuário') }}</h2></div>
             <form class="uc-form-stack" action="{{ url_for('auth.adicionar_usuario') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="uc-field">
-                    <label for="new-username">Nome de usuário</label>
+                    <label for="new-username">{{ _('Nome de usuário') }}</label>
                     <input class="uc-input" id="new-username" type="text" name="username" autocomplete="off" required>
                 </div>
                 <div class="uc-field">
-                    <label for="password">Senha</label>
+                    <label for="password">{{ _('Senha') }}</label>
                     <div class="uc-input-wrap">
                         <input class="uc-input" id="password" type="password" name="password" autocomplete="new-password" required>
-                        <button type="button" class="uc-input-btn" id="togglePassword" aria-label="Mostrar senha"><i class="fas fa-eye"></i></button>
+                        <button type="button" class="uc-input-btn" id="togglePassword" aria-label="{{ _('Mostrar senha') }}"><i class="fas fa-eye"></i></button>
                     </div>
                 </div>
-                <button type="submit" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> Adicionar</button>
-                <p class="uc-note">A pessoa entra com esse nome e senha. A senha pode ser trocada depois, aqui mesmo.</p>
+                <button type="submit" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> {{ _('Adicionar') }}</button>
+                <p class="uc-note">{{ _('A pessoa entra com esse nome e senha. A senha pode ser trocada depois, aqui mesmo.') }}</p>
             </form>
         </section>
     </div>

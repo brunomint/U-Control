@@ -11,7 +11,7 @@
             input.select();
             document.execCommand && document.execCommand('copy');
         }
-        toast('Endereço copiado.');
+        toast(_t('Endereço copiado.'));
     }));
 
     document.querySelectorAll('.at-testar').forEach(b => b.addEventListener('click', async () => {
@@ -21,7 +21,7 @@
             const d = await r.json();
             msg.textContent = d.ok ? `✅ ${JSON.stringify(d)}` : `⚠️ ${d.erro || r.status}`;
         } catch (e) {
-            msg.textContent = 'Não deu pra testar: ' + e.message;
+            msg.textContent = _t('Não deu pra testar: {erro}', { erro: e.message });
         }
     }));
 
@@ -31,9 +31,9 @@
             const d = await r.json();
             document.getElementById('at-chave').textContent = d.chave;
             document.querySelectorAll('.at-url input').forEach(i => { i.value = `${i.dataset.base}?chave=${d.chave}`; });
-            toast('Chave trocada. Atualize os endereços nos botões.');
+            toast(_t('Chave trocada. Atualize os endereços nos botões.'));
         } catch (e) {
-            toast('Não deu pra trocar a chave.', 'error');
+            toast(_t('Não deu pra trocar a chave.'), 'error');
         }
     });
 })();

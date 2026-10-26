@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Desligar - U-Control{% endblock %}
+{% block title %}{{ _('Desligar') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -12,16 +12,15 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Desligar o U-Control</h1>
-            <div class="uc-page-sub">Fecha o programa neste computador</div>
+            <h1>{{ _('Desligar o U-Control') }}</h1>
+            <div class="uc-page-sub">{{ _('Fecha o programa neste computador') }}</div>
         </div>
     </div>
     <section class="uc-card" style="max-width: 640px; display: grid; gap: 12px;">
-        <p id="desligar-texto">O telão, o retorno de palco e os celulares conectados param de receber.
-           Para ligar de novo, abra o U-Control pelo ícone da área de trabalho.</p>
+        <p id="desligar-texto">{{ _('O telão, o retorno de palco e os celulares conectados param de receber. Para ligar de novo, abra o U-Control pelo ícone da área de trabalho.') }}</p>
         <div class="uc-btn-row">
-            <button type="button" class="uc-btn uc-btn-danger" id="desligar-btn"><i class="fas fa-power-off"></i> Desligar</button>
-            <a class="uc-btn uc-btn-secondary" href="/control">Cancelar</a>
+            <button type="button" class="uc-btn uc-btn-danger" id="desligar-btn"><i class="fas fa-power-off"></i> {{ _('Desligar') }}</button>
+            <a class="uc-btn uc-btn-secondary" href="/control">{{ _('Cancelar') }}</a>
         </div>
     </section>
 </main>

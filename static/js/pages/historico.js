@@ -1,5 +1,5 @@
 const ICONS = { song: 'fa-music', image: 'fa-image', bible: 'fa-book-bible', ticker: 'fa-bullhorn' };
-const LABELS = { song: 'Música', image: 'Telão', bible: 'Bíblia', ticker: 'Aviso' };
+const LABELS = { song: _t('Música'), image: _t('Telão'), bible: _t('Bíblia'), ticker: _t('Aviso') };
 
 const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -8,6 +8,9 @@ const weekdays = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábad
 function formatDate(dateStr) {
     const [y, m, d] = dateStr.split('-');
     const dt = new Date(y, m - 1, d);
+    if (!ucLocale().startsWith('pt')) {
+        return dt.toLocaleDateString(ucLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
     return `${weekdays[dt.getDay()]}, ${parseInt(d)} de ${months[dt.getMonth()]} de ${y}`;
 }
 
@@ -31,12 +34,12 @@ function renderTitle(entry) {
 }
 
 const ROUTE_NAMES = {
-    '/lyrics/display': 'Cifra',
-    '/lyrics/display/public': 'Letra',
-    '/clock': 'Relógio',
-    '/img': 'Imagem',
-    '/bible/display': 'Bíblia',
-    '/countdown': 'Cronômetro',
+    '/lyrics/display': _t('Cifra'),
+    '/lyrics/display/public': _t('Letra'),
+    '/clock': _t('Relógio'),
+    '/img': _t('Imagem'),
+    '/bible/display': _t('Bíblia'),
+    '/countdown': _t('Cronômetro'),
 };
 
 function escHtml(str) {
@@ -49,7 +52,7 @@ function load() {
         .then(log => {
             if (!log.length) {
                 document.getElementById('content').innerHTML =
-                    '<div class="empty-state">Nenhum evento registrado ainda.</div>';
+                    '<div class="empty-state">' + _t('Nenhum evento registrado ainda.') + '</div>';
                 return;
             }
 
@@ -81,14 +84,14 @@ function load() {
         })
         .catch(() => {
             document.getElementById('content').innerHTML =
-                '<div class="empty-state">Erro ao carregar histórico.</div>';
+                '<div class="empty-state">' + _t('Erro ao carregar histórico.') + '</div>';
         });
 }
 
 function clearHistory() {
-    if (!confirm('Limpar todo o histórico?')) return;
+    if (!confirm(_t('Limpar todo o histórico?'))) return;
     fetch('/api/historico', { method: 'DELETE' })
-        .then(() => { showToast('Histórico limpo.'); load(); renderRanking(); });
+        .then(() => { showToast(_t('Histórico limpo.')); load(); renderRanking(); });
 }
 
 function showToast(msg) {
@@ -131,7 +134,7 @@ function renderRanking() {
 
             if (!songs.length) {
                 document.getElementById('ranking').innerHTML =
-                    '<div class="empty-state">Nenhuma música no período.</div>';
+                    '<div class="empty-state">' + _t('Nenhuma música no período.') + '</div>';
                 return;
             }
 
@@ -155,7 +158,7 @@ function renderRanking() {
                     ? `<a href="${urls[title]}" target="_blank">${escHtml(title)}</a>`
                     : escHtml(title);
                 html += `<div class="rank-item">
-                    <div class="rank-pos ${cls}">${pos}º</div>
+                    <div class="rank-pos ${cls}">${_t('{n}º', { n: pos })}</div>
                     <div class="rank-title">${label}</div>
                     <div class="rank-count">${count}×</div>
                 </div>`;

@@ -28,6 +28,7 @@ from flask_login import login_required
 
 import display_state
 from extensions import csrf, socketio
+from i18n import gettext as tr
 
 atalhos_bp = Blueprint('atalhos', __name__)
 
@@ -112,8 +113,8 @@ def _navegar(direcao):
             continue
         if resposta and resposta.get('ok'):
             return {'ok': True, 'em': resposta.get('em')}
-        return {'ok': False, 'erro': (resposta or {}).get('erro') or 'O Controle não tem música, Bíblia ou fotos abertas no painel.'}
-    return {'ok': False, 'erro': 'Nenhum Controle aberto. Abra o Controle (com a música ou a Bíblia no painel).'}
+        return {'ok': False, 'erro': (resposta or {}).get('erro') or tr('O Controle não tem música, Bíblia ou fotos abertas no painel.')}
+    return {'ok': False, 'erro': tr('Nenhum Controle aberto. Abra o Controle (com a música ou a Bíblia no painel).')}
 
 
 # --- comandos --------------------------------------------------------------
@@ -124,7 +125,7 @@ def _liberar():
     from models import StagedContent
     preparado = db.session.query(StagedContent).order_by(StagedContent.updated_at.desc()).first()
     if not preparado:
-        return {'ok': False, 'erro': 'Nada preparado pra liberar.'}
+        return {'ok': False, 'erro': tr('Nada preparado pra liberar.')}
     _handler(handle_release_staged_content)({'kind': preparado.kind})
     return {'ok': True, 'liberado': preparado.label or preparado.kind}
 
@@ -150,7 +151,7 @@ def _aviso():
     from blueprints.ticker import TELAS, handle_set_ticker
     texto = (request.values.get('texto') or '').strip()
     if not texto:
-        return {'ok': False, 'erro': 'Falta o texto do aviso (?texto=...).'}
+        return {'ok': False, 'erro': tr('Falta o texto do aviso (?texto=...).')}
     telas = [t for t in (request.values.get('telas') or 'public').split(',') if t in TELAS] or ['public']
     _handler(handle_set_ticker)({'text': texto, 'targets': telas})
     return {'ok': True, 'aviso': texto, 'telas': telas}
@@ -169,9 +170,9 @@ def _cronometro():
     try:
         segundos = int(float(request.values.get('minutos', 5)) * 60) + int(request.values.get('segundos', 0))
     except ValueError:
-        return {'ok': False, 'erro': 'Minutos inválidos.'}
+        return {'ok': False, 'erro': tr('Minutos inválidos.')}
     if segundos <= 0:
-        return {'ok': False, 'erro': 'Tempo tem que ser maior que zero.'}
+        return {'ok': False, 'erro': tr('Tempo tem que ser maior que zero.')}
     _handler(handle_start_countdown)({'duration_seconds': segundos, 'label': request.values.get('titulo', '')})
     _handler(handle_show_image)({'image_url': '/countdown'})
     return {'ok': True, 'segundos': segundos}
@@ -206,7 +207,8 @@ def _relogio():
     return {'ok': True}
 
 
-# nome -> (descrição na página, função)
+# nome -> (descrição na página, função); a descrição é traduzida ao mostrar
+# (atalhos_page), o nome do comando fica (é o endereço)
 COMANDOS = {
     'proximo': ('Próximo: estrofe ou versículo aberto no painel do Controle, animação do PowerPoint ou página do site no ar', lambda: _navegar(1)),
     'anterior': ('Anterior', lambda: _navegar(-1)),
@@ -232,9 +234,9 @@ COMANDOS = {
 @csrf.exempt
 def api_atalho(comando):
     if not _autorizado():
-        return jsonify({'ok': False, 'erro': 'Chave inválida. Veja em Sistema → Atalhos.'}), 401
+        return jsonify({'ok': False, 'erro': tr('Chave inválida. Veja em Sistema → Atalhos.')}), 401
     if comando not in COMANDOS:
-        return jsonify({'ok': False, 'erro': f'Comando desconhecido: {comando}', 'comandos': sorted(COMANDOS)}), 404
+        return jsonify({'ok': False, 'erro': tr('Comando desconhecido: {comando}', comando=comando), 'comandos': sorted(COMANDOS)}), 404
     with _como_socket():
         resultado = COMANDOS[comando][1]()
     return jsonify(resultado), (200 if resultado.get('ok') else 409)
@@ -245,7 +247,7 @@ def api_atalho(comando):
 def atalhos_page():
     from network_utils import PORTA, obter_endereco_ip
     base = f'http://{obter_endereco_ip()}:{PORTA}'
-    comandos = [(nome, desc, base + url_for('atalhos.api_atalho', comando=nome)) for nome, (desc, _) in COMANDOS.items()]
+    comandos = [(nome, tr(desc), base + url_for('atalhos.api_atalho', comando=nome)) for nome, (desc, _) in COMANDOS.items()]
     return render_template('atalhos.html', chave=chave(), comandos=comandos, base=base)
 
 

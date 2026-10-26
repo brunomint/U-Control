@@ -5,11 +5,11 @@ document.getElementById('desligar-btn').addEventListener('click', async function
     try {
         const r = await fetch('/api/desligar', { method: 'POST' });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(d.error || `erro ${r.status}`);
+        if (!r.ok) throw new Error(d.error || _t('erro {status}', { status: r.status }));
         document.querySelector('.uc-btn-row').hidden = true;
-        texto.innerHTML = '<strong>U-Control desligado.</strong> Pode fechar esta janela.';
+        texto.innerHTML = _t('<strong>U-Control desligado.</strong> Pode fechar esta janela.');
     } catch (e) {
-        texto.textContent = 'Não deu pra desligar: ' + e.message;
+        texto.textContent = _t('Não deu pra desligar: {erro}', { erro: e.message });
         this.disabled = false;
     }
 });

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Próximo culto - Igreja João XXIII{% endblock %}
+{% block title %}{{ _('Próximo culto') }} - Igreja João XXIII{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,9 +16,9 @@
 <main class="uc-page empty-page">
     <section class="uc-card empty-box">
         <i class="fas fa-calendar-xmark"></i>
-        <h1>Nenhum culto marcado</h1>
-        <p>Não há programação nos próximos 30 dias. Quando houver, ela aparece aqui.</p>
-        <a class="uc-btn uc-btn-secondary" href="/agenda"><i class="fas fa-calendar"></i> Ver o calendário</a>
+        <h1>{{ _('Nenhum culto marcado') }}</h1>
+        <p>{{ _('Não há programação nos próximos 30 dias. Quando houver, ela aparece aqui.') }}</p>
+        <a class="uc-btn uc-btn-secondary" href="/agenda"><i class="fas fa-calendar"></i> {{ _('Ver o calendário') }}</a>
     </section>
 </main>
 {% endblock %}

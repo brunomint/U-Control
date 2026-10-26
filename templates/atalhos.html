@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Atalhos - U-Control{% endblock %}
+{% block title %}{{ _('Atalhos') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,32 +16,32 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Atalhos (Stream Deck)</h1>
-            <div class="uc-page-sub">Comande o telão por botões: Stream Deck (pelo Companion), QuickDeck ou qualquer programa que chame um endereço</div>
+            <h1>{{ _('Atalhos (Stream Deck)') }}</h1>
+            <div class="uc-page-sub">{{ _('Comande o telão por botões: Stream Deck (pelo Companion), QuickDeck ou qualquer programa que chame um endereço') }}</div>
         </div>
     </div>
 
     <div class="at-grid">
         <section class="uc-card">
-            <h2><i class="fas fa-key"></i> Chave de acesso</h2>
-            <p>Vai em todo endereço abaixo. Quem tem a chave comanda o telão: não divulgue. Trocar a chave desliga os botões já configurados.</p>
+            <h2><i class="fas fa-key"></i> {{ _('Chave de acesso') }}</h2>
+            <p>{{ _('Vai em todo endereço abaixo. Quem tem a chave comanda o telão: não divulgue. Trocar a chave desliga os botões já configurados.') }}</p>
             <div class="at-chave">
                 <code id="at-chave">{{ chave }}</code>
-                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="at-trocar"><i class="fas fa-rotate"></i> Trocar chave</button>
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="at-trocar"><i class="fas fa-rotate"></i> {{ _('Trocar chave') }}</button>
             </div>
         </section>
 
         <section class="uc-card">
-            <h2><i class="fas fa-list"></i> Comandos</h2>
-            <p class="uc-muted">"Próximo" e "Anterior" passam a estrofe ou o versículo aberto no painel do Controle (o último Controle usado) — como a seta do teclado ou o pedal. Com PowerPoint animado no ar, passam a animação.</p>
+            <h2><i class="fas fa-list"></i> {{ _('Comandos') }}</h2>
+            <p class="uc-muted">{{ _('"Próximo" e "Anterior" passam a estrofe ou o versículo aberto no painel do Controle (o último Controle usado) — como a seta do teclado ou o pedal. Com PowerPoint animado no ar, passam a animação.') }}</p>
             <div class="at-lista">
                 {% for nome, desc, url in comandos %}
                 <div class="at-item">
                     <div class="at-desc"><strong>{{ nome }}</strong><span>{{ desc }}</span></div>
                     <div class="at-url">
-                        <input class="uc-input" readonly value="{{ url }}?chave={{ chave }}" data-base="{{ url }}" aria-label="Endereço de {{ nome }}">
-                        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm at-copiar" title="Copiar"><i class="fas fa-copy"></i></button>
-                        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm at-testar" title="Testar agora"><i class="fas fa-play"></i></button>
+                        <input class="uc-input" readonly value="{{ url }}?chave={{ chave }}" data-base="{{ url }}" aria-label="{{ _('Endereço de {nome}', nome=nome) }}">
+                        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm at-copiar" title="{{ _('Copiar') }}"><i class="fas fa-copy"></i></button>
+                        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm at-testar" title="{{ _('Testar agora') }}"><i class="fas fa-play"></i></button>
                     </div>
                 </div>
                 {% endfor %}
@@ -50,20 +50,18 @@
         </section>
 
         <section class="uc-card">
-            <h2><i class="fas fa-circle-question"></i> Como configurar</h2>
+            <h2><i class="fas fa-circle-question"></i> {{ _('Como configurar') }}</h2>
             <details open>
                 <summary><strong>Stream Deck (Bitfocus Companion)</strong></summary>
                 <ol>
-                    <li>No Companion, adicione a conexão <strong>Generic HTTP Requests</strong>.</li>
-                    <li>Em cada botão, ação <strong>GET</strong> com o endereço do comando (copie daqui).</li>
-                    <li>Com o Companion em outro computador, use o endereço de rede: <code>{{ base }}</code>.</li>
+                    <li>{{ _('No Companion, adicione a conexão <strong>Generic HTTP Requests</strong>.')|safe }}</li>
+                    <li>{{ _('Em cada botão, ação <strong>GET</strong> com o endereço do comando (copie daqui).')|safe }}</li>
+                    <li>{{ _('Com o Companion em outro computador, use o endereço de rede:') }} <code>{{ base }}</code>.</li>
                 </ol>
             </details>
             <details>
-                <summary><strong>QuickDeck ou outro programa</strong></summary>
-                <p>Qualquer programa que faça uma requisição <strong>GET</strong> ou <strong>POST</strong> para o endereço serve.
-                   A chave também pode ir no cabeçalho <code>X-UControl-Chave</code> em vez de no endereço.
-                   A resposta é um JSON com <code>"ok": true</code> ou o motivo do erro.</p>
+                <summary><strong>{{ _('QuickDeck ou outro programa') }}</strong></summary>
+                <p>{{ _('Qualquer programa que faça uma requisição <strong>GET</strong> ou <strong>POST</strong> para o endereço serve. A chave também pode ir no cabeçalho <code>X-UControl-Chave</code> em vez de no endereço. A resposta é um JSON com <code>"ok": true</code> ou o motivo do erro.')|safe }}</p>
             </details>
         </section>
     </div>

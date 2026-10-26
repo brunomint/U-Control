@@ -53,7 +53,7 @@ def edit_sheet(song_id):
     """Edita a partitura de uma música específica."""
     song = get_song(song_id)
     if not song:
-        flash('Música não encontrada!', 'error')
+        flash(_('Música não encontrada!'), 'error')
         return redirect(url_for('songs.list_songs'))
     return render_template('sheet_editor.html', song=song)
 
@@ -68,7 +68,7 @@ def save_sheet_data(song_id):
         incoming = request.get_json()
         song = get_song(song_id)
         if not song:
-            return jsonify({"error": "Música não encontrada"}), 404
+            return jsonify({"error": _("Música não encontrada")}), 404
 
         sheets = song.get('sheet_data') or []
         sheet_id = incoming.get('id')
@@ -84,7 +84,7 @@ def save_sheet_data(song_id):
         song['sheet_data'] = sheets
         save_song(song)
 
-        return jsonify({"message": "Partitura salva com sucesso!", "id": incoming['id']})
+        return jsonify({"message": _("Partitura salva com sucesso!"), "id": incoming['id']})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

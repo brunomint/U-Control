@@ -60,7 +60,7 @@ function parseEventosForm() {
 async function save() {
     const btn = document.getElementById('saveBtn');
     const status = document.getElementById('status');
-    btn.disabled = true; status.textContent = 'Salvando...'; status.className = 'status';
+    btn.disabled = true; status.textContent = _t('Salvando...'); status.className = 'status';
     const payload = { ...(orderData || {}) };
 
     if (section === 'louvor') {
@@ -93,10 +93,10 @@ async function save() {
         if (!resp.ok) throw new Error('Falha ao salvar');
         // Culto novo: recarrega pra aba trocar "Novo culto" pelo nome
         if (window.AGENDA_IS_NEW) { location.reload(); return; }
-        status.textContent = 'Salvo com sucesso!';
+        status.textContent = _t('Salvo com sucesso!');
         status.className = 'status ok';
     } catch (e) {
-        status.textContent = 'Erro ao salvar';
+        status.textContent = _t('Erro ao salvar');
         status.className = 'status err';
     } finally {
         btn.disabled = false;
@@ -106,10 +106,10 @@ document.getElementById('saveBtn').addEventListener('click', save);
 
 // Excluir este culto (louvor): apaga o culto, mantém os eventos do dia
 document.getElementById('deleteCultoBtn')?.addEventListener('click', async () => {
-    if (!confirm('Excluir este culto, com a escala e a ordem do culto? Os eventos do dia continuam.')) return;
+    if (!confirm(_t('Excluir este culto, com a escala e a ordem do culto? Os eventos do dia continuam.'))) return;
     const resp = await fetch(`/api/cultos/${date}`, { method: 'DELETE' });
     if (resp.ok) window.location = `/agenda/${date.slice(0, 10)}/admin`;
-    else ucToast('Não deu pra excluir o culto', 'error');
+    else ucToast(_t('Não deu pra excluir o culto'), 'error');
 });
 
 // ---- Itens (louvor) helpers ----
@@ -126,7 +126,7 @@ async function searchSongs(query) {
         if (currentSearchTerm !== query) return;
         list.innerHTML = "";
         if (songs.length === 0) {
-            list.innerHTML = '<div class="autocomplete-item empty">Nenhuma música encontrada</div>';
+            list.innerHTML = `<div class="autocomplete-item empty">${_t('Nenhuma música encontrada')}</div>`;
             list.style.display = 'block';
             return;
         }
@@ -135,7 +135,7 @@ async function searchSongs(query) {
             item.className = "autocomplete-item";
             item.innerHTML = `
                 <div class="song-title">${song.title}</div>
-                <div class="song-author">${song.author || 'Autor desconhecido'}</div>
+                <div class="song-author">${song.author || _t('Autor desconhecido')}</div>
             `;
             item.onclick = () => {
                 addSongToList(song);
@@ -170,7 +170,7 @@ function addSongToList(song) {
         <div class="song-info">
             <a href="${url}" target="_blank">${displayText}</a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover')}" aria-label="${_t('Remover')}"><i class="fas fa-trash-can"></i></button>
     `;
 
     songItem.ondragstart = (e) => {
@@ -196,7 +196,7 @@ function addToList() {
         <div class="song-info">
             <a href="#">${text}</a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover')}" aria-label="${_t('Remover')}"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -225,7 +225,7 @@ function addBibleToList() {
         <div class="song-info">
             <a href="${url}" target="_blank">📖 ${ref}</a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover')}" aria-label="${_t('Remover')}"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -270,7 +270,7 @@ function loadExistingItens() {
                 <div class="song-info">
                     <a href="/bible?search=${encodeURIComponent(item.reference)}" target="_blank">${item.title || '📖 ' + item.reference}</a>
                 </div>
-                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover')}" aria-label="${_t('Remover')}"><i class="fas fa-trash-can"></i></button>
             `;
             elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
             songList.appendChild(elem);
@@ -286,7 +286,7 @@ function loadExistingItens() {
                 <div class="song-info">
                     <a href="${linkUrl}" target="_blank">${item.title}</a>
                 </div>
-                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover')}" aria-label="${_t('Remover')}"><i class="fas fa-trash-can"></i></button>
             `;
             elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
             songList.appendChild(elem);
@@ -302,7 +302,7 @@ function loadExistingItens() {
                 <div class="song-info">
                     <a href="#">${text}</a>
                 </div>
-                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover" aria-label="Remover"><i class="fas fa-trash-can"></i></button>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover')}" aria-label="${_t('Remover')}"><i class="fas fa-trash-can"></i></button>
             `;
             elem.ondragstart = (e) => { draggedElement = elem; e.dataTransfer.effectAllowed = "move"; };
             songList.appendChild(elem);
@@ -335,25 +335,25 @@ function addEvento() {
 
     container.insertAdjacentHTML('beforeend', `
         <div class="evento-bloco">
-            <label>Título do evento</label>
+            <label>${_t('Título do evento')}</label>
             <input name="eventos[${index}][titulo]">
 
-            <label>Horário</label>
+            <label>${_t('Horário')}</label>
             <div class="hour-presets">
                 <button type="button" class="hour-btn" onclick="setHora(this,'18:40')">18:40</button>
                 <button type="button" class="hour-btn" onclick="setHora(this,'19:00')">19:00</button>
                 <button type="button" class="hour-btn" onclick="setHora(this,'19:30')">19:30</button>
                 <button type="button" class="hour-btn" onclick="setHora(this,'20:00')">20:00</button>
             </div>
-            <input name="eventos[${index}][hora]" placeholder="Ex.: 19:30">
+            <input name="eventos[${index}][hora]" placeholder="${_t('Ex.: 19:30')}">
 
-            <label>Responsáveis</label>
+            <label>${_t('Responsáveis')}</label>
             <textarea name="eventos[${index}][responsavel]"></textarea>
 
-            <label>Observações</label>
+            <label>${_t('Observações')}</label>
             <textarea name="eventos[${index}][obs]"></textarea>
 
-            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text evento-remove" onclick="this.closest('.evento-bloco').remove()"><i class="fas fa-trash-can"></i> Remover evento</button>
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text evento-remove" onclick="this.closest('.evento-bloco').remove()"><i class="fas fa-trash-can"></i> ${_t('Remover evento')}</button>
         </div>
     `);
 }
@@ -394,8 +394,16 @@ function applyTemplate(fields) {
 // ── COPIAR MÊS ────────────────────────────────────────────────────
 let copiarFieldsByDow = {}; // { "0|1": {tipo, fields, seq}, "0|2": ..., } — dia da semana | nº do culto
 
-const NOMES_DIA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const NOMES_MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+// Em português, os nomes de sempre; nos outros idiomas, os do navegador
+const NOMES_PT = ucLocale().startsWith('pt');
+const NOMES_DIA = NOMES_PT ? ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+    : Array.from({ length: 7 }, (x, i) => new Date(2000, 0, 2 + i).toLocaleDateString(ucLocale(), { weekday: 'short' }));
+const NOMES_DIA_PLURAL = NOMES_PT ? NOMES_DIA.map(d => d + 's')
+    : Array.from({ length: 7 }, (x, i) => new Date(2000, 0, 2 + i).toLocaleDateString(ucLocale(), { weekday: 'long' }));
+const NOMES_MES = NOMES_PT ? ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+    : Array.from({ length: 12 }, (x, i) => new Date(2000, i, 1).toLocaleDateString(ucLocale(), { month: 'short' }));
+// Nome da seção mostrado nas mensagens (section é o valor da rota)
+const NOME_SECAO = { louvor: _t('louvor'), midia: _t('midia'), eventos: _t('eventos') };
 
 function isoDate(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -458,7 +466,7 @@ function fecharModalCopiar() {
 
 async function renderCopiarGrid() {
     const grid = document.getElementById('copiar-grid');
-    grid.innerHTML = '<div style="color:var(--uc-muted);font-size:13px;padding:8px">Carregando…</div>';
+    grid.innerHTML = `<div style="color:var(--uc-muted);font-size:13px;padding:8px">${_t('Carregando…')}</div>`;
     copiarFieldsByDow = {};
 
     const origMes = parseInt(document.getElementById('copiar-orig-mes').value);
@@ -485,7 +493,7 @@ async function renderCopiarGrid() {
             });
 
         if (!Object.keys(copiarFieldsByDow).length) {
-            grid.innerHTML = `<div style="color:var(--uc-danger);font-size:13px;padding:8px">Nenhuma escala de ${section} encontrada em ${prefixo.replace('-','/')}.</div>`;
+            grid.innerHTML = `<div style="color:var(--uc-danger);font-size:13px;padding:8px">${_t('Nenhuma escala de {secao} encontrada em {mes}.', { secao: NOME_SECAO[section] || section, mes: prefixo.replace('-','/') })}</div>`;
             return;
         }
 
@@ -497,9 +505,9 @@ async function renderCopiarGrid() {
                 const dow = Number(grupo.split('|')[0]);
                 const datas = datasDoMesPorDow(destAno, destMes, dow);
                 if (!datas.length) return;
-                const qual = info.seq > 1 ? ` (${info.seq}º culto do dia)` : '';
+                const qual = info.seq > 1 ? ` (${_t('{n}º culto do dia', { n: info.seq })})` : '';
                 html += `<div class="copiar-group">
-                    <div class="copiar-group-title">${NOMES_DIA[dow]}s — ${info.tipo}${qual}</div>
+                    <div class="copiar-group-title">${NOMES_DIA_PLURAL[dow]} — ${info.tipo}${qual}</div>
                     <div class="copiar-group-dates">${datas.map(d => {
                         const key = info.seq > 1 ? `${isoDate(d)}-${info.seq}` : isoDate(d);
                         return `<label class="mes-check"><input type="checkbox" name="copiar-date" data-grupo="${grupo}" value="${key}" checked><span>${d.getDate()} ${NOMES_MES[d.getMonth()]}</span></label>`;
@@ -507,9 +515,9 @@ async function renderCopiarGrid() {
                 </div>`;
             });
 
-        grid.innerHTML = html || `<div style="color:var(--uc-muted);font-size:13px;padding:8px">Sem datas correspondentes em ${NOMES_MES[destMes]}/${destAno}.</div>`;
+        grid.innerHTML = html || `<div style="color:var(--uc-muted);font-size:13px;padding:8px">${_t('Sem datas correspondentes em {mes}.', { mes: `${NOMES_MES[destMes]}/${destAno}` })}</div>`;
     } catch {
-        grid.innerHTML = '<div style="color:var(--uc-danger);font-size:13px;padding:8px">Erro ao carregar dados.</div>';
+        grid.innerHTML = `<div style="color:var(--uc-danger);font-size:13px;padding:8px">${_t('Erro ao carregar dados.')}</div>`;
     }
 }
 
@@ -517,7 +525,7 @@ async function executarCopiar() {
     const result = document.getElementById('copiar-result');
     const btn = document.querySelector('#modal-copiar .mes-apply-btn');
     const checked = [...document.querySelectorAll('input[name=copiar-date]:checked')];
-    if (!checked.length) { result.textContent = 'Selecione ao menos uma data.'; result.style.color = 'var(--uc-danger)'; return; }
+    if (!checked.length) { result.textContent = _t('Selecione ao menos uma data.'); result.style.color = 'var(--uc-danger)'; return; }
 
     // agrupa datas selecionadas por dia da semana + culto
     const porDow = {};
@@ -526,7 +534,7 @@ async function executarCopiar() {
         (porDow[grupo] = porDow[grupo] || []).push(el.value);
     });
 
-    btn.disabled = true; btn.textContent = 'Aplicando…';
+    btn.disabled = true; btn.textContent = _t('Aplicando…');
     let total = 0, erro = false;
 
     try {
@@ -542,14 +550,14 @@ async function executarCopiar() {
             else erro = true;
         }
         result.textContent = erro
-            ? 'Erro ao aplicar em algumas datas.'
-            : `Escala copiada para ${total} data${total !== 1 ? 's' : ''}!`;
+            ? _t('Erro ao aplicar em algumas datas.')
+            : (total === 1 ? _t('Escala copiada para 1 data!') : _t('Escala copiada para {n} datas!', { n: total }));
         result.style.color = erro ? 'var(--uc-danger)' : 'var(--uc-ok)';
     } catch {
-        result.textContent = 'Sem conexão com o servidor.';
+        result.textContent = _t('Sem conexão com o servidor.');
         result.style.color = 'var(--uc-danger)';
     }
-    btn.disabled = false; btn.textContent = 'Copiar e aplicar';
+    btn.disabled = false; btn.textContent = _t('Copiar e aplicar');
 }
 
 function setHora(btn, hora) {

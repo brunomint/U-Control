@@ -18,6 +18,7 @@ import time
 import requests
 
 import paths
+from i18n import gettext as tr
 
 logger = logging.getLogger('ucontrol')
 
@@ -182,17 +183,17 @@ def start_install(libreoffice=False):
     opção de baixar e instalar o LibreOffice — vale mesmo sem versão nova
     (reinstala a mesma por cima, sem apagar nada)."""
     if install_kind() != 'windows':
-        return 'Atualização automática só no programa do Windows.'
+        return tr('Atualização automática só no programa do Windows.')
     if _instalacao['estado'] in ('baixando', 'instalando'):
         return None
     release = latest_release()
     if not release:
-        return 'Não deu pra consultar o GitHub. Confira a internet deste computador.'
+        return tr('Não deu pra consultar o GitHub. Confira a internet deste computador.')
     if not libreoffice and parse_version(release['version']) <= parse_version(current_version()):
-        return 'Não há versão nova.'
+        return tr('Não há versão nova.')
     instalador = release.get('installer')
     if not instalador or not instalador['url'].startswith(DOWNLOAD_PREFIX):
-        return 'Esta versão não tem instalador para Windows.'
+        return tr('Esta versão não tem instalador para Windows.')
     _instalacao.update(estado='baixando', progresso=0, erro=None, libreoffice=libreoffice)
     threading.Thread(target=_baixar_e_instalar, args=(instalador, libreoffice), daemon=True).start()
     return None

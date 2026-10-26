@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Editor de partitura - U-Control{% endblock %}
+{% block title %}{{ _('Editor de partitura') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -15,57 +15,57 @@
 {% include "_nav.html" %}
 <div class="sheet-head uc-page-head">
   <div>
-    <h1>Editor de partitura</h1>
-    <div class="uc-page-sub">{% if song %}{{ song.title }}{% else %}Partitura nova — exporte em MusicXML ou abra pela música pra gravar nela.{% endif %}</div>
+    <h1>{{ _('Editor de partitura') }}</h1>
+    <div class="uc-page-sub">{% if song %}{{ song.title }}{% else %}{{ _('Partitura nova — exporte em MusicXML ou abra pela música pra gravar nela.') }}{% endif %}</div>
   </div>
   <div class="sheet-head-actions" id="headerActions">
-    <button type="button" class="btn done-btn" id="doneBtn" hidden title="Fechar e voltar pra música — a partitura entra (ou é atualizada) lá"><i class="fas fa-check"></i> <span>Concluir</span></button>
+    <button type="button" class="btn done-btn" id="doneBtn" hidden title="{{ _('Fechar e voltar pra música — a partitura entra (ou é atualizada) lá') }}"><i class="fas fa-check"></i> <span>{{ _('Concluir') }}</span></button>
   </div>
 </div>
 
 <main class="sheet-app">
   <!-- Barra de ferramentas: o que se usa ao escrever (igual à barra de entrada do MuseScore) -->
-  <div class="sheet-toolbar" role="toolbar" aria-label="Escrever notas">
-    <div class="tb-group" role="group" aria-label="Duração">
-      <button type="button" class="btn dur" data-dur="16" title="Semicolcheia (3)" aria-label="Semicolcheia" aria-pressed="false">𝅘𝅥𝅯</button>
-      <button type="button" class="btn dur" data-dur="8"  title="Colcheia (4)" aria-label="Colcheia" aria-pressed="false">𝅘𝅥𝅮</button>
-      <button type="button" class="btn dur" data-dur="q"  title="Semínima (5)" aria-label="Semínima" aria-pressed="false">𝅘𝅥</button>
-      <button type="button" class="btn dur active" data-dur="h" title="Mínima (6)" aria-label="Mínima" aria-pressed="true">𝅗𝅥</button>
-      <button type="button" class="btn dur" data-dur="w"  title="Semibreve (7)" aria-label="Semibreve" aria-pressed="false">𝅝</button>
-      <button type="button" class="btn dur-dot" id="dotBtn" title="Ponto de aumento (.)" aria-label="Ponto">•</button>
-      <button type="button" class="btn" id="tupletBtn" title="Tercina (Ctrl+3): escolha a duração do grupo (ex.: semínima) e as próximas 3 notas dividem esse tempo">Tercina</button>
-      <button type="button" class="btn" id="restBtn" title="Pausa com a duração escolhida (0)"><i class="fas fa-pause"></i> Pausa</button>
+  <div class="sheet-toolbar" role="toolbar" aria-label="{{ _('Escrever notas') }}">
+    <div class="tb-group" role="group" aria-label="{{ _('Duração') }}">
+      <button type="button" class="btn dur" data-dur="16" title="{{ _('Semicolcheia (3)') }}" aria-label="{{ _('Semicolcheia') }}" aria-pressed="false">𝅘𝅥𝅯</button>
+      <button type="button" class="btn dur" data-dur="8"  title="{{ _('Colcheia (4)') }}" aria-label="{{ _('Colcheia') }}" aria-pressed="false">𝅘𝅥𝅮</button>
+      <button type="button" class="btn dur" data-dur="q"  title="{{ _('Semínima (5)') }}" aria-label="{{ _('Semínima') }}" aria-pressed="false">𝅘𝅥</button>
+      <button type="button" class="btn dur active" data-dur="h" title="{{ _('Mínima (6)') }}" aria-label="{{ _('Mínima') }}" aria-pressed="true">𝅗𝅥</button>
+      <button type="button" class="btn dur" data-dur="w"  title="{{ _('Semibreve (7)') }}" aria-label="{{ _('Semibreve') }}" aria-pressed="false">𝅝</button>
+      <button type="button" class="btn dur-dot" id="dotBtn" title="{{ _('Ponto de aumento (.)') }}" aria-label="{{ _('Ponto') }}">•</button>
+      <button type="button" class="btn" id="tupletBtn" title="{{ _('Tercina (Ctrl+3): escolha a duração do grupo (ex.: semínima) e as próximas 3 notas dividem esse tempo') }}">{{ _('Tercina') }}</button>
+      <button type="button" class="btn" id="restBtn" title="{{ _('Pausa com a duração escolhida (0)') }}"><i class="fas fa-pause"></i> {{ _('Pausa') }}</button>
     </div>
-    <div class="tb-group" role="group" aria-label="Acidente na próxima nota">
-      <button type="button" class="btn acc" id="accSharpBtn" title="Sustenido na próxima nota (+)" aria-label="Sustenido">♯</button>
-      <button type="button" class="btn acc" id="accFlatBtn" title="Bemol na próxima nota (-)" aria-label="Bemol">♭</button>
-      <button type="button" class="btn acc" id="accNaturalBtn" title="Bequadro na próxima nota (=)" aria-label="Bequadro">♮</button>
-      <button type="button" class="btn acc" id="accDoubleSharpBtn" title="Dobrado sustenido na próxima nota" aria-label="Dobrado sustenido">𝄪</button>
-      <button type="button" class="btn acc" id="accDoubleFlatBtn" title="Dobrado bemol na próxima nota" aria-label="Dobrado bemol">𝄫</button>
+    <div class="tb-group" role="group" aria-label="{{ _('Acidente na próxima nota') }}">
+      <button type="button" class="btn acc" id="accSharpBtn" title="{{ _('Sustenido na próxima nota (+)') }}" aria-label="{{ _('Sustenido') }}">♯</button>
+      <button type="button" class="btn acc" id="accFlatBtn" title="{{ _('Bemol na próxima nota (-)') }}" aria-label="{{ _('Bemol') }}">♭</button>
+      <button type="button" class="btn acc" id="accNaturalBtn" title="{{ _('Bequadro na próxima nota (=)') }}" aria-label="{{ _('Bequadro') }}">♮</button>
+      <button type="button" class="btn acc" id="accDoubleSharpBtn" title="{{ _('Dobrado sustenido na próxima nota') }}" aria-label="{{ _('Dobrado sustenido') }}">𝄪</button>
+      <button type="button" class="btn acc" id="accDoubleFlatBtn" title="{{ _('Dobrado bemol na próxima nota') }}" aria-label="{{ _('Dobrado bemol') }}">𝄫</button>
     </div>
-    <div class="tb-group" role="group" aria-label="Ligadura, acorde e oitava">
-      <button type="button" class="btn" id="tieBtn" title="Nota ligada: repete a nota selecionada com a duração escolhida (T)">Ligadura</button>
-      <button type="button" class="btn" id="chordModeBtn" title="Somar notas ao acorde da nota selecionada (ou Shift+letra / Shift+tecla do piano)" aria-pressed="false">Acorde</button>
-      <span class="tb-oct" title="Oitava da próxima nota (a letra escolhe a mais próxima da anterior)">
-        <button type="button" class="btn" id="octDown" title="Oitava abaixo (Ctrl+↓ ou [)" aria-label="Oitava abaixo">–</button>
-        <span id="octDisplay" class="kbd" aria-label="Oitava">4</span>
-        <button type="button" class="btn" id="octUp" title="Oitava acima (Ctrl+↑ ou ])" aria-label="Oitava acima">+</button>
+    <div class="tb-group" role="group" aria-label="{{ _('Ligadura, acorde e oitava') }}">
+      <button type="button" class="btn" id="tieBtn" title="{{ _('Nota ligada: repete a nota selecionada com a duração escolhida (T)') }}">{{ _('Ligadura') }}</button>
+      <button type="button" class="btn" id="chordModeBtn" title="{{ _('Somar notas ao acorde da nota selecionada (ou Shift+letra / Shift+tecla do piano)') }}" aria-pressed="false">{{ _('Acorde') }}</button>
+      <span class="tb-oct" title="{{ _('Oitava da próxima nota (a letra escolhe a mais próxima da anterior)') }}">
+        <button type="button" class="btn" id="octDown" title="{{ _('Oitava abaixo (Ctrl+↓ ou [)') }}" aria-label="{{ _('Oitava abaixo') }}">–</button>
+        <span id="octDisplay" class="kbd" aria-label="{{ _('Oitava') }}">4</span>
+        <button type="button" class="btn" id="octUp" title="{{ _('Oitava acima (Ctrl+↑ ou ])') }}" aria-label="{{ _('Oitava acima') }}">+</button>
       </span>
     </div>
-    <div class="tb-group" role="group" aria-label="Desfazer">
-      <button type="button" class="btn" id="undoBtn" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><i class="fas fa-rotate-left"></i></button>
-      <button type="button" class="btn" id="redoBtn" title="Refazer (Ctrl+Y)" aria-label="Refazer"><i class="fas fa-rotate-right"></i></button>
+    <div class="tb-group" role="group" aria-label="{{ _('Desfazer') }}">
+      <button type="button" class="btn" id="undoBtn" title="{{ _('Desfazer (Ctrl+Z)') }}" aria-label="{{ _('Desfazer') }}"><i class="fas fa-rotate-left"></i></button>
+      <button type="button" class="btn" id="redoBtn" title="{{ _('Refazer (Ctrl+Y)') }}" aria-label="{{ _('Refazer') }}"><i class="fas fa-rotate-right"></i></button>
     </div>
-    <div class="tb-group tb-play" role="group" aria-label="Ouvir e ver">
-      <button type="button" class="btn action-btn" id="playBtn" title="Tocar a partir da nota selecionada, ou do começo (Espaço)"><i class="fas fa-play"></i> <span>Tocar</span></button>
-      <label class="tempo" title="Andamento (semínimas por minuto)"><i class="fas fa-gauge-high"></i>
-        <input type="number" id="tempoInput" min="30" max="240" step="5" value="80" aria-label="Andamento"></label>
-      <button type="button" class="btn" id="soundToggle" title="Som ao digitar as notas" aria-pressed="true"><i class="fas fa-volume-high"></i></button>
-      <button type="button" class="btn" id="pianoToggle" title="Mostrar/esconder o teclado (P)" aria-pressed="true"><i class="fas fa-keyboard"></i></button>
+    <div class="tb-group tb-play" role="group" aria-label="{{ _('Ouvir e ver') }}">
+      <button type="button" class="btn action-btn" id="playBtn" title="{{ _('Tocar a partir da nota selecionada, ou do começo (Espaço)') }}"><i class="fas fa-play"></i> <span>{{ _('Tocar') }}</span></button>
+      <label class="tempo" title="{{ _('Andamento (semínimas por minuto)') }}"><i class="fas fa-gauge-high"></i>
+        <input type="number" id="tempoInput" min="30" max="240" step="5" value="80" aria-label="{{ _('Andamento') }}"></label>
+      <button type="button" class="btn" id="soundToggle" title="{{ _('Som ao digitar as notas') }}" aria-pressed="true"><i class="fas fa-volume-high"></i></button>
+      <button type="button" class="btn" id="pianoToggle" title="{{ _('Mostrar/esconder o teclado (P)') }}" aria-pressed="true"><i class="fas fa-keyboard"></i></button>
       <span class="zoom-controls">
-        <button type="button" class="btn" id="zoomOutBtn" title="Diminuir" aria-label="Diminuir">–</button>
+        <button type="button" class="btn" id="zoomOutBtn" title="{{ _('Diminuir') }}" aria-label="{{ _('Diminuir') }}">–</button>
         <span id="zoomLevel">100%</span>
-        <button type="button" class="btn" id="zoomInBtn" title="Aumentar" aria-label="Aumentar">+</button>
+        <button type="button" class="btn" id="zoomInBtn" title="{{ _('Aumentar') }}" aria-label="{{ _('Aumentar') }}">+</button>
       </span>
     </div>
   </div>
@@ -74,84 +74,84 @@
     <section class="score-col">
       <div class="score-wrap"><div id="score"></div></div>
       <div class="piano-panel" id="pianoPanel">
-        <button type="button" class="btn piano-shift" id="pianoDown" title="Teclado uma oitava abaixo" aria-label="Teclado uma oitava abaixo"><i class="fas fa-chevron-left"></i></button>
-        <div class="piano" id="piano" role="group" aria-label="Teclado de piano: toque pra ouvir e escrever a nota"></div>
-        <button type="button" class="btn piano-shift" id="pianoUp" title="Teclado uma oitava acima" aria-label="Teclado uma oitava acima"><i class="fas fa-chevron-right"></i></button>
+        <button type="button" class="btn piano-shift" id="pianoDown" title="{{ _('Teclado uma oitava abaixo') }}" aria-label="{{ _('Teclado uma oitava abaixo') }}"><i class="fas fa-chevron-left"></i></button>
+        <div class="piano" id="piano" role="group" aria-label="{{ _('Teclado de piano: toque pra ouvir e escrever a nota') }}"></div>
+        <button type="button" class="btn piano-shift" id="pianoUp" title="{{ _('Teclado uma oitava acima') }}" aria-label="{{ _('Teclado uma oitava acima') }}"><i class="fas fa-chevron-right"></i></button>
       </div>
     </section>
 
-    <aside class="side-panel controls" aria-label="Propriedades">
+    <aside class="side-panel controls" aria-label="{{ _('Propriedades') }}">
       <details class="panel-sec" open>
-        <summary>Nota selecionada</summary>
-        <div class="row sel-nav" role="group" aria-label="Mexer na nota selecionada">
-          <button type="button" class="btn" id="selPrevBtn" title="Nota anterior (←)" aria-label="Nota anterior"><i class="fas fa-chevron-left"></i></button>
-          <button type="button" class="btn" id="selNextBtn" title="Próxima nota (→)" aria-label="Próxima nota"><i class="fas fa-chevron-right"></i></button>
-          <button type="button" class="btn" id="selUpBtn" title="Meio tom acima (↑)" aria-label="Meio tom acima"><i class="fas fa-arrow-up"></i></button>
-          <button type="button" class="btn" id="selDownBtn" title="Meio tom abaixo (↓)" aria-label="Meio tom abaixo"><i class="fas fa-arrow-down"></i></button>
-          <button type="button" class="btn" id="selOctUpBtn" title="Oitava acima (Ctrl+↑)">8va↑</button>
-          <button type="button" class="btn" id="selOctDownBtn" title="Oitava abaixo (Ctrl+↓)">8va↓</button>
-          <button type="button" class="btn" id="selRespellBtn" title="Trocar a grafia, ex.: Dó♯ ↔ Ré♭ (J)">♯↔♭</button>
-          <button type="button" class="btn" id="selRestBtn" title="Trocar por pausa (Del); num acorde, tira a nota de cima">Pausa</button>
-          <button type="button" class="btn" id="selExtendBtn" title="Esticar a seleção pra próxima nota (Shift+→)">Trecho→</button>
-          <button type="button" class="btn" id="copyBtn" title="Copiar a nota ou o trecho selecionado (Ctrl+C)" aria-label="Copiar"><i class="fas fa-copy"></i></button>
-          <button type="button" class="btn" id="pasteBtn" title="Colar no fim da partitura (Ctrl+V)" aria-label="Colar no fim"><i class="fas fa-paste"></i></button>
+        <summary>{{ _('Nota selecionada') }}</summary>
+        <div class="row sel-nav" role="group" aria-label="{{ _('Mexer na nota selecionada') }}">
+          <button type="button" class="btn" id="selPrevBtn" title="{{ _('Nota anterior (←)') }}" aria-label="{{ _('Nota anterior') }}"><i class="fas fa-chevron-left"></i></button>
+          <button type="button" class="btn" id="selNextBtn" title="{{ _('Próxima nota (→)') }}" aria-label="{{ _('Próxima nota') }}"><i class="fas fa-chevron-right"></i></button>
+          <button type="button" class="btn" id="selUpBtn" title="{{ _('Meio tom acima (↑)') }}" aria-label="{{ _('Meio tom acima') }}"><i class="fas fa-arrow-up"></i></button>
+          <button type="button" class="btn" id="selDownBtn" title="{{ _('Meio tom abaixo (↓)') }}" aria-label="{{ _('Meio tom abaixo') }}"><i class="fas fa-arrow-down"></i></button>
+          <button type="button" class="btn" id="selOctUpBtn" title="{{ _('Oitava acima (Ctrl+↑)') }}">8va↑</button>
+          <button type="button" class="btn" id="selOctDownBtn" title="{{ _('Oitava abaixo (Ctrl+↓)') }}">8va↓</button>
+          <button type="button" class="btn" id="selRespellBtn" title="{{ _('Trocar a grafia, ex.: Dó♯ ↔ Ré♭ (J)') }}">♯↔♭</button>
+          <button type="button" class="btn" id="selRestBtn" title="{{ _('Trocar por pausa (Del); num acorde, tira a nota de cima') }}">{{ _('Pausa') }}</button>
+          <button type="button" class="btn" id="selExtendBtn" title="{{ _('Esticar a seleção pra próxima nota (Shift+→)') }}">{{ _('Trecho→') }}</button>
+          <button type="button" class="btn" id="copyBtn" title="{{ _('Copiar a nota ou o trecho selecionado (Ctrl+C)') }}" aria-label="{{ _('Copiar') }}"><i class="fas fa-copy"></i></button>
+          <button type="button" class="btn" id="pasteBtn" title="{{ _('Colar no fim da partitura (Ctrl+V)') }}" aria-label="{{ _('Colar no fim') }}"><i class="fas fa-paste"></i></button>
         </div>
-        <div class="row measure-ops" role="group" aria-label="Compassos">
-          <button type="button" class="btn" id="insMeasureBtn" title="Inserir um compasso vazio (com pausa) antes do compasso selecionado; sem seleção, no fim (Ins)"><i class="fas fa-plus"></i> Compasso antes</button>
-          <button type="button" class="btn danger-ghost" id="delMeasureBtn" title="Apagar o compasso selecionado (ou os do trecho) e puxar os seguintes (Ctrl+Del)"><i class="fas fa-trash-can"></i> Apagar compasso</button>
+        <div class="row measure-ops" role="group" aria-label="{{ _('Compassos') }}">
+          <button type="button" class="btn" id="insMeasureBtn" title="{{ _('Inserir um compasso vazio (com pausa) antes do compasso selecionado; sem seleção, no fim (Ins)') }}"><i class="fas fa-plus"></i> {{ _('Compasso antes') }}</button>
+          <button type="button" class="btn danger-ghost" id="delMeasureBtn" title="{{ _('Apagar o compasso selecionado (ou os do trecho) e puxar os seguintes (Ctrl+Del)') }}"><i class="fas fa-trash-can"></i> {{ _('Apagar compasso') }}</button>
         </div>
         <div class="fields">
-          <label>Altura
+          <label>{{ _('Altura') }}
             <select id="editPitch" disabled>
               <option value="">-</option>
               <option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option>
               <option value="G">G</option><option value="A">A</option><option value="B">B</option>
             </select></label>
-          <label>Oitava
+          <label>{{ _('Oitava') }}
             <select id="editOctave" disabled>
               <option value="">-</option>
               <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
               <option value="5">5</option><option value="6">6</option><option value="7">7</option>
             </select></label>
-          <label>Acidente
+          <label>{{ _('Acidente') }}
             <select id="editAccidental" disabled>
               <option value="">—</option>
               <option value="#">♯</option><option value="b">♭</option><option value="n">♮</option>
               <option value="##">𝄪</option><option value="bb">𝄫</option>
             </select></label>
-          <label>Duração
+          <label>{{ _('Duração') }}
             <select id="editDuration" disabled>
               <option value="">-</option>
               <option value="w">𝅝</option><option value="h">𝅗𝅥</option><option value="q">𝅘𝅥</option>
               <option value="8">𝅘𝅥𝅮</option><option value="16">𝅘𝅥𝅯</option>
             </select></label>
-          <label class="chk"><input type="checkbox" id="editDotted" disabled> Ponto</label>
-          <label class="chk"><input type="checkbox" id="editRest" disabled> Pausa</label>
+          <label class="chk"><input type="checkbox" id="editDotted" disabled> {{ _('Ponto') }}</label>
+          <label class="chk"><input type="checkbox" id="editRest" disabled> {{ _('Pausa') }}</label>
         </div>
         <div class="chord-row">
-          <label for="chordInput">Cifra</label>
+          <label for="chordInput">{{ _('Cifra') }}</label>
           <input type="text" id="chordInput" placeholder="C, Am, F#m7">
-          <button type="button" class="btn" id="addChordBtn" title="Pôr a cifra na nota selecionada (Enter)">Pôr</button>
-          <button type="button" class="btn" id="removeChordBtn" title="Tirar a cifra da nota selecionada" aria-label="Tirar cifra"><i class="fas fa-xmark"></i></button>
-          <button type="button" class="btn" id="selChordBtn" title="Escrever cifras em sequência em cima das notas (Ctrl+K; Espaço vai pra próxima)">Ctrl+K</button>
+          <button type="button" class="btn" id="addChordBtn" title="{{ _('Pôr a cifra na nota selecionada (Enter)') }}">{{ _('Pôr') }}</button>
+          <button type="button" class="btn" id="removeChordBtn" title="{{ _('Tirar a cifra da nota selecionada') }}" aria-label="{{ _('Tirar cifra') }}"><i class="fas fa-xmark"></i></button>
+          <button type="button" class="btn" id="selChordBtn" title="{{ _('Escrever cifras em sequência em cima das notas (Ctrl+K; Espaço vai pra próxima)') }}">Ctrl+K</button>
         </div>
-        <small>Clique numa nota (ou use ← →): o que mudar aqui vale na hora. Uma letra com nota selecionada troca a nota e passa pra próxima.</small>
+        <small>{{ _('Clique numa nota (ou use ← →): o que mudar aqui vale na hora. Uma letra com nota selecionada troca a nota e passa pra próxima.') }}</small>
       </details>
 
       <details class="panel-sec" open>
-        <summary>Repetição</summary>
-        <div class="row rep-row" role="group" aria-label="Sinais de repetição do compasso selecionado">
-          <button type="button" class="btn" id="repStartBtn" title="Início de repetição (ritornelo) no compasso da nota selecionada">𝄆 Início</button>
-          <button type="button" class="btn" id="repEndBtn" title="Fim de repetição (volta pro início ou pro último 𝄆)">𝄇 Fim</button>
-          <button type="button" class="btn rep-volta" data-volta="1" title="Casa 1 (1ª vez) — no compasso ou no trecho selecionado">Casa 1</button>
-          <button type="button" class="btn rep-volta" data-volta="2" title="Casa 2 (2ª vez)">Casa 2</button>
-          <button type="button" class="btn rep-volta" data-volta="3" title="Casa 3 (3ª vez)">Casa 3</button>
+        <summary>{{ _('Repetição') }}</summary>
+        <div class="row rep-row" role="group" aria-label="{{ _('Sinais de repetição do compasso selecionado') }}">
+          <button type="button" class="btn" id="repStartBtn" title="{{ _('Início de repetição (ritornelo) no compasso da nota selecionada') }}">{{ _('𝄆 Início') }}</button>
+          <button type="button" class="btn" id="repEndBtn" title="{{ _('Fim de repetição (volta pro início ou pro último 𝄆)') }}">{{ _('𝄇 Fim') }}</button>
+          <button type="button" class="btn rep-volta" data-volta="1" title="{{ _('Casa 1 (1ª vez) — no compasso ou no trecho selecionado') }}">{{ _('Casa 1') }}</button>
+          <button type="button" class="btn rep-volta" data-volta="2" title="{{ _('Casa 2 (2ª vez)') }}">{{ _('Casa 2') }}</button>
+          <button type="button" class="btn rep-volta" data-volta="3" title="{{ _('Casa 3 (3ª vez)') }}">{{ _('Casa 3') }}</button>
         </div>
-        <select id="jumpSelect" aria-label="Salto ou indicação no compasso selecionado" title="Salto ou indicação no compasso selecionado">
-          <option value="">Saltos e indicações: nenhum</option>
+        <select id="jumpSelect" aria-label="{{ _('Salto ou indicação no compasso selecionado') }}" title="{{ _('Salto ou indicação no compasso selecionado') }}">
+          <option value="">{{ _('Saltos e indicações: nenhum') }}</option>
           <option value="SEGNO_LEFT">𝄋 Segno</option>
-          <option value="CODA_LEFT">𝄌 Coda (começo da coda)</option>
-          <option value="TO_CODA">To Coda (vai pra coda)</option>
+          <option value="CODA_LEFT">{{ _('𝄌 Coda (começo da coda)') }}</option>
+          <option value="TO_CODA">{{ _('To Coda (vai pra coda)') }}</option>
           <option value="FINE">Fine</option>
           <option value="DC">D.C.</option>
           <option value="DC_AL_FINE">D.C. al Fine</option>
@@ -160,71 +160,71 @@
           <option value="DS_AL_FINE">D.S. al Fine</option>
           <option value="DS_AL_CODA">D.S. al Coda</option>
         </select>
-        <small>No compasso da nota selecionada (casas: nos compassos do trecho). O ▶ Tocar segue as repetições.</small>
+        <small>{{ _('No compasso da nota selecionada (casas: nos compassos do trecho). O ▶ Tocar segue as repetições.') }}</small>
       </details>
 
       <details class="panel-sec" id="sheetSec">
-        <summary>Partitura</summary>
+        <summary>{{ _('Partitura') }}</summary>
         <div class="fields">
-          <label>Clave
+          <label>{{ _('Clave') }}
             <select id="clef">
-              <option value="treble">Sol</option>
-              <option value="bass">Fá</option>
+              <option value="treble">{{ _('Sol') }}</option>
+              <option value="bass">{{ _('Fá') }}</option>
             </select></label>
-          <label>Armadura
+          <label>{{ _('Armadura') }}
             <select id="keysig">
               <option>C</option><option>G</option><option>D</option><option>A</option><option>E</option><option>B</option><option>F#</option><option>C#</option>
               <option>F</option><option>Bb</option><option>Eb</option><option>Ab</option><option>Db</option><option>Gb</option><option>Cb</option>
             </select></label>
-          <label>Compasso
+          <label>{{ _('Compasso') }}
             <select id="timesig">
               <option>4/4</option><option>3/4</option><option>2/4</option><option>6/8</option><option>2/2</option>
             </select></label>
         </div>
         <div class="row">
-          <button type="button" class="btn" id="removeBtn" title="Apagar a última nota (Backspace)"><i class="fas fa-delete-left"></i> Apagar última</button>
-          <button type="button" class="btn danger-ghost" id="clearBtn" title="Apagar a partitura inteira (dá pra desfazer)"><i class="fas fa-eraser"></i> Limpar tudo</button>
+          <button type="button" class="btn" id="removeBtn" title="{{ _('Apagar a última nota (Backspace)') }}"><i class="fas fa-delete-left"></i> {{ _('Apagar última') }}</button>
+          <button type="button" class="btn danger-ghost" id="clearBtn" title="{{ _('Apagar a partitura inteira (dá pra desfazer)') }}"><i class="fas fa-eraser"></i> {{ _('Limpar tudo') }}</button>
         </div>
       </details>
 
       <details class="panel-sec" id="fileSec">
-        <summary>Arquivo (MusicXML)</summary>
+        <summary>{{ _('Arquivo (MusicXML)') }}</summary>
         <div class="row">
-          <button type="button" class="btn action-btn" id="exportXMLBtn" title="Baixar em MusicXML: abre no MuseScore e em outros editores de partitura"><i class="fas fa-file-export"></i> Exportar MusicXML</button>
-          <label class="btn" for="loadFileInput" title="Abrir um MusicXML (.musicxml, .xml, .mxl) — ex.: exportado do MuseScore"><i class="fas fa-file-import"></i> Importar MusicXML</label>
+          <button type="button" class="btn action-btn" id="exportXMLBtn" title="{{ _('Baixar em MusicXML: abre no MuseScore e em outros editores de partitura') }}"><i class="fas fa-file-export"></i> {{ _('Exportar MusicXML') }}</button>
+          <label class="btn" for="loadFileInput" title="{{ _('Abrir um MusicXML (.musicxml, .xml, .mxl) — ex.: exportado do MuseScore') }}"><i class="fas fa-file-import"></i> {{ _('Importar MusicXML') }}</label>
           <input id="loadFileInput" type="file" accept=".musicxml,.xml,.mxl,.json,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/json" hidden>
-          <button type="button" class="btn" id="exportSVGBtn" title="Baixar a imagem da partitura (SVG)">Exportar SVG</button>
+          <button type="button" class="btn" id="exportSVGBtn" title="{{ _('Baixar a imagem da partitura (SVG)') }}">{{ _('Exportar SVG') }}</button>
         </div>
         <div id="importNotes" class="import-notes" hidden></div>
       </details>
 
       <details class="panel-sec">
-        <summary>Atalhos de teclado</summary>
+        <summary>{{ _('Atalhos de teclado') }}</summary>
         <dl class="atalhos">
-          <dt><kbd>3</kbd>–<kbd>7</kbd></dt><dd>semicolcheia, colcheia, semínima, mínima, semibreve</dd>
-          <dt><kbd>.</kbd></dt><dd>ponto</dd>
-          <dt><kbd>A</kbd>–<kbd>G</kbd></dt><dd>nota (oitava mais próxima da anterior)</dd>
-          <dt><kbd>Shift</kbd>+<kbd>A</kbd>–<kbd>G</kbd></dt><dd>soma nota ao acorde</dd>
-          <dt><kbd>0</kbd></dt><dd>pausa</dd>
-          <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd></dt><dd>sustenido, bemol, bequadro na próxima nota</dd>
-          <dt><kbd>T</kbd></dt><dd>nota ligada</dd>
-          <dt><kbd>Ctrl</kbd>+<kbd>3</kbd></dt><dd>tercina</dd>
-          <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>anda entre as notas</dd>
-          <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>meio tom</dd>
-          <dt><kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd></dt><dd>oitava</dd>
-          <dt><kbd>J</kbd></dt><dd>troca a grafia (Dó♯ ↔ Ré♭)</dd>
-          <dt><kbd>Del</kbd></dt><dd>vira pausa (num acorde, tira a nota de cima)</dd>
-          <dt><kbd>Backspace</kbd></dt><dd>apaga a última nota</dd>
-          <dt><kbd>Ctrl</kbd>+<kbd>Del</kbd></dt><dd>apaga o compasso (ou os do trecho) e puxa os seguintes</dd>
-          <dt><kbd>Ins</kbd></dt><dd>insere um compasso vazio antes do selecionado</dd>
-          <dt><kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd></dt><dd>seleciona um trecho</dd>
-          <dt><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd></dt><dd>copia / cola no fim</dd>
-          <dt><kbd>R</kbd></dt><dd>repete o trecho</dd>
-          <dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>cifras (<kbd>Espaço</kbd> próxima nota)</dd>
-          <dt><kbd>Espaço</kbd></dt><dd>toca / para</dd>
-          <dt><kbd>P</kbd></dt><dd>mostra/esconde o teclado</dd>
-          <dt><kbd>Esc</kbd></dt><dd>tira a seleção</dd>
-          <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd></dt><dd>desfazer / refazer</dd>
+          <dt><kbd>3</kbd>–<kbd>7</kbd></dt><dd>{{ _('semicolcheia, colcheia, semínima, mínima, semibreve') }}</dd>
+          <dt><kbd>.</kbd></dt><dd>{{ _('ponto') }}</dd>
+          <dt><kbd>A</kbd>–<kbd>G</kbd></dt><dd>{{ _('nota (oitava mais próxima da anterior)') }}</dd>
+          <dt><kbd>Shift</kbd>+<kbd>A</kbd>–<kbd>G</kbd></dt><dd>{{ _('soma nota ao acorde') }}</dd>
+          <dt><kbd>0</kbd></dt><dd>{{ _('pausa') }}</dd>
+          <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>=</kbd></dt><dd>{{ _('sustenido, bemol, bequadro na próxima nota') }}</dd>
+          <dt><kbd>T</kbd></dt><dd>{{ _('nota ligada') }}</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>3</kbd></dt><dd>{{ _('tercina') }}</dd>
+          <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>{{ _('anda entre as notas') }}</dd>
+          <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>{{ _('meio tom') }}</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd></dt><dd>{{ _('oitava') }}</dd>
+          <dt><kbd>J</kbd></dt><dd>{{ _('troca a grafia (Dó♯ ↔ Ré♭)') }}</dd>
+          <dt><kbd>Del</kbd></dt><dd>{{ _('vira pausa (num acorde, tira a nota de cima)') }}</dd>
+          <dt><kbd>Backspace</kbd></dt><dd>{{ _('apaga a última nota') }}</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>Del</kbd></dt><dd>{{ _('apaga o compasso (ou os do trecho) e puxa os seguintes') }}</dd>
+          <dt><kbd>Ins</kbd></dt><dd>{{ _('insere um compasso vazio antes do selecionado') }}</dd>
+          <dt><kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd></dt><dd>{{ _('seleciona um trecho') }}</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd></dt><dd>{{ _('copia / cola no fim') }}</dd>
+          <dt><kbd>R</kbd></dt><dd>{{ _('repete o trecho') }}</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>{{ _('cifras (<kbd>Espaço</kbd> próxima nota)')|safe }}</dd>
+          <dt><kbd>{{ _('Espaço') }}</kbd></dt><dd>{{ _('toca / para') }}</dd>
+          <dt><kbd>P</kbd></dt><dd>{{ _('mostra/esconde o teclado') }}</dd>
+          <dt><kbd>Esc</kbd></dt><dd>{{ _('tira a seleção') }}</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd></dt><dd>{{ _('desfazer / refazer') }}</dd>
         </dl>
       </details>
     </aside>
@@ -413,7 +413,7 @@
     LETTERS.forEach(L=>{
       const b=document.createElement('button');
       b.type='button'; b.className='btn'; b.textContent=L;
-      b.title=`Adicionar ${L}${state.currentOctave}`;
+      b.title=_t('Adicionar {nota}', { nota: L + state.currentOctave });
       b.onclick=()=> state.chordMode ? addToChord(L) : addNoteFromLetter(L);
       wrap.appendChild(b);
     });
@@ -422,7 +422,7 @@
     state.currentOctave=Math.max(state.minOctave,Math.min(state.maxOctave,o));
     $('octDisplay').textContent=String(state.currentOctave);
     document.querySelectorAll('#noteButtons .btn').forEach((btn,i)=>{
-      btn.title=`Adicionar ${LETTERS[i]}${state.currentOctave}`;
+      btn.title=_t('Adicionar {nota}', { nota: LETTERS[i] + state.currentOctave });
     });
   }
 
@@ -710,7 +710,7 @@
     if(state.tupletLeft>0){ endTuplet(); return; }        // de novo: cancela
     const inner=HALF[state.duration];
     if(!inner){
-      if(window.ucToast) ucToast('Escolha a duração do grupo inteiro (ex.: semínima pra tercina de colcheias) — não há tercina de semicolcheia de fusas.', 'error');
+      if(window.ucToast) ucToast(_t('Escolha a duração do grupo inteiro (ex.: semínima pra tercina de colcheias) — não há tercina de semicolcheia de fusas.'), 'error');
       return;
     }
     state.tupletRestore={duration:state.duration, dotted:state.dotted};
@@ -730,7 +730,7 @@
     const b=$('tupletBtn'); if(!b) return;
     const on=state.tupletLeft>0;
     b.classList.toggle('active', on);
-    b.textContent = on ? `Tercina (faltam ${state.tupletLeft})` : 'Tercina';
+    b.textContent = on ? _t('Tercina (faltam {n})', { n: state.tupletLeft }) : _t('Tercina');
   }
 
   // Escreve uma nota em cima da selecionada e anda pra próxima. Em cima de
@@ -763,7 +763,7 @@
   // ===== Compassos: apagar (Ctrl+Del) e inserir (Ins) =====
   function deleteMeasures(){
     const ms=selMeasures();
-    if(!ms.length){ if(window.ucToast) ucToast('Selecione uma nota do compasso que quer apagar.', 'error'); return; }
+    if(!ms.length){ if(window.ucToast) ucToast(_t('Selecione uma nota do compasso que quer apagar.'), 'error'); return; }
     if(state.tupletLeft>0) endTuplet();
     pushUndo(); clearRedo();
     const del=new Set(ms), novo=(m)=>m - ms.filter(x=>x<m).length;
@@ -779,7 +779,7 @@
     const alvo=Math.min(ms[0], state.measures.length-1);
     if(state.measures[alvo].length) setSelection({m:alvo, i:0}, false); else setSelection(null, true);
     render();
-    if(window.ucToast) ucToast(ms.length===1 ? 'Compasso apagado' : `${ms.length} compassos apagados`);
+    if(window.ucToast) ucToast(ms.length===1 ? _t('Compasso apagado') : _t('{n} compassos apagados', { n: ms.length }));
   }
   function insertMeasure(){
     const sel=state.selectedNote;
@@ -977,7 +977,7 @@
       ties: state.ties.filter(t=>idx.has(key(t.from)) && idx.has(key(t.to))).map(t=>({from:idx.get(key(t.from)), to:idx.get(key(t.to))})),
       chords: state.chords.filter(c=>idx.has(c.m+':'+c.i)).map(c=>({j:idx.get(c.m+':'+c.i), symbol:c.symbol})),
     };
-    if(window.ucToast) ucToast(sel.length===1 ? '1 nota copiada' : `${sel.length} notas copiadas`);
+    if(window.ucToast) ucToast(sel.length===1 ? _t('1 nota copiada') : _t('{n} notas copiadas', { n: sel.length }));
   }
   function pasteEnd(){
     if(!clipboard || !clipboard.notes.length) return;
@@ -1016,8 +1016,8 @@
     if(!state.selectedNote) setSelection(items[0], false); else setSelection(state.selectedNote, false);
     if(!chordBox){
       chordBox=document.createElement('input');
-      chordBox.type='text'; chordBox.className='chord-float'; chordBox.placeholder='Cifra';
-      chordBox.setAttribute('aria-label','Cifra da nota selecionada (Espaço: próxima nota; Enter: terminar)');
+      chordBox.type='text'; chordBox.className='chord-float'; chordBox.placeholder=_t('Cifra');
+      chordBox.setAttribute('aria-label',_t('Cifra da nota selecionada (Espaço: próxima nota; Enter: terminar)'));
       chordBox.autocomplete='off'; chordBox.spellcheck=false;
       $score.closest('.score-wrap').appendChild(chordBox);
       chordBox.addEventListener('keydown', onChordKey);
@@ -1070,7 +1070,7 @@
     return [...new Set(selectedRefs().map(r => r.m))].sort((a,b) => a-b);
   }
   function editMarks(ms, fn){
-    if(!ms.length){ if(window.ucToast) ucToast('Selecione uma nota do compasso primeiro.', 'error'); return; }
+    if(!ms.length){ if(window.ucToast) ucToast(_t('Selecione uma nota do compasso primeiro.'), 'error'); return; }
     pushUndo(); clearRedo();
     ms.forEach(m => {
       const k=String(m), o={...(state.marks[k]||{})};
@@ -1174,7 +1174,7 @@
     if(ctx) playingNodes.forEach(o => { try { o.stop(ctx.currentTime + 0.02); } catch (e) {} });
     playingNodes = [];
     isPlaying = false;
-    $('playBtn').innerHTML = '<i class="fas fa-play"></i> <span>Tocar</span>';
+    $('playBtn').innerHTML = '<i class="fas fa-play"></i> <span>' + _t('Tocar') + '</span>';
   }
   function startPlayback(){
     // Sequência na ordem de tocar (com repetições), começando da nota
@@ -1192,7 +1192,7 @@
     const t0 = ctx.currentTime + 0.08;
     let t = 0, last = null;
     isPlaying = true;
-    $('playBtn').innerHTML = '<i class="fas fa-stop"></i> <span>Parar</span>';
+    $('playBtn').innerHTML = '<i class="fas fa-stop"></i> <span>' + _t('Parar') + '</span>';
     for(let k = k0; k < items.length; k++){
       const {m, i} = items[k];
       const n = state.measures[m][i];
@@ -1520,7 +1520,7 @@
   }
   async function importFile(file){
     const temNotas = state.measures.some(m=>m.length);
-    if(temNotas && !confirm('Substituir a partitura atual pela do arquivo?\n(Dá pra desfazer com Ctrl+Z.)')) return;
+    if(temNotas && !confirm(_t('Substituir a partitura atual pela do arquivo?') + '\n' + _t('(Dá pra desfazer com Ctrl+Z.)'))) return;
     let data, avisos=[];
     try {
       if(/\.json$/i.test(file.name)){
@@ -1529,7 +1529,7 @@
         ({ data, avisos } = await fromMusicXMLFile(file));
       }
     } catch(e) {
-      mostrarAvisos([String(e.message||e)], 'Não deu pra abrir o arquivo:');
+      mostrarAvisos([String(e.message||e)], _t('Não deu pra abrir o arquivo:'));
       return;
     }
     pushUndo(); clearRedo();
@@ -1537,8 +1537,8 @@
     state.measures=data.measures; state.ties=data.ties||[]; state.chords=data.chords||[]; state.marks=data.marks||{};
     state.lastNoteRef=null; setSelection(null, true);
     syncSheetControls(); render();
-    mostrarAvisos(avisos, `Importado: ${file.name}. Observações:`);
-    if(!avisos.length && window.ucToast) ucToast(`Partitura importada: ${file.name}`);
+    mostrarAvisos(avisos, _t('Importado: {arquivo}. Observações:', { arquivo: file.name }));
+    if(!avisos.length && window.ucToast) ucToast(_t('Partitura importada: {arquivo}', { arquivo: file.name }));
   }
 
   // ===== Botões & atalhos =====
@@ -1863,7 +1863,7 @@
   // Função para salvar no U-Control
   async function saveToUControl() {
     if (!songId) {
-      alert('❌ Esta é uma partitura nova. Salve primeiro como JSON.');
+      alert(_t('❌ Esta é uma partitura nova. Salve primeiro como JSON.'));
       return;
     }
     
@@ -1888,13 +1888,13 @@
       if (response.ok) {
         const result = await response.json();
         currentSheetId = result.id ?? currentSheetId;
-        alert('✅ Partitura salva na música com sucesso!');
+        alert(_t('✅ Partitura salva na música com sucesso!'));
       } else {
-        alert('❌ Erro ao salvar partitura');
+        alert(_t('❌ Erro ao salvar partitura'));
       }
     } catch (error) {
       console.error('Erro:', error);
-      alert('❌ Erro ao salvar partitura');
+      alert(_t('❌ Erro ao salvar partitura'));
     }
   }
 
@@ -1909,7 +1909,7 @@
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
       saveBtn.className = 'btn action-btn';
-      saveBtn.innerHTML = '<i class="fas fa-floppy-disk"></i> Salvar na música';
+      saveBtn.innerHTML = '<i class="fas fa-floppy-disk"></i> ' + _t('Salvar na música');
       saveBtn.onclick = saveToUControl;
       exportSection.appendChild(saveBtn);
     }

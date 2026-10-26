@@ -192,6 +192,30 @@ def _vigia_acordado():
         time.sleep(VIGIA_SEGUNDOS)
 
 
+# --- Idioma da bandeja ------------------------------------------------------
+
+def _idioma():
+    """O idioma escolhido em Sistema → Idioma (fora de uma requisição não
+    há navegador pra perguntar: sem escolha, português)."""
+    try:
+        import i18n
+        import main
+        with main.app.app_context():
+            return i18n.idioma_salvo() or i18n.PADRAO
+    except Exception:
+        return 'pt'
+
+
+def _tr(texto, idioma=None, **valores):
+    """Mesmo dicionário das telas (i18n.py): o português é a chave."""
+    try:
+        import i18n
+        traduzido = i18n.dicionario(idioma or _idioma()).get(texto, texto)
+    except Exception:
+        traduzido = texto
+    return traduzido.format(**valores) if valores else traduzido
+
+
 # --- Servidor --------------------------------------------------------------
 
 def _preparar_banco(app):
@@ -228,27 +252,35 @@ def _bandeja():
     def sair(icon, _item):
         icon.stop()
 
-    endereco = f'Na rede: http://{obter_endereco_ip()}:{PORTA}'
+    idioma = _idioma()
+
+    def t(texto, **valores):
+        return _tr(texto, idioma, **valores)
+
+    endereco = t('Na rede: {endereco}', endereco=f'http://{obter_endereco_ip()}:{PORTA}')
     itens = [
-        item('Abrir Controle', abrir_controle, default=True),
+        item(t('Abrir Controle'), abrir_controle, default=True),
         pystray.Menu.SEPARATOR,
         # A tela pública completa (letra, Bíblia, fotos, vídeos, avisos, Tela
         # do PC) — não a /img, que só mostra imagens e vídeos: abrir ela
         # como telão fazia o compartilhamento de tela e os avisos sumirem
-        item('Telão (tela pública)', lambda: abrir_tela('publico')),
-        item('Retorno de palco', lambda: abrir_tela('palco')),
+        item(t('Telão (tela pública)'), lambda: abrir_tela('publico')),
+        item(t('Retorno de palco'), lambda: abrir_tela('palco')),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(endereco, None, enabled=False),
-        item('Links e QR codes para celular', lambda: webbrowser.open(LOCAL + '/links')),
+        item(t('Links e QR codes para celular'), lambda: webbrowser.open(LOCAL + '/links')),
     ]
     if sys.platform == 'win32':
         # pystray chama o menu na thread da bandeja (a principal): o estado
         # de "acordado" fica com ela
-        itens.append(pystray.MenuItem('Não deixar o PC dormir com o telão aberto',
+        itens.append(pystray.MenuItem(t('Não deixar o PC dormir com o telão aberto'),
                                       lambda _icon, _item: manter_acordado(not _acordado['ligado']),
                                       checked=lambda _item: _acordado['ligado']))
-        itens.append(item('Abrir pasta de dados', lambda: os.startfile(paths.DATA_DIR)))
-    itens += [pystray.Menu.SEPARATOR, pystray.MenuItem('Sair', sair)]
+        itens.append(item(t('Abrir pasta de dados'), lambda: os.startfile(paths.DATA_DIR)))
+    # 'Sair' no dicionário é o logout do site ("Log out"); aqui fecha o
+    # programa, então fora do português usa o "Desligar o U-Control"
+    rotulo_sair = 'Sair' if idioma == 'pt' else t('Desligar o U-Control')
+    itens += [pystray.Menu.SEPARATOR, pystray.MenuItem(rotulo_sair, sair)]
     imagem = Image.open(os.path.join(paths.APP_DIR, 'static', 'U-Control_Icon.png'))
     return pystray.Icon('U-Control', imagem, 'U-Control', pystray.Menu(*itens))
 
@@ -267,8 +299,7 @@ def _aviso_primeira_vez(icon):
     if os.path.exists(marca):
         return
     try:
-        icon.notify('Fechar as janelas não desliga o U-Control: ele continua aqui, ao lado do relógio. '
-                    'Para desligar, use este ícone → Sair, ou Sistema → Desligar o U-Control.', 'U-Control')
+        icon.notify(_tr('Fechar as janelas não desliga o U-Control: ele continua aqui, ao lado do relógio. Para desligar, use este ícone → Sair, ou Sistema → Desligar o U-Control.'), 'U-Control')  # noqa: E501
         open(marca, 'w').close()
     except Exception:
         pass  # sem notificação nessa versão do Windows: tenta de novo na próxima

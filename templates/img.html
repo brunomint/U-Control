@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{{ uc_lang_tag }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="{{ versioned_static('js/csrf.js') }}"></script>
     <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Monitor de Imagens</title>
+    <title>{{ _('Monitor de Imagens') }}</title>
 
     <link rel="stylesheet" href="{{ versioned_static('css/pages/img.css') }}">
 
@@ -19,7 +19,7 @@
 <body>
 
     <!-- Tag img para exibir a imagem atual -->
-    <img id="imageUr" alt="Foto Atual" style="display:none;">
+    <img id="imageUr" alt="{{ _('Foto Atual') }}" style="display:none;">
 
     <!-- Tag video para exibir vídeos. Sem 'muted' para permitir som quando autoplay-policy=no-user-gesture-required estiver ativo. -->
     <video id="videoEl" style="display:none; width:100%; height:100%; object-fit:contain;" playsinline></video>

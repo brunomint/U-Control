@@ -8,6 +8,8 @@ mostra todos; louvor/mídia/edição são de um culto; eventos são do dia."""
 from flask import Blueprint, redirect, render_template, request, url_for
 from flask_login import login_required
 
+from i18n import gettext as _
+
 from orders_store import day_orders, get_order, key_date, key_seq, load_orders, next_free_key
 
 SECTION_ROUTES = {'louvor': 'agenda.agenda_louvor', 'midia': 'agenda.agenda_midia'}
@@ -62,12 +64,12 @@ def _render_day(date, allow_clicks):
 def _render_section(date, section):
     """Louvor/mídia de UM culto, com abas pros outros cultos do dia."""
     day = key_date(date)
-    cultos = [{'key': k, 'tipo': o.get('tipo') or 'Culto',
+    cultos = [{'key': k, 'tipo': o.get('tipo') or _('Culto'),
                'hora': o.get('horario_culto') or o.get('horario') or ''}
               for k, o in day_orders(day)]
     is_new = not any(c['key'] == date for c in cultos)
     if is_new:
-        cultos.append({'key': date, 'tipo': 'Novo culto', 'hora': ''})
+        cultos.append({'key': date, 'tipo': _('Novo culto'), 'hora': ''})
     return render_template("agenda_section.html", date=date, day=day, order=get_order(date),
                            section=section, cultos=cultos, is_new=is_new)
 

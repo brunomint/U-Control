@@ -23,6 +23,8 @@ import re
 import xml.etree.ElementTree as ET
 import zipfile
 
+from i18n import gettext as tr
+
 LIMITE_ARQUIVOS = 3000  # dentro de um .zip
 EXT_CHORDPRO = ('.cho', '.chordpro', '.chopro', '.crd', '.pro')
 EXT_ACEITAS = ('.json', '.xml', '.txt', '.zip') + EXT_CHORDPRO
@@ -97,7 +99,7 @@ def _holyrics_json(dados, nome):
         if m:
             musicas.append(m)
     if not musicas:
-        raise ArquivoInvalido(f'{nome}: JSON sem músicas no formato do Holyrics.')
+        raise ArquivoInvalido(tr('{nome}: JSON sem músicas no formato do Holyrics.', nome=nome))
     return musicas
 
 
@@ -148,9 +150,9 @@ def _openlyrics(conteudo, nome):
     try:
         raiz = ET.fromstring(conteudo)
     except ET.ParseError:
-        raise ArquivoInvalido(f'{nome}: XML inválido.')
+        raise ArquivoInvalido(tr('{nome}: XML inválido.', nome=nome))
     if raiz.tag.replace(_NS_OL, '') != 'song':
-        raise ArquivoInvalido(f'{nome}: não é uma música no formato OpenLyrics.')
+        raise ArquivoInvalido(tr('{nome}: não é uma música no formato OpenLyrics.', nome=nome))
     titulo = raiz.findtext(f'{_NS_OL}properties/{_NS_OL}titles/{_NS_OL}title')
     autores = [a.text for a in raiz.iterfind(f'{_NS_OL}properties/{_NS_OL}authors/{_NS_OL}author') if a.text]
     secoes = []
@@ -160,7 +162,7 @@ def _openlyrics(conteudo, nome):
         secoes.append((_nome_secao(verso.get('name')), _bloco_com_acordes(texto)))
     m = _musica(titulo, ', '.join(autores), secoes, f'OpenLyrics ({nome})')
     if not m:
-        raise ArquivoInvalido(f'{nome}: música sem título ou sem letra.')
+        raise ArquivoInvalido(tr('{nome}: música sem título ou sem letra.', nome=nome))
     return [m]
 
 
@@ -214,7 +216,7 @@ def _chordpro(texto, nome):
     fechar()
     m = _musica(titulo or os.path.splitext(nome)[0], autor, secoes, f'ChordPro ({nome})')
     if not m:
-        raise ArquivoInvalido(f'{nome}: ChordPro sem letra.')
+        raise ArquivoInvalido(tr('{nome}: ChordPro sem letra.', nome=nome))
     return [m]
 
 
@@ -235,7 +237,7 @@ def _texto(texto, nome):
             secoes.append((f'Verse {n_verso}', p))
     m = _musica(titulo, '', secoes, f'Texto ({nome})')
     if not m:
-        raise ArquivoInvalido(f'{nome}: arquivo de texto vazio.')
+        raise ArquivoInvalido(tr('{nome}: arquivo de texto vazio.', nome=nome))
     return [m]
 
 
@@ -257,16 +259,15 @@ def ler(nome, dados):
     if ext == '.zip':
         return _zip(nome, dados)
     if ext == '.muf':
-        raise ArquivoInvalido(f'{nome}: o U-Control ainda não lê o .muf do Holyrics. '
-                              'Exporte as músicas do Holyrics em outro formato (JSON ou TXT).')
+        raise ArquivoInvalido(tr('{nome}: o U-Control ainda não lê o .muf do Holyrics. Exporte as músicas do Holyrics em outro formato (JSON ou TXT).', nome=nome))
     if ext not in EXT_ACEITAS:
-        raise ArquivoInvalido(f'{nome}: formato não reconhecido.')
+        raise ArquivoInvalido(tr('{nome}: formato não reconhecido.', nome=nome))
     texto = _decodificar(dados)
     if ext == '.json':
         try:
             return _holyrics_json(json.loads(texto), nome)
         except ValueError:
-            raise ArquivoInvalido(f'{nome}: JSON inválido.')
+            raise ArquivoInvalido(tr('{nome}: JSON inválido.', nome=nome))
     if ext == '.xml':
         return _openlyrics(texto.encode('utf-8'), nome)
     if ext in EXT_CHORDPRO or (ext == '.txt' and re.search(r'^\s*\{\s*(title|t)\s*:', texto, re.M | re.I)):
@@ -278,12 +279,12 @@ def _zip(nome, dados):
     try:
         zf = zipfile.ZipFile(io.BytesIO(dados))
     except zipfile.BadZipFile:
-        raise ArquivoInvalido(f'{nome}: .zip danificado.')
+        raise ArquivoInvalido(tr('{nome}: .zip danificado.', nome=nome))
     musicas, erros = [], []
     with zf:
         internos = [i for i in zf.infolist() if not i.is_dir() and not os.path.basename(i.filename).startswith('.')]
         if len(internos) > LIMITE_ARQUIVOS:
-            raise ArquivoInvalido(f'{nome}: arquivos demais dentro do .zip (máximo {LIMITE_ARQUIVOS}).')
+            raise ArquivoInvalido(tr('{nome}: arquivos demais dentro do .zip (máximo {limite}).', nome=nome, limite=LIMITE_ARQUIVOS))
         for info in internos:
             interno = os.path.basename(info.filename)
             if os.path.splitext(interno.lower())[1] in ('.zip',):
@@ -293,5 +294,5 @@ def _zip(nome, dados):
             except ArquivoInvalido as e:
                 erros.append(str(e))
     if not musicas:
-        raise ArquivoInvalido(f'{nome}: nenhuma música reconhecida dentro do .zip.' + (f' ({erros[0]})' if erros else ''))
+        raise ArquivoInvalido(tr('{nome}: nenhuma música reconhecida dentro do .zip.', nome=nome) + (f' ({erros[0]})' if erros else ''))
     return musicas

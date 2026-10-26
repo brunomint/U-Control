@@ -40,6 +40,11 @@ def test_data_pt_formats_date_in_portuguese():
     assert ucontrol_main.data_pt("2026-07-08") == "Quarta-feira, 8 de julho de 2026"
 
 
+def test_data_pt_in_english_when_the_interface_is_english(app):
+    with app.test_request_context(headers={"Accept-Language": "en"}):
+        assert ucontrol_main.data_pt("2026-07-08") == "Wednesday, July 8, 2026"
+
+
 def test_data_pt_returns_input_unchanged_on_invalid_date():
     assert ucontrol_main.data_pt("not-a-date") == "not-a-date"
 
@@ -3368,6 +3373,8 @@ def test_every_marked_text_has_an_english_translation():
         en = json.load(f)
     faltando = set()
     marcados = re.compile(r"""\b_t?\(\s*(['"])((?:(?!\1).)+)\1""")
+    # no Python também tr(...) e i18n.gettext(...) (módulos que já usam _ como variável)
+    marcados_py = re.compile(r"""\b(?:_|tr|gettext)\(\s*(['"])((?:(?!\1).)+)\1""")
     arquivos = glob.glob("templates/**/*.html", recursive=True) + \
         [p for p in glob.glob("static/js/**/*.js", recursive=True) if "/vendor/" not in p] + \
         glob.glob("*.py") + glob.glob("blueprints/*.py")
@@ -3375,7 +3382,8 @@ def test_every_marked_text_has_an_english_translation():
     arquivos = [p for p in arquivos if os.path.basename(p) not in ("i18n.py", "i18n.js")]
     for caminho in arquivos:
         with open(caminho, encoding="utf-8") as f:
-            for _aspas, texto in marcados.findall(f.read()):
+            regex = marcados_py if caminho.endswith(".py") else marcados
+            for _aspas, texto in regex.findall(f.read()):
                 if texto not in en:
                     faltando.add(f"{caminho}: {texto}")
     for item in nav_config.NAV_ITEMS:

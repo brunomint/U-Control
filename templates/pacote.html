@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Exportar e importar - U-Control{% endblock %}
+{% block title %}{{ _('Exportar e importar') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,57 +16,55 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Exportar e importar</h1>
-            <div class="uc-page-sub">Leve músicas, cultos e fotos para outro U-Control — por exemplo, preparar em casa e usar no PC da igreja.
-                Soma ao que já existe; para copiar tudo, use o <a href="/backup">Backup</a>.</div>
+            <h1>{{ _('Exportar e importar') }}</h1>
+            <div class="uc-page-sub">{{ _('Leve músicas, cultos e fotos para outro U-Control — por exemplo, preparar em casa e usar no PC da igreja. Soma ao que já existe; para copiar tudo, use o <a href="/backup">Backup</a>.')|safe }}</div>
         </div>
     </div>
 
     <div class="pacote-grid">
         <section class="uc-card">
-            <h2><i class="fas fa-file-export"></i> Levar daqui</h2>
+            <h2><i class="fas fa-file-export"></i> {{ _('Levar daqui') }}</h2>
 
             <details class="pacote-lista" open>
-                <summary>Cultos <span class="uc-muted">— levam junto as músicas da ordem</span> <span class="pacote-conta" id="conta-cultos"></span></summary>
+                <summary>{{ _('Cultos') }} <span class="uc-muted">{{ _('— levam junto as músicas da ordem') }}</span> <span class="pacote-conta" id="conta-cultos"></span></summary>
                 <div class="pacote-todos-linha">
-                    <label class="pacote-todos" hidden><input type="checkbox" data-todos="proximos"> <span>Só os próximos</span></label>
-                    <label class="pacote-todos" hidden><input type="checkbox" data-todos="cultos"> <span>Selecionar todos</span></label>
+                    <label class="pacote-todos" hidden><input type="checkbox" data-todos="proximos"> <span>{{ _('Só os próximos') }}</span></label>
+                    <label class="pacote-todos" hidden><input type="checkbox" data-todos="cultos"> <span>{{ _('Selecionar todos') }}</span></label>
                 </div>
-                <div id="lista-cultos" class="pacote-itens pacote-itens-longa"><p class="uc-muted">Carregando…</p></div>
+                <div id="lista-cultos" class="pacote-itens pacote-itens-longa"><p class="uc-muted">{{ _('Carregando…') }}</p></div>
             </details>
 
             <details class="pacote-lista">
-                <summary>Músicas <span class="pacote-conta" id="conta-musicas"></span></summary>
-                <input class="uc-input" type="search" id="busca-musicas" placeholder="Buscar por título ou artista" aria-label="Buscar música">
-                <label class="pacote-todos" hidden><input type="checkbox" data-todos="musicas"> <span>Selecionar todas</span></label>
+                <summary>{{ _('Músicas') }} <span class="pacote-conta" id="conta-musicas"></span></summary>
+                <input class="uc-input" type="search" id="busca-musicas" placeholder="{{ _('Buscar por título ou artista') }}" aria-label="{{ _('Buscar música') }}">
+                <label class="pacote-todos" hidden><input type="checkbox" data-todos="musicas"> <span>{{ _('Selecionar todas') }}</span></label>
                 <div id="lista-musicas" class="pacote-itens pacote-itens-longa"></div>
             </details>
 
             <details class="pacote-lista">
-                <summary>Fotos e slides <span class="uc-muted">— pastas inteiras</span> <span class="pacote-conta" id="conta-pastas"></span></summary>
-                <label class="pacote-todos" hidden><input type="checkbox" data-todos="pastas"> <span>Selecionar todas</span></label>
+                <summary>{{ _('Fotos e slides') }} <span class="uc-muted">{{ _('— pastas inteiras') }}</span> <span class="pacote-conta" id="conta-pastas"></span></summary>
+                <label class="pacote-todos" hidden><input type="checkbox" data-todos="pastas"> <span>{{ _('Selecionar todas') }}</span></label>
                 <div id="lista-pastas" class="pacote-itens"></div>
             </details>
 
-            <p id="exp-resumo" class="pacote-resumo">Nada escolhido.</p>
+            <p id="exp-resumo" class="pacote-resumo">{{ _('Nada escolhido.') }}</p>
             <p id="exp-msg" role="status"></p>
             <div class="uc-btn-row">
-                <button type="button" class="uc-btn uc-btn-primary" id="exp-baixar" disabled><i class="fas fa-download"></i> Baixar pacote</button>
+                <button type="button" class="uc-btn uc-btn-primary" id="exp-baixar" disabled><i class="fas fa-download"></i> {{ _('Baixar pacote') }}</button>
             </div>
         </section>
 
         <section class="uc-card">
-            <h2><i class="fas fa-file-import"></i> Trazer para cá</h2>
-            <p>Escolha o pacote baixado no outro computador. Antes de importar, o U-Control mostra o que é novo e o que já
-               existe aqui.</p>
+            <h2><i class="fas fa-file-import"></i> {{ _('Trazer para cá') }}</h2>
+            <p>{{ _('Escolha o pacote baixado no outro computador. Antes de importar, o U-Control mostra o que é novo e o que já existe aqui.') }}</p>
             <div class="pacote-arquivo">
-                <input type="file" id="imp-arquivo" accept=".zip,application/zip" aria-label="Arquivo do pacote">
-                <button type="button" class="uc-btn uc-btn-secondary" id="imp-conferir" disabled><i class="fas fa-magnifying-glass"></i> Conferir</button>
+                <input type="file" id="imp-arquivo" accept=".zip,application/zip" aria-label="{{ _('Arquivo do pacote') }}">
+                <button type="button" class="uc-btn uc-btn-secondary" id="imp-conferir" disabled><i class="fas fa-magnifying-glass"></i> {{ _('Conferir') }}</button>
             </div>
             <div id="imp-previa" hidden></div>
             <p id="imp-msg" role="status"></p>
             <div class="uc-btn-row">
-                <button type="button" class="uc-btn uc-btn-primary" id="imp-importar" hidden><i class="fas fa-file-import"></i> Importar</button>
+                <button type="button" class="uc-btn uc-btn-primary" id="imp-importar" hidden><i class="fas fa-file-import"></i> {{ _('Importar') }}</button>
             </div>
         </section>
     </div>

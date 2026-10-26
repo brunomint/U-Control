@@ -20,7 +20,7 @@
     let atual = { slide: 0, step: 0 };
 
     if (!svg || !svg.startsWith('/static/imagens/') || !svg.endsWith('.svg')) {
-        aviso.textContent = 'Apresentação não encontrada';
+        aviso.textContent = _t('Apresentação não encontrada');
         return;
     }
 
@@ -101,7 +101,7 @@
             let ok = false;
             try { ok = !!(w().aSlideShow && w().theMetaDoc && w().nCurSlide !== undefined); } catch (e) { /* ainda não */ }
             if (!ok) {
-                if (++tentativas > 200) { aviso.textContent = 'Não deu pra abrir a apresentação'; return; }
+                if (++tentativas > 200) { aviso.textContent = _t('Não deu pra abrir a apresentação'); return; }
                 setTimeout(esperar, 50);
                 return;
             }

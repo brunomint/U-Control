@@ -24,7 +24,7 @@ def api_idioma():
     # '' = seguir o navegador de cada um
     idioma = (request.get_json(silent=True) or {}).get('idioma') or None
     if idioma is not None and idioma not in i18n.IDIOMAS:
-        return jsonify({'error': 'Idioma desconhecido.'}), 400
+        return jsonify({'error': i18n.gettext('Idioma desconhecido.')}), 400
     row = Setting.query.first()
     if not row:
         row = Setting()

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{{ uc_lang_tag }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Apresentação</title>
+    <title>{{ _('Apresentação') }}</title>
     <script src="/static/vendor/socketio/socket.io.min.js"></script>
+    {% include "_i18n.html" %}
     <style>
         html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
         {#- pointer-events: none — clique ou toque na tela não avança só esta
@@ -22,8 +23,8 @@
     {#- PowerPoint animado (ver blueprints/apresentacao.py): o SVG que o
         LibreOffice gera traz o tocador dele (aSlideShow, nCurSlide,
         theMetaDoc); esta página só o comanda. #}
-    <iframe id="tocador" title="Apresentação"></iframe>
-    <p id="aviso">Carregando a apresentação…</p>
+    <iframe id="tocador" title="{{ _('Apresentação') }}"></iframe>
+    <p id="aviso">{{ _('Carregando a apresentação…') }}</p>
     <script src="{{ versioned_static('js/pages/apresentacao.js') }}"></script>
 </body>
 </html>

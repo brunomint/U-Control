@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Atualização - U-Control{% endblock %}
+{% block title %}{{ _('Atualização') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -22,8 +22,8 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Atualização</h1>
-            <div class="uc-page-sub" id="upd-sub">Consultando…</div>
+            <h1>{{ _('Atualização') }}</h1>
+            <div class="uc-page-sub" id="upd-sub">{{ _('Consultando…') }}</div>
         </div>
     </div>
 
@@ -38,9 +38,8 @@
 
     <!-- Só no Windows sem LibreOffice (atualizacao.js) -->
     <section class="uc-card update-card" id="lo-card" hidden>
-        <h2><i class="fas fa-file-powerpoint"></i> PowerPoint em slides</h2>
-        <p>Falta o LibreOffice neste computador. É ele que transforma o arquivo do PowerPoint (.pptx) em slides para o telão;
-           sem ele, só dá para enviar a apresentação salva como PDF.</p>
+        <h2><i class="fas fa-file-powerpoint"></i> {{ _('PowerPoint em slides') }}</h2>
+        <p>{{ _('Falta o LibreOffice neste computador. É ele que transforma o arquivo do PowerPoint (.pptx) em slides para o telão; sem ele, só dá para enviar a apresentação salva como PDF.') }}</p>
         <div id="lo-how"></div>
         <div class="update-progress" id="lo-progress" hidden><div></div></div>
         <p id="lo-msg" role="status"></p>

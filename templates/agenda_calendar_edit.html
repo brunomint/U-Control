@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Calendário (edição) - U-Control{% endblock %}
+{% block title %}{{ _('Calendário (edição)') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -18,27 +18,27 @@
 <main class="uc-page cal-page">
     <div class="uc-page-head cal-head">
         <div>
-            <a class="uc-link" href="/agenda/dashboard"><i class="fas fa-arrow-left"></i> Agenda</a>
-            <h1>Calendário <span class="uc-pill uc-pill-warn">Edição</span></h1>
-            <div class="uc-page-sub">Toque numa data para editar a escala e os eventos</div>
+            <a class="uc-link" href="/agenda/dashboard"><i class="fas fa-arrow-left"></i> {{ _('Agenda') }}</a>
+            <h1>{{ _('Calendário') }} <span class="uc-pill uc-pill-warn">{{ _('Edição') }}</span></h1>
+            <div class="uc-page-sub">{{ _('Toque numa data para editar a escala e os eventos') }}</div>
         </div>
         <div class="uc-btn-row">
             <div class="month-nav">
-                <button type="button" class="btn" id="prevBtn" aria-label="Mês anterior"><i class="fas fa-chevron-left"></i></button>
+                <button type="button" class="btn" id="prevBtn" aria-label="{{ _('Mês anterior') }}"><i class="fas fa-chevron-left"></i></button>
                 <div class="month-label" id="monthLabel"></div>
-                <button type="button" class="btn" id="nextBtn" aria-label="Próximo mês"><i class="fas fa-chevron-right"></i></button>
+                <button type="button" class="btn" id="nextBtn" aria-label="{{ _('Próximo mês') }}"><i class="fas fa-chevron-right"></i></button>
             </div>
-            <button type="button" class="uc-btn uc-btn-primary" id="copyWhatsBtn" title="Texto do mês pronto pra colar no WhatsApp"><i class="fab fa-whatsapp"></i> Copiar para WhatsApp</button>
+            <button type="button" class="uc-btn uc-btn-primary" id="copyWhatsBtn" title="{{ _('Texto do mês pronto pra colar no WhatsApp') }}"><i class="fab fa-whatsapp"></i> {{ _('Copiar para WhatsApp') }}</button>
             <!-- No celular abre o compartilhar; no computador copia a imagem pra colar com Ctrl+V (agenda_share.js) -->
             <details class="share-menu" id="shareMenu">
-                <summary class="uc-btn uc-btn-secondary"><i class="fas fa-share-nodes"></i> Compartilhar imagem <i class="fas fa-chevron-down"></i></summary>
+                <summary class="uc-btn uc-btn-secondary"><i class="fas fa-share-nodes"></i> {{ _('Compartilhar imagem') }} <i class="fas fa-chevron-down"></i></summary>
                 <div class="share-menu-list" role="menu">
-                    <button type="button" role="menuitem" data-format="grid"><i class="fas fa-calendar-days"></i><span>Grade do mês<small>o calendário como na tela</small></span></button>
-                    <button type="button" role="menuitem" data-format="light"><i class="fas fa-list"></i><span>Lista · fundo claro<small>só os dias com algo, letra grande</small></span></button>
-                    <button type="button" role="menuitem" data-format="dark"><i class="fas fa-list"></i><span>Lista · fundo escuro<small>só os dias com algo, letra grande</small></span></button>
+                    <button type="button" role="menuitem" data-format="grid"><i class="fas fa-calendar-days"></i><span>{{ _('Grade do mês') }}<small>{{ _('o calendário como na tela') }}</small></span></button>
+                    <button type="button" role="menuitem" data-format="light"><i class="fas fa-list"></i><span>{{ _('Lista · fundo claro') }}<small>{{ _('só os dias com algo, letra grande') }}</small></span></button>
+                    <button type="button" role="menuitem" data-format="dark"><i class="fas fa-list"></i><span>{{ _('Lista · fundo escuro') }}<small>{{ _('só os dias com algo, letra grande') }}</small></span></button>
                 </div>
             </details>
-            <button type="button" class="uc-btn uc-btn-ghost" id="saveImgBtn" title="Baixar o calendário do mês como imagem"><i class="fas fa-download"></i> Salvar imagem</button>
+            <button type="button" class="uc-btn uc-btn-ghost" id="saveImgBtn" title="{{ _('Baixar o calendário do mês como imagem') }}"><i class="fas fa-download"></i> {{ _('Salvar imagem') }}</button>
         </div>
     </div>
 
@@ -47,10 +47,10 @@
         <div class="month-label inner-label" id="monthLabelInner"></div>
         <div class="calendar-head" id="calendarHead"></div>
         <div id="calendar" class="calendar-grid"></div>
-        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada.</div>
+        <div id="emptyState" class="empty" style="display:none;">{{ _('Nenhuma data cadastrada.') }}</div>
     </section>
 
-    <p class="cal-note">Datas sem nada cadastrado abrem o formulário vazio.</p>
+    <p class="cal-note">{{ _('Datas sem nada cadastrado abrem o formulário vazio.') }}</p>
 </main>
 {% endblock %}
 

@@ -262,7 +262,7 @@ async function unzipEntries(buf) {
   for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 66000); i--) {
     if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
   }
-  if (eocd < 0) throw new Error('arquivo .mxl inválido');
+  if (eocd < 0) throw new Error(_t('arquivo .mxl inválido'));
   const count = dv.getUint16(eocd + 10, true);
   let p = dv.getUint32(eocd + 16, true);
   const dec = new TextDecoder();
@@ -295,7 +295,7 @@ async function xmlTextFromFile(file) {
       root = doc.querySelector('rootfile')?.getAttribute('full-path');
     }
     root = root || zip.names.find((n) => !n.startsWith('META-INF') && /\.(musicxml|xml)$/i.test(n));
-    if (!root) throw new Error('não achei a partitura dentro do .mxl');
+    if (!root) throw new Error(_t('não achei a partitura dentro do .mxl'));
     return zip.read(root);
   }
   return new TextDecoder().decode(buf);
@@ -304,14 +304,14 @@ async function xmlTextFromFile(file) {
 // ---------- Importar ----------
 export function fromMusicXMLText(xml) {
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
-  if (doc.querySelector('parsererror')) throw new Error('o arquivo não é um MusicXML válido');
-  if (doc.documentElement.nodeName === 'score-timewise') throw new Error('formato "timewise" não é suportado (exporte como MusicXML normal)');
+  if (doc.querySelector('parsererror')) throw new Error(_t('o arquivo não é um MusicXML válido'));
+  if (doc.documentElement.nodeName === 'score-timewise') throw new Error(_t('formato "timewise" não é suportado (exporte como MusicXML normal)'));
   const parts = [...doc.querySelectorAll('score-partwise > part')];
-  if (!parts.length) throw new Error('nenhuma parte encontrada no arquivo');
+  if (!parts.length) throw new Error(_t('nenhuma parte encontrada no arquivo'));
   const avisos = new Set();
   if (parts.length > 1) {
-    const nome = doc.querySelector('part-list score-part part-name')?.textContent || 'a primeira';
-    avisos.add(`O arquivo tem ${parts.length} partes (instrumentos); entrou só ${nome}.`);
+    const nome = doc.querySelector('part-list score-part part-name')?.textContent || _t('a primeira');
+    avisos.add(_t('O arquivo tem {n} partes (instrumentos); entrou só {nome}.', { n: parts.length, nome }));
   }
 
   const out = { clef: 'treble', keySig: 'C', timeSig: '4/4', measures: [], ties: [], chords: [], marks: {} };
@@ -373,19 +373,19 @@ export function fromMusicXMLText(xml) {
         const f = el.querySelector('key fifths');
         if (f) {
           const k = FIFTHS_KEY[+f.textContent];
-          if (!keySet) { if (k) out.keySig = k; keySet = true; } else if (k && k !== out.keySig) avisos.add('A armadura muda no meio da música; ficou só a primeira.');
+          if (!keySet) { if (k) out.keySig = k; keySet = true; } else if (k && k !== out.keySig) avisos.add(_t('A armadura muda no meio da música; ficou só a primeira.'));
         }
         const b = el.querySelector('time beats'), t = el.querySelector('time beat-type');
         if (b && t) {
           const ts = `${b.textContent.trim()}/${t.textContent.trim()}`;
-          if (!timeSet) { out.timeSig = ts; timeSet = true; } else if (ts !== out.timeSig) avisos.add('A fórmula de compasso muda no meio da música; ficou só a primeira.');
+          if (!timeSet) { out.timeSig = ts; timeSet = true; } else if (ts !== out.timeSig) avisos.add(_t('A fórmula de compasso muda no meio da música; ficou só a primeira.'));
         }
-        if (el.querySelectorAll('clef').length > 1 || el.querySelector('staves')) avisos.add('O arquivo tem mais de uma pauta (ex.: piano); entrou só a de cima.');
+        if (el.querySelectorAll('clef').length > 1 || el.querySelector('staves')) avisos.add(_t('O arquivo tem mais de uma pauta (ex.: piano); entrou só a de cima.'));
         const c = el.querySelector('clef:not([number]), clef[number="1"]');
         if (c && !clefSet) {
           const sign = c.querySelector('sign')?.textContent;
           out.clef = sign === 'F' ? 'bass' : 'treble';
-          if (sign !== 'F' && sign !== 'G') avisos.add(`Clave "${sign}" não existe no editor; ficou clave de Sol.`);
+          if (sign !== 'F' && sign !== 'G') avisos.add(_t('Clave "{clave}" não existe no editor; ficou clave de Sol.', { clave: sign }));
           clefSet = true;
         }
       } else if (el.nodeName === 'harmony') {
@@ -397,13 +397,13 @@ export function fromMusicXMLText(xml) {
           pendingChord = rs + ra + harmonySuffix(el) + (bs ? `/${bs}${ba}` : '');
         }
       } else if (el.nodeName === 'note') {
-        if (el.querySelector('grace')) { avisos.add('Apojaturas (notas pequenas) não foram importadas.'); continue; }
+        if (el.querySelector('grace')) { avisos.add(_t('Apojaturas (notas pequenas) não foram importadas.')); continue; }
         if (el.querySelector('cue')) continue;
         const staff = el.querySelector('staff')?.textContent;
         if (staff && staff !== '1') continue;
         const v = el.querySelector('voice')?.textContent || '1';
         if (voz === null) voz = v;
-        if (v !== voz) { avisos.add('O arquivo tem mais de uma voz na pauta; entrou só a primeira.'); continue; }
+        if (v !== voz) { avisos.add(_t('O arquivo tem mais de uma voz na pauta; entrou só a primeira.')); continue; }
         if (el.querySelector('chord')) {
           // nota de cima de um acorde: soma na nota anterior
           const base = notas[notas.length - 1];
@@ -429,15 +429,15 @@ export function fromMusicXMLText(xml) {
             tupletCount++;
             tuplet = { id: tupletSeq, n: 3, of: 2 };
           } else {
-            avisos.add('Quiálteras que não são tercina (ex.: quintinas) entraram com a duração mais próxima e podem sobrar no compasso.');
+            avisos.add(_t('Quiálteras que não são tercina (ex.: quintinas) entraram com a duração mais próxima e podem sobrar no compasso.'));
           }
         }
-        if (el.querySelector('lyric')) avisos.add('A letra embaixo das notas não foi importada.');
+        if (el.querySelector('lyric')) avisos.add(_t('A letra embaixo das notas não foi importada.'));
 
         let type = el.querySelector('type')?.textContent?.trim();
         let dur = TYPE_DUR[type];
         let dotted = el.querySelectorAll('dot').length > 0;
-        if (!dur && type) { avisos.add('Notas mais curtas que semicolcheia viraram semicolcheia.'); dur = '16'; }
+        if (!dur && type) { avisos.add(_t('Notas mais curtas que semicolcheia viraram semicolcheia.')); dur = '16'; }
         if (!dur) {
           // sem <type> (ex.: pausa de compasso inteiro): pela duração
           const q = (+el.querySelector('duration')?.textContent || divisions) / divisions; // em semínimas
@@ -445,7 +445,7 @@ export function fromMusicXMLText(xml) {
           const hit = opts.flatMap(([d, v]) => [[d, v * 1.5, true], [d, v, false]]).find(([, v]) => Math.abs(v - q) < 1e-6);
           if (hit) { dur = hit[0]; dotted = hit[2]; } else { dur = 'w'; dotted = false; }
         }
-        if (el.querySelectorAll('dot').length > 1) avisos.add('Pontos duplos viraram ponto simples.');
+        if (el.querySelectorAll('dot').length > 1) avisos.add(_t('Pontos duplos viraram ponto simples.'));
 
         const i = notas.length;
         if (el.querySelector('rest')) {
@@ -472,7 +472,7 @@ export function fromMusicXMLText(xml) {
     }
   });
   while (out.measures.length > 1 && !out.measures[out.measures.length - 1].length) out.measures.pop();
-  if (!out.measures.some((ms) => ms.length)) throw new Error('não achei notas na primeira parte do arquivo');
+  if (!out.measures.some((ms) => ms.length)) throw new Error(_t('não achei notas na primeira parte do arquivo'));
   return { data: out, avisos: [...avisos] };
 }
 

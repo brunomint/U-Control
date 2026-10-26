@@ -27,6 +27,7 @@ from blueprints.gallery import get_current_image_path
 from blueprints.lyrics import handle_update_lyrics
 from connections import _get_monitor_sids, _skip_sids
 from display_log import append_display_log
+from i18n import gettext as tr
 from extensions import db, socketio
 from models import DisplayState, ImagePath, LyricsState, SavedUrls, StagedContent
 from settings_store import load_settings, save_settings
@@ -94,7 +95,7 @@ def save_image_path_endpoint():
     if image_path:
         save_image_path(image_path)
         return jsonify({"status": "success"}), 200
-    return jsonify({"status": "error", "message": "Caminho da imagem não fornecido."}), 400
+    return jsonify({"status": "error", "message": tr("Caminho da imagem não fornecido.")}), 400
 
 # Endpoint para obter a última imagem ou vídeo
 def _is_static_media(url):

@@ -26,6 +26,7 @@ try:  # fotos de iPhone (.heic) — sem o pacote, viram erro claro em vez de 500
 except ImportError:  # pragma: no cover
     pass
 
+from i18n import gettext as tr
 import conversoes
 import paths
 import updates
@@ -71,10 +72,10 @@ def list_image_folders():
 def create_image_folder():
     name = (request.json.get('name') or '').strip()
     if not name or name == 'Geral' or '/' in name or '\\' in name or '..' in name:
-        return jsonify({'status': 'error', 'message': 'Nome inválido.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Nome inválido.')}), 400
     folder_path = os.path.join(IMAGE_FOLDER, name)
     if os.path.exists(folder_path):
-        return jsonify({'status': 'error', 'message': 'Pasta já existe.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Pasta já existe.')}), 400
     os.mkdir(folder_path)
     return jsonify({'status': 'success', 'name': name})
 
@@ -83,12 +84,12 @@ def create_image_folder():
 @login_required
 def delete_image_folder(name):
     if name == 'Geral':
-        return jsonify({'status': 'error', 'message': 'Não é possível excluir a pasta Geral.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Não é possível excluir a pasta Geral.')}), 400
     folder_path = _safe_folder_path(name)
     if folder_path is None:
-        return jsonify({'status': 'error', 'message': 'Nome inválido.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Nome inválido.')}), 400
     if not os.path.exists(folder_path):
-        return jsonify({'status': 'error', 'message': 'Pasta não encontrada.'}), 404
+        return jsonify({'status': 'error', 'message': tr('Pasta não encontrada.')}), 404
     import shutil
     shutil.rmtree(folder_path)
     return jsonify({'status': 'success'})
@@ -434,7 +435,7 @@ def upload_files():
     # QR code de fotos — no Pi, exposto na internet, qualquer um gravava
     # arquivos no disco. O token CSRF vai no cabeçalho (presenter.js).
     if 'images' not in request.files:
-        return jsonify({'status': 'error', 'message': 'Nenhum arquivo enviado'}), 400
+        return jsonify({'status': 'error', 'message': tr('Nenhum arquivo enviado')}), 400
 
     folder = request.form.get('folder', 'Geral')
     if folder == 'Geral':
@@ -442,7 +443,7 @@ def upload_files():
     else:
         target_dir = _safe_folder_path(folder)
         if target_dir is None:
-            return jsonify({'status': 'error', 'message': 'Pasta inválida.'}), 400
+            return jsonify({'status': 'error', 'message': tr('Pasta inválida.')}), 400
         os.makedirs(target_dir, exist_ok=True)
 
     files = request.files.getlist('images')
@@ -454,11 +455,11 @@ def upload_files():
 
     for file in files:
         if file.filename == '':
-            return jsonify({'status': 'error', 'message': 'Nome de arquivo vazio'}), 400
+            return jsonify({'status': 'error', 'message': tr('Nome de arquivo vazio')}), 400
 
         filename = secure_filename(file.filename)
         if not filename:
-            return jsonify({'status': 'error', 'message': 'Nome de arquivo inválido'}), 400
+            return jsonify({'status': 'error', 'message': tr('Nome de arquivo inválido')}), 400
 
         base_name, file_ext = os.path.splitext(filename)
         file_ext = file_ext.lower()
@@ -473,16 +474,15 @@ def upload_files():
                     saved_files += _save_pdf_pages(pdf_document, target_dir, base_name, 'page', max_size)
             except Exception:
                 logging.exception("upload: PDF ilegível %s", filename)
-                errors.append(f'{file.filename}: PDF não pôde ser lido.')
+                errors.append(tr('{arquivo}: PDF não pôde ser lido.', arquivo=file.filename))
         elif file_ext in PRESENTATION_EXTS:
             soffice = _find_libreoffice()
             if not soffice:
                 if updates.install_kind() == 'windows':
-                    errors.append(f'{file.filename}: falta o LibreOffice neste computador, que converte o PowerPoint em slides. '
-                                  'Instale no computador do U-Control em Sistema → Atualização → Instalar LibreOffice, '
-                                  'ou salve a apresentação como PDF e envie o PDF.')
+                    errors.append(tr('{arquivo}: falta o LibreOffice neste computador, que converte o PowerPoint em slides. Instale no computador do U-Control em Sistema → Atualização → Instalar LibreOffice, ou salve a apresentação como PDF e envie o PDF.',
+                                     arquivo=file.filename))
                 else:
-                    errors.append(f'{file.filename}: o servidor não tem o LibreOffice pra converter apresentações. Salve como PDF e envie o PDF.')
+                    errors.append(tr('{arquivo}: o servidor não tem o LibreOffice pra converter apresentações. Salve como PDF e envie o PDF.', arquivo=file.filename))
                 continue
             tmp_dir = tempfile.mkdtemp(prefix='ucontrol-ppt-')
             src_path = os.path.join(tmp_dir, filename)
@@ -538,7 +538,7 @@ def upload_files():
                 saved_files.append(filename)
             except (UnidentifiedImageError, OSError):
                 logging.exception("upload: imagem ilegível %s", filename)
-                errors.append(f'{file.filename}: formato não reconhecido. Envie foto (JPG, PNG, HEIC), vídeo, PDF ou PowerPoint.')
+                errors.append(tr('{arquivo}: formato não reconhecido. Envie foto (JPG, PNG, HEIC), vídeo, PDF ou PowerPoint.', arquivo=file.filename))
 
     if errors and not saved_files and not converting:
         return jsonify({'status': 'error', 'message': ' '.join(errors), 'errors': errors}), 400
@@ -558,17 +558,17 @@ def delete_image():
     image_name = request.json.get('image_name')
     folder = request.json.get('folder', 'Geral')
     if not image_name:
-        return jsonify({'status': 'error', 'message': 'Nome de imagem não fornecido.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Nome de imagem não fornecido.')}), 400
 
     image_path = _safe_folder_path(folder, image_name) if folder != 'Geral' else _safe_folder_path(image_name)
     if image_path is None:
-        return jsonify({'status': 'error', 'message': 'Caminho inválido.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Caminho inválido.')}), 400
     if os.path.exists(image_path):
         os.remove(image_path)
         _apagar_animado_orfao(os.path.dirname(image_path), os.path.basename(image_path))
-        return jsonify({'status': 'success', 'message': 'Imagem deletada com sucesso.'})
+        return jsonify({'status': 'success', 'message': tr('Imagem deletada com sucesso.')})
     else:
-        return jsonify({'status': 'error', 'message': 'Imagem não encontrada.'})
+        return jsonify({'status': 'error', 'message': tr('Imagem não encontrada.')})
 
 # Rota para deletar múltiplas imagens (suporta folder)
 @gallery_bp.route('/delete_images', methods=['POST'])
@@ -577,7 +577,7 @@ def delete_images():
     image_names = request.json.get('image_names', [])
     folder = request.json.get('folder', 'Geral')
     if not image_names:
-        return jsonify({'status': 'error', 'message': 'Nenhuma imagem selecionada.'}), 400
+        return jsonify({'status': 'error', 'message': tr('Nenhuma imagem selecionada.')}), 400
 
     target_dir = IMAGE_FOLDER if folder == 'Geral' else _safe_folder_path(folder)
     deleted = []

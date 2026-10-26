@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Links e QR codes - U-Control{% endblock %}
+{% block title %}{{ _('Links e QR codes') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,22 +16,22 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Links e QR codes</h1>
-            <div class="uc-page-sub">Aponte a câmera do celular para abrir cada tela. Os endereços são da rede local da igreja.</div>
+            <h1>{{ _('Links e QR codes') }}</h1>
+            <div class="uc-page-sub">{{ _('Aponte a câmera do celular para abrir cada tela. Os endereços são da rede local da igreja.') }}</div>
         </div>
     </div>
 
     <div class="links-grid">
         {% for item in dados %}
         <article class="uc-card link-card">
-            <h2>{{ item.nome }}</h2>
+            <h2>{{ _(item.nome) }}</h2>
             <div class="qr-code">
-                <img src="{{ item.img }}" alt="QR code para {{ item.nome }}">
+                <img src="{{ item.img }}" alt="{{ _('QR code para {nome}', nome=_(item.nome)) }}">
             </div>
             <div class="link-url uc-mono">{{ item.url }}</div>
             <div class="link-actions">
-                <a href="{{ item.url }}" target="_blank" rel="noopener" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-up-right-from-square"></i> Abrir</a>
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyUrl('{{ item.url }}')"><i class="fas fa-copy"></i> Copiar</button>
+                <a href="{{ item.url }}" target="_blank" rel="noopener" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-up-right-from-square"></i> {{ _('Abrir') }}</a>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyUrl('{{ item.url }}')"><i class="fas fa-copy"></i> {{ _('Copiar') }}</button>
             </div>
         </article>
         {% endfor %}

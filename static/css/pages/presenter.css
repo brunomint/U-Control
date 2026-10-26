@@ -36,7 +36,7 @@
 .apresentacao-bar[hidden] { display: none; }
 .apresentacao-bar .grow { flex: 1; min-width: 160px; font-weight: 700; }
 .thumb-wrap.is-animado::before {
-  content: "Animado";
+  content: attr(data-selo);   /* "Animado", traduzido em presenter.js */
   position: absolute; bottom: 8px; left: 8px; z-index: 1;
   padding: 2px 8px; border-radius: 999px;
   background: rgba(10, 12, 22, .8); color: #fff;

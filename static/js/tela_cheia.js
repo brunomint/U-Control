@@ -9,7 +9,7 @@
     const entrar = () => { if (!cheia()) document.documentElement.requestFullscreen().catch(() => {}); };
     entrar();
     const dica = document.createElement('div');
-    dica.textContent = 'Clique aqui para tela cheia';
+    dica.textContent = _t('Clique aqui para tela cheia');
     dica.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;' +
         'background:rgba(0,0,0,.75);color:#fff;font:600 18px system-ui,sans-serif;padding:12px 20px;border-radius:10px;';
     setTimeout(() => { if (!cheia()) document.body.appendChild(dica); }, 1200);

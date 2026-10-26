@@ -93,6 +93,11 @@ def data_pt(date_str):
                 'Sexta-feira', 'Sábado', 'Domingo']
         meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
                  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+        if i18n.idioma_atual() == 'en':  # Agenda e /view em inglês (i18n.py)
+            dias = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            meses = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                     'August', 'September', 'October', 'November', 'December']
+            return f"{dias[dt.weekday()]}, {meses[dt.month - 1]} {dt.day}, {dt.year}"
         return f"{dias[dt.weekday()]}, {dt.day} de {meses[dt.month - 1]} de {dt.year}"
     except Exception:
         return date_str

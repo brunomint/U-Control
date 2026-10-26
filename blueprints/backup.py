@@ -27,6 +27,7 @@ from flask_login import login_required, logout_user
 import paths
 import updates
 from extensions import db
+from i18n import gettext as tr
 
 backup_bp = Blueprint('backup', __name__)
 
@@ -101,18 +102,18 @@ def _conferir(zf, tmp):
     try:
         manifest = json.loads(zf.read('manifest.json'))
     except (KeyError, ValueError):
-        raise BackupInvalido('Este arquivo não é um backup do U-Control.')
+        raise BackupInvalido(tr('Este arquivo não é um backup do U-Control.'))
     if manifest.get('tipo') == 'pacote':
-        raise BackupInvalido('Este arquivo é um pacote de músicas/cultos: importe em Sistema → Exportar e importar.')
+        raise BackupInvalido(tr('Este arquivo é um pacote de músicas/cultos: importe em Sistema → Exportar e importar.'))
     if manifest.get('app') != 'U-Control' or 'banco/users.db' not in zf.namelist():
-        raise BackupInvalido('Este arquivo não é um backup do U-Control.')
+        raise BackupInvalido(tr('Este arquivo não é um backup do U-Control.'))
     if manifest.get('formato', 0) > FORMATO:
-        raise BackupInvalido('Backup de uma versão mais nova do U-Control. Atualize este antes de restaurar.')
+        raise BackupInvalido(tr('Backup de uma versão mais nova do U-Control. Atualize este antes de restaurar.'))
     for nome in zf.namelist():
         partes = nome.split('/')
         if nome.startswith('/') or '\\' in nome or '..' in partes or ':' in partes[0] \
                 or (partes[0] not in PASTAS and nome not in ('manifest.json', 'banco/users.db')):
-            raise BackupInvalido(f'Arquivo estranho dentro do backup: {nome}')
+            raise BackupInvalido(tr('Arquivo estranho dentro do backup: {nome}', nome=nome))
 
     banco = os.path.join(tmp, 'users.db')
     with zf.open('banco/users.db') as src, open(banco, 'wb') as dst:
@@ -121,14 +122,14 @@ def _conferir(zf, tmp):
         con = sqlite3.connect(banco)
         try:
             if con.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
-                raise BackupInvalido('O banco dentro do backup está corrompido.')
+                raise BackupInvalido(tr('O banco dentro do backup está corrompido.'))
             revisao = con.execute('SELECT version_num FROM alembic_version').fetchone()
         finally:
             con.close()
     except sqlite3.DatabaseError:
-        raise BackupInvalido('O banco dentro do backup não pôde ser lido.')
+        raise BackupInvalido(tr('O banco dentro do backup não pôde ser lido.'))
     if revisao and revisao[0] not in _revisoes_conhecidas():
-        raise BackupInvalido('Backup de uma versão mais nova do U-Control. Atualize este antes de restaurar.')
+        raise BackupInvalido(tr('Backup de uma versão mais nova do U-Control. Atualize este antes de restaurar.'))
     return manifest, banco
 
 
@@ -236,19 +237,19 @@ def api_backup_baixar():
 def api_backup_restaurar():
     arquivo = request.files.get('arquivo')
     if not arquivo or not arquivo.filename:
-        return jsonify({'error': 'Escolha o arquivo do backup.'}), 400
+        return jsonify({'error': tr('Escolha o arquivo do backup.')}), 400
     fd, caminho = tempfile.mkstemp(prefix='ucontrol-restaurar-', suffix='.zip')
     os.close(fd)
     try:
         arquivo.save(caminho)
         if not zipfile.is_zipfile(caminho):
-            return jsonify({'error': 'Este arquivo não é um backup do U-Control.'}), 400
+            return jsonify({'error': tr('Este arquivo não é um backup do U-Control.')}), 400
         manifest = restaurar(caminho)
     except BackupInvalido as e:
         return jsonify({'error': str(e)}), 400
     except Exception:
         logging.exception('backup: falha restaurando')
-        return jsonify({'error': 'Não deu pra restaurar. O que havia antes foi guardado em instance/backups.'}), 500
+        return jsonify({'error': tr('Não deu pra restaurar. O que havia antes foi guardado em instance/backups.')}), 500
     finally:
         os.remove(caminho)
     logging.info('backup: restaurado o backup de %s (versão %s)', manifest.get('criado'), manifest.get('versao'))

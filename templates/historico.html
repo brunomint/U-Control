@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Histórico - U-Control{% endblock %}
+{% block title %}{{ _('Histórico') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,28 +16,28 @@
 <main class="uc-page hist-page">
     <div class="uc-page-head">
         <div>
-            <h1>Histórico</h1>
-            <div class="uc-page-sub">Tudo o que foi exibido no telão: músicas, imagens, versículos e avisos</div>
+            <h1>{{ _('Histórico') }}</h1>
+            <div class="uc-page-sub">{{ _('Tudo o que foi exibido no telão: músicas, imagens, versículos e avisos') }}</div>
         </div>
-        <button type="button" class="uc-btn uc-btn-ghost uc-danger-text" onclick="clearHistory()"><i class="fas fa-trash-can"></i> Limpar histórico</button>
+        <button type="button" class="uc-btn uc-btn-ghost uc-danger-text" onclick="clearHistory()"><i class="fas fa-trash-can"></i> {{ _('Limpar histórico') }}</button>
     </div>
 
     <div class="hist-tabs uc-seg" role="tablist">
-        <button type="button" class="tab-btn active" onclick="switchTab('historico')"><i class="fas fa-clock-rotate-left"></i> Histórico</button>
-        <button type="button" class="tab-btn" onclick="switchTab('relatorio')"><i class="fas fa-ranking-star"></i> Mais tocadas</button>
+        <button type="button" class="tab-btn active" onclick="switchTab('historico')"><i class="fas fa-clock-rotate-left"></i> {{ _('Histórico') }}</button>
+        <button type="button" class="tab-btn" onclick="switchTab('relatorio')"><i class="fas fa-ranking-star"></i> {{ _('Mais tocadas') }}</button>
     </div>
 
     <section id="tab-historico">
-        <div id="content"><div class="uc-empty">Carregando…</div></div>
+        <div id="content"><div class="uc-empty">{{ _('Carregando…') }}</div></div>
     </section>
 
     <section id="tab-relatorio" style="display:none">
         <div class="period-bar">
-            <button type="button" class="period-btn active" onclick="setPeriod(7, this)">7 dias</button>
-            <button type="button" class="period-btn" onclick="setPeriod(30, this)">30 dias</button>
-            <button type="button" class="period-btn" onclick="setPeriod(0, this)">Todo o período</button>
+            <button type="button" class="period-btn active" onclick="setPeriod(7, this)">{{ _('7 dias') }}</button>
+            <button type="button" class="period-btn" onclick="setPeriod(30, this)">{{ _('30 dias') }}</button>
+            <button type="button" class="period-btn" onclick="setPeriod(0, this)">{{ _('Todo o período') }}</button>
         </div>
-        <div class="uc-card" id="ranking"><div class="uc-empty">Carregando…</div></div>
+        <div class="uc-card" id="ranking"><div class="uc-empty">{{ _('Carregando…') }}</div></div>
     </section>
 </main>
 {% endblock %}

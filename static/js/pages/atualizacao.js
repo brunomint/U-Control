@@ -4,11 +4,11 @@
 (function () {
     const $ = id => document.getElementById(id);
     const COMO = {
-        servidor: `<p><strong>Raspberry Pi / Linux:</strong> na pasta do U-Control, rode <code>git pull</code> e reinicie o serviço
-            (quem atualiza pelo <code>scripts/deploy.py</code>, rode ele no computador de sempre).</p>`,
-        docker: `<p><strong>Docker:</strong> na pasta do U-Control, rode <code>git pull</code> e <code>docker compose up -d --build</code>.</p>`,
-        windows_remoto: `<p>Para instalar, use o <strong>computador onde o U-Control está rodando</strong>: abra esta página nele
-            (menu da bandeja → Abrir Controle → Sistema → Atualização). Instalar fecha o programa por alguns segundos.</p>`,
+        servidor: '<p>' + _t('<strong>Raspberry Pi / Linux:</strong> na pasta do U-Control, rode <code>git pull</code> e reinicie o serviço (quem atualiza pelo <code>scripts/deploy.py</code>, rode ele no computador de sempre).') + '</p>',
+        docker: '<p>' + _t('<strong>Docker:</strong> na pasta do U-Control, rode <code>git pull</code> e <code>docker compose up -d --build</code>.') + '</p>',
+        windows_remoto: '<p>' + _t('Para instalar, use o <strong>computador onde o U-Control está rodando</strong>: abra esta página nele (menu da bandeja → Abrir Controle → Sistema → Atualização). Instalar fecha o programa por alguns segundos.') + '</p>',
+        // mesmo texto do windows_remoto, para o quadro do LibreOffice
+        windows_remoto_lo: '<p>' + _t('Para instalar o LibreOffice, use o <strong>computador onde o U-Control está rodando</strong>: abra esta página nele (menu da bandeja → Abrir Controle → Sistema → Atualização). Instalar fecha o programa por alguns segundos.') + '</p>',
     };
     let acompanhando = null;
 
@@ -30,16 +30,16 @@
         if (inst.estado === 'baixando') {
             barra.hidden = false;
             barra.firstElementChild.style.width = inst.progresso + '%';
-            $(p + '-msg').textContent = `Baixando o instalador do U-Control… ${inst.progresso}%`;
+            $(p + '-msg').textContent = _t('Baixando o instalador do U-Control… {pct}%', { pct: inst.progresso });
         } else if (inst.estado === 'instalando') {
             barra.hidden = false;
             barra.firstElementChild.style.width = '100%';
             $(p + '-msg').textContent = inst.libreoffice
-                ? 'Instalando. O Windows vai pedir permissão; o instalador baixa o LibreOffice (~360 MB, alguns minutos) e o U-Control abre de novo sozinho.'
-                : 'Instalando. O Windows vai pedir permissão; o U-Control fecha e abre de novo sozinho.';
+                ? _t('Instalando. O Windows vai pedir permissão; o instalador baixa o LibreOffice (~360 MB, alguns minutos) e o U-Control abre de novo sozinho.')
+                : _t('Instalando. O Windows vai pedir permissão; o U-Control fecha e abre de novo sozinho.');
         } else if (inst.estado === 'erro') {
             barra.hidden = true;
-            $(p + '-msg').textContent = 'Não deu pra baixar: ' + inst.erro;
+            $(p + '-msg').textContent = _t('Não deu pra baixar: {erro}', { erro: inst.erro });
         }
         // continua acompanhando enquanto instala: é assim que a página
         // percebe o U-Control fechar e abrir de novo
@@ -51,37 +51,37 @@
         try {
             s = await (await fetch('/api/update-status')).json();
         } catch (e) {
-            $('upd-sub').textContent = 'Sem conexão com o U-Control.';
+            $('upd-sub').textContent = _t('Sem conexão com o U-Control.');
             return;
         }
-        $('upd-sub').textContent = `Versão instalada: ${s.current}`;
+        $('upd-sub').textContent = _t('Versão instalada: {versao}', { versao: s.current });
         $('upd-card').hidden = false;
         mostrarLibreOffice(s);
         $('upd-actions').innerHTML = '';
         if (!s.checked && s.checking) {
             // consulta ao GitHub ainda em andamento (servidor acabou de ligar)
-            $('upd-title').textContent = 'Consultando o GitHub…';
+            $('upd-title').textContent = _t('Consultando o GitHub…');
             setTimeout(carregar, 2000);
             return;
         }
         if (!s.checked) {
-            $('upd-title').textContent = 'Não foi possível consultar se há versão nova';
-            $('upd-how').innerHTML = '<p class="uc-muted">Sem internet neste computador, ou o GitHub não respondeu. Tente de novo mais tarde.</p>';
+            $('upd-title').textContent = _t('Não foi possível consultar se há versão nova');
+            $('upd-how').innerHTML = '<p class="uc-muted">' + _t('Sem internet neste computador, ou o GitHub não respondeu. Tente de novo mais tarde.') + '</p>';
             return;
         }
         if (!s.available) {
-            $('upd-title').textContent = 'Você está na versão mais recente';
+            $('upd-title').textContent = _t('Você está na versão mais recente');
             return;
         }
-        $('upd-title').textContent = `Nova versão ${s.latest} disponível`;
+        $('upd-title').textContent = _t('Nova versão {versao} disponível', { versao: s.latest });
         if (s.notes) { $('upd-notes').textContent = s.notes; $('upd-notes').hidden = false; }
 
         if (s.can_install) {
-            const b = botao('<i class="fas fa-download"></i> Baixar e instalar', 'uc-btn-primary', async () => {
+            const b = botao('<i class="fas fa-download"></i> ' + _t('Baixar e instalar'), 'uc-btn-primary', async () => {
                 b.disabled = true;
                 const r = await fetch('/api/update/install', { method: 'POST' });
                 const dados = await r.json().catch(() => ({}));
-                if (!r.ok) { $('upd-msg').textContent = dados.error || 'Não deu pra começar.'; b.disabled = false; return; }
+                if (!r.ok) { $('upd-msg').textContent = dados.error || _t('Não deu pra começar.'); b.disabled = false; return; }
                 acompanhar();
             });
             if (mostrarInstalacao(s.install)) { b.disabled = true; acompanhar(); }
@@ -92,10 +92,10 @@
             const a = document.createElement('a');
             a.className = 'uc-btn uc-btn-secondary';
             a.href = s.release_url; a.target = '_blank'; a.rel = 'noopener';
-            a.innerHTML = '<i class="fas fa-up-right-from-square"></i> Ver no GitHub';
+            a.innerHTML = '<i class="fas fa-up-right-from-square"></i> ' + _t('Ver no GitHub');
             $('upd-actions').appendChild(a);
         }
-        botao('Agora não', 'uc-btn-ghost', () => {
+        botao(_t('Agora não'), 'uc-btn-ghost', () => {
             try { localStorage.setItem('uc_update_dispensada', s.latest); } catch (e) { /* sem storage */ }
             location.href = '/dashboard';
         });
@@ -107,17 +107,16 @@
         $('lo-actions').innerHTML = '';
         if (!s.can_install_libreoffice) {
             $('lo-how').innerHTML = s.checked
-                ? COMO.windows_remoto.replace('Para instalar', 'Para instalar o LibreOffice')
-                : '<p class="uc-muted">Para instalar daqui, este computador precisa de internet.</p>';
+                ? COMO.windows_remoto_lo
+                : '<p class="uc-muted">' + _t('Para instalar daqui, este computador precisa de internet.') + '</p>';
             return;
         }
-        $('lo-how').innerHTML = '<p>O U-Control baixa o instalador oficial do LibreOffice (~360 MB) e instala sozinho. '
-            + 'Ele fecha por alguns minutos enquanto isso: não faça durante o culto.</p>';
-        const b = botao('<i class="fas fa-download"></i> Instalar LibreOffice', 'uc-btn-primary', async () => {
+        $('lo-how').innerHTML = '<p>' + _t('O U-Control baixa o instalador oficial do LibreOffice (~360 MB) e instala sozinho. Ele fecha por alguns minutos enquanto isso: não faça durante o culto.') + '</p>';
+        const b = botao('<i class="fas fa-download"></i> ' + _t('Instalar LibreOffice'), 'uc-btn-primary', async () => {
             b.disabled = true;
             const r = await fetch('/api/update/install-libreoffice', { method: 'POST' });
             const dados = await r.json().catch(() => ({}));
-            if (!r.ok) { $('lo-msg').textContent = dados.error || 'Não deu pra começar.'; b.disabled = false; return; }
+            if (!r.ok) { $('lo-msg').textContent = dados.error || _t('Não deu pra começar.'); b.disabled = false; return; }
             acompanhar();
         }, 'lo-actions');
         if (s.install.libreoffice && mostrarInstalacao(s.install)) { b.disabled = true; acompanhar(); }
@@ -131,7 +130,7 @@
                 if (!mostrarInstalacao(s.install)) clearInterval(acompanhando);
             } catch (e) {
                 // servidor caiu = o instalador fechou o U-Control: vai voltar sozinho
-                $('upd-msg').textContent = 'O U-Control fechou para instalar. Esta página volta quando ele abrir de novo.';
+                $('upd-msg').textContent = _t('O U-Control fechou para instalar. Esta página volta quando ele abrir de novo.');
                 clearInterval(acompanhando);
                 esperarVoltar();
             }

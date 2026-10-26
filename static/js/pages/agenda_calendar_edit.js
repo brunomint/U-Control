@@ -1,5 +1,9 @@
-const weekdayShort = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
-const monthLong = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+// Em português, os nomes de sempre; nos outros idiomas, os do navegador
+const ucPt = ucLocale().startsWith('pt');
+const weekdayShort = ucPt ? ['DOM','SEG','TER','QUA','QUI','SEX','SÁB']
+    : Array.from({ length: 7 }, (x, i) => new Date(2000, 0, 2 + i).toLocaleDateString(ucLocale(), { weekday: 'short' }).toUpperCase());
+const monthLong = ucPt ? ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+    : Array.from({ length: 12 }, (x, i) => new Date(2000, i, 1).toLocaleDateString(ucLocale(), { month: 'long' }));
 let ordersData = {};
 let currentMonth = new Date();
 
@@ -24,7 +28,7 @@ function renderCalendar() {
     const lastDay = new Date(year, month+1, 0);
     const startWeekday = firstDay.getDay();
     const totalDays = lastDay.getDate();
-    const monthText = `${monthLong[month]} de ${year}`;
+    const monthText = _t('{mes} de {ano}', { mes: monthLong[month], ano: year });
 
     document.getElementById('monthLabel').textContent = monthText;
     const inner = document.getElementById('monthLabelInner');
@@ -56,7 +60,7 @@ async function loadOrders() {
         const empty = document.getElementById('emptyState');
         calendar.style.display = 'none';
         empty.style.display = 'block';
-        empty.textContent = 'Erro ao carregar agenda';
+        empty.textContent = _t('Erro ao carregar agenda');
     }
 }
 

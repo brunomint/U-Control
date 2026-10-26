@@ -33,8 +33,8 @@
             const btn = document.getElementById('blackoutBtn');
             btn.classList.toggle('active', blackoutActive);
             btn.innerHTML = blackoutActive
-                ? '<i class="fas fa-sun"></i> Voltar a imagem'
-                : '<i class="fas fa-moon"></i> Tela preta';
+                ? '<i class="fas fa-sun"></i> ' + _t('Voltar a imagem')
+                : '<i class="fas fa-moon"></i> ' + _t('Tela preta');
         }
 
         socket.on('atualizar_foto', function(data) {
@@ -103,7 +103,7 @@
                                         </div>
                                         <button class="video-restart-btn" data-restart-url="${item.url}"
                                                 onclick="event.stopPropagation(); restartVideoInMonitor('${item.url}')"
-                                                title="Reiniciar vídeo"
+                                                title="${_t('Reiniciar vídeo')}"
                                                 style="display:none; position:absolute; top:8px; right:8px;
                                                        background:rgba(0,0,0,0.65); color:white; border:none;
                                                        border-radius:50%; width:36px; height:36px; cursor:pointer;
@@ -130,13 +130,13 @@
                                 // tocando a partir dele (ver blueprints/apresentacao.py)
                                 const show = item.animado ? apresentacaoUrl(item.animado) : item.url;
                                 imgContainer.innerHTML = `
-                                    <div class="thumb-wrap${item.animado ? ' is-animado' : ''}">
-                                        <img src="${item.url}" alt="Imagem ${index + 1}" data-show="${show}"
+                                    <div class="thumb-wrap${item.animado ? ' is-animado' : ''}"${item.animado ? ` data-selo="${_t('Animado')}"` : ''}>
+                                        <img src="${item.url}" alt="${_t('Imagem {n}', { n: index + 1 })}" data-show="${show}"
                                              ${item.animado ? `data-svg="${item.animado.svg}" data-slide="${item.animado.slide}"` : ''}
                                              onclick="resetView('${show}')">
                                         <button type="button"
                                                 class="zoom-btn"
-                                                aria-label="Abrir zoom"
+                                                aria-label="${_t('Abrir zoom')}"
                                                 onclick="openZoomModal('${item.url}')"><i class="fas fa-magnifying-glass-plus"></i></button>
                                     </div>
                                 `;
@@ -170,23 +170,23 @@
                     if (mudou && itens.some(c => c.etapa !== 'slides') && getCurrentFolder() === pasta) loadImageGallery();
                     const em = etapa => itens.filter(c => c.etapa === etapa);
                     if (em('slides').length) {
-                        statusText.textContent = '⏳ Convertendo a apresentação… os slides aparecem aqui todos juntos.';
+                        statusText.textContent = '⏳ ' + _t('Convertendo a apresentação… os slides aparecem aqui todos juntos.');
                     } else if (em('animada').length) {
                         const n = em('animada').reduce((a, c) => a + (c.slides || 0), 0);
-                        statusText.textContent = `✅ ${n} slides prontos (já dá pra usar). ⏳ Preparando a versão animada…`;
+                        statusText.textContent = '✅ ' + _t('{n} slides prontos (já dá pra usar).', { n: n }) + ' ⏳ ' + _t('Preparando a versão animada…');
                     } else if (em('videos').length) {
-                        statusText.textContent = '✅ Slides prontos! ⏳ Preparando os vídeos dos slides…';
+                        statusText.textContent = '✅ ' + _t('Slides prontos!') + ' ⏳ ' + _t('Preparando os vídeos dos slides…');
                     } else {
                         clearInterval(espera);
                         const erro = em('erro').length;
                         const animadas = itens.filter(c => c.etapa === 'pronto' && c.animada).length;
                         if (erro) {
                             bar.style.background = '#e53935';
-                            statusText.textContent = '❌ A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.';
+                            statusText.textContent = '❌ ' + _t('A conversão não terminou. Tente salvar a apresentação como PDF e enviar o PDF.');
                             return;
                         }
-                        statusText.textContent = animadas ? '✅ Pronto, com a versão animada (slides marcados "Animado").'
-                            : nVideos ? '✅ Slides e vídeos prontos!' : '✅ Slides prontos!';
+                        statusText.textContent = '✅ ' + (animadas ? _t('Pronto, com a versão animada (slides marcados "Animado").')
+                            : nVideos ? _t('Slides e vídeos prontos!') : _t('Slides prontos!'));
                         setTimeout(() => { wrap.style.display = 'none'; }, 5000);
                     }
                 }).catch(() => {});
@@ -196,7 +196,7 @@
 
         function uploadImages() {
             const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) { if (window.ucToast) window.ucToast('Escolha os arquivos primeiro.', 'error'); return; }
+            if (!fileInput.files.length) { if (window.ucToast) window.ucToast(_t('Escolha os arquivos primeiro.'), 'error'); return; }
             const formData = new FormData();
             for (let i = 0; i < fileInput.files.length; i++) {
                 formData.append('images', fileInput.files[i]);
@@ -212,7 +212,7 @@
             wrap.style.display = 'block';
             bar.style.width = '0%';
             pctText.textContent = '0%';
-            statusText.textContent = 'Enviando...';
+            statusText.textContent = _t('Enviando...');
             btn.disabled = true;
             btn.style.opacity = '0.5';
 
@@ -245,10 +245,12 @@
                     const conv = data.converting || [];
                     const erros = data.errors || [];
                     const nVideos = Object.values(data.videos || {}).reduce((a, b) => a + b, 0);
-                    statusText.textContent = conv.length
-                        ? `✅ Enviado! Convertendo ${conv.join(', ')} — os slides aparecem aqui em cerca de 1 minuto` +
-                          (nVideos ? ` (com ${nVideos} vídeo${nVideos > 1 ? 's' : ''}; vídeo em formato antigo pode levar alguns minutos).` : '.')
-                        : '✅ Enviado!';
+                    statusText.textContent = !conv.length ? '✅ ' + _t('Enviado!')
+                        : '✅ ' + (nVideos === 0
+                            ? _t('Enviado! Convertendo {arquivos} — os slides aparecem aqui em cerca de 1 minuto.', { arquivos: conv.join(', ') })
+                            : nVideos === 1
+                            ? _t('Enviado! Convertendo {arquivos} — os slides aparecem aqui em cerca de 1 minuto (com 1 vídeo; vídeo em formato antigo pode levar alguns minutos).', { arquivos: conv.join(', ') })
+                            : _t('Enviado! Convertendo {arquivos} — os slides aparecem aqui em cerca de 1 minuto (com {n} vídeos; vídeo em formato antigo pode levar alguns minutos).', { arquivos: conv.join(', '), n: nVideos }));
                     if (erros.length) statusText.textContent += ' ⚠️ ' + erros.join(' ');
                     loadImageGallery();
                     fileInput.value = '';
@@ -262,7 +264,7 @@
                     }
                 } else {
                     bar.style.background = '#e53935';
-                    statusText.textContent = '❌ ' + ((data && data.message) || 'Erro no envio.');
+                    statusText.textContent = '❌ ' + ((data && data.message) || _t('Erro no envio.'));
                 }
             };
 
@@ -270,7 +272,7 @@
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 bar.style.background = '#e53935';
-                statusText.textContent = '❌ Erro de conexão.';
+                statusText.textContent = '❌ ' + _t('Erro de conexão.');
             };
 
             xhr.send(formData);
@@ -578,8 +580,10 @@
             bar.hidden = !liveApres;
             if (!liveApres) return;
             const nome = decodeURIComponent(liveApres.svg.split('/').pop()).replace(/_slide\.svg$/, '').replace(/_/g, ' ');
-            let txt = `${nome} — slide ${liveApres.slide + 1}` + (liveApres.slides ? ` de ${liveApres.slides}` : '');
-            if (liveApres.steps) txt += ` · animação ${liveApres.step} de ${liveApres.steps}`;
+            let txt = nome + ' — ' + (liveApres.slides
+                ? _t('slide {n} de {total}', { n: liveApres.slide + 1, total: liveApres.slides })
+                : _t('slide {n}', { n: liveApres.slide + 1 }));
+            if (liveApres.steps) txt += ' · ' + _t('animação {n} de {total}', { n: liveApres.step, total: liveApres.steps });
             document.getElementById('apresentacaoPos').textContent = txt;
         }
 
@@ -664,24 +668,24 @@
             zoomModal.id = 'zoom-modal';
             zoomModal.innerHTML = `
                 <div class="zoom-backdrop" onclick="closeZoomModal()"></div>
-                <div class="zoom-content" role="dialog" aria-modal="true" aria-label="Zoom da foto no telão">
+                <div class="zoom-content" role="dialog" aria-modal="true" aria-label="${_t('Zoom da foto no telão')}">
                     <div class="zoom-head">
-                        <h3><i class="fas fa-magnifying-glass"></i> Zoom no telão</h3>
+                        <h3><i class="fas fa-magnifying-glass"></i> ${_t('Zoom no telão')}</h3>
                         <span class="zoom-status" id="zoom-status"></span>
-                        <button type="button" class="zoom-close" onclick="closeZoomModal()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+                        <button type="button" class="zoom-close" onclick="closeZoomModal()" aria-label="${_t('Fechar')}"><i class="fas fa-xmark"></i></button>
                     </div>
                     <div class="zoom-stage" id="zoom-stage">
-                        <img id="zoom-image" src="" alt="Foto em zoom" draggable="false">
+                        <img id="zoom-image" src="" alt="${_t('Foto em zoom')}" draggable="false">
                     </div>
-                    <p class="zoom-hint">Arraste para mover · roda do mouse ou pinça para aproximar · duplo clique alterna 2x</p>
+                    <p class="zoom-hint">${_t('Arraste para mover · roda do mouse ou pinça para aproximar · duplo clique alterna 2x')}</p>
                     <div class="zoom-controls">
-                        <button type="button" class="zoom-step" id="zoom-out" aria-label="Diminuir zoom"><i class="fas fa-minus"></i></button>
-                        <input type="range" id="zoom-range" min="${ZOOM_MIN}" max="${ZOOM_MAX}" step="0.05" value="1" aria-label="Nível de zoom">
-                        <button type="button" class="zoom-step" id="zoom-in" aria-label="Aumentar zoom"><i class="fas fa-plus"></i></button>
+                        <button type="button" class="zoom-step" id="zoom-out" aria-label="${_t('Diminuir zoom')}"><i class="fas fa-minus"></i></button>
+                        <input type="range" id="zoom-range" min="${ZOOM_MIN}" max="${ZOOM_MAX}" step="0.05" value="1" aria-label="${_t('Nível de zoom')}">
+                        <button type="button" class="zoom-step" id="zoom-in" aria-label="${_t('Aumentar zoom')}"><i class="fas fa-plus"></i></button>
                         <span class="zoom-value" id="zoom-value">1.0x</span>
                         <span class="zoom-spacer"></span>
-                        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="zoom-reset"><i class="fas fa-expand"></i> Foto inteira</button>
-                        <button type="button" class="uc-btn uc-btn-primary uc-btn-sm" onclick="closeZoomModal()">Fechar</button>
+                        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="zoom-reset"><i class="fas fa-expand"></i> ${_t('Foto inteira')}</button>
+                        <button type="button" class="uc-btn uc-btn-primary uc-btn-sm" onclick="closeZoomModal()">${_t('Fechar')}</button>
                     </div>
                 </div>
             `;
@@ -824,8 +828,8 @@
             const live = zoomIsLive();
             zoomStatus.className = 'zoom-status ' + (live ? 'live' : 'off');
             zoomStatus.innerHTML = live
-                ? '<span class="dot"></span> No ar · o telão acompanha'
-                : '<i class="fas fa-circle-info"></i> Não está no ar · o zoom vai ao telão quando ela for liberada';
+                ? '<span class="dot"></span> ' + _t('No ar · o telão acompanha')
+                : '<i class="fas fa-circle-info"></i> ' + _t('Não está no ar · o zoom vai ao telão quando ela for liberada');
         }
 
         // Manda ao telão no máximo ~15x por segundo, sempre com o estado final
@@ -917,25 +921,25 @@
             fetch('/api/image_folders', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
             }).then(r => r.json()).then(data => {
-                if (data.status !== 'success') { toast('Não deu pra criar a pasta: ' + (data.message || ''), 'error'); return; }
+                if (data.status !== 'success') { toast(_t('Não deu pra criar a pasta: {erro}', { erro: data.message || '' }), 'error'); return; }
                 input.value = '';
                 localStorage.setItem('presenterFolder', data.name);
                 loadFolders();
-                toast(`Pasta "${data.name}" criada.`);
-            }).catch(() => toast('Não deu pra criar a pasta.', 'error'));
+                toast(_t('Pasta "{nome}" criada.', { nome: data.name }));
+            }).catch(() => toast(_t('Não deu pra criar a pasta.'), 'error'));
         }
 
         function deleteCurrentFolder() {
             const folder = getCurrentFolder();
             const btn = document.getElementById('deleteFolderBtn');
-            if (folder === 'Geral' || !askConfirm(btn, `Confirmar: excluir "${folder}" e as fotos dela`)) return;
+            if (folder === 'Geral' || !askConfirm(btn, _t('Confirmar: excluir "{pasta}" e as fotos dela', { pasta: folder }))) return;
             fetch(`/api/image_folders/${encodeURIComponent(folder)}`, { method: 'DELETE' })
                 .then(r => r.json()).then(data => {
-                    if (data.status !== 'success') { toast('Não deu pra excluir a pasta: ' + (data.message || ''), 'error'); return; }
+                    if (data.status !== 'success') { toast(_t('Não deu pra excluir a pasta: {erro}', { erro: data.message || '' }), 'error'); return; }
                     localStorage.setItem('presenterFolder', 'Geral');
                     loadFolders();
-                    toast(`Pasta "${folder}" excluída.`);
-                }).catch(() => toast('Não deu pra excluir a pasta.', 'error'));
+                    toast(_t('Pasta "{nome}" excluída.', { nome: folder }));
+                }).catch(() => toast(_t('Não deu pra excluir a pasta.'), 'error'));
         }
 
         function toggleSelectMode() {
@@ -977,16 +981,16 @@
         }
         function deleteSelectedImages() {
             const n = selectedImages.size;
-            if (!n || !askConfirm(document.getElementById('deleteSelectedBtn'), `Confirmar: excluir ${n}`)) return;
+            if (!n || !askConfirm(document.getElementById('deleteSelectedBtn'), _t('Confirmar: excluir {n}', { n: n }))) return;
             fetch('/delete_images', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image_names: Array.from(selectedImages), folder: getCurrentFolder() }),
             }).then(r => r.json()).then(data => {
-                if (data.status !== 'success') { toast('Não deu pra excluir: ' + (data.message || ''), 'error'); return; }
-                toast(`${(data.deleted || []).length} arquivo(s) excluído(s).`);
+                if (data.status !== 'success') { toast(_t('Não deu pra excluir: {erro}', { erro: data.message || '' }), 'error'); return; }
+                toast(_t('{n} arquivo(s) excluído(s).', { n: (data.deleted || []).length }));
                 toggleSelectMode();
                 loadImageGallery();
-            }).catch(() => toast('Não deu pra excluir.', 'error'));
+            }).catch(() => toast(_t('Não deu pra excluir.'), 'error'));
         }
 
         // Slideshow: troca as fotos da pasta sozinho, no telão (vai direto
@@ -1025,11 +1029,11 @@
         }
         function renderSlideshowButton(running) {
             const btn = document.getElementById('btnSlideshow');
-            btn.innerHTML = running ? '<i class="fas fa-stop"></i> Parar' : '<i class="fas fa-play"></i> Iniciar';
+            btn.innerHTML = running ? '<i class="fas fa-stop"></i> ' + _t('Parar') : '<i class="fas fa-play"></i> ' + _t('Iniciar');
             document.querySelector('.slideshow-row').classList.toggle('running', running);
         }
         function startSlideshow() {
-            if (!_galleryItems.length) { toast('Esta pasta não tem fotos.', 'error'); return; }
+            if (!_galleryItems.length) { toast(_t('Esta pasta não tem fotos.'), 'error'); return; }
             if (selectMode) toggleSelectMode();
             slideshowIndex = 0;
             _slideshowVideoWaiting = false;

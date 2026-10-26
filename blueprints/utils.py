@@ -12,6 +12,7 @@ from flask_login import login_required
 from nav_config import items_for_context
 from network_utils import PORTA, obter_endereco_ip
 import updates
+from i18n import gettext as _
 
 utils_bp = Blueprint('utils', __name__)
 
@@ -197,7 +198,7 @@ def download_monitor_launcher(so):
         mimetype = 'application/x-sh'
 
     else:
-        return jsonify({'error': 'Sistema operacional inválido. Use: windows, linux ou mac.'}), 400
+        return jsonify({'error': _('Sistema operacional inválido. Use: windows, linux ou mac.')}), 400
 
     response = make_response(content)
     response.headers['Content-Type'] = mimetype
@@ -232,7 +233,7 @@ def api_update_install():
     # Instalar fecha o programa: só de quem está no computador dele, nunca
     # de um celular no meio do culto
     if not _pedido_local():
-        return jsonify({'error': 'Instale pelo computador onde o U-Control está rodando.'}), 403
+        return jsonify({'error': _('Instale pelo computador onde o U-Control está rodando.')}), 403
     erro = updates.start_install()
     if erro:
         return jsonify({'error': erro}), 400
@@ -244,10 +245,10 @@ def api_update_install():
 def api_install_libreoffice():
     # Mesmo cuidado do Baixar e instalar: o instalador fecha o programa
     if not _pedido_local():
-        return jsonify({'error': 'Instale pelo computador onde o U-Control está rodando.'}), 403
+        return jsonify({'error': _('Instale pelo computador onde o U-Control está rodando.')}), 403
     from blueprints.gallery import _find_libreoffice
     if _find_libreoffice():
-        return jsonify({'error': 'O LibreOffice já está instalado neste computador.'}), 400
+        return jsonify({'error': _('O LibreOffice já está instalado neste computador.')}), 400
     erro = updates.start_install(libreoffice=True)
     if erro:
         return jsonify({'error': erro}), 400

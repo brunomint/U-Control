@@ -5,7 +5,7 @@ const passwordField = document.getElementById('password');
 togglePassword.addEventListener('click', function () {
     const show = passwordField.type === 'password';
     passwordField.type = show ? 'text' : 'password';
-    this.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+    this.setAttribute('aria-label', show ? _t('Ocultar senha') : _t('Mostrar senha'));
     this.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
 });
 

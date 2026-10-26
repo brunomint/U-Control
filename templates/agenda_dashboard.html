@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Agenda de Equipes - U-Control{% endblock %}
+{% block title %}{{ _('Agenda de Equipes') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,44 +16,44 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Agenda de equipes</h1>
-            <div class="uc-page-sub">Escalas de louvor e mídia, eventos e calendário do mês</div>
+            <h1>{{ _('Agenda de equipes') }}</h1>
+            <div class="uc-page-sub">{{ _('Escalas de louvor e mídia, eventos e calendário do mês') }}</div>
         </div>
         <div class="uc-btn-row">
-            <a class="uc-btn uc-btn-secondary" href="/agenda" target="_blank" rel="noopener"><i class="fas fa-calendar"></i> Calendário público</a>
-            <a class="uc-btn uc-btn-primary" href="/agenda/edit"><i class="fas fa-pen-to-square"></i> Editar calendário</a>
+            <a class="uc-btn uc-btn-secondary" href="/agenda" target="_blank" rel="noopener"><i class="fas fa-calendar"></i> {{ _('Calendário público') }}</a>
+            <a class="uc-btn uc-btn-primary" href="/agenda/edit"><i class="fas fa-pen-to-square"></i> {{ _('Editar calendário') }}</a>
         </div>
     </div>
 
     <div class="agenda-grid">
         <section class="uc-card" aria-labelledby="next-title">
-            <div class="uc-card-head"><h2 id="next-title">Próximas datas</h2></div>
+            <div class="uc-card-head"><h2 id="next-title">{{ _('Próximas datas') }}</h2></div>
             <ul id="recentDates" class="uc-rows">
-                <li class="uc-muted">Carregando…</li>
+                <li class="uc-muted">{{ _('Carregando…') }}</li>
             </ul>
         </section>
 
         <div class="side">
             <section class="uc-card" aria-labelledby="date-title">
-                <div class="uc-card-head"><h2 id="date-title">Ir para uma data</h2></div>
+                <div class="uc-card-head"><h2 id="date-title">{{ _('Ir para uma data') }}</h2></div>
                 <form class="uc-form-stack" action="/agenda/edit" method="get" onsubmit="handleDateRedirect(event)">
                     <div class="uc-field">
-                        <label for="dashDate">Data</label>
+                        <label for="dashDate">{{ _('Data') }}</label>
                         <input class="uc-input" type="date" id="dashDate" name="date" required>
                     </div>
                     <div class="uc-btn-row">
-                        <button type="button" class="uc-btn uc-btn-secondary" onclick="openAdmin()"><i class="fas fa-eye"></i> Ver escala</button>
-                        <button type="button" class="uc-btn uc-btn-primary" onclick="openEdit()"><i class="fas fa-pen"></i> Editar</button>
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="openAdmin()"><i class="fas fa-eye"></i> {{ _('Ver escala') }}</button>
+                        <button type="button" class="uc-btn uc-btn-primary" onclick="openEdit()"><i class="fas fa-pen"></i> {{ _('Editar') }}</button>
                     </div>
                 </form>
             </section>
 
             <section class="uc-card" aria-labelledby="links-title">
-                <div class="uc-card-head"><h2 id="links-title">Atalhos</h2></div>
+                <div class="uc-card-head"><h2 id="links-title">{{ _('Atalhos') }}</h2></div>
                 <ul class="uc-rows">
-                    <li><i class="fas fa-calendar"></i><span class="grow">Calendário público</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda" target="_blank" rel="noopener">Abrir</a></li>
-                    <li><i class="fas fa-calendar-check"></i><span class="grow">Próximo culto (link para a equipe)</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/hoje" target="_blank" rel="noopener">Abrir</a></li>
-                    <li><i class="fas fa-plus"></i><span class="grow">Nova ordem de culto</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/order/new">Abrir</a></li>
+                    <li><i class="fas fa-calendar"></i><span class="grow">{{ _('Calendário público') }}</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda" target="_blank" rel="noopener">{{ _('Abrir') }}</a></li>
+                    <li><i class="fas fa-calendar-check"></i><span class="grow">{{ _('Próximo culto (link para a equipe)') }}</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/hoje" target="_blank" rel="noopener">{{ _('Abrir') }}</a></li>
+                    <li><i class="fas fa-plus"></i><span class="grow">{{ _('Nova ordem de culto') }}</span><a class="uc-btn uc-btn-ghost uc-btn-sm" href="/order/new">{{ _('Abrir') }}</a></li>
                 </ul>
             </section>
         </div>

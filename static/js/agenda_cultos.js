@@ -7,6 +7,9 @@ window.AgendaCultos = (function () {
     const keyDate = key => key.slice(0, 10);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const byTime = (a, b) => (a.hora || '99').localeCompare(b.hora || '99');
+    // meta guarda a chave (Dirigente, Pregador...), que o agenda_share.js
+    // também usa; o texto mostrado é traduzido aqui
+    const metaLabel = label => ({ Dirigente: _t('Dirigente'), Pregador: _t('Pregador'), Resp: _t('Resp'), Obs: _t('Obs') }[label] || label);
 
     // Mesmo critério de sempre pra um culto aparecer no calendário
     function hasCulto(o) {
@@ -43,17 +46,17 @@ window.AgendaCultos = (function () {
     function dayCellInner(dayNumber, day) {
         const items = dayItems(day);
         const nCultos = day ? day.cultos.length : 0;
-        const count = nCultos > 1 ? `<span class="day-count">${nCultos} cultos</span>` : '';
+        const count = nCultos > 1 ? `<span class="day-count">${_t('{n} cultos', { n: nCultos })}</span>` : '';
         const top = `<div class="day-top"><div class="day-date">${dayNumber}</div>${count}</div>`;
         if (!items.length) {
-            return `${top}<div class="day-body"><div class="info-line muted">Sem eventos</div></div>`;
+            return `${top}<div class="day-body"><div class="info-line muted">${_t('Sem eventos')}</div></div>`;
         }
         const pill = it => it.kind === 'culto' ? 'tipo-pill' : 'eventos-pill';
         if (items.length === 1) {
             const it = items[0];
             const timeCls = it.kind === 'culto' ? 'time-pill-tipo' : 'time-pill-eventos';
             const meta = it.meta.filter(([, v]) => v).map(([label, v]) =>
-                `<div class="meta-line"><span class="meta-label">${label}:</span><span class="meta-value">${esc(v)}</span></div>`).join('');
+                `<div class="meta-line"><span class="meta-label">${metaLabel(label)}:</span><span class="meta-value">${esc(v)}</span></div>`).join('');
             return `${top}<div class="day-body"><div class="day-item">
                     <span class="pill ${pill(it)}">${esc(it.titulo)}</span>
                     ${it.hora ? `<span class="pill ${timeCls}">${esc(it.hora)}</span>` : ''}
@@ -65,7 +68,7 @@ window.AgendaCultos = (function () {
         const rows = visible.map(it =>
             `<div class="day-row"><span class="row-time">${esc(it.hora)}</span><span class="pill ${pill(it)}">${esc(it.titulo)}</span></div>`).join('');
         return `${top}<div class="day-body">${rows}</div>
-            <div class="day-footer"><span class="tag">${hidden ? `+${hidden} · ` : ''}Mais detalhes</span></div>`;
+            <div class="day-footer"><span class="tag">${hidden ? `+${hidden} · ` : ''}${_t('Mais detalhes')}</span></div>`;
     }
 
     return { keyDate, groupByDay, dayItems, dayCellInner, esc };

@@ -230,7 +230,7 @@ const fitSheetsToScreen = () => {
                                 const sheet = song.sheet_data.find(s => s.id === sheetId);
                                 if (sheet) {
                                     console.log('🎵 Display: Renderizando partitura:', sheet);
-                                    renderSheet('🎼 Partitura', sheet);
+                                    renderSheet('🎼 ' + _t('Partitura'), sheet);
                                     return;
                                 }
                             }
@@ -271,7 +271,7 @@ const fitSheetsToScreen = () => {
                             });
                             
                             console.log('🎵 Display: Renderizando seção mista com ordem preservada:', elements);
-                            renderMixedSectionOrdered(section.title || 'Seção', elements);
+                            renderMixedSectionOrdered(section.title || _t('Seção'), elements);
                             return;
                         }
                         
@@ -280,10 +280,10 @@ const fitSheetsToScreen = () => {
                         
                         if (!sectionText || sectionText.trim() === '') {
                             console.warn('⚠️ Display: Seção sem texto! Mostrando mensagem padrão.');
-                            sectionText = '(Seção vazia - adicione conteúdo no editor)';
+                            sectionText = '(' + _t('Seção vazia - adicione conteúdo no editor') + ')';
                         }
                         
-                        updateLyricsDisplay(section.title || `Seção ${sectionIndex || 0}`, sectionText);
+                        updateLyricsDisplay(section.title || _t('Seção {n}', { n: sectionIndex || 0 }), sectionText);
                     }
                 })
                 .catch(err => console.error('❌ Erro ao carregar música:', err));
@@ -348,7 +348,7 @@ const fitSheetsToScreen = () => {
         }
 
         // Exibe com quebra de linha para Bíblia
-        updateBibleDisplay(data.reference || 'Bíblia', verseText, versao);
+        updateBibleDisplay(data.reference || _t('Bíblia'), verseText, versao);
     });
 
     // Detecção de linha de cifra via ChordLines.isChordLine
@@ -460,7 +460,7 @@ const fitSheetsToScreen = () => {
                 .slice(0, 3);
             const preview = previewLines.join('  /  ');
             nextBox.innerHTML =
-                `<span class="next-label">A seguir:</span>` +
+                `<span class="next-label">${escapeHtml(_t('A seguir:'))}</span>` +
                 `<span class="next-title">${escapeHtml(data.nextTitle)}</span>` +
                 (preview ? `<span class="next-preview">${escapeHtml(preview)}</span>` : '');
             nextBox.style.display = 'block';
@@ -546,7 +546,7 @@ const fitSheetsToScreen = () => {
         );
         if (!hasContent) {
             console.warn('⚠️ Partitura sem notas!');
-            $('#sheet-container').html('<p style="color:orange; text-align:center; padding:40px;">Partitura vazia - sem notas para exibir</p>');
+            $('#sheet-container').html('<p style="color:orange; text-align:center; padding:40px;">' + _t('Partitura vazia - sem notas para exibir') + '</p>');
             return;
         }
 
@@ -556,7 +556,7 @@ const fitSheetsToScreen = () => {
             fitSheetsToScreen();
         }).catch(error => {
             console.error('❌ Erro ao renderizar partitura:', error);
-            $('#sheet-container').html(`<p style="color:red; text-align:center; padding:40px;">Erro ao renderizar partitura:<br>${error.message}</p>`);
+            $('#sheet-container').html(`<p style="color:red; text-align:center; padding:40px;">${_t('Erro ao renderizar partitura')}:<br>${error.message}</p>`);
         });
     }
     
@@ -657,7 +657,7 @@ const fitSheetsToScreen = () => {
             (Array.isArray(sheetData.notes) && sheetData.notes.length > 0)
         );
         if (!hasContent) {
-            $(`#${divId}`).html('<p style="color:orange; text-align:center; padding:10px;">Partitura vazia</p>');
+            $(`#${divId}`).html('<p style="color:orange; text-align:center; padding:10px;">' + _t('Partitura vazia') + '</p>');
             shrink();
             return;
         }
@@ -675,7 +675,7 @@ const fitSheetsToScreen = () => {
             fitSheetsToScreen();
         }).catch(error => {
             console.error('❌ Erro ao renderizar seção mista:', error);
-            $('#sheet-container').html(`<p style="color:red; text-align:center; padding:20px;">Erro: ${error.message}</p>`);
+            $('#sheet-container').html(`<p style="color:red; text-align:center; padding:20px;">${_t('Erro: {erro}', { erro: error.message })}</p>`);
             shrink();
         });
     }

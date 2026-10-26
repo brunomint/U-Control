@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{{ uc_lang_tag }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="/static/U-Control-ico.ico">
-    <title>Tela do PC</title>
+    <title>{{ _('Tela do PC') }}</title>
     <script src="/static/vendor/socketio/socket.io.min.js"></script>
     <style>
         html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
@@ -19,7 +19,7 @@
         dividido (control.js, SOURCES) ou uma tela avulsa. role 'any':
         recebe seja qual for o alvo escolhido no Controle. #}
     <video id="screenShareVideo" style="display:none" autoplay playsinline></video>
-    <p id="aguardando">Nenhuma tela compartilhada</p>
+    <p id="aguardando">{{ _('Nenhuma tela compartilhada') }}</p>
     <script src="{{ versioned_static('js/screen_share_viewer.js') }}"></script>
     <script>
         // Dentro de outra página, só a metade do monitor dividido assiste.
@@ -28,7 +28,7 @@
         // envia, dividindo a banda e a qualidade de todas as telas.
         const metadeDoMonitor = new URLSearchParams(location.search).get('host') === 'monitor';
         if (window.top !== window.self && !metadeDoMonitor) {
-            document.getElementById('aguardando').textContent = 'Tela do PC';
+            document.getElementById('aguardando').textContent = {{ _('Tela do PC')|tojson }};
         } else {
             const socket = io();
             ucScreenShareViewer(socket, document.getElementById('screenShareVideo'), {

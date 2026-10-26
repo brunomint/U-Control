@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Bíblia - Display{% endblock %}
+{% block title %}{{ _('Bíblia - Display') }}{% endblock %}
 
 {% block head_extra %}
 <link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
@@ -15,7 +15,7 @@
 <div class="container" id="container">
     <div class="waiting" id="waiting">
         <i class="fas fa-book-bible"></i>
-        <p>Aguardando versículos...</p>
+        <p>{{ _('Aguardando versículos...') }}</p>
     </div>
 
     <div id="content" style="display: none;">

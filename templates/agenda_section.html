@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_tipo_culto.html" import tipo_culto %}
 {% set app_theme = true %}
-{% set section_title = section == 'louvor' and 'Louvor e dirigência' or section == 'midia' and 'Escala de mídia' or 'Eventos' %}
+{% set section_title = section == 'louvor' and _('Louvor e dirigência') or section == 'midia' and _('Escala de mídia') or _('Eventos') %}
 
 {% block title %}{{ section_title }} · {{ date | data_pt }}{% endblock %}
 
@@ -18,24 +18,24 @@
 <main class="uc-page section-page">
     <div class="uc-page-head">
         <div>
-            <a class="uc-link" href="/agenda/{{ day }}/admin#culto-{{ date }}"><i class="fas fa-arrow-left"></i> Escala do dia</a>
+            <a class="uc-link" href="/agenda/{{ day }}/admin#culto-{{ date }}"><i class="fas fa-arrow-left"></i> {{ _('Escala do dia') }}</a>
             <h1>{{ section_title }}</h1>
             <div class="uc-page-sub">{{ date | data_pt }}</div>
         </div>
         <div class="uc-btn-row">
-            <button type="button" class="uc-btn uc-btn-ghost" onclick="abrirModalCopiar()"><i class="fas fa-calendar-plus"></i> Copiar mês</button>
-            <button type="button" class="uc-btn uc-btn-primary" id="saveBtn"><i class="fas fa-floppy-disk"></i> Salvar</button>
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="abrirModalCopiar()"><i class="fas fa-calendar-plus"></i> {{ _('Copiar mês') }}</button>
+            <button type="button" class="uc-btn uc-btn-primary" id="saveBtn"><i class="fas fa-floppy-disk"></i> {{ _('Salvar') }}</button>
         </div>
     </div>
     {% if cultos %}
-    <nav class="culto-tabs" aria-label="Cultos do dia">
+    <nav class="culto-tabs" aria-label="{{ _('Cultos do dia') }}">
         <div class="uc-seg">
             {% for c in cultos %}
             <a href="/agenda/{{ c.key }}/{{ section }}" aria-current="{{ 'page' if c.key == date else 'false' }}"><span class="t">{{ c.hora or '--:--' }}</span> {{ c.tipo }}</a>
             {% endfor %}
         </div>
         {% if not is_new %}
-        <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/agenda/{{ day }}/novo-culto?secao={{ section }}"><i class="fas fa-plus"></i> Novo culto</a>
+        <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/agenda/{{ day }}/novo-culto?secao={{ section }}"><i class="fas fa-plus"></i> {{ _('Novo culto') }}</a>
         {% endif %}
     </nav>
     {% endif %}
@@ -45,11 +45,11 @@
         {% if section == 'louvor' %}
             <div class="form-grid">
                 <div class="uc-field">
-                    <label for="tipo">Tipo de culto</label>
+                    <label for="tipo">{{ _('Tipo de culto') }}</label>
                     {{ tipo_culto('tipo', order.get('tipo', ''), com_nenhum=true) }}
                 </div>
                 <div class="uc-field">
-                    <label for="horario_culto">Horário</label>
+                    <label for="horario_culto">{{ _('Horário') }}</label>
                     <div class="hour-presets">
                         <button type="button" class="hour-btn" onclick="setHora(this,'09:00')">09:00</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'18:40')">18:40</button>
@@ -57,23 +57,23 @@
                         <button type="button" class="hour-btn" onclick="setHora(this,'19:30')">19:30</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'20:00')">20:00</button>
                     </div>
-                    <input id="horario_culto" placeholder="Ex.: 19:00" value="{{ order.get('horario_culto','') }}">
+                    <input id="horario_culto" placeholder="{{ _('Ex.: 19:00') }}" value="{{ order.get('horario_culto','') }}">
                 </div>
                 <div class="uc-field">
-                    <label for="dirigente">Dirigente</label>
+                    <label for="dirigente">{{ _('Dirigente') }}</label>
                     <input id="dirigente" value="{{ order.get('dirigente','') }}">
                 </div>
                 <div class="uc-field">
-                    <label for="pregador">Pregação</label>
+                    <label for="pregador">{{ _('Pregação') }}</label>
                     <input id="pregador" value="{{ order.get('pregador','') }}">
                 </div>
                 <div class="uc-field">
-                    <label for="musicos">Músicos <span class="hint">um por linha: Instrumento - Pessoa</span></label>
-                    <textarea id="musicos" rows="4" placeholder="Guitarra - Leo">{% for m in order.get('louvor', {}).get('musicos', []) %}{{ m.get('instrumento','') }} - {{ m.get('pessoa','') }}
+                    <label for="musicos">{{ _('Músicos') }} <span class="hint">{{ _('um por linha: Instrumento - Pessoa') }}</span></label>
+                    <textarea id="musicos" rows="4" placeholder="{{ _('Guitarra - Leo') }}">{% for m in order.get('louvor', {}).get('musicos', []) %}{{ m.get('instrumento','') }} - {{ m.get('pessoa','') }}
 {% endfor %}</textarea>
                 </div>
                 <div class="uc-field">
-                    <label for="cantores">Vozes <span class="hint">um nome por linha</span></label>
+                    <label for="cantores">{{ _('Vozes') }} <span class="hint">{{ _('um nome por linha') }}</span></label>
                     <textarea id="cantores" rows="4" placeholder="Ana">{% for c in order.get('louvor', {}).get('cantores', []) %}{{ c }}
 {% endfor %}</textarea>
                 </div>
@@ -81,22 +81,22 @@
 
             <div class="items-block">
                 <div class="block-head">
-                    <h2 class="uc-label-caps">Ordem do culto</h2>
-                    <a href="/new_song" target="_blank" rel="noopener noreferrer" class="uc-btn uc-btn-ghost uc-btn-sm"><i class="fas fa-plus"></i> Cadastrar música nova</a>
+                    <h2 class="uc-label-caps">{{ _('Ordem do culto') }}</h2>
+                    <a href="/new_song" target="_blank" rel="noopener noreferrer" class="uc-btn uc-btn-ghost uc-btn-sm"><i class="fas fa-plus"></i> {{ _('Cadastrar música nova') }}</a>
                 </div>
                 <div class="search-box uc-search">
                     <i class="fas fa-music"></i>
-                    <input type="text" id="searchInput" placeholder="Adicionar música: busque por título, autor ou letra" autocomplete="off">
+                    <input type="text" id="searchInput" placeholder="{{ _('Adicionar música: busque por título, autor ou letra') }}" autocomplete="off">
                     <div id="autocompleteList" class="autocomplete-list" style="display:none;"></div>
                 </div>
                 <div class="actions-row">
                     <div class="add-input-group">
-                        <input type="text" id="freeTextInput" placeholder="Texto livre (ex.: Oração, Avisos)">
-                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addToList()"><i class="fas fa-plus"></i> Texto</button>
+                        <input type="text" id="freeTextInput" placeholder="{{ _('Texto livre (ex.: Oração, Avisos)') }}">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addToList()"><i class="fas fa-plus"></i> {{ _('Texto') }}</button>
                     </div>
                     <div class="add-input-group">
-                        <input type="text" id="bibleRefInput" placeholder="Leitura bíblica (ex.: João 3:16)">
-                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleToList()"><i class="fas fa-plus"></i> Leitura</button>
+                        <input type="text" id="bibleRefInput" placeholder="{{ _('Leitura bíblica (ex.: João 3:16)') }}">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleToList()"><i class="fas fa-plus"></i> {{ _('Leitura') }}</button>
                     </div>
                 </div>
                 <div id="songList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
@@ -104,8 +104,8 @@
 
             {% if order.get('tipo') or order.get('dirigente') or order.get('itens') %}
             <div class="culto-actions">
-                <span class="uc-muted">A mídia e a ordem do culto são deste culto; os eventos são do dia.</span>
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text" id="deleteCultoBtn"><i class="fas fa-trash-can"></i> Excluir este culto</button>
+                <span class="uc-muted">{{ _('A mídia e a ordem do culto são deste culto; os eventos são do dia.') }}</span>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text" id="deleteCultoBtn"><i class="fas fa-trash-can"></i> {{ _('Excluir este culto') }}</button>
             </div>
             {% endif %}
 
@@ -114,24 +114,24 @@
             {% if midia is not mapping %}{% set midia = {} %}{% endif %}
             <div class="form-grid">
                 <div class="uc-field">
-                    <label for="midia_lider">Líder</label>
+                    <label for="midia_lider">{{ _('Líder') }}</label>
                     <input id="midia_lider" value="{{ midia.get('lider','') }}">
                 </div>
                 <div class="uc-field">
-                    <label for="midia_palco">Operacional de palco</label>
+                    <label for="midia_palco">{{ _('Operacional de palco') }}</label>
                     <input id="midia_palco" value="{{ midia.get('palco','') }}">
                 </div>
                 <div class="uc-field">
-                    <label for="midia_visual">Mídia social</label>
+                    <label for="midia_visual">{{ _('Mídia social') }}</label>
                     <input id="midia_visual" value="{{ midia.get('visual','') }}">
                 </div>
                 <div class="uc-field span-2">
-                    <label for="midia_team">Equipe <span class="hint">um por linha: Função - Pessoa</span></label>
-                    <textarea id="midia_team" rows="4" placeholder="Projeção - Ana">{% for m in midia.get('equipe', []) %}{{ m.get('nome','') }} - {{ m.get('pessoa','') }}
+                    <label for="midia_team">{{ _('Equipe') }} <span class="hint">{{ _('um por linha: Função - Pessoa') }}</span></label>
+                    <textarea id="midia_team" rows="4" placeholder="{{ _('Projeção - Ana') }}">{% for m in midia.get('equipe', []) %}{{ m.get('nome','') }} - {{ m.get('pessoa','') }}
 {% endfor %}</textarea>
                 </div>
                 <div class="uc-field span-2">
-                    <label for="midia_obs">Observações</label>
+                    <label for="midia_obs">{{ _('Observações') }}</label>
                     <textarea id="midia_obs" rows="3">{{ midia.get('obs','') }}</textarea>
                 </div>
             </div>
@@ -141,29 +141,29 @@
             <div id="eventos-container" class="eventos-container">
                 {% for evento in eventos %}
                 <div class="evento-bloco">
-                    <label>Título do evento</label>
+                    <label>{{ _('Título do evento') }}</label>
                     <input name="eventos[{{ loop.index0 }}][titulo]" value="{{ evento.get('titulo','') }}">
 
-                    <label>Horário</label>
+                    <label>{{ _('Horário') }}</label>
                     <div class="hour-presets">
                         <button type="button" class="hour-btn" onclick="setHora(this,'18:40')">18:40</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'19:00')">19:00</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'19:30')">19:30</button>
                         <button type="button" class="hour-btn" onclick="setHora(this,'20:00')">20:00</button>
                     </div>
-                    <input name="eventos[{{ loop.index0 }}][hora]" value="{{ evento.get('hora','') }}" placeholder="Ex.: 19:30">
+                    <input name="eventos[{{ loop.index0 }}][hora]" value="{{ evento.get('hora','') }}" placeholder="{{ _('Ex.: 19:30') }}">
 
-                    <label>Responsáveis</label>
+                    <label>{{ _('Responsáveis') }}</label>
                     <textarea name="eventos[{{ loop.index0 }}][responsavel]">{{ evento.get('responsavel','') }}</textarea>
 
-                    <label>Observações</label>
+                    <label>{{ _('Observações') }}</label>
                     <textarea name="eventos[{{ loop.index0 }}][obs]">{{ evento.get('obs','') }}</textarea>
 
-                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text evento-remove" onclick="this.closest('.evento-bloco').remove()"><i class="fas fa-trash-can"></i> Remover evento</button>
+                    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm uc-danger-text evento-remove" onclick="this.closest('.evento-bloco').remove()"><i class="fas fa-trash-can"></i> {{ _('Remover evento') }}</button>
                 </div>
                 {% endfor %}
             </div>
-            <button type="button" class="uc-btn uc-btn-secondary" onclick="addEvento()"><i class="fas fa-plus"></i> Adicionar evento</button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="addEvento()"><i class="fas fa-plus"></i> {{ _('Adicionar evento') }}</button>
         {% endif %}
     </section>
 </main>
@@ -172,25 +172,25 @@
 <div class="uc-modal-overlay" id="modal-copiar" style="display:none" onclick="if(event.target===this)fecharModalCopiar()">
     <div class="uc-modal" role="dialog" aria-modal="true" aria-labelledby="copiar-title">
         <div class="uc-modal-head">
-            <h2 id="copiar-title">Copiar mês</h2>
-            <button type="button" class="uc-modal-close" onclick="fecharModalCopiar()" aria-label="Fechar">&times;</button>
+            <h2 id="copiar-title">{{ _('Copiar mês') }}</h2>
+            <button type="button" class="uc-modal-close" onclick="fecharModalCopiar()" aria-label="{{ _('Fechar') }}">&times;</button>
         </div>
         <div class="uc-modal-body">
-            <p class="uc-muted mes-subtitle">Copia esta escala de um mês para os mesmos dias da semana de outro mês.</p>
+            <p class="uc-muted mes-subtitle">{{ _('Copia esta escala de um mês para os mesmos dias da semana de outro mês.') }}</p>
             <div class="uc-field">
-                <label for="copiar-orig-mes">Copiar de</label>
+                <label for="copiar-orig-mes">{{ _('Copiar de') }}</label>
                 <div class="mes-header">
                     <select id="copiar-orig-mes" class="uc-input">
-                        {% for m in ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'] %}<option value="{{ loop.index0 }}">{{ m }}</option>{% endfor %}
+                        {% for m in [_('Janeiro'),_('Fevereiro'),_('Março'),_('Abril'),_('Maio'),_('Junho'),_('Julho'),_('Agosto'),_('Setembro'),_('Outubro'),_('Novembro'),_('Dezembro')] %}<option value="{{ loop.index0 }}">{{ m }}</option>{% endfor %}
                     </select>
                     <select id="copiar-orig-ano" class="uc-input"></select>
                 </div>
             </div>
             <div class="uc-field">
-                <label for="copiar-dest-mes">Aplicar em</label>
+                <label for="copiar-dest-mes">{{ _('Aplicar em') }}</label>
                 <div class="mes-header">
                     <select id="copiar-dest-mes" class="uc-input">
-                        {% for m in ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'] %}<option value="{{ loop.index0 }}">{{ m }}</option>{% endfor %}
+                        {% for m in [_('Janeiro'),_('Fevereiro'),_('Março'),_('Abril'),_('Maio'),_('Junho'),_('Julho'),_('Agosto'),_('Setembro'),_('Outubro'),_('Novembro'),_('Dezembro')] %}<option value="{{ loop.index0 }}">{{ m }}</option>{% endfor %}
                     </select>
                     <select id="copiar-dest-ano" class="uc-input"></select>
                 </div>
@@ -199,8 +199,8 @@
             <div id="copiar-result" class="mes-result"></div>
         </div>
         <div class="uc-modal-foot">
-            <button type="button" class="uc-btn uc-btn-ghost" onclick="fecharModalCopiar()">Cancelar</button>
-            <button type="button" class="uc-btn uc-btn-primary mes-apply-btn" onclick="executarCopiar()">Copiar e aplicar</button>
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="fecharModalCopiar()">{{ _('Cancelar') }}</button>
+            <button type="button" class="uc-btn uc-btn-primary mes-apply-btn" onclick="executarCopiar()">{{ _('Copiar e aplicar') }}</button>
         </div>
     </div>
 </div>

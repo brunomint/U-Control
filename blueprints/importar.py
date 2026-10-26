@@ -19,6 +19,7 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from flask_login import login_required
 
 import importar_musicas
+from i18n import gettext as _
 from songs_store import chave_musica, get_song, musicas_por_chave, next_song_id, save_song
 
 importar_bp = Blueprint('importar', __name__)
@@ -57,19 +58,19 @@ def importar_page():
 def api_analisar():
     arquivos = [f for f in request.files.getlist('arquivos') if f and f.filename]
     if not arquivos:
-        return jsonify({'error': 'Escolha os arquivos das músicas.'}), 400
+        return jsonify({'error': _('Escolha os arquivos das músicas.')}), 400
     musicas, erros, total = [], [], 0
     for arq in arquivos:
         dados = arq.read(LIMITE_ENVIO + 1)
         total += len(dados)
         if total > LIMITE_ENVIO:
-            return jsonify({'error': 'Arquivos grandes demais (máximo 80 MB por vez).'}), 400
+            return jsonify({'error': _('Arquivos grandes demais (máximo 80 MB por vez).')}), 400
         try:
             musicas += importar_musicas.ler(arq.filename, dados)
         except importar_musicas.ArquivoInvalido as e:
             erros.append(str(e))
     if not musicas:
-        return jsonify({'error': ' '.join(erros) or 'Nenhuma música reconhecida.', 'erros': erros}), 400
+        return jsonify({'error': ' '.join(erros) or _('Nenhuma música reconhecida.'), 'erros': erros}), 400
 
     daqui = musicas_por_chave()
     vistas = set()
@@ -100,10 +101,10 @@ def api_importar():
     pedido = request.get_json(silent=True) or {}
     token = pedido.get('token') or ''
     if not re.fullmatch(r'[0-9a-f]{32}', token):
-        return jsonify({'error': 'Importação não encontrada. Envie os arquivos de novo.'}), 400
+        return jsonify({'error': _('Importação não encontrada. Envie os arquivos de novo.')}), 400
     caminho = os.path.join(_pasta_temp(), token + '.json')
     if not os.path.exists(caminho):
-        return jsonify({'error': 'Importação não encontrada. Envie os arquivos de novo.'}), 400
+        return jsonify({'error': _('Importação não encontrada. Envie os arquivos de novo.')}), 400
     with open(caminho, encoding='utf-8') as f:
         musicas = json.load(f)
     escolhidas = {int(i) for i in pedido.get('importar', []) if str(i).isdigit()}

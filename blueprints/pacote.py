@@ -31,6 +31,7 @@ import paths
 import updates
 from blueprints.gallery import _safe_folder_path
 from extensions import db
+from i18n import gettext as tr
 from orders_store import get_order, save_order
 from songs_store import chave_musica, get_song, musicas_por_chave, next_song_id, save_song
 
@@ -131,18 +132,18 @@ class PacoteInvalido(Exception):
 
 def ler_pacote(caminho):
     if not zipfile.is_zipfile(caminho):
-        raise PacoteInvalido('Este arquivo não é um pacote do U-Control.')
+        raise PacoteInvalido(tr('Este arquivo não é um pacote do U-Control.'))
     with zipfile.ZipFile(caminho) as zf:
         try:
             manifest = json.loads(zf.read('manifest.json'))
         except (KeyError, ValueError):
-            raise PacoteInvalido('Este arquivo não é um pacote do U-Control.')
+            raise PacoteInvalido(tr('Este arquivo não é um pacote do U-Control.'))
         if manifest.get('app') != 'U-Control':
-            raise PacoteInvalido('Este arquivo não é um pacote do U-Control.')
+            raise PacoteInvalido(tr('Este arquivo não é um pacote do U-Control.'))
         if manifest.get('tipo') != 'pacote':
-            raise PacoteInvalido('Este arquivo é um backup completo: restaure em Sistema → Backup.')
+            raise PacoteInvalido(tr('Este arquivo é um backup completo: restaure em Sistema → Backup.'))
         if manifest.get('formato', 0) > FORMATO:
-            raise PacoteInvalido('Pacote de uma versão mais nova do U-Control. Atualize este antes de importar.')
+            raise PacoteInvalido(tr('Pacote de uma versão mais nova do U-Control. Atualize este antes de importar.'))
         dados = json.loads(zf.read('pacote.json'))
         arquivos = {}
         for nome in zf.namelist():
@@ -151,7 +152,7 @@ def ler_pacote(caminho):
             partes = nome.split('/')
             if len(partes) != 3 or partes[0] != 'imagens' or partes[1] not in dados.get('pastas', []) \
                     or partes[2] in ('', '.', '..') or '\\' in nome or partes[1] in ('.', '..', ''):
-                raise PacoteInvalido(f'Arquivo estranho dentro do pacote: {nome}')
+                raise PacoteInvalido(tr('Arquivo estranho dentro do pacote: {nome}', nome=nome))
             arquivos.setdefault(partes[1], []).append((partes[2], zf.getinfo(nome).file_size))
     return manifest, dados, arquivos
 
@@ -273,7 +274,7 @@ def api_pacote_itens():
 def api_pacote_exportar():
     pedido = request.get_json(silent=True) or {}
     if not (pedido.get('musicas') or pedido.get('cultos') or pedido.get('pastas')):
-        return jsonify({'error': 'Escolha ao menos uma música, culto ou pasta.'}), 400
+        return jsonify({'error': tr('Escolha ao menos uma música, culto ou pasta.')}), 400
     fd, caminho = tempfile.mkstemp(prefix='ucontrol-pacote-', suffix='.zip')
     os.close(fd)
 
@@ -292,7 +293,7 @@ def api_pacote_exportar():
 def api_pacote_analisar():
     arquivo = request.files.get('arquivo')
     if not arquivo or not arquivo.filename:
-        return jsonify({'error': 'Escolha o arquivo do pacote.'}), 400
+        return jsonify({'error': tr('Escolha o arquivo do pacote.')}), 400
     token = uuid.uuid4().hex
     caminho = os.path.join(_pasta_temp(), token + '.zip')
     arquivo.save(caminho)
@@ -300,7 +301,7 @@ def api_pacote_analisar():
         resultado = analisar(caminho)
     except (PacoteInvalido, ValueError, KeyError) as e:
         os.remove(caminho)
-        return jsonify({'error': str(e) if isinstance(e, PacoteInvalido) else 'Pacote danificado.'}), 400
+        return jsonify({'error': str(e) if isinstance(e, PacoteInvalido) else tr('Pacote danificado.')}), 400
     return jsonify({'token': token, **resultado})
 
 
@@ -310,10 +311,10 @@ def api_pacote_importar():
     pedido = request.get_json(silent=True) or {}
     token = pedido.get('token') or ''
     if not re.fullmatch(r'[0-9a-f]{32}', token):
-        return jsonify({'error': 'Pacote não encontrado. Envie de novo.'}), 400
+        return jsonify({'error': tr('Pacote não encontrado. Envie de novo.')}), 400
     caminho = os.path.join(_pasta_temp(), token + '.zip')
     if not os.path.exists(caminho):
-        return jsonify({'error': 'Pacote não encontrado. Envie de novo.'}), 400
+        return jsonify({'error': tr('Pacote não encontrado. Envie de novo.')}), 400
     try:
         feito = importar(caminho, pedido.get('escolhas') or {})
     except PacoteInvalido as e:

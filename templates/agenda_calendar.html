@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Calendário - Igreja João XXIII{% endblock %}
+{% block title %}{{ _('Calendário') }} - Igreja João XXIII{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,23 +16,23 @@
 <main class="uc-page cal-page">
     <div class="uc-page-head cal-head">
         <div>
-            <h1>Calendário João XXIII</h1>
-            <div class="uc-page-sub">Cultos, escalas e eventos do mês</div>
+            <h1>{{ _('Calendário {igreja}', igreja='João XXIII') }}</h1>
+            <div class="uc-page-sub">{{ _('Cultos, escalas e eventos do mês') }}</div>
         </div>
         <div class="month-nav">
-            <button type="button" class="btn" id="prevBtn" aria-label="Mês anterior"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="btn" id="prevBtn" aria-label="{{ _('Mês anterior') }}"><i class="fas fa-chevron-left"></i></button>
             <div class="month-label" id="monthLabel"></div>
-            <button type="button" class="btn" id="nextBtn" aria-label="Próximo mês"><i class="fas fa-chevron-right"></i></button>
+            <button type="button" class="btn" id="nextBtn" aria-label="{{ _('Próximo mês') }}"><i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
 
     <section class="uc-card calendar-shell">
         <div class="calendar-head" id="calendarHead"></div>
         <div id="calendar" class="calendar-grid"></div>
-        <div id="emptyState" class="empty" style="display:none;">Nenhuma data cadastrada.</div>
+        <div id="emptyState" class="empty" style="display:none;">{{ _('Nenhuma data cadastrada.') }}</div>
     </section>
 
-    <p class="cal-note">Toque numa data para ver os detalhes das escalas e dos eventos.</p>
+    <p class="cal-note">{{ _('Toque numa data para ver os detalhes das escalas e dos eventos.') }}</p>
 </main>
 {% endblock %}
 

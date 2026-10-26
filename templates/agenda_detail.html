@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Programação · {{ date | data_pt }}{% endblock %}
+{% block title %}{{ _('Programação') }} · {{ date | data_pt }}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,11 +16,11 @@
 <main class="uc-page detail-page">
     <div class="uc-page-head">
         <div>
-            <a class="uc-link" href="{% if allow_clicks %}/agenda/edit{% else %}/agenda{% endif %}"><i class="fas fa-arrow-left"></i> Calendário</a>
-            <h1>Programação do dia</h1>
+            <a class="uc-link" href="{% if allow_clicks %}/agenda/edit{% else %}/agenda{% endif %}"><i class="fas fa-arrow-left"></i> {{ _('Calendário') }}</a>
+            <h1>{{ _('Programação do dia') }}</h1>
             <div class="uc-page-sub">{{ date | data_pt }}
-                {%- if cultos|length > 1 %} · {{ cultos|length }} cultos{% endif %}
-                {%- if eventos %}{{ ' e ' if cultos|length > 1 else ' · ' }}{{ eventos|length }} evento{{ 's' if eventos|length > 1 }}{% endif %}</div>
+                {%- if cultos|length > 1 %} · {{ _('{n} cultos', n=cultos|length) }}{% endif %}
+                {%- if eventos %}{{ (' ' ~ _('e') ~ ' ') if cultos|length > 1 else ' · ' }}{{ _('{n} eventos', n=eventos|length) if eventos|length > 1 else _('1 evento') }}{% endif %}</div>
         </div>
     </div>
 
@@ -32,19 +32,19 @@
         <div class="culto-head">
             {% if hora %}<span class="culto-time">{{ hora }}</span>{% endif %}
             <div>
-                <h2>{{ order.get('tipo') or 'Culto' }}</h2>
+                <h2>{{ order.get('tipo') or _('Culto') }}</h2>
                 {% if order.get('dirigente') or order.get('pregador') %}
                 <div class="culto-meta">
-                    {%- if order.get('dirigente') %}Dirigente <b>{{ order.get('dirigente') }}</b>{% endif %}
+                    {%- if order.get('dirigente') %}{{ _('Dirigente') }} <b>{{ order.get('dirigente') }}</b>{% endif %}
                     {%- if order.get('dirigente') and order.get('pregador') %} · {% endif %}
-                    {%- if order.get('pregador') %}Pregação <b>{{ order.get('pregador') }}</b>{% endif %}
+                    {%- if order.get('pregador') %}{{ _('Pregação') }} <b>{{ order.get('pregador') }}</b>{% endif %}
                 </div>
                 {% endif %}
             </div>
             {% if allow_clicks %}
             <div class="uc-btn-row">
-                <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/agenda/{{ key }}/louvor"><i class="fas fa-pen"></i> Editar</a>
-                <a class="uc-btn uc-btn-primary uc-btn-sm" href="/agenda/{{ key }}/edit"><i class="fas fa-list-ol"></i> Ordem do culto</a>
+                <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/agenda/{{ key }}/louvor"><i class="fas fa-pen"></i> {{ _('Editar') }}</a>
+                <a class="uc-btn uc-btn-primary uc-btn-sm" href="/agenda/{{ key }}/edit"><i class="fas fa-list-ol"></i> {{ _('Ordem do culto') }}</a>
             </div>
             {% endif %}
         </div>
@@ -52,9 +52,9 @@
         <div class="culto-grid">
             <!-- Louvor -->
             <div class="uc-card detail-card{% if allow_clicks %} clickable{% endif %}" {% if allow_clicks %}onclick="window.location='/agenda/{{ key }}/louvor'"{% endif %}>
-                <div class="uc-card-head"><h2><i class="fas fa-music"></i> Louvor</h2></div>
+                <div class="uc-card-head"><h2><i class="fas fa-music"></i> {{ _('Louvor') }}</h2></div>
                 {% if louvor.get('musicos') %}
-                    <div class="group-label">Músicos</div>
+                    <div class="group-label">{{ _('Músicos') }}</div>
                     <div class="chips">
                         {% for m in louvor.get('musicos', []) %}
                             <span class="chip"><b>{{ m.get('instrumento', '—') }}</b> {{ m.get('pessoa', '—') }}</span>
@@ -62,17 +62,17 @@
                     </div>
                 {% endif %}
                 {% if louvor.get('cantores') %}
-                    <div class="group-label">Vozes</div>
+                    <div class="group-label">{{ _('Vozes') }}</div>
                     <div class="chips">
                         {% for c in louvor.get('cantores', []) %}<span class="chip">{{ c }}</span>{% endfor %}
                     </div>
                 {% endif %}
                 {% if order.get('itens') %}
-                    <div class="group-label">Ordem</div>
+                    <div class="group-label">{{ _('Ordem') }}</div>
                     <ol class="items">
                         {% for item in order.get('itens', []) %}
                             {% if item.get('isBible') %}
-                                <li class="bible">{{ item.get('title') or item.get('reference') or 'Leitura bíblica' }}</li>
+                                <li class="bible">{{ item.get('title') or item.get('reference') or _('Leitura bíblica') }}</li>
                             {% elif item.get('anyText') %}
                                 <li class="text">{{ item.get('anyText') }}</li>
                             {% else %}
@@ -82,57 +82,57 @@
                         {% endfor %}
                     </ol>
                 {% elif not (louvor.get('musicos') or louvor.get('cantores')) %}
-                    <div class="empty">Nada cadastrado ainda.</div>
+                    <div class="empty">{{ _('Nada cadastrado ainda.') }}</div>
                 {% else %}
-                    <div class="empty">Nenhuma música na ordem ainda.</div>
+                    <div class="empty">{{ _('Nenhuma música na ordem ainda.') }}</div>
                 {% endif %}
             </div>
 
             <!-- Mídia -->
             <div class="uc-card detail-card{% if allow_clicks %} clickable{% endif %}" {% if allow_clicks %}onclick="window.location='/agenda/{{ key }}/midia'"{% endif %}>
                 <div class="uc-card-head">
-                    <h2><i class="fas fa-display"></i> Mídia</h2>
-                    {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ key }}/midia"><i class="fas fa-pen"></i> Editar</a>{% endif %}
+                    <h2><i class="fas fa-display"></i> {{ _('Mídia') }}</h2>
+                    {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ key }}/midia"><i class="fas fa-pen"></i> {{ _('Editar') }}</a>{% endif %}
                 </div>
                 {% if midia.get('lider') or midia.get('palco') or midia.get('visual') %}
                 <dl class="facts">
-                    <dt>Líder</dt><dd>{{ midia.get('lider') or '—' }}</dd>
-                    <dt>Palco</dt><dd>{{ midia.get('palco') or '—' }}</dd>
-                    <dt>Visual</dt><dd>{{ midia.get('visual') or '—' }}</dd>
+                    <dt>{{ _('Líder') }}</dt><dd>{{ midia.get('lider') or '—' }}</dd>
+                    <dt>{{ _('Palco') }}</dt><dd>{{ midia.get('palco') or '—' }}</dd>
+                    <dt>{{ _('Visual') }}</dt><dd>{{ midia.get('visual') or '—' }}</dd>
                 </dl>
                 {% endif %}
                 {% if midia.get('equipe') %}
-                    <div class="group-label">Equipe</div>
+                    <div class="group-label">{{ _('Equipe') }}</div>
                     <div class="chips">
                         {% for m in midia.get('equipe', []) %}
-                            <span class="chip"><b>{{ m.get('nome', 'Função') }}</b> {{ m.get('pessoa', '—') }}</span>
+                            <span class="chip"><b>{{ m.get('nome', _('Função')) }}</b> {{ m.get('pessoa', '—') }}</span>
                         {% endfor %}
                     </div>
                 {% endif %}
                 {% if midia.get('obs') %}
-                    <div class="group-label">Observações</div>
+                    <div class="group-label">{{ _('Observações') }}</div>
                     <p class="obs">{{ midia.get('obs') }}</p>
                 {% endif %}
                 {% if not (midia.get('equipe') or midia.get('lider') or midia.get('palco') or midia.get('visual') or midia.get('obs')) %}
-                    <div class="empty">Sem escala de mídia cadastrada.</div>
+                    <div class="empty">{{ _('Sem escala de mídia cadastrada.') }}</div>
                 {% endif %}
             </div>
         </div>
     </section>
     {% else %}
     <section class="uc-card culto-none">
-        <div class="empty">Nenhum culto cadastrado neste dia.</div>
+        <div class="empty">{{ _('Nenhum culto cadastrado neste dia.') }}</div>
     </section>
     {% endfor %}
 
     {% if allow_clicks %}
-    <a class="uc-btn uc-btn-secondary add-culto" href="/agenda/{{ date }}/novo-culto"><i class="fas fa-plus"></i> {{ 'Adicionar outro culto neste dia' if cultos else 'Cadastrar culto' }}</a>
+    <a class="uc-btn uc-btn-secondary add-culto" href="/agenda/{{ date }}/novo-culto"><i class="fas fa-plus"></i> {{ _('Adicionar outro culto neste dia') if cultos else _('Cadastrar culto') }}</a>
     {% endif %}
 
     <!-- Eventos (do dia) -->
     <div class="day-section-head">
-        <h2 class="uc-label-caps">Eventos do dia</h2>
-        {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ date }}/eventos"><i class="fas fa-pen"></i> Editar</a>{% endif %}
+        <h2 class="uc-label-caps">{{ _('Eventos do dia') }}</h2>
+        {% if allow_clicks %}<a class="uc-btn uc-btn-ghost uc-btn-sm" href="/agenda/{{ date }}/eventos"><i class="fas fa-pen"></i> {{ _('Editar') }}</a>{% endif %}
     </div>
     <section class="uc-card detail-card{% if allow_clicks %} clickable{% endif %}" {% if allow_clicks %}onclick="window.location='/agenda/{{ date }}/eventos'"{% endif %}>
         {% if eventos %}
@@ -143,13 +143,13 @@
                         <span class="evento-titulo">{{ evento.titulo }}</span>
                         {% if evento.hora %}<span class="evento-hora uc-mono">{{ evento.hora }}</span>{% endif %}
                     </div>
-                    {% if evento.responsavel %}<div class="evento-meta">Responsável: <b>{{ evento.responsavel }}</b></div>{% endif %}
+                    {% if evento.responsavel %}<div class="evento-meta">{{ _('Responsável:') }} <b>{{ evento.responsavel }}</b></div>{% endif %}
                     {% if evento.obs %}<div class="evento-meta">{{ evento.obs }}</div>{% endif %}
                 </div>
                 {% endfor %}
             </div>
         {% else %}
-            <div class="empty">Nenhum evento cadastrado.</div>
+            <div class="empty">{{ _('Nenhum evento cadastrado.') }}</div>
         {% endif %}
     </section>
 </main>

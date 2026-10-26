@@ -193,15 +193,15 @@ def remover_usuario(id):
     if usuario and usuario.id == current_user.id:
         # Também evita ficar sem nenhum usuário: aí a tela de login volta a
         # oferecer "criar o primeiro" (primeiro_acesso) pra quem chegar antes
-        flash('Você não pode remover o próprio usuário.', 'error')
+        flash(_('Você não pode remover o próprio usuário.'), 'error')
     elif usuario and User.query.count() <= 1:
-        flash('Não dá pra remover o último usuário.', 'error')
+        flash(_('Não dá pra remover o último usuário.'), 'error')
     elif usuario:
         db.session.delete(usuario)
         db.session.commit()
-        flash('Usuário removido com sucesso.')
+        flash(_('Usuário removido com sucesso.'))
     else:
-        flash('Usuário não encontrado.', 'error')
+        flash(_('Usuário não encontrado.'), 'error')
     return redirect(url_for('auth.visualizar_usuarios'))
 
 
@@ -211,13 +211,13 @@ def alterar_senha(id):
     usuario = User.query.get(id)
     password = request.form.get('password', '')
     if not usuario:
-        flash('Usuário não encontrado.', 'error')
+        flash(_('Usuário não encontrado.'), 'error')
     elif not password:
-        flash('A senha não pode estar em branco.', 'error')
+        flash(_('A senha não pode estar em branco.'), 'error')
     else:
         usuario.password = generate_password_hash(password, method='pbkdf2:sha256')
         db.session.commit()
-        flash(f'Senha de "{usuario.username}" alterada com sucesso!')
+        flash(_('Senha de "{nome}" alterada com sucesso!', nome=usuario.username))
     return redirect(url_for('auth.visualizar_usuarios'))
 
 
@@ -229,13 +229,13 @@ def adicionar_usuario():
 
     # Verifica se o nome de usuário já existe
     if User.query.filter_by(username=username).first():
-        flash('Já existe um usuário com esse nome.', 'error')
+        flash(_('Já existe um usuário com esse nome.'), 'error')
     else:
         # Criptografa a senha
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
         new_user = User(username=username, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
-        flash('Usuário adicionado com sucesso!')
+        flash(_('Usuário adicionado com sucesso!'))
 
     return redirect(url_for('auth.visualizar_usuarios'))

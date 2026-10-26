@@ -7,14 +7,15 @@
 //     copia a imagem (Ctrl+V no WhatsApp Web)
 //   - Salvar imagem: baixa o PNG (como antes)
 (function () {
-    const WEEKDAY = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const WEEKDAY = ucLocale().startsWith('pt') ? ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+        : Array.from({ length: 7 }, (x, i) => new Date(2000, 0, 2 + i).toLocaleDateString(ucLocale(), { weekday: 'short' }));
     const isTouch = () => window.matchMedia('(pointer: coarse)').matches;
     const toast = (msg, type) => { if (window.ucToast) window.ucToast(msg, type); };
 
     // Itens de um dia: os cultos (tipo + horário/dirigente/pregador) e os
     // eventos, na ordem do horário — mesma regra do calendário
     // (AgendaCultos, static/js/agenda_cultos.js)
-    const SHARE_LABEL = { Pregador: 'Pregação', Resp: 'Resp.', Obs: 'Obs.' };
+    const SHARE_LABEL = { Dirigente: _t('Dirigente'), Pregador: _t('Pregação'), Resp: _t('Resp.'), Obs: _t('Obs.') };
     function itemsForDay(day) {
         return AgendaCultos.dayItems(day).map(it => ({
             title: it.titulo,
@@ -38,13 +39,13 @@
         return days;
     }
 
-    const monthTitle = () => `${monthLong[currentMonth.getMonth()]} de ${currentMonth.getFullYear()}`;
+    const monthTitle = () => _t('{mes} de {ano}', { mes: monthLong[currentMonth.getMonth()], ano: currentMonth.getFullYear() });
     const dayLabel = (date) => `${WEEKDAY[date.getDay()]} ${String(date.getDate()).padStart(2, '0')}`;
 
     function buildText() {
         const days = monthDays();
-        const lines = [`📅 *Agenda de ${monthTitle()}*`, ''];
-        if (!days.length) lines.push('_Nenhuma data cadastrada._', '');
+        const lines = [_t('📅 *Agenda de {mes}*', { mes: monthTitle() }), ''];
+        if (!days.length) lines.push(_t('_Nenhuma data cadastrada._'), '');
         days.forEach(({ date, items }) => {
             lines.push(`*${dayLabel(date)}*`);
             items.forEach(it => {
@@ -53,7 +54,7 @@
             });
             lines.push('');
         });
-        lines.push(`Calendário completo: ${location.origin}/agenda`);
+        lines.push(_t('Calendário completo: {link}', { link: `${location.origin}/agenda` }));
         return lines.join('\n');
     }
 
@@ -65,7 +66,7 @@
         }
         try {
             await navigator.clipboard.writeText(text);
-            toast('Agenda copiada. É só colar no WhatsApp.');
+            toast(_t('Agenda copiada. É só colar no WhatsApp.'));
         } catch (e) {
             // Sem acesso à área de transferência (http fora do localhost)
             const ta = document.createElement('textarea');
@@ -75,7 +76,7 @@
             ta.select();
             const ok = document.execCommand('copy');
             ta.remove();
-            toast(ok ? 'Agenda copiada. É só colar no WhatsApp.' : 'Não deu pra copiar o texto.', ok ? undefined : 'error');
+            toast(ok ? _t('Agenda copiada. É só colar no WhatsApp.') : _t('Não deu pra copiar o texto.'), ok ? undefined : 'error');
         }
     }
 
@@ -105,7 +106,7 @@
         el.style.cssText = `position:fixed;left:-20000px;top:0;width:1080px;padding:72px 64px 56px;box-sizing:border-box;` +
             `background:${t.bg};color:${t.text};font-family:Manrope,'Segoe UI',system-ui,sans-serif;`;
         el.innerHTML =
-            `<div style="font-size:30px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${t.muted}">Agenda</div>` +
+            `<div style="font-size:30px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${t.muted}">${esc(_t('Agenda'))}</div>` +
             `<div style="font-size:64px;font-weight:800;line-height:1.1;margin:6px 0 40px">${esc(monthTitle().charAt(0).toUpperCase() + monthTitle().slice(1))}</div>` +
             (days.length ? days.map(({ date, items }) =>
                 `<div style="display:flex;gap:28px;padding:26px 0;border-top:2px solid ${t.line}">` +
@@ -121,8 +122,8 @@
                         `</div>`).join('') +
                     `</div>` +
                 `</div>`).join('')
-            : `<div style="font-size:36px;color:${t.muted}">Nenhuma data cadastrada.</div>`) +
-            `<div style="margin-top:36px;padding-top:24px;border-top:2px solid ${t.line};font-size:26px;color:${t.muted}">Calendário completo: ${esc(location.host)}/agenda</div>`;
+            : `<div style="font-size:36px;color:${t.muted}">${esc(_t('Nenhuma data cadastrada.'))}</div>`) +
+            `<div style="margin-top:36px;padding-top:24px;border-top:2px solid ${t.line};font-size:26px;color:${t.muted}">${esc(_t('Calendário completo: {link}', { link: `${location.host}/agenda` }))}</div>`;
         document.body.appendChild(el);
         try {
             return await html2canvas(el, { backgroundColor: t.bg, scale: 1, useCORS: true });
@@ -146,9 +147,9 @@
     // leva 1–2 s — por isso as três começam a ser geradas quando o menu
     // abre e ficam guardadas (por mês) pro clique.
     const FORMATS = {
-        grid: { label: 'grade', make: () => gridCanvas() },
-        light: { label: 'lista clara', make: () => listCanvas('light') },
-        dark: { label: 'lista escura', make: () => listCanvas('dark') },
+        grid: { label: _t('grade'), make: () => gridCanvas() },
+        light: { label: _t('lista clara'), make: () => listCanvas('light') },
+        dark: { label: _t('lista escura'), make: () => listCanvas('dark') },
     };
     const cache = new Map();
     const monthKey = () => `${currentMonth.getFullYear()}-${currentMonth.getMonth()}`;
@@ -188,13 +189,13 @@
                 const { blob } = await entry.promise;
                 const file = new File([blob], name, { type: 'image/png' });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: `Agenda de ${monthTitle()}` });
+                    await navigator.share({ files: [file], title: _t('Agenda de {mes}', { mes: monthTitle() }) });
                     return;
                 }
             } catch (e) {
                 if (e.name === 'AbortError') return;
                 if (e.name === 'NotAllowedError' && !entry.ready) {
-                    toast('A imagem ainda estava sendo preparada. Toque de novo.', 'error');
+                    toast(_t('A imagem ainda estava sendo preparada. Toque de novo.'), 'error');
                     return;
                 }
             }
@@ -205,21 +206,21 @@
         if (navigator.clipboard && window.ClipboardItem) {
             try {
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': entry.promise.then(r => r.blob) })]);
-                toast(`Imagem (${FORMATS[format].label}) copiada. Cole com Ctrl+V no WhatsApp.`);
+                toast(_t('Imagem ({formato}) copiada. Cole com Ctrl+V no WhatsApp.', { formato: FORMATS[format].label }));
                 return;
             } catch (e) { /* sem permissão: baixa */ }
         }
         try {
             download((await entry.promise).canvas);
-            toast('Imagem baixada. Anexe no WhatsApp.');
+            toast(_t('Imagem baixada. Anexe no WhatsApp.'));
         } catch (e) {
-            toast('Não deu pra gerar a imagem.', 'error');
+            toast(_t('Não deu pra gerar a imagem.'), 'error');
         }
     }
 
     async function saveImage() {
         try { download(await gridCanvas()); }
-        catch (e) { toast('Não deu pra salvar a imagem.', 'error'); }
+        catch (e) { toast(_t('Não deu pra salvar a imagem.'), 'error'); }
     }
 
     document.getElementById('copyWhatsBtn').addEventListener('click', copyText);
