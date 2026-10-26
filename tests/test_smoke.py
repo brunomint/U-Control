@@ -3410,3 +3410,16 @@ def test_church_name_comes_from_settings_not_the_template(app, client, logged_in
     with app.app_context():
         assert Setting.query.first().church_name is None
     assert client.post("/api/agenda/nome-igreja", json={"nome": "x"}).status_code in (302, 401)
+
+
+def test_help_has_every_topic_in_english(client):
+    """A Ajuda em inglês é o texto inteiro de cada tópico (help_en.js):
+    tópico novo em help.js sem a versão em inglês ficaria vazio."""
+    import re
+    pt = open("static/js/pages/help.js", encoding="utf-8").read()
+    en = open("static/js/pages/help_en.js", encoding="utf-8").read()
+    topicos = lambda src: set(re.findall(r"^    (\w+): `", src, re.M))
+    assert topicos(pt) and topicos(pt) == topicos(en)
+    html = client.get("/help", headers={"Accept-Language": "en"}).get_data(as_text=True)
+    assert "help_en.js" in html and "Troubleshooting" in html
+    assert "help_en.js" not in client.get("/help").get_data(as_text=True)

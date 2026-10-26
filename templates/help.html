@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Ajuda - U-Control{% endblock %}
+{% block title %}{{ _('Ajuda') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,42 +16,43 @@
 <main class="uc-page help-page">
     <div class="uc-page-head">
         <div>
-            <h1>Ajuda</h1>
-            <div class="uc-page-sub">Como usar o U-Control</div>
+            <h1>{{ _('Ajuda') }}</h1>
+            <div class="uc-page-sub">{{ _('Como usar o U-Control') }}</div>
         </div>
     </div>
 
     <div class="help-grid">
-        <nav class="uc-card help-menu" aria-label="Tópicos de ajuda">
-            <a href="#content" data-section="funcionalidades" onclick="event.preventDefault(); loadContent('funcionalidades')">Principais funcionalidades</a>
-            <a href="#content" data-section="primeiro" onclick="event.preventDefault(); loadContent('primeiro')">Primeiro acesso e usuários</a>
-            <a href="#content" data-section="importar" onclick="event.preventDefault(); loadContent('importar')">Importar músicas</a>
-            <a href="#content" data-section="biblia" onclick="event.preventDefault(); loadContent('biblia')">Bíblia em duas versões</a>
-            <a href="#content" data-section="powerpoint" onclick="event.preventDefault(); loadContent('powerpoint')">PowerPoint e apresentações</a>
-            <a href="#content" data-section="site" onclick="event.preventDefault(); loadContent('site')">Tela do PC e site no telão</a>
-            <a href="#content" data-section="atalhos" onclick="event.preventDefault(); loadContent('atalhos')">Atalhos (Stream Deck)</a>
-            <a href="#content" data-section="backup" onclick="event.preventDefault(); loadContent('backup')">Backup e outro computador</a>
-            <a href="#content" data-section="windows" onclick="event.preventDefault(); loadContent('windows')">Programa no Windows</a>
-            <a href="#content" data-section="celular" onclick="event.preventDefault(); loadContent('celular')">Usar pelo celular</a>
-            <a href="#content" data-section="telas" onclick="event.preventDefault(); loadContent('telas')">Telas sem login</a>
-            <a href="#content" data-section="problemas" onclick="event.preventDefault(); loadContent('problemas')">Solução de problemas</a>
-            <a href="#content" data-section="contato" onclick="event.preventDefault(); loadContent('contato')">Contato</a>
+        <nav class="uc-card help-menu" aria-label="{{ _('Tópicos de ajuda') }}">
+            <a href="#content" data-section="funcionalidades" onclick="event.preventDefault(); loadContent('funcionalidades')">{{ _('Principais funcionalidades') }}</a>
+            <a href="#content" data-section="primeiro" onclick="event.preventDefault(); loadContent('primeiro')">{{ _('Primeiro acesso e usuários') }}</a>
+            <a href="#content" data-section="importar" onclick="event.preventDefault(); loadContent('importar')">{{ _('Importar músicas') }}</a>
+            <a href="#content" data-section="biblia" onclick="event.preventDefault(); loadContent('biblia')">{{ _('Bíblia em duas versões') }}</a>
+            <a href="#content" data-section="powerpoint" onclick="event.preventDefault(); loadContent('powerpoint')">{{ _('PowerPoint e apresentações') }}</a>
+            <a href="#content" data-section="site" onclick="event.preventDefault(); loadContent('site')">{{ _('Tela do PC e site no telão') }}</a>
+            <a href="#content" data-section="atalhos" onclick="event.preventDefault(); loadContent('atalhos')">{{ _('Atalhos (Stream Deck)') }}</a>
+            <a href="#content" data-section="backup" onclick="event.preventDefault(); loadContent('backup')">{{ _('Backup e outro computador') }}</a>
+            <a href="#content" data-section="windows" onclick="event.preventDefault(); loadContent('windows')">{{ _('Programa no Windows') }}</a>
+            <a href="#content" data-section="celular" onclick="event.preventDefault(); loadContent('celular')">{{ _('Usar pelo celular') }}</a>
+            <a href="#content" data-section="telas" onclick="event.preventDefault(); loadContent('telas')">{{ _('Telas sem login') }}</a>
+            <a href="#content" data-section="problemas" onclick="event.preventDefault(); loadContent('problemas')">{{ _('Solução de problemas') }}</a>
+            <a href="#content" data-section="contato" onclick="event.preventDefault(); loadContent('contato')">{{ _('Contato') }}</a>
         </nav>
 
         <article class="uc-card help-content" id="content">
-            <h2>Bem-vindo à ajuda do U-Control</h2>
-            <p>O <strong>U-Control</strong> controla o que aparece no telão da igreja: letras, cifras, versículos, imagens, vídeos e avisos, a partir de qualquer computador ou celular na mesma rede.</p>
+            <h2>{{ _('Bem-vindo à ajuda do U-Control') }}</h2>
+            <p>{{ _('O <strong>U-Control</strong> controla o que aparece no telão da igreja: letras, cifras, versículos, imagens, vídeos e avisos, a partir de qualquer computador ou celular na mesma rede.')|safe }}</p>
             <ul>
-                <li><strong>Mídia em tempo real:</strong> troque letra, imagem ou vídeo no telão com um toque.</li>
-                <li><strong>Telas sincronizadas:</strong> o telão do público e o retorno de palco seguem o Controle.</li>
-                <li><strong>Preparação antes do culto:</strong> monte a ordem, cadastre músicas e organize as escalas.</li>
+                <li>{{ _('<strong>Mídia em tempo real:</strong> troque letra, imagem ou vídeo no telão com um toque.')|safe }}</li>
+                <li>{{ _('<strong>Telas sincronizadas:</strong> o telão do público e o retorno de palco seguem o Controle.')|safe }}</li>
+                <li>{{ _('<strong>Preparação antes do culto:</strong> monte a ordem, cadastre músicas e organize as escalas.')|safe }}</li>
             </ul>
-            <p>Escolha um tópico ao lado para saber mais.</p>
+            <p>{{ _('Escolha um tópico ao lado para saber mais.') }}</p>
         </article>
     </div>
 </main>
 {% endblock %}
 
 {% block scripts %}
+{% if uc_lang != 'pt' %}<script src="{{ versioned_static('js/pages/help_' ~ uc_lang ~ '.js') }}"></script>{% endif %}
 <script src="{{ versioned_static('js/pages/help.js') }}"></script>
 {% endblock %}

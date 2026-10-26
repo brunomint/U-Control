@@ -13,7 +13,8 @@ const HELP_SECTIONS = {
             <li><strong>Atalhos</strong> para Stream Deck e outros botões.</li>
             <li><strong>Importar músicas</strong> de outros programas, <strong>backup</strong> e levar músicas e cultos para outro computador.</li>
         </ul>
-        <p>O telão pode ficar no próprio computador do U-Control (cabo HDMI, mais estável) ou em outro aparelho da rede.</p>`,
+        <p>O telão pode ficar no próprio computador do U-Control (cabo HDMI, mais estável) ou em outro aparelho da rede.</p>
+        <p>O idioma das telas (português ou inglês) fica em <a href="/idioma">Sistema → Idioma · Language</a>.</p>`,
 
     importar: `
         <h2>Importar músicas de outro programa</h2>
@@ -41,7 +42,7 @@ const HELP_SECTIONS = {
             <li>As fontes embutidas no arquivo (como as do Canva) são usadas, e na versão animada os GIFs se mexem.</li>
             <li>Vídeos dentro dos slides são separados e aparecem na galeria para tocar no telão.</li>
         </ul>
-        <div class="callout">No Windows, a conversão precisa do LibreOffice: marque a opção dele no instalador.</div>`,
+        <div class="callout">No Windows, a conversão precisa do LibreOffice: marque a opção dele no instalador ou, se ele faltar, use <strong>Instalar LibreOffice</strong> em <a href="/atualizacao">Sistema → Atualização</a>.</div>`,
 
     site: `
         <h2>Tela do PC e site no telão</h2>
@@ -84,7 +85,7 @@ const HELP_SECTIONS = {
             <li>Pelo menu da bandeja você abre o <strong>Telão</strong> (a tela pública) e o <strong>Retorno de palco</strong>. Com um segundo monitor ou datashow ligado, elas abrem nele, em tela cheia.</li>
             <li>O menu também mostra o endereço do U-Control na rede, para abrir no celular.</li>
             <li>Enquanto o U-Control está aberto, o Windows não suspende nem apaga a tela (opção <strong>Não deixar o PC dormir com o telão aberto</strong> no menu da bandeja).</li>
-            <li>Para converter PowerPoint em slides, marque a opção do LibreOffice no instalador.</li>
+            <li>Para converter PowerPoint em slides, marque a opção do LibreOffice no instalador. Se ele faltar, <strong>Sistema → Atualização</strong> mostra o botão <strong>Instalar LibreOffice</strong>.</li>
             <li>Para desligar, use <strong>Sair</strong> no menu da bandeja ou <strong>Sistema → Desligar o U-Control</strong>. Fechar as janelas não desliga o programa.</li>
             <li>Quando sai uma versão nova, o U-Control avisa. A instalação é em <strong>Sistema → Atualização</strong>.</li>
             <li>Músicas, fotos e configurações ficam guardadas à parte (opção <strong>Abrir pasta de dados</strong>). Instalar uma versão nova por cima não apaga nada.</li>
@@ -106,7 +107,6 @@ const HELP_SECTIONS = {
             <li><strong>Retorno de palco</strong> (<code>/monitor</code>), para quem está no palco</li>
             <li><strong>Bíblia</strong> (<code>/bible/display</code>), <strong>relógio</strong> e <strong>cronômetro</strong></li>
             <li><strong>Overlay para OBS</strong> (<code>/lyrics/display/obs</code>), com fundo transparente para transmissão</li>
-            <li><strong>Enviar fotos</strong> (<code>/presenter</code>): qualquer pessoa da igreja manda fotos do celular para a galeria</li>
             <li><strong>Ordem do culto</strong> (<code>/view</code>)</li>
         </ul>`,
 
@@ -132,9 +132,13 @@ const HELP_SECTIONS = {
         <p>O U-Control é um projeto de código aberto. Para relatar um problema ou sugerir uma melhoria, abra um chamado em <a href="https://github.com/brunomint/U-Control/issues" target="_blank" rel="noopener">github.com/brunomint/U-Control/issues</a>.</p>`,
 };
 
+// Outros idiomas: o texto inteiro de cada tópico vem traduzido de
+// help_<idioma>.js (texto corrido não se traduz frase por frase)
+const SECOES = window.HELP_SECTIONS_I18N || HELP_SECTIONS;
+
 function loadContent(section) {
     const content = document.getElementById('content');
-    content.innerHTML = HELP_SECTIONS[section] || '';
+    content.innerHTML = SECOES[section] || '';
     document.querySelectorAll('.help-menu [data-section]').forEach(a => {
         a.classList.toggle('active', a.dataset.section === section);
     });
