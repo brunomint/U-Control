@@ -25,6 +25,7 @@ from logging.handlers import RotatingFileHandler
 import paths
 from extensions import db, migrate, login_manager, socketio, csrf
 import seguranca
+import i18n
 import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
 import models_orders  # noqa: F401 — idem
 from blueprints.countdown import countdown_bp, init_countdown_state
@@ -44,6 +45,7 @@ from blueprints.desligar import desligar_bp
 from blueprints.importar import importar_bp
 from blueprints.atalhos import atalhos_bp
 from blueprints.site import site_bp
+from blueprints.idioma import idioma_bp
 from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
@@ -146,6 +148,7 @@ def create_app(config=None):
     login_manager.init_app(app)
     csrf.init_app(app)
     seguranca.init_app(app)
+    i18n.init_app(app)
     socketio.init_app(
         app,
         cors_allowed_origins=seguranca.mesmo_site,
@@ -191,6 +194,7 @@ def create_app(config=None):
     app.register_blueprint(agenda_bp)
     app.register_blueprint(lyrics_bp)
     app.register_blueprint(display_bp)
+    app.register_blueprint(idioma_bp)
 
     def _versioned_static(filename):
         # ?v=<mtime> força o navegador a buscar a versão nova sempre que o

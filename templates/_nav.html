@@ -13,7 +13,7 @@
 // painel (ex.: da busca da Bíblia pro capítulo).
 try { if (window.self !== window.top && window.top.location.origin === location.origin) document.documentElement.classList.add('uc-embed'); } catch (e) { /* outra origem */ }
 </script>
-<nav class="site-nav" aria-label="Navegação principal">
+<nav class="site-nav" aria-label="{{ _('Navegação principal') }}">
     <a class="site-nav-brand" href="{{ url_for('auth.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
         <img src="{{ url_for('static', filename='U-Control_Icon.png') }}" alt="">
         <span>U-Control</span>
@@ -27,18 +27,18 @@ try { if (window.self !== window.top && window.top.location.origin === location.
             {% set ns = namespace(active=false) %}
             {% for item in group.links %}{% if request.endpoint == item.endpoint %}{% set ns.active = true %}{% endif %}{% endfor %}
             <details class="site-nav-menu{% if ns.active %} has-active{% endif %}">
-                <summary>{% if group.key == 'criar' %}<i class="fas fa-plus"></i>{% endif %}{{ group.label }} <i class="fas fa-chevron-down"></i></summary>
+                <summary>{% if group.key == 'criar' %}<i class="fas fa-plus"></i>{% endif %}{{ _(group.label) }} <i class="fas fa-chevron-down"></i></summary>
                 <div class="site-nav-menu-list">
                     {% for item in group.links %}
                     <a href="{{ url_for(item.endpoint) }}"
                        class="site-nav-link{% if request.endpoint == item.endpoint %} active{% endif %}">
-                        <i class="fas {{ item.icon }}"></i> {{ item.label }}
+                        <i class="fas {{ item.icon }}"></i> {{ _(item.label) }}
                     </a>
                     {% endfor %}
                     {% if group.key == 'sistema' and pode_desligar() %}
                     <a href="{{ url_for('desligar.desligar_page') }}"
                        class="site-nav-link{% if request.endpoint == 'desligar.desligar_page' %} active{% endif %}">
-                        <i class="fas fa-power-off"></i> Desligar o U-Control
+                        <i class="fas fa-power-off"></i> {{ _('Desligar o U-Control') }}
                     </a>
                     {% endif %}
                 </div>
@@ -48,7 +48,7 @@ try { if (window.self !== window.top && window.top.location.origin === location.
                 <a href="{{ url_for(item.endpoint) }}"
                    class="site-nav-link{% if group.key == 'live' %} live{% endif %}{% if request.endpoint == item.endpoint %} active{% endif %}">
                     {% if group.key == 'live' %}<span class="dot"></span>{% else %}<i class="fas {{ item.icon }}"></i>{% endif %}
-                    {{ item.nav_label or item.label }}
+                    {{ _(item.nav_label or item.label) }}
                 </a>
                 {% endfor %}
             {% endif %}
@@ -58,12 +58,12 @@ try { if (window.self !== window.top && window.top.location.origin === location.
     {% if current_user.is_authenticated %}
     {#- Celular: o menu vira um painel aberto por este botão; na barra fica
         só o Controle (ver nav.css, max-width: 640px). #}
-    <button type="button" class="site-nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+    <button type="button" class="site-nav-toggle" aria-label="{{ _('Abrir menu') }}" aria-expanded="false">
         <i class="fas fa-bars"></i>
     </button>
     {#- Selo de versão nova (updates.py): aparece quando há Release mais
         nova que esta instalação e ninguém clicou "Agora não" pra ela. #}
-    <a class="site-nav-update" id="site-nav-update" href="{{ url_for('utils.atualizacao') }}" title="Nova versão disponível" hidden>
+    <a class="site-nav-update" id="site-nav-update" href="{{ url_for('utils.atualizacao') }}" title="{{ _('Nova versão disponível') }}" hidden>
         <i class="fas fa-circle-up"></i> <span></span>
     </a>
     <script>
@@ -72,25 +72,25 @@ try { if (window.self !== window.top && window.top.location.origin === location.
         try { dispensada = localStorage.getItem('uc_update_dispensada'); } catch (e) { /* sem storage */ }
         if (!s.available || dispensada === s.latest) return;
         const selo = document.getElementById('site-nav-update');
-        selo.querySelector('span').textContent = 'Nova versão ' + s.latest;
+        selo.querySelector('span').textContent = {{ _('Nova versão {versao}')|tojson }}.replace('{versao}', s.latest);
         selo.hidden = false;
     }).catch(() => {});
     </script>
     <div class="site-nav-user">
         <span class="site-nav-avatar">{{ current_user.username[0] | upper }}</span>
         <span class="site-nav-username">{{ current_user.username }}</span>
-        <a class="site-nav-logout" href="{{ url_for('auth.logout') }}" title="Sair" aria-label="Sair">
+        <a class="site-nav-logout" href="{{ url_for('auth.logout') }}" title="{{ _('Sair') }}" aria-label="{{ _('Sair') }}">
             <i class="fas fa-right-from-bracket"></i>
         </a>
     </div>
     {% else %}
-    <a class="site-nav-link" href="{{ url_for('auth.login', next=request.path) }}"><i class="fas fa-right-to-bracket"></i> Entrar</a>
+    <a class="site-nav-link" href="{{ url_for('auth.login', next=request.path) }}"><i class="fas fa-right-to-bracket"></i> {{ _('Entrar') }}</a>
     {% endif %}
 </nav>
 {% if current_user.is_authenticated %}
 {#- Barrinha "No ar / Preparado" (static/js/telao_bar.js): o que está no
     telão e o que espera Liberar, em qualquer página de operador. #}
-<div class="telao-bar" id="telao-bar" role="status" aria-live="polite" aria-label="Telão"><span class="tb-loading">Telão…</span></div>
+<div class="telao-bar" id="telao-bar" role="status" aria-live="polite" aria-label="{{ _('Telão') }}"><span class="tb-loading">{{ _('Telão…') }}</span></div>
 <script>document.body.classList.add('has-telao-bar');</script>
 <script src="{{ versioned_static('js/telao_bar.js') }}" defer></script>
 {% endif %}
@@ -110,7 +110,7 @@ try { if (window.self !== window.top && window.top.location.origin === location.
         nav.classList.toggle('nav-open', open);
         if (!toggle) return;
         toggle.setAttribute('aria-expanded', String(open));
-        toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+        toggle.setAttribute('aria-label', open ? {{ _('Fechar menu')|tojson }} : {{ _('Abrir menu')|tojson }});
         toggle.querySelector('i').className = 'fas ' + (open ? 'fa-xmark' : 'fa-bars');
         menus.forEach(function (m) { m.open = open; });
     }

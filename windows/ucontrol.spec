@@ -15,6 +15,8 @@ datas = [
     (os.path.join(ROOT, 'static'), 'static'),
     (os.path.join(ROOT, 'templates'), 'templates'),
     (os.path.join(ROOT, 'bibles'), 'bibles'),
+    # Dicionários da interface (i18n.py), lidos como arquivo
+    (os.path.join(ROOT, 'translations'), 'translations'),
     # env.py e versions/*.py são lidos como arquivo pelo alembic, não importados
     (os.path.join(ROOT, 'migrations'), 'migrations'),
     (os.path.join(ROOT, 'VERSION'), '.'),

@@ -3314,3 +3314,76 @@ def test_login_cookie_is_samesite_lax(client):
     cookies = client.get("/login").headers.getlist("Set-Cookie")
     sessao = next(c for c in cookies if c.startswith("session="))
     assert "SameSite=Lax" in sessao
+
+
+# --- Tradução da interface (i18n.py) ----------------------------------------
+
+def _idioma_salvo(app, valor):
+    from models import Setting
+    with app.app_context():
+        row = Setting.query.first() or Setting()
+        row.language = valor
+        ucontrol_main.db.session.add(row)
+        ucontrol_main.db.session.commit()
+
+
+def test_language_follows_browser_until_one_is_chosen(app, logged_in_client):
+    _idioma_salvo(app, None)
+    try:
+        pt = logged_in_client.get("/dashboard").get_data(as_text=True)
+        assert '<html lang="pt-BR">' in pt and "Ordem do Culto" in pt and "/i18n/" not in pt
+        en = logged_in_client.get("/dashboard", headers={"Accept-Language": "en-US,en;q=0.9"}).get_data(as_text=True)
+        assert '<html lang="en">' in en and "Order of service" in en and "/i18n/en.js" in en
+
+        # escolhido em Sistema → Idioma vale pra todo mundo, qualquer navegador
+        assert logged_in_client.post("/api/idioma", json={"idioma": "en"}).get_json()["ok"]
+        assert "Order of service" in logged_in_client.get("/dashboard").get_data(as_text=True)
+        assert logged_in_client.post("/api/idioma", json={"idioma": "pt"}).get_json()["ok"]
+        assert "Ordem do Culto" in logged_in_client.get(
+            "/dashboard", headers={"Accept-Language": "en"}).get_data(as_text=True)
+        assert logged_in_client.post("/api/idioma", json={"idioma": "xx"}).status_code == 400
+    finally:
+        _idioma_salvo(app, None)
+
+
+def test_language_page_and_js_dictionary(client, logged_in_client):
+    assert client.get("/idioma").status_code == 302  # exige login
+    html = logged_in_client.get("/idioma", headers={"Accept-Language": "en"}).get_data(as_text=True)
+    assert "browser language" in html and 'value="en"' in html
+    js = client.get("/i18n/en.js").get_data(as_text=True)  # login e telas também usam
+    assert js.startswith("window.UC_I18N = {") and '"Order of service"' in js
+    assert client.get("/i18n/pt.js").get_data(as_text=True).strip() == "window.UC_I18N = {};"
+
+
+def test_every_marked_text_has_an_english_translation():
+    """Texto marcado com _() nas páginas, _t() no JS ou rótulo do menu sem
+    entrada em translations/en.json apareceria em português no meio da
+    tela em inglês — o teste avisa na hora."""
+    import glob
+    import json
+    import re
+    import nav_config
+
+    with open("translations/en.json", encoding="utf-8") as f:
+        en = json.load(f)
+    faltando = set()
+    marcados = re.compile(r"""\b_t?\(\s*(['"])((?:(?!\1).)+)\1""")
+    arquivos = glob.glob("templates/**/*.html", recursive=True) + \
+        [p for p in glob.glob("static/js/**/*.js", recursive=True) if "/vendor/" not in p] + \
+        glob.glob("*.py") + glob.glob("blueprints/*.py")
+    # o próprio mecanismo: os exemplos da documentação não são telas
+    arquivos = [p for p in arquivos if os.path.basename(p) not in ("i18n.py", "i18n.js")]
+    for caminho in arquivos:
+        with open(caminho, encoding="utf-8") as f:
+            for _aspas, texto in marcados.findall(f.read()):
+                if texto not in en:
+                    faltando.add(f"{caminho}: {texto}")
+    for item in nav_config.NAV_ITEMS:
+        if "nav" in item["contexts"]:
+            for texto in {item["label"], item.get("nav_label") or item["label"]}:
+                if texto not in en:
+                    faltando.add(f"nav_config.py: {texto}")
+    for chave in nav_config.MENU_GROUPS:
+        if nav_config.GROUP_LABELS[chave] not in en:
+            faltando.add(f"nav_config.py: {nav_config.GROUP_LABELS[chave]}")
+    assert not faltando, "Sem tradução em translations/en.json:\n" + "\n".join(sorted(faltando))

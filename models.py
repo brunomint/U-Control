@@ -81,6 +81,8 @@ class Setting(db.Model):
     # Segunda versão mostrada junto no telão ('' / None = só uma)
     bible_translation_2 = db.Column(db.String(20), nullable=True)
     display_bg_dark = db.Column(db.Boolean, nullable=True, default=False)
+    # Idioma da interface ('pt', 'en'); None = o do navegador (i18n.py)
+    language = db.Column(db.String(5), nullable=True)
 
 
 # Rótulo salvo da última contagem regressiva — substitui countdown_config.json.

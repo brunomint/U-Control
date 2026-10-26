@@ -111,6 +111,11 @@ NAV_ITEMS = [
         "group": "sistema", "login_required": True, "contexts": ["nav"],
     },
     {
+        # Nas duas línguas: quem não lê português precisa achar
+        "endpoint": "idioma.idioma_page", "label": "Idioma · Language", "icon": "fa-language",
+        "group": "sistema", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "utils.help", "label": "Ajuda", "icon": "fa-circle-question",
         "group": "sistema", "login_required": False, "contexts": ["nav", "qr"],
     },

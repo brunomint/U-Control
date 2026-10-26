@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}{{ _('Idioma') }} - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<style>
+.idioma-card { max-width: 560px; display: grid; gap: 14px; }
+.idioma-opcoes { display: grid; gap: 6px; }
+.idioma-opcao { display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); cursor: pointer; }
+.idioma-opcao:has(input:checked) { border-color: var(--uc-accent); }
+.idioma-opcao .detalhe { color: var(--uc-muted); font-size: 13px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>{{ _('Idioma') }}</h1>
+            <div class="uc-page-sub">{{ _('Idioma das telas do U-Control. Letras, Bíblias e o que a igreja cadastrou continuam como estão.') }}</div>
+        </div>
+    </div>
+
+    <section class="uc-card idioma-card">
+        <div class="idioma-opcoes" role="radiogroup" aria-label="{{ _('Idioma') }}">
+            <label class="idioma-opcao"><input type="radio" name="idioma" value="" {% if not salvo %}checked{% endif %}>
+                <span>{{ _('Automático') }} <span class="detalhe">— {{ _('o idioma do navegador de cada pessoa') }}</span></span></label>
+            {% for codigo, nome in idiomas.items() %}
+            <label class="idioma-opcao" lang="{{ codigo }}"><input type="radio" name="idioma" value="{{ codigo }}" {% if salvo == codigo %}checked{% endif %}>
+                <span>{{ nome }}</span></label>
+            {% endfor %}
+        </div>
+        <p class="uc-muted">{{ _('A tradução está em andamento: as telas ainda não traduzidas aparecem em português.') }}</p>
+        <p id="idioma-msg" role="status"></p>
+        <div class="uc-btn-row">
+            <button type="button" class="uc-btn uc-btn-primary" id="idioma-salvar"><i class="fas fa-check"></i> {{ _('Salvar') }}</button>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/idioma.js') }}"></script>
+{% endblock %}

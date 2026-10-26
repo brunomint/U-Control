@@ -1,0 +1,4 @@
+{#- Tradução no JS (static/js/i18n.js): incluir no <head>, antes dos scripts
+    da página. Em português não há dicionário a baixar. #}
+{% if uc_lang != 'pt' %}<script src="{{ url_for('idioma.dicionario_js', idioma=uc_lang, v=uc_i18n_v) }}"></script>{% endif %}
+<script src="{{ versioned_static('js/i18n.js') }}"></script>
