@@ -101,9 +101,17 @@ def set_second_translation(translation):
 
 
 def _abbrev_do_livro(nome):
-    for book in load_bible_metadata().get('books', []):
+    meta = load_bible_metadata().get('books', [])
+    for book in meta:
         if book['name'] == nome or book['abbrev'] == nome:
             return book['abbrev']
+    # Nome em inglês (referência montada com a KJV/BBE, ver get_book_name):
+    # os arquivos seguem a mesma ordem dos 66 livros da lista padrão
+    for t in load_bible_metadata().get('translations', {}):
+        if t.startswith('en_') and _bible_path(t):
+            for i, book in enumerate(load_bible(t)):
+                if book.get('name') == nome and i < len(meta):
+                    return meta[i]['abbrev']
     return None
 
 
@@ -173,8 +181,17 @@ def load_bible(translation=None):
     return _bible_cache[translation]
 
 
-def get_book_name(abbrev):
-    """Retorna o nome completo do livro pela abreviação."""
+def get_book_name(abbrev, translation=None):
+    """Retorna o nome completo do livro pela abreviação. Nas traduções em
+    inglês (en_*), o nome que vem no próprio arquivo ("Psalms") — antes a
+    referência no telão saía "Salmos 46:1" mesmo com a KJV. As outras
+    línguas ficam com o nome em português: os arquivos delas (russo,
+    chinês, espanhol…) também trazem os nomes em inglês, não na língua
+    da tradução."""
+    if translation and translation.startswith('en_'):
+        book = get_book_by_abbrev(translation, abbrev)
+        if book and book.get('name'):
+            return book['name']
     metadata = load_bible_metadata()
     for book in metadata.get('books', []):
         if book['abbrev'] == abbrev:
@@ -424,7 +441,7 @@ def search_bible(translation, query, limit=50):
         # Abreviação/nome da lista padrão (a do arquivo pode estar em
         # inglês — ver book_index)
         book_abbrev = meta_books[idx]['abbrev'] if idx < len(meta_books) else book.get('abbrev', '')
-        book_name = get_book_name(book_abbrev)
+        book_name = get_book_name(book_abbrev, translation)
         chapters = book.get('chapters', [])
 
         for chapter_idx, chapter in enumerate(chapters):
@@ -515,7 +532,7 @@ def bible_book(book_abbrev):
         return redirect(url_for('bible.bible_home'))
 
     metadata = load_bible_metadata()
-    book_name = get_book_name(book_abbrev)
+    book_name = get_book_name(book_abbrev, translation)
     num_chapters = len(book.get('chapters', []))
 
     return render_template('bible_book.html',
@@ -542,7 +559,7 @@ def bible_chapter(book_abbrev, chapter):
         return redirect(url_for('bible.bible_book', book_abbrev=book_abbrev))
 
     metadata = load_bible_metadata()
-    book_name = get_book_name(book_abbrev)
+    book_name = get_book_name(book_abbrev, translation)
     verses = chapters[chapter - 1]
 
     # Navegação entre capítulos
@@ -588,7 +605,7 @@ def api_bible_search():
             if 0 <= chapter_idx < len(chapters):
                 verses = chapters[chapter_idx]
                 results = []
-                book_name = get_book_name(ref['book_abbrev'])
+                book_name = get_book_name(ref['book_abbrev'], translation)
 
                 if ref['verse_start']:
                     # Versículos específicos
@@ -647,7 +664,7 @@ def api_bible_verse():
         return jsonify({'error': _('Capítulo não encontrado')}), 404
 
     verses = chapters[chapter - 1]
-    book_name = get_book_name(book_abbrev)
+    book_name = get_book_name(book_abbrev, translation)
 
     if verse_end is None:
         verse_end = verse_start
@@ -853,7 +870,7 @@ def bible_control(book_abbrev, chapter, verse_start=None, verse_end=None):
         return "Capítulo não encontrado", 404
 
     verses = chapters[chapter - 1]
-    book_name = get_book_name(book_abbrev)
+    book_name = get_book_name(book_abbrev, translation)
     metadata = load_bible_metadata()
 
     # Navegação entre capítulos

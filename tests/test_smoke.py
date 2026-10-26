@@ -3423,3 +3423,24 @@ def test_help_has_every_topic_in_english(client):
     html = client.get("/help", headers={"Accept-Language": "en"}).get_data(as_text=True)
     assert "help_en.js" in html and "Troubleshooting" in html
     assert "help_en.js" not in client.get("/help").get_data(as_text=True)
+
+
+def test_bible_reference_uses_english_book_names_for_english_bibles():
+    """Com a KJV, a referência no telão saía "Salmos 46:1". Nas outras
+    línguas fica o nome em português (os arquivos delas trazem inglês)."""
+    from blueprints.bible import get_book_name
+    assert get_book_name("sl", "en_kjv") == "Psalms"
+    assert get_book_name("sl", "blivre") == "Salmos"
+    assert get_book_name("sl", "ru_synodal") == "Salmos"
+    assert get_book_name("sl") == "Salmos"
+
+
+def test_second_bible_version_found_from_english_book_name(monkeypatch):
+    """Com a referência em inglês ("John"), a 2ª versão sumia do telão:
+    ela era procurada pelo nome do livro, que só era lido em português."""
+    from blueprints import bible
+    monkeypatch.setattr(bible, "get_second_translation", lambda: "en_bbe")
+    data = {"book": "John", "chapter": 3, "verses": [{"num": 16, "text": "For God so loved"}],
+            "version": bible.get_translation_name("en_kjv")}
+    out = bible.com_segunda_versao(data)
+    assert out.get("version2_abbrev") == "BBE" and out["verses2"][0]["num"] == 16
