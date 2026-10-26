@@ -194,6 +194,8 @@
             routeLayer.src = 'about:blank';
             routeLayer.style.display = 'none';
             mediaImg.style.display = 'none';
+            mediaVideo.classList.add('photo');
+            mediaVideo.loop = false;   // o vídeo de fundo do tema deixa loop ligado
             mediaVideo.src = url;
             mediaVideo.style.display = 'block';
             lyricsLayer.style.display = 'none';
@@ -298,6 +300,7 @@
                 document.getElementById('media-layer').style.background = '';
             } else if (theme && theme.type === 'video' && theme.url) {
                 mediaImg.style.display = 'none';
+                mediaVideo.classList.remove('photo');
                 mediaVideo.src = theme.url;
                 mediaVideo.style.display = 'block';
                 mediaVideo.loop = true;

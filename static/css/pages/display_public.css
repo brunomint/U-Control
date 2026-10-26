@@ -25,10 +25,15 @@ html, body {
    pública cortava a foto e o zoom do /presenter caía em lugar diferente */
 #media-layer img.photo { object-fit: contain; }
 #media-layer video {
+  position: absolute; inset: 0;
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: cover;   /* vídeo de fundo do tema da letra */
   display: none;
 }
+/* Vídeo da galeria inteiro, como no monitor. Com "cover" o app Android
+   (WebView) desenhava o vídeo no tamanho original, no canto de cima à
+   esquerda, em vez de tela cheia. */
+#media-layer video.photo { object-fit: contain; }
 
 /* LETRAS ficam na frente */
 #lyrics {
