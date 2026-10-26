@@ -362,7 +362,7 @@ def view_song(song_id):
     """Exibe os detalhes de uma música."""
     song = get_song(song_id)
     if not song:
-        return "Música não encontrada!", 404
+        return i18n.gettext("Música não encontrada!"), 404
 
     # Verifica se há parâmetro de data na URL
     order_date = request.args.get('order')
@@ -449,7 +449,7 @@ def view_song_print(song_id):
 
     song = get_song(song_id)
     if not song:
-        return "Música não encontrada!", 404
+        return i18n.gettext("Música não encontrada!"), 404
 
     try:
         transpose = int(request.args.get('transpose', 0))

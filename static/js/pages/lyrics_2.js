@@ -7,7 +7,7 @@ let currentTheme = CONFIG.theme;
         // ── Tema visual ───────────────────────────────────────────────
         function atualizarBotaoTema() {
             const lbl = document.getElementById('btn-tema-label');
-            lbl.textContent = currentTheme ? 'Tema ativo' : 'Tema';
+            lbl.textContent = currentTheme ? _t('Tema ativo') : _t('Tema');
         }
         atualizarBotaoTema();
 
@@ -92,7 +92,7 @@ let currentTheme = CONFIG.theme;
                 .then(urls => {
                     const grid = document.getElementById('tema-grid');
                     if (!urls.length) {
-                        grid.innerHTML = '<p class="tema-empty">Nenhuma imagem nesta pasta.</p>';
+                        grid.innerHTML = `<p class="tema-empty">${_t('Nenhuma imagem nesta pasta.')}</p>`;
                         return;
                     }
                     grid.innerHTML = urls.map(url => {
@@ -103,7 +103,7 @@ let currentTheme = CONFIG.theme;
                     }).join('');
                 }).catch(() => {
                     document.getElementById('tema-grid').innerHTML =
-                        '<p class="tema-empty">Erro ao carregar as imagens.</p>';
+                        `<p class="tema-empty">${_t('Erro ao carregar as imagens.')}</p>`;
                 });
         }
 
@@ -115,7 +115,7 @@ let currentTheme = CONFIG.theme;
         let _displayBgDark = true;
         function _atualizarBtnBg() {
             const btn = document.getElementById('btn-bg');
-            btn.innerHTML = `<i class="fas ${_displayBgDark ? 'fa-moon' : 'fa-sun'}"></i> Fundo ${_displayBgDark ? 'preto' : 'branco'}`;
+            btn.innerHTML = `<i class="fas ${_displayBgDark ? 'fa-moon' : 'fa-sun'}"></i> ${_displayBgDark ? _t('Fundo preto') : _t('Fundo branco')}`;
             btn.classList.toggle('light', !_displayBgDark);
         }
         fetch('/api/display-bg').then(r => r.json()).then(d => {
@@ -402,7 +402,7 @@ let currentTheme = CONFIG.theme;
                 }
                 $('#full-lyrics').text(data.lyrics);
             }).fail(function() {
-                alert("Erro ao carregar a letra completa.");
+                alert(_t('Erro ao carregar a letra completa.'));
             });
         }
     
@@ -461,7 +461,7 @@ let currentTheme = CONFIG.theme;
                 
                 const link = $(`
                     <div id="section-${i}" class="section-link">
-                        <span class="section-title">${section.title || `Seção ${i + 1}`}</span>
+                        <span class="section-title">${section.title || _t('Seção {n}', { n: i + 1 })}</span>
                         ${content}
                     </div>
                 `);
@@ -497,7 +497,7 @@ let currentTheme = CONFIG.theme;
                 (Array.isArray(sheet.notes) && sheet.notes.length > 0)
             );
             if (!hasContent) {
-                renderDiv.html('<p style="color:orange;">Partitura vazia</p>');
+                renderDiv.html(`<p style="color:orange;">${_t('Partitura vazia')}</p>`);
                 return;
             }
 
@@ -512,7 +512,7 @@ let currentTheme = CONFIG.theme;
                 await renderSheetMusic(container, toRender, { maxWidth: largura, compact: true });
             } catch (error) {
                 console.error('❌ Erro ao renderizar partitura:', error);
-                renderDiv.html(`<p style="color:red;">Erro: ${error.message}</p>`);
+                renderDiv.html(`<p style="color:red;">${_t('Erro: {erro}', { erro: error.message })}</p>`);
             }
         }
 
@@ -579,7 +579,7 @@ $('#clear-lyrics').click(function() {
 
         async function loadSection(index, fromRemote = false, silent = false, isRemoteSync = false) {
             if (index < 0 || index >= sections.length) {
-                alert("Seção inválida.");
+                alert(_t('Seção inválida.'));
                 return;
             }
 
@@ -769,11 +769,11 @@ $('#clear-lyrics').click(function() {
                 if (lyricsVisible) {
                     btn.classList.remove('show-mode');
                     if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
-                    if (text) text.textContent = 'Esconder';
+                    if (text) text.textContent = _t('Esconder');
                 } else {
                     btn.classList.add('show-mode');
                     if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
-                    if (text) text.textContent = 'Mostrar';
+                    if (text) text.textContent = _t('Mostrar');
                 }
             });
         }
@@ -788,7 +788,7 @@ $('#clear-lyrics').click(function() {
                 if (currentSectionIndex < sections.length - 1) {
                     loadSection(currentSectionIndex + 1); // Carrega a próxima seção
                 } else {
-                    alert("Você já está na última seção.");
+                    alert(_t('Você já está na última seção.'));
                 }
             });
     
@@ -796,7 +796,7 @@ $('#clear-lyrics').click(function() {
                 if (currentSectionIndex > 0) {
                     loadSection(currentSectionIndex - 1); // Carrega a seção anterior
                 } else {
-                    alert("Você já está na primeira seção.");
+                    alert(_t('Você já está na primeira seção.'));
                 }
             });
             

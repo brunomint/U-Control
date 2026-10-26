@@ -13,6 +13,7 @@ from flask_login import login_required
 from bs4 import BeautifulSoup
 import requests
 
+from i18n import gettext as tr
 import paths
 
 logger = logging.getLogger('ucontrol')
@@ -128,6 +129,16 @@ class CifraIndisponivel(Exception):
     MENSAGEM = ('O Cifra Club não deixou o U-Control abrir essa página{}. '
                 'Abra a música no navegador, copie a cifra e cole numa caixa de texto do editor.')
 
+    def __init__(self, mensagem, codigo=None):
+        super().__init__(mensagem)
+        self.codigo = codigo  # código HTTP da recusa (None = página sem cifra)
+
+
+def _mensagem_indisponivel(e):
+    """MENSAGEM traduzida na hora da resposta (o idioma é da requisição)."""
+    detalhe = tr(' (código {codigo})', codigo=e.codigo) if e.codigo else ''
+    return tr(CifraIndisponivel.MENSAGEM).format(detalhe)
+
 
 def _baixar_cifra(url):
     """GET numa página do Cifra Club, seguindo no máximo 5 redirecionamentos
@@ -149,7 +160,7 @@ def _pagina_da_cifra(url):
     r = _baixar_cifra(url)
     if r.status_code != 200:
         logger.warning('Cifra Club respondeu %s para %s', r.status_code, url)
-        raise CifraIndisponivel(CifraIndisponivel.MENSAGEM.format(f' (código {r.status_code})'))
+        raise CifraIndisponivel(CifraIndisponivel.MENSAGEM.format(f' (código {r.status_code})'), r.status_code)
     soup = BeautifulSoup(r.text, 'html.parser')
     titulo, compositor, cifra = _extrair_titulo_compositor_cifra(soup)
     if cifra == 'Cifra não encontrada':
@@ -163,9 +174,9 @@ def _pagina_da_cifra(url):
 def pegar_cifra():
     url = request.args.get("url")
     if not url:
-        return "URL não fornecida", 400
+        return tr("URL não fornecida"), 400
     if not _url_do_cifra_club(url):
-        return "Só dá pra importar links do Cifra Club (cifraclub.com.br).", 400
+        return tr("Só dá pra importar links do Cifra Club (cifraclub.com.br)."), 400
 
     try:
         _, titulo, compositor, cifra = _pagina_da_cifra(url)
@@ -176,11 +187,11 @@ def pegar_cifra():
         return texto_puro
 
     except CifraUrlInvalida as e:
-        return str(e), 400
+        return tr(str(e)), 400
     except CifraIndisponivel as e:
-        return str(e), 502
+        return _mensagem_indisponivel(e), 502
     except requests.Timeout:
-        return "O Cifra Club demorou demais pra responder. Tente de novo.", 504
+        return tr("O Cifra Club demorou demais pra responder. Tente de novo."), 504
     except Exception as e:
         return str(e), 500
 
@@ -190,9 +201,9 @@ def pegar_cifra():
 def pegar_cifra_com_video():
     url = request.args.get("url")
     if not url:
-        return jsonify({"error": "URL não fornecida"}), 400
+        return jsonify({"error": tr("URL não fornecida")}), 400
     if not _url_do_cifra_club(url):
-        return jsonify({"error": "Só dá pra importar links do Cifra Club (cifraclub.com.br)."}), 400
+        return jsonify({"error": tr("Só dá pra importar links do Cifra Club (cifraclub.com.br).")}), 400
 
     try:
         soup, titulo, compositor, cifra = _pagina_da_cifra(url)
@@ -245,11 +256,11 @@ def pegar_cifra_com_video():
         })
 
     except CifraUrlInvalida as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": tr(str(e))}), 400
     except CifraIndisponivel as e:
-        return jsonify({"error": str(e)}), 502
+        return jsonify({"error": _mensagem_indisponivel(e)}), 502
     except requests.Timeout:
-        return jsonify({"error": "O Cifra Club demorou demais pra responder. Tente de novo."}), 504
+        return jsonify({"error": tr("O Cifra Club demorou demais pra responder. Tente de novo.")}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -273,13 +284,13 @@ def download_audio():
     old_audio_url = data.get("old_audio_url")  # URL do áudio antigo para deletar
 
     if not video_url:
-        return jsonify({"error": "URL não fornecida"}), 400
+        return jsonify({"error": tr("URL não fornecida")}), 400
 
     try:
         # Extrai ID do vídeo para nome do arquivo
         match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]{11})', video_url)
         if not match:
-            return jsonify({"error": "URL do YouTube inválida"}), 400
+            return jsonify({"error": tr("URL do YouTube inválida")}), 400
 
         video_id = match.group(1)
         # yt-dlp recebe só a URL remontada a partir do ID: o texto recebido
@@ -309,7 +320,7 @@ def download_audio():
             return jsonify({
                 "success": True,
                 "audio_url": f"/static/audio/{filename}.mp3",
-                "message": "Áudio já existe"
+                "message": tr("Áudio já existe")
             })
 
         # Garante que a pasta existe
@@ -333,7 +344,7 @@ def download_audio():
 
         if result.returncode != 0:
             logger.error(f"❌ Erro yt-dlp: {result.stderr}")
-            return jsonify({"error": f"Erro ao baixar: {result.stderr}"}), 500
+            return jsonify({"error": tr("Erro ao baixar: {erro}", erro=result.stderr)}), 500
 
         # Verifica se o arquivo foi criado
         if os.path.exists(output_path):
@@ -343,10 +354,10 @@ def download_audio():
                 "audio_url": f"/static/audio/{filename}.mp3"
             })
         else:
-            return jsonify({"error": "Arquivo não foi criado"}), 500
+            return jsonify({"error": tr("Arquivo não foi criado")}), 500
 
     except subprocess.TimeoutExpired:
-        return jsonify({"error": "Timeout ao baixar áudio"}), 500
+        return jsonify({"error": tr("Timeout ao baixar áudio")}), 500
     except Exception as e:
         logger.exception(f"❌ Erro: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -378,4 +389,4 @@ def delete_audio(filename):
     if os.path.exists(audio_path):
         os.remove(audio_path)
         return jsonify({"success": True})
-    return jsonify({"error": "Arquivo não encontrado"}), 404
+    return jsonify({"error": tr("Arquivo não encontrado")}), 404

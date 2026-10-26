@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Bíblia - U-Control{% endblock %}
+{% block title %}{{ _('Bíblia') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,27 +16,27 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Bíblia</h1>
-            <div class="uc-page-sub">Busque uma referência ou escolha um livro para exibir no telão</div>
+            <h1>{{ _('Bíblia') }}</h1>
+            <div class="uc-page-sub">{{ _('Busque uma referência ou escolha um livro para exibir no telão') }}</div>
         </div>
-        <a class="uc-btn uc-btn-secondary" href="/bible/control/"><i class="fas fa-list-ol"></i> Leituras da ordem de hoje</a>
+        <a class="uc-btn uc-btn-secondary" href="/bible/control/"><i class="fas fa-list-ol"></i> {{ _('Leituras da ordem de hoje') }}</a>
     </div>
 
     <section class="uc-card search-card">
         <div class="search-row">
             <div class="uc-search grow">
                 <i class="fas fa-magnifying-glass"></i>
-                <input type="text" class="uc-input" id="searchInput" placeholder="João 3:16, Salmos 23 ou uma palavra como &quot;esperança&quot;" aria-label="Buscar na Bíblia">
+                <input type="text" class="uc-input" id="searchInput" placeholder="{{ _('João 3:16, Salmos 23 ou uma palavra como "esperança"') }}" aria-label="{{ _('Buscar na Bíblia') }}">
             </div>
-            <select class="uc-input translation-select" id="translationSelect" aria-label="Tradução">
+            <select class="uc-input translation-select" id="translationSelect" aria-label="{{ _('Tradução') }}">
                 {% for key, trans in translations.items() %}
                 <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.name }} ({{ trans.abbrev }})</option>
                 {% endfor %}
             </select>
-            <button type="button" class="uc-btn uc-btn-primary" onclick="searchBible()"><i class="fas fa-magnifying-glass"></i> Buscar</button>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="searchBible()"><i class="fas fa-magnifying-glass"></i> {{ _('Buscar') }}</button>
         </div>
         <div class="quick-links">
-            <span class="uc-muted">Atalhos:</span>
+            <span class="uc-muted">{{ _('Atalhos:') }}</span>
             {% for abbrev, name in [('gn','Gênesis'),('sl','Salmos'),('pv','Provérbios'),('is','Isaías'),('mt','Mateus'),('jo','João'),('rm','Romanos'),('ap','Apocalipse')] %}
             <a href="/bible/{{ abbrev }}?translation={{ current_translation }}" class="quick-link">{{ name }}</a>
             {% endfor %}
@@ -44,13 +44,13 @@
     </section>
 
     <section class="uc-card search-results" id="searchResults">
-        <div class="uc-card-head"><h2>Resultados</h2></div>
+        <div class="uc-card-head"><h2>{{ _('Resultados') }}</h2></div>
         <div id="resultsContainer"></div>
     </section>
 
     <div class="testaments">
         <section class="uc-card testament">
-            <div class="uc-card-head"><h2>Antigo Testamento</h2><span class="uc-muted small">{{ old_testament|length }} livros</span></div>
+            <div class="uc-card-head"><h2>{{ _('Antigo Testamento') }}</h2><span class="uc-muted small">{{ _('{n} livros', n=old_testament|length) }}</span></div>
             <div class="books-grid">
                 {% for book in old_testament %}
                 <a href="/bible/{{ book.abbrev }}?translation={{ current_translation }}" class="book-card">
@@ -61,7 +61,7 @@
             </div>
         </section>
         <section class="uc-card testament">
-            <div class="uc-card-head"><h2>Novo Testamento</h2><span class="uc-muted small">{{ new_testament|length }} livros</span></div>
+            <div class="uc-card-head"><h2>{{ _('Novo Testamento') }}</h2><span class="uc-muted small">{{ _('{n} livros', n=new_testament|length) }}</span></div>
             <div class="books-grid">
                 {% for book in new_testament %}
                 <a href="/bible/{{ book.abbrev }}?translation={{ current_translation }}" class="book-card">

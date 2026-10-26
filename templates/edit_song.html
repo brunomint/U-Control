@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Editar {{ song.title if song else 'música' }} - U-Control{% endblock %}
+{% block title %}{{ _('Editar {titulo}', titulo=song.title) if song else _('Editar música') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>

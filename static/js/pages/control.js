@@ -135,10 +135,10 @@ function saveUrls() {
     }).then(res => res.json())
       .then(data => {
           if (data.status !== 'success' || !window.ucToast) return;
-          window.ucToast('URLs salvas.');
-          if (selfPage) window.ucToast(`Atenção: a URL ${selfPage} é a página do Controle — no telão, o público veria o Controle.`, 'error');
+          window.ucToast(_t('URLs salvas.'));
+          if (selfPage) window.ucToast(_t('Atenção: a URL {n} é a página do Controle — no telão, o público veria o Controle.', { n: selfPage }), 'error');
       })
-      .catch(() => window.ucToast && window.ucToast('Não deu pra salvar as URLs.', 'error'));
+      .catch(() => window.ucToast && window.ucToast(_t('Não deu pra salvar as URLs.'), 'error'));
 }
 
 function loadUrls() {
@@ -196,14 +196,14 @@ function setBlackoutButton(active) {
     const btn = document.getElementById('blackoutBtn');
     btn.classList.toggle('active', blackoutActive);
     btn.querySelector('i').className = blackoutActive ? 'fas fa-sun' : 'fas fa-moon';
-    btn.querySelector('span').textContent = blackoutActive ? 'Voltar a imagem' : 'Tela preta';
+    btn.querySelector('span').textContent = blackoutActive ? _t('Voltar a imagem') : _t('Tela preta');
     const overlay = document.getElementById('preview-blackout');
     if (overlay) overlay.hidden = !blackoutActive;
 }
 
 // Funções do Ticker — escolhe as telas (uma, duas ou as três); cada tela
 // guarda o próprio aviso, então "Mostrar"/"Tirar" só mexem nas escolhidas
-const TICKER_NOMES = { public: 'Tela pública', monitor: 'Palco', obs: 'Transmissão' };
+const TICKER_NOMES = { public: _t('Tela pública'), monitor: _t('Palco'), obs: _t('Transmissão') };
 function tickerTelas() {
     return [...document.querySelectorAll('.ticker-telas button[aria-pressed="true"]')].map(b => b.dataset.tela);
 }
@@ -221,13 +221,13 @@ try {
 function sendTicker() {
     const text = document.getElementById('tickerText').value.trim();
     const telas = tickerTelas();
-    if (!text) return window.ucToast && ucToast('Escreva o aviso primeiro.', 'error');
-    if (!telas.length) return window.ucToast && ucToast('Escolha pelo menos uma tela.', 'error');
+    if (!text) return window.ucToast && ucToast(_t('Escreva o aviso primeiro.'), 'error');
+    if (!telas.length) return window.ucToast && ucToast(_t('Escolha pelo menos uma tela.'), 'error');
     socket.emit('set_ticker', { text: text, targets: telas });
 }
 function stopTicker() {
     const telas = tickerTelas();
-    if (!telas.length) return window.ucToast && ucToast('Escolha de quais telas tirar.', 'error');
+    if (!telas.length) return window.ucToast && ucToast(_t('Escolha de quais telas tirar.'), 'error');
     socket.emit('stop_ticker', { targets: telas });
 }
 function clearTicker() {
@@ -244,7 +244,7 @@ function renderTickerAgora(porTela) {
         const li = document.createElement('li');
         const nome = document.createElement('strong');
         nome.textContent = TICKER_NOMES[t] + ': ';
-        li.append(nome, document.createTextNode(porTela[t] ? '“' + porTela[t] + '”' : 'sem aviso'));
+        li.append(nome, document.createTextNode(porTela[t] ? '“' + porTela[t] + '”' : _t('sem aviso')));
         ul.appendChild(li);
     });
 }
@@ -276,7 +276,7 @@ let _screenStream = null;
 let _screenTarget = null;
 let _screenPeers = {};
 const _iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-const _SHARE_ALVOS = { public: 'tela pública', monitor: 'retorno de palco', all: 'tela pública e palco' };
+const _SHARE_ALVOS = { public: _t('tela pública'), monitor: _t('retorno de palco'), all: _t('tela pública e palco') };
 
 function _shareStatus(texto) {
     const el = document.getElementById('screenShareStatus');
@@ -286,7 +286,9 @@ function _shareStatus(texto) {
 function _shareContagem() {
     if (!_screenStream) return;
     const n = Object.values(_screenPeers).filter(pc => pc.connectionState === 'connected').length;
-    _shareStatus(`● Compartilhando na ${_SHARE_ALVOS[_screenTarget]} — ${n} ${n === 1 ? 'tela recebendo' : 'telas recebendo'}`);
+    _shareStatus(n === 1
+        ? _t('● Compartilhando na {alvo} — {n} tela recebendo', { alvo: _SHARE_ALVOS[_screenTarget], n })
+        : _t('● Compartilhando na {alvo} — {n} telas recebendo', { alvo: _SHARE_ALVOS[_screenTarget], n }));
 }
 
 async function startScreenShare(target) {
@@ -299,7 +301,7 @@ async function startScreenShare(target) {
     // O navegador só deixa capturar a tela em endereço seguro: no próprio PC
     // do U-Control (127.0.0.1 / localhost) ou por HTTPS — não pelo IP da rede
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        _shareStatus('Este navegador não deixa compartilhar a tela por este endereço. Abra o Controle no próprio computador do U-Control (http://127.0.0.1:8585) ou pelo endereço https.');
+        _shareStatus(_t('Este navegador não deixa compartilhar a tela por este endereço. Abra o Controle no próprio computador do U-Control (http://127.0.0.1:8585) ou pelo endereço https.'));
         return;
     }
     try {
@@ -308,7 +310,7 @@ async function startScreenShare(target) {
             audio: true,
         });
     } catch (e) {
-        _shareStatus(e && e.name === 'NotAllowedError' ? 'Cancelado.' : 'Não deu pra capturar a tela: ' + (e && e.message || e));
+        _shareStatus(e && e.name === 'NotAllowedError' ? _t('Cancelado.') : _t('Não deu pra capturar a tela: {erro}', { erro: (e && e.message || e) }));
         return;
     }
     const video = _screenStream.getVideoTracks()[0];
@@ -409,7 +411,7 @@ function startCountdown() {
     if (total <= 0) return;
     const label = document.getElementById('countdownLabel').value.trim();
     _countdownPaused = false;
-    document.getElementById('btnCountdownPause').textContent = '⏸ Pausar';
+    document.getElementById('btnCountdownPause').textContent = _t('⏸ Pausar');
     socket.emit('start_countdown', { duration_seconds: total, label: label });
 }
 
@@ -417,17 +419,17 @@ function pauseResumeCountdown() {
     if (_countdownPaused) {
         socket.emit('resume_countdown', {});
         _countdownPaused = false;
-        document.getElementById('btnCountdownPause').textContent = '⏸ Pausar';
+        document.getElementById('btnCountdownPause').textContent = _t('⏸ Pausar');
     } else {
         socket.emit('pause_countdown', {});
         _countdownPaused = true;
-        document.getElementById('btnCountdownPause').textContent = '▶ Retomar';
+        document.getElementById('btnCountdownPause').textContent = _t('▶ Retomar');
     }
 }
 
 function resetCountdown() {
     _countdownPaused = false;
-    document.getElementById('btnCountdownPause').textContent = '⏸ Pausar';
+    document.getElementById('btnCountdownPause').textContent = _t('⏸ Pausar');
     socket.emit('reset_countdown', {});
 }
 
@@ -520,12 +522,12 @@ function syncMonitor() {
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(d => {
             if (!window.ucToast) return;
-            if (d.monitors === 0) window.ucToast('Nenhum monitor de palco conectado agora.', 'error');
-            else window.ucToast('Monitor de palco sincronizado com o público.');
+            if (d.monitors === 0) window.ucToast(_t('Nenhum monitor de palco conectado agora.'), 'error');
+            else window.ucToast(_t('Monitor de palco sincronizado com o público.'));
         })
         .catch(e => {
             console.error('Erro ao sincronizar monitor:', e);
-            if (window.ucToast) window.ucToast('Não deu pra sincronizar o monitor.', 'error');
+            if (window.ucToast) window.ucToast(_t('Não deu pra sincronizar o monitor.'), 'error');
         });
 }
 
@@ -590,8 +592,8 @@ function renderPreview() {
         const other = showMonitor ? (st.monitor ? st.live : null) : st.monitor;
         note.hidden = !other;
         if (other) {
-            note.innerHTML = showMonitor ? '<i class="fas fa-users"></i> Público: <b></b>' : '<i class="fas fa-tv"></i> Monitor de palco: <b></b>';
-            note.querySelector('b').textContent = other.label;
+            note.innerHTML = showMonitor ? '<i class="fas fa-users"></i> ' + _t('Público:') + ' <b></b>' : '<i class="fas fa-tv"></i> ' + _t('Monitor de palco:') + ' <b></b>';
+            note.querySelector('b').textContent = (window.ucTelaoLabel || (s => s))(other.label);
         }
     }
 }
@@ -641,7 +643,7 @@ showTwoUrls = function(urlNum1, urlNum2) {
 // aparece o que está preparado, e onde libera (release_staged_content) ou
 // descarta (discard_staged_content). Ver blueprints/display.py.
 const _KIND_ICONS = { lyrics: 'fa-music', bible: 'fa-book-bible', image: 'fa-image' };
-const _KIND_LABELS_PT = { lyrics: 'Letra', bible: 'Bíblia', image: 'Foto' };
+const _KIND_LABELS_PT = { lyrics: _t('Letra'), bible: _t('Bíblia'), image: _t('Foto') };
 let _stagedItems = {}; // kind -> { label }
 
 function renderStagedPanel() {
@@ -660,11 +662,11 @@ function renderStagedPanel() {
             <div class="staged-card" data-kind="${kind}">
                 <i class="fas ${icon} staged-icon"></i>
                 <div class="staged-text">
-                    <span class="staged-kind">${kindLabel} preparado</span>
+                    <span class="staged-kind">${_t('{tipo} preparado', { tipo: kindLabel })}</span>
                     <span class="staged-label"></span>
                 </div>
-                <button class="btn-release" onclick="releaseStagedContent('${kind}')">Liberar</button>
-                <button class="btn-discard" onclick="discardStagedContent('${kind}')">Descartar</button>
+                <button class="btn-release" onclick="releaseStagedContent('${kind}')">${_t('Liberar')}</button>
+                <button class="btn-discard" onclick="discardStagedContent('${kind}')">${_t('Descartar')}</button>
             </div>
         `;
     }).join('');
@@ -672,7 +674,7 @@ function renderStagedPanel() {
     // título/referência com caractere de HTML (ex: "&") quebre o markup.
     kinds.forEach(kind => {
         const card = panel.querySelector(`.staged-card[data-kind="${kind}"] .staged-label`);
-        if (card) card.textContent = _stagedItems[kind].label;
+        if (card) card.textContent = (window.ucTelaoLabel || (s => s))(_stagedItems[kind].label);
     });
 }
 
@@ -723,12 +725,12 @@ socket.on('content_discarded', function(data) {
 // sendUrl()/showTwoUrls() de sempre, com os mesmos números de antes.
 
 const SOURCES = [
-    { id: 'letra',   num: 8, label: 'Letra',   icon: 'fa-align-left',  sub: 'texto da música', route: '/lyrics/display/public' },
-    { id: 'cifra',   num: 4, label: 'Cifra',   icon: 'fa-guitar',      sub: 'cifra no palco', route: '/lyrics/display' },
-    { id: 'biblia',  num: 7, label: 'Bíblia',  icon: 'fa-book-bible',  sub: 'versículo',       route: '/bible/display' },
-    { id: 'imagem',  num: 6, label: 'Imagem',  icon: 'fa-image',       sub: 'galeria',         route: '/img' },
-    { id: 'relogio', num: 5, label: 'Relógio', icon: 'fa-clock',       sub: 'hora atual',      route: '/clock' },
-    { id: 'tela',    num: 9, label: 'Tela do PC', icon: 'fa-desktop',  sub: 'compartilhada',   route: '/tela-do-pc' },
+    { id: 'letra',   num: 8, label: _t('Letra'),   icon: 'fa-align-left',  sub: _t('texto da música'), route: '/lyrics/display/public' },
+    { id: 'cifra',   num: 4, label: _t('Cifra'),   icon: 'fa-guitar',      sub: _t('cifra no palco'), route: '/lyrics/display' },
+    { id: 'biblia',  num: 7, label: _t('Bíblia'),  icon: 'fa-book-bible',  sub: _t('versículo'),       route: '/bible/display' },
+    { id: 'imagem',  num: 6, label: _t('Imagem'),  icon: 'fa-image',       sub: _t('galeria'),         route: '/img' },
+    { id: 'relogio', num: 5, label: _t('Relógio'), icon: 'fa-clock',       sub: _t('hora atual'),      route: '/clock' },
+    { id: 'tela',    num: 9, label: _t('Tela do PC'), icon: 'fa-desktop',  sub: _t('compartilhada'),   route: '/tela-do-pc' },
     { id: 'url1',    num: 1, label: 'URL 1',   icon: 'fa-globe' },
     { id: 'url2',    num: 2, label: 'URL 2',   icon: 'fa-globe' },
     { id: 'url3',    num: 3, label: 'URL 3',   icon: 'fa-globe' },
@@ -747,7 +749,7 @@ function urlInputValue(src) {
 function sourceSubLabel(src) {
     if (src.route) return src.sub;
     const value = urlInputValue(src);
-    if (!value) return 'vazia';
+    if (!value) return _t('vazia');
     try { return new URL(value, window.location.origin).hostname.replace(/^www\./, ''); }
     catch (e) { return value; }
 }
@@ -796,7 +798,7 @@ function refreshSourceButtons() {
                 // Fontes da tela cheia: destaca o que está na tela pública
                 const live = onAir.length === 1 && onAir[0] === src.id;
                 btn.classList.toggle('on-air', live);
-                btn.title = live ? 'No ar agora' : sourceLabel(src);
+                btn.title = live ? _t('No ar agora') : sourceLabel(src);
             } else {
                 btn.setAttribute('aria-pressed', String(splitPick[slot] === src.id));
             }
@@ -806,8 +808,8 @@ function refreshSourceButtons() {
     const ready = splitPick.left && splitPick.right && splitPick.left !== splitPick.right;
     document.getElementById('split-send').disabled = !ready;
     document.getElementById('split-desc').textContent = ready
-        ? `${sourceLabel(SOURCE_BY_ID[splitPick.left])} à esquerda, ${sourceLabel(SOURCE_BY_ID[splitPick.right])} à direita.`
-        : (splitPick.left && splitPick.left === splitPick.right ? 'Escolha fontes diferentes para cada lado.' : 'Escolha os dois lados e envie.');
+        ? _t('{esquerda} à esquerda, {direita} à direita.', { esquerda: sourceLabel(SOURCE_BY_ID[splitPick.left]), direita: sourceLabel(SOURCE_BY_ID[splitPick.right]) })
+        : (splitPick.left && splitPick.left === splitPick.right ? _t('Escolha fontes diferentes para cada lado.') : _t('Escolha os dois lados e envie.'));
 }
 
 function setupSourcePicker() {
@@ -830,7 +832,7 @@ function setupSourcePicker() {
     document.getElementById('split-send').addEventListener('click', () => {
         if (!(splitPick.left && splitPick.right && splitPick.left !== splitPick.right)) return;
         showTwoUrls(SOURCE_BY_ID[splitPick.left].num, SOURCE_BY_ID[splitPick.right].num);
-        if (window.ucToast) window.ucToast('Monitor de palco dividido.');
+        if (window.ucToast) window.ucToast(_t('Monitor de palco dividido.'));
     });
 
     ['url1', 'url2', 'url3', 'name1', 'name2', 'name3'].forEach(id =>
@@ -861,9 +863,9 @@ function setupPreviewScaling() {
 function updateModePill() {
     const pill = document.getElementById('mode-pill');
     if (!pill) return;
-    if (monitorOnlyMode) pill.innerHTML = '<span class="dot"></span>Só monitor';
-    else if (publicOnlyMode) pill.innerHTML = '<span class="dot"></span>Só público';
-    else pill.innerHTML = '<span class="dot"></span>Público e monitor';
+    if (monitorOnlyMode) pill.innerHTML = '<span class="dot"></span>' + _t('Só monitor');
+    else if (publicOnlyMode) pill.innerHTML = '<span class="dot"></span>' + _t('Só público');
+    else pill.innerHTML = '<span class="dot"></span>' + _t('Público e monitor');
 }
 
 // ── Painel ──────────────────────────────────────────────────────────────
@@ -873,10 +875,10 @@ function updateModePill() {
 // primeira vez que a aba é aberta e fica viva ao trocar de aba (não perde
 // a música ou o capítulo aberto). Estado (aberto, expandido, aba) fica
 // salvo neste navegador.
-const PANEL_PAGES = { musica: 'Música', biblia: 'Bíblia', fotos: 'Fotos', ordem: 'Ordem do culto' };
+const PANEL_PAGES = { musica: _t('Música'), biblia: _t('Bíblia'), fotos: _t('Fotos'), ordem: _t('Ordem do culto') };
 const PANEL_TOOLS = {
-    timer: 'Cronômetro', ticker: 'Avisos', split: 'Monitor dividido',
-    urls: 'URLs', share: 'Tela do PC', site: 'Site no telão', links: 'Abrir telas',
+    timer: _t('Cronômetro'), ticker: _t('Avisos'), split: _t('Monitor dividido'),
+    urls: 'URLs', share: _t('Tela do PC'), site: _t('Site no telão'), links: _t('Abrir telas'),
 };
 const panelState = { open: true, expanded: false, view: 'musica' };
 const panelFrames = {};
@@ -894,7 +896,7 @@ function panelApply() {
     ctl.classList.toggle('panel-expanded', panelState.open && panelState.expanded && !panelIsMobile());
     document.body.classList.toggle('panel-sheet-open', panelState.open && panelIsMobile());
     const exp = document.getElementById('panel-expand');
-    exp.title = panelState.expanded ? 'Recolher ao lado do Controle' : 'Expandir';
+    exp.title = panelState.expanded ? _t('Recolher ao lado do Controle') : _t('Expandir');
     exp.setAttribute('aria-label', exp.title);
     exp.querySelector('i').className = panelState.expanded ? 'fas fa-compress' : 'fas fa-expand';
     panelSave();
@@ -916,8 +918,8 @@ function panelOpenPage(page, url) {
     if (!pane) return;
     const load = (src) => {
         if (!src) {
-            pane.innerHTML = '<div class="panel-empty"><i class="fas fa-music"></i><p>Nenhuma música no próximo culto.</p>' +
-                '<p class="uc-muted">Abra uma pela aba <b>Ordem do culto</b> ou pela lista de Músicas.</p></div>';
+            pane.innerHTML = '<div class="panel-empty"><i class="fas fa-music"></i><p>' + _t('Nenhuma música no próximo culto.') + '</p>' +
+                '<p class="uc-muted">' + _t('Abra uma pela aba <b>Ordem do culto</b> ou pela lista de Músicas.') + '</p></div>';
             return;
         }
         let frame = panelFrames[page];
@@ -977,17 +979,17 @@ function panelLoadOrder() {
     fetch('/api/culto/proximo').then(r => r.json()).then(d => {
         list.innerHTML = '';
         if (d.status === 'none' || !d.itens) {
-            list.innerHTML = '<li class="ordem-empty">Nenhum culto com ordem cadastrada.</li>';
+            list.innerHTML = '<li class="ordem-empty">' + _t('Nenhum culto com ordem cadastrada.') + '</li>';
             return;
         }
         const when = d.date ? d.date.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '';
         const label = [d.tipo, when, d.horario].filter(Boolean).join(' · ');
-        document.getElementById('ordem-title').textContent = 'Ordem do culto' + (label ? ` · ${label}` : '');
+        document.getElementById('ordem-title').textContent = _t('Ordem do culto') + (label ? ` · ${label}` : '');
         if (!d.itens.length) {
-            list.innerHTML = `<li class="ordem-empty">Esta ordem ainda não tem itens. <a href="/order/${d.date}" target="_blank" rel="noopener">Montar a ordem</a></li>`;
+            list.innerHTML = `<li class="ordem-empty">${_t('Esta ordem ainda não tem itens.')} <a href="/order/${d.date}" target="_blank" rel="noopener">${_t('Montar a ordem')}</a></li>`;
             return;
         }
-        const KIND = { song: 'Música', bible: 'Bíblia', text: 'Momento' };
+        const KIND = { song: _t('Música'), bible: _t('Bíblia'), text: _t('Momento') };
         d.itens.forEach((item, i) => {
             const li = document.createElement('li');
             const btn = document.createElement('button');
@@ -1009,7 +1011,7 @@ function panelLoadOrder() {
             li.appendChild(btn);
             list.appendChild(li);
         });
-    }).catch(() => { list.innerHTML = '<li class="ordem-empty">Não deu pra carregar a ordem do culto.</li>'; });
+    }).catch(() => { list.innerHTML = '<li class="ordem-empty">' + _t('Não deu pra carregar a ordem do culto.') + '</li>'; });
 }
 
 function setupPanel() {
@@ -1079,11 +1081,11 @@ function setupPanel() {
     socket.on('atalho_navegar', (d, responder) => {
         const responda = typeof responder === 'function' ? responder : () => {};
         if (panelState.open && panelState.view === 'fotos') {
-            responda({ ok: false, erro: 'Na aba Fotos, próximo/anterior vale para PowerPoint animado no ar.' });
+            responda({ ok: false, erro: _t('Na aba Fotos, próximo/anterior vale para PowerPoint animado no ar.') });
             return;
         }
         const onde = repassarTecla(d && d.direcao < 0 ? 'ArrowUp' : 'ArrowDown');
-        responda(onde ? { ok: true, em: onde } : { ok: false, erro: 'Abra a música ou a Bíblia no painel do Controle.' });
+        responda(onde ? { ok: true, em: onde } : { ok: false, erro: _t('Abra a música ou a Bíblia no painel do Controle.') });
     });
 
     panelApply();

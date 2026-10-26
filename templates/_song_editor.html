@@ -6,8 +6,8 @@
 <main class="uc-page editor-page">
     <div class="uc-page-head">
         <div>
-            <a class="uc-link" href="{{ url_for('songs.list_songs') }}"><i class="fas fa-arrow-left"></i> Músicas</a>
-            <h1>{{ 'Editar música' if song else 'Nova música' }}</h1>
+            <a class="uc-link" href="{{ url_for('songs.list_songs') }}"><i class="fas fa-arrow-left"></i> {{ _('Músicas') }}</a>
+            <h1>{{ _('Editar música') if song else _('Nova música') }}</h1>
         </div>
     </div>
 
@@ -15,29 +15,29 @@
         <section class="uc-card meta-card">
             <div class="meta-grid">
                 <div class="uc-field">
-                    <label for="title">Título</label>
+                    <label for="title">{{ _('Título') }}</label>
                     <input class="uc-input" type="text" id="title" name="title" value="{{ song.title if song else '' }}" required>
                 </div>
                 <div class="uc-field">
-                    <label for="author">Autor</label>
+                    <label for="author">{{ _('Autor') }}</label>
                     <input class="uc-input" type="text" id="author" name="author" value="{{ (song.author or '') if song else '' }}">
                 </div>
                 <div class="uc-field">
-                    <label>Tom</label>
+                    <label>{{ _('Tom') }}</label>
                     <div class="toolbar">
                         <div class="tom-widget">
-                            <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">Tom <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
+                            <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">{{ _('Tom') }} <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
                             <div class="tom-popover" id="tomPanel">
-                                <div class="tom-scope" role="group" aria-label="O que transpor">
-                                    <button type="button" class="tom-scope-btn" data-scope="all" aria-pressed="true" onclick="setTransposeScope('all')">Música inteira</button>
-                                    <button type="button" class="tom-scope-btn" data-scope="sections" aria-pressed="false" onclick="setTransposeScope('sections')">Só algumas seções</button>
+                                <div class="tom-scope" role="group" aria-label="{{ _('O que transpor') }}">
+                                    <button type="button" class="tom-scope-btn" data-scope="all" aria-pressed="true" onclick="setTransposeScope('all')">{{ _('Música inteira') }}</button>
+                                    <button type="button" class="tom-scope-btn" data-scope="sections" aria-pressed="false" onclick="setTransposeScope('sections')">{{ _('Só algumas seções') }}</button>
                                 </div>
                                 <div class="tom-sections" id="tomSections" hidden></div>
                                 <p class="tom-scope-key" id="tomScopeKey"></p>
                                 <div class="tom-popover-row">
-                                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Voltar ao tom original" aria-label="Voltar ao tom original"><i class="fas fa-rotate-left"></i></button>
-                                    <button type="button" class="bto-transpor" onclick="transposeStep(-1)">−½ tom</button>
-                                    <button type="button" class="bto-transpor" onclick="transposeStep(1)">+½ tom</button>
+                                    <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="{{ _('Voltar ao tom original') }}" aria-label="{{ _('Voltar ao tom original') }}"><i class="fas fa-rotate-left"></i></button>
+                                    <button type="button" class="bto-transpor" onclick="transposeStep(-1)">{{ _('−½ tom') }}</button>
+                                    <button type="button" class="bto-transpor" onclick="transposeStep(1)">{{ _('+½ tom') }}</button>
                                 </div>
                                 <div class="tom-grid" id="tomGrid">
                                     {% for k in ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','Ab'] %}
@@ -49,22 +49,22 @@
                     </div>
                 </div>
             </div>
-            <p class="stage-tip"><i class="fas fa-lightbulb"></i> Linhas que começam com <code>//</code> são <strong>notas de palco</strong>: aparecem só no monitor do operador, nunca no telão. Ex.: <code>// Repetir este verso 2x</code></p>
-            <p class="stage-tip shortcuts-tip"><i class="fas fa-keyboard"></i> <strong>Atalhos:</strong> na letra, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> corta onde está o cursor e cria uma <strong>nova seção</strong> com o resto do texto · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> sobe ou desce a seção inteira (com o cursor na letra ou no nome) · no nome da seção (a faixa roxa, ex.: REFRÃO), <kbd>Enter</kbd> pula pra letra · <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> desfaz e refaz as ações do editor (nova seção, excluir, mover, transpor…).</p>
+            <p class="stage-tip"><i class="fas fa-lightbulb"></i> {{ _('Linhas que começam com <code>//</code> são <strong>notas de palco</strong>: aparecem só no monitor do operador, nunca no telão. Ex.: <code>// Repetir este verso 2x</code>')|safe }}</p>
+            <p class="stage-tip shortcuts-tip"><i class="fas fa-keyboard"></i> {{ _('<strong>Atalhos:</strong> na letra, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> corta onde está o cursor e cria uma <strong>nova seção</strong> com o resto do texto · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> sobe ou desce a seção inteira (com o cursor na letra ou no nome) · no nome da seção (a faixa roxa, ex.: REFRÃO), <kbd>Enter</kbd> pula pra letra · <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> desfaz e refaz as ações do editor (nova seção, excluir, mover, transpor…).')|safe }}</p>
         </section>
 
         <!-- Barra de ferramentas do editor -->
-        <div class="toolbar-fixed" role="toolbar" aria-label="Ferramentas do editor">
-            <button type="button" id="addSectionBtn" class="tool-btn" title="Nova seção" aria-label="Nova seção"><i class="fas fa-heading"></i> <span class="tool-label">Nova seção</span></button>
-            <button type="button" id="addTextBlockBtn" class="tool-btn" title="Texto" aria-label="Texto"><i class="fas fa-align-left"></i> <span class="tool-label">Texto</span></button>
-            <button type="button" id="insertSheetBtn" class="tool-btn" title="Criar partitura (abre o editor; ao fechar, ela entra aqui)" aria-label="Criar partitura"><i class="fas fa-music"></i> <span class="tool-label">Criar partitura</span></button>
+        <div class="toolbar-fixed" role="toolbar" aria-label="{{ _('Ferramentas do editor') }}">
+            <button type="button" id="addSectionBtn" class="tool-btn" title="{{ _('Nova seção') }}" aria-label="{{ _('Nova seção') }}"><i class="fas fa-heading"></i> <span class="tool-label">{{ _('Nova seção') }}</span></button>
+            <button type="button" id="addTextBlockBtn" class="tool-btn" title="{{ _('Texto') }}" aria-label="{{ _('Texto') }}"><i class="fas fa-align-left"></i> <span class="tool-label">{{ _('Texto') }}</span></button>
+            <button type="button" id="insertSheetBtn" class="tool-btn" title="{{ _('Criar partitura (abre o editor; ao fechar, ela entra aqui)') }}" aria-label="{{ _('Criar partitura') }}"><i class="fas fa-music"></i> <span class="tool-label">{{ _('Criar partitura') }}</span></button>
             <span class="tool-sep" aria-hidden="true"></span>
-            <button type="button" id="undoBtn" class="tool-btn tool-icon-only" disabled title="Desfazer" aria-label="Desfazer"><i class="fas fa-rotate-left"></i> <span class="tool-label">Desfazer</span></button>
-            <button type="button" id="redoBtn" class="tool-btn tool-icon-only" disabled title="Refazer" aria-label="Refazer"><i class="fas fa-rotate-right"></i> <span class="tool-label">Refazer</span></button>
+            <button type="button" id="undoBtn" class="tool-btn tool-icon-only" disabled title="{{ _('Desfazer') }}" aria-label="{{ _('Desfazer') }}"><i class="fas fa-rotate-left"></i> <span class="tool-label">{{ _('Desfazer') }}</span></button>
+            <button type="button" id="redoBtn" class="tool-btn tool-icon-only" disabled title="{{ _('Refazer') }}" aria-label="{{ _('Refazer') }}"><i class="fas fa-rotate-right"></i> <span class="tool-label">{{ _('Refazer') }}</span></button>
             <span class="tool-sep" aria-hidden="true"></span>
-            <button type="button" id="selectModeBtn" class="tool-btn" title="Selecionar" aria-label="Selecionar"><i class="fas fa-square-check"></i> <span class="tool-label">Selecionar</span></button>
-            <button type="button" id="deleteSelectedBtn" class="tool-btn danger" style="display: none;" title="Excluir selecionados" aria-label="Excluir selecionados"><i class="fas fa-trash-can"></i> <span class="tool-label">Excluir selecionados</span></button>
-            <button type="button" id="clearAllBtn" class="tool-btn danger-ghost" title="Limpar tudo" aria-label="Limpar tudo"><i class="fas fa-eraser"></i> <span class="tool-label">Limpar tudo</span></button>
+            <button type="button" id="selectModeBtn" class="tool-btn" title="{{ _('Selecionar') }}" aria-label="{{ _('Selecionar') }}"><i class="fas fa-square-check"></i> <span class="tool-label">{{ _('Selecionar') }}</span></button>
+            <button type="button" id="deleteSelectedBtn" class="tool-btn danger" style="display: none;" title="{{ _('Excluir selecionados') }}" aria-label="{{ _('Excluir selecionados') }}"><i class="fas fa-trash-can"></i> <span class="tool-label">{{ _('Excluir selecionados') }}</span></button>
+            <button type="button" id="clearAllBtn" class="tool-btn danger-ghost" title="{{ _('Limpar tudo') }}" aria-label="{{ _('Limpar tudo') }}"><i class="fas fa-eraser"></i> <span class="tool-label">{{ _('Limpar tudo') }}</span></button>
         </div>
 
         <div class="scrollable-div">
@@ -73,7 +73,7 @@
                     <!-- Editor de blocos (folha clara) -->
                     <div id="blockEditor">
                         <div class="block-container" id="blockContainer">
-                            <div class="text-block" contenteditable="true" data-placeholder="Digite a letra da música…"></div>
+                            <div class="text-block" contenteditable="true" data-placeholder="{{ _('Digite a letra da música…') }}"></div>
                         </div>
                     </div>
 
@@ -86,16 +86,16 @@
         </div>
 
         <div class="footer">
-            <button type="button" class="uc-btn uc-btn-ghost" onclick="processCifraClubManual()"><i class="fas fa-link"></i> Importar link do Cifra Club</button>
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="processCifraClubManual()"><i class="fas fa-link"></i> {{ _('Importar link do Cifra Club') }}</button>
             <span class="grow"></span>
-            <a href="{{ url_for('songs.list_songs') }}" class="uc-btn uc-btn-ghost">Cancelar</a>
+            <a href="{{ url_for('songs.list_songs') }}" class="uc-btn uc-btn-ghost">{{ _('Cancelar') }}</a>
             {#- Só na criação: salva e abre a edição da música criada — assim os
                 próximos salvamentos atualizam a mesma música (na edição o
                 Salvar já fica na página) #}
             {% if not song %}
-            <button type="submit" class="uc-btn uc-btn-secondary btn-salvar-continuar" data-continuar="1"><i class="fas fa-pen-to-square"></i> Salvar e continuar editando</button>
+            <button type="submit" class="uc-btn uc-btn-secondary btn-salvar-continuar" data-continuar="1"><i class="fas fa-pen-to-square"></i> {{ _('Salvar e continuar editando') }}</button>
             {% endif %}
-            <button type="submit" class="uc-btn uc-btn-primary btn-salvar"><i class="fas fa-floppy-disk"></i> Salvar música</button>
+            <button type="submit" class="uc-btn uc-btn-primary btn-salvar"><i class="fas fa-floppy-disk"></i> {{ _('Salvar música') }}</button>
         </div>
     </form>
 </main>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Entrar - U-Control{% endblock %}
+{% block title %}{{ _('Entrar') }} - U-Control{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/login.css') }}">
@@ -13,7 +13,7 @@
         <div class="login-brand">
             <img src="/static/U-Control.png" alt="">
             <h1>U-Control</h1>
-            <p class="uc-muted">{% if primeiro_acesso %}Primeiro acesso: crie o usuário do operador{% else %}Entre para operar o telão{% endif %}</p>
+            <p class="uc-muted">{% if primeiro_acesso %}{{ _('Primeiro acesso: crie o usuário do operador') }}{% else %}{{ _('Entre para operar o telão') }}{% endif %}</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,32 +26,32 @@
         <form class="uc-form-stack" method="POST" action="{{ url_for('auth.primeiro_acesso') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="uc-field">
-                <label for="username">Usuário</label>
+                <label for="username">{{ _('Usuário') }}</label>
                 <input class="uc-input" type="text" id="username" name="username" autocomplete="username" autofocus required>
             </div>
             <div class="uc-field">
-                <label for="password">Senha</label>
+                <label for="password">{{ _('Senha') }}</label>
                 <input class="uc-input" type="password" id="password" name="password" autocomplete="new-password" required>
             </div>
             <div class="uc-field">
-                <label for="password_confirm">Repita a senha</label>
+                <label for="password_confirm">{{ _('Repita a senha') }}</label>
                 <input class="uc-input" type="password" id="password_confirm" name="password_confirm" autocomplete="new-password" required>
             </div>
-            <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">Criar e entrar</button>
+            <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">{{ _('Criar e entrar') }}</button>
         </form>
         {% else %}
         <form class="uc-form-stack" method="POST" action="/login">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
             <div class="uc-field">
-                <label for="username">Usuário</label>
+                <label for="username">{{ _('Usuário') }}</label>
                 <input class="uc-input" type="text" id="username" name="username" autocomplete="username" autofocus required>
             </div>
             <div class="uc-field">
-                <label for="password">Senha</label>
+                <label for="password">{{ _('Senha') }}</label>
                 <input class="uc-input" type="password" id="password" name="password" autocomplete="current-password" required>
             </div>
-            <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">Entrar</button>
+            <button type="submit" class="uc-btn uc-btn-primary uc-btn-lg">{{ _('Entrar') }}</button>
         </form>
         {% endif %}
     </div>

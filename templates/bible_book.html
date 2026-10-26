@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}{{ book_name }} - Bíblia{% endblock %}
+{% block title %}{{ book_name }} - {{ _('Bíblia') }}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,11 +16,11 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <a class="uc-link" href="/bible?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> Bíblia</a>
+            <a class="uc-link" href="/bible?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> {{ _('Bíblia') }}</a>
             <h1>{{ book_name }}</h1>
-            <div class="uc-page-sub">{{ num_chapters }} capítulo{% if num_chapters > 1 %}s{% endif %}</div>
+            <div class="uc-page-sub">{% if num_chapters > 1 %}{{ _('{n} capítulos', n=num_chapters) }}{% else %}{{ _('{n} capítulo', n=num_chapters) }}{% endif %}</div>
         </div>
-        <div class="translation-bar" role="group" aria-label="Tradução">
+        <div class="translation-bar" role="group" aria-label="{{ _('Tradução') }}">
             {% for key, trans in translations.items() %}
             <a href="/bible/{{ book_abbrev }}?translation={{ key }}" class="translation-btn{% if key == current_translation %} active{% endif %}" title="{{ trans.name }}">{{ trans.abbrev }}</a>
             {% endfor %}
@@ -28,7 +28,7 @@
     </div>
 
     <section class="uc-card">
-        <div class="uc-card-head"><h2>Escolha o capítulo</h2></div>
+        <div class="uc-card-head"><h2>{{ _('Escolha o capítulo') }}</h2></div>
         <div class="chapters-grid">
             {% for i in range(1, num_chapters + 1) %}
             <a href="/bible/{{ book_abbrev }}/{{ i }}?translation={{ current_translation }}" class="chapter-btn">{{ i }}</a>

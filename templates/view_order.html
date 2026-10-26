@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Ordem do culto · {{ date | data_pt }}{% endblock %}
+{% block title %}{{ _('Ordem do culto') }} · {{ date | data_pt }}{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jspdf/jspdf.umd.min.js"></script>
@@ -18,34 +18,34 @@
     {% if not_found %}
     <section class="uc-card uc-empty not-found">
         <i class="fas fa-calendar-xmark"></i>
-        <h1>Ordem não encontrada</h1>
-        <p>Não existe ordem de culto para {{ date | data_pt }}.</p>
-        <a href="/order" class="uc-btn uc-btn-secondary"><i class="fas fa-list-ol"></i> Ver todas as ordens</a>
+        <h1>{{ _('Ordem não encontrada') }}</h1>
+        <p>{{ _('Não existe ordem de culto para {data}.', data=date | data_pt) }}</p>
+        <a href="/order" class="uc-btn uc-btn-secondary"><i class="fas fa-list-ol"></i> {{ _('Ver todas as ordens') }}</a>
     </section>
     {% else %}
     <section class="uc-card order-header">
         <div class="order-when"><span id="orderWeekday"></span></div>
         <h1 class="order-date" id="orderDate"></h1>
-        <div class="order-type">{{ order.tipo or 'Culto' }}</div>
+        <div class="order-type">{{ order.tipo or _('Culto') }}</div>
         <div class="order-meta">
             {% if order.horario or order.horario_culto %}<span><i class="fas fa-clock"></i> {{ order.horario or order.horario_culto }}</span>{% endif %}
-            {% if order.dirigente %}<span><i class="fas fa-user"></i> Dirigente: <b>{{ order.dirigente }}</b></span>{% endif %}
-            {% if order.pregador %}<span><i class="fas fa-microphone"></i> Pregação: <b>{{ order.pregador }}</b></span>{% endif %}
+            {% if order.dirigente %}<span><i class="fas fa-user"></i> {{ _('Dirigente:') }} <b>{{ order.dirigente }}</b></span>{% endif %}
+            {% if order.pregador %}<span><i class="fas fa-microphone"></i> {{ _('Pregação:') }} <b>{{ order.pregador }}</b></span>{% endif %}
         </div>
         {% if order.tema %}<p class="order-tema">“{{ order.tema }}”</p>{% endif %}
     </section>
 
     <section class="uc-card items-container">
         <div class="uc-card-head">
-            <h2>Programação</h2>
+            <h2>{{ _('Programação') }}</h2>
             <div class="stats">
-                <span><b id="statMusicas">0</b> músicas</span>
-                <span><b id="statBiblia">0</b> leituras</span>
-                <span><b id="statTotal">{{ order.itens | length }}</b> no total</span>
-                <span><b id="statFeitos">{{ feitos | select('in', item_ids) | list | length }}</b> feitos</span>
+                <span><b id="statMusicas">0</b> {{ _('músicas') }}</span>
+                <span><b id="statBiblia">0</b> {{ _('leituras') }}</span>
+                <span><b id="statTotal">{{ order.itens | length }}</b> {{ _('no total') }}</span>
+                <span><b id="statFeitos">{{ feitos | select('in', item_ids) | list | length }}</b> {{ _('feitos') }}</span>
             </div>
             {% if current_user.is_authenticated %}
-            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="limparFeitos"><i class="fas fa-rotate-left"></i> Desmarcar tudo</button>
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="limparFeitos"><i class="fas fa-rotate-left"></i> {{ _('Desmarcar tudo') }}</button>
             {% endif %}
         </div>
         <ol id="itemsList" class="items">
@@ -53,7 +53,7 @@
             {% set feito = item_ids[loop.index0] in feitos %}
             <li class="item {% if item.isBible or (item.url and '/bible/control/' in item.url) %}bible{% elif not item.url or item.url == '/order' or item.url == '/order/new' %}text-item{% endif %}{% if feito %} feito{% endif %}" data-item="{{ item_ids[loop.index0] }}">
                 {% if current_user.is_authenticated %}
-                <button type="button" class="item-check" aria-pressed="{{ 'true' if feito else 'false' }}" aria-label="Marcar como feito" title="Marcar como feito"><i class="fas fa-check"></i></button>
+                <button type="button" class="item-check" aria-pressed="{{ 'true' if feito else 'false' }}" aria-label="{{ _('Marcar como feito') }}" title="{{ _('Marcar como feito') }}"><i class="fas fa-check"></i></button>
                 {% else %}
                 <span class="item-check" aria-hidden="true"><i class="fas fa-check"></i></span>
                 {% endif %}
@@ -61,14 +61,14 @@
                 <div class="item-content">
                     {% if item.isBible or (item.url and '/bible/control/' in item.url) %}
                     <a href="{{ item.bible_url or item.url or '/bible?search=' + (item.reference | urlencode) }}" class="item-title" target="_blank">{{ item.title or item.reference }}</a>
-                    <span class="item-type">Bíblia</span>
+                    <span class="item-type">{{ _('Bíblia') }}</span>
                     {% elif item.url and item.url != '/order' and item.url != '/order/new' and '/lyrics/' in item.url %}
                     {% set parts = item.title.split(' | ') %}
                     <a href="{{ item.url }}?order={{ date }}" class="item-title" target="_blank">{{ parts[0] }}{% if parts|length > 1 %} <span class="artist">{{ parts[1] }}</span>{% endif %}</a>
-                    <span class="item-type">Música</span>
+                    <span class="item-type">{{ _('Música') }}</span>
                     {% else %}
                     <span class="item-title">{{ item.title or item.anyText }}</span>
-                    <span class="item-type">Momento</span>
+                    <span class="item-type">{{ _('Momento') }}</span>
                     {% endif %}
                 </div>
             </li>
@@ -77,13 +77,13 @@
     </section>
 
     <div class="actions">
-        <a href="/view?order={{ date }}" class="uc-btn uc-btn-primary"><i class="fas fa-guitar"></i> Abrir cifras</a>
-        <button type="button" class="uc-btn uc-btn-secondary" onclick="copyWhatsapp()"><i class="fab fa-whatsapp"></i> Copiar para WhatsApp</button>
-        <button type="button" class="uc-btn uc-btn-secondary" onclick="copyLink()"><i class="fas fa-link"></i> Copiar link</button>
+        <a href="/view?order={{ date }}" class="uc-btn uc-btn-primary"><i class="fas fa-guitar"></i> {{ _('Abrir cifras') }}</a>
+        <button type="button" class="uc-btn uc-btn-secondary" onclick="copyWhatsapp()"><i class="fab fa-whatsapp"></i> {{ _('Copiar para WhatsApp') }}</button>
+        <button type="button" class="uc-btn uc-btn-secondary" onclick="copyLink()"><i class="fas fa-link"></i> {{ _('Copiar link') }}</button>
         <button type="button" class="uc-btn uc-btn-secondary" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-        <button type="button" class="uc-btn uc-btn-ghost" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+        <button type="button" class="uc-btn uc-btn-ghost" onclick="window.print()"><i class="fas fa-print"></i> {{ _('Imprimir') }}</button>
         {% if current_user.is_authenticated %}
-        <a href="/order/{{ date }}" class="uc-btn uc-btn-ghost"><i class="fas fa-pen"></i> Editar</a>
+        <a href="/order/{{ date }}" class="uc-btn uc-btn-ghost"><i class="fas fa-pen"></i> {{ _('Editar') }}</a>
         {% endif %}
     </div>
     {% endif %}
@@ -91,7 +91,7 @@
 
 {% set item_labels = [] %}
 {% for item in (order.get('itens', []) if order else []) %}
-{% set _ = item_labels.append(item.title or item.anyText or item.reference or "") %}
+{% set _ignorado = item_labels.append(item.title or item.anyText or item.reference or "") %}
 {% endfor %}
 <script id="view-order-data" type="application/json">{{ {"date": date, "canMark": current_user.is_authenticated, "order": {"tipo": (order.get('tipo') if order else none), "dirigente": (order.get('dirigente') if order else none), "pregador": (order.get('pregador') if order else none), "horario": ((order.get('horario') or order.get('horario_culto')) if order else none), "tema": (order.get('tema') if order else none), "itemLabels": item_labels}} | tojson }}</script>
 {% endblock %}

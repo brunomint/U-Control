@@ -6,6 +6,32 @@
 // invisível — com um botão pra parar. Estado vem do servidor (telao.py):
 // GET /api/telao-status ao conectar e o evento telao_status a cada mudança.
 (function () {
+    // Algumas telas avulsas podem carregar este arquivo sem o _i18n.html
+    const _t = typeof window._t === 'function' ? window._t
+        : (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m)) : s);
+
+    // Rótulos do que está no ar vêm prontos do servidor (telao.py
+    // describe: "Letra · Música — Seção", "Tela dividida · Cifra + Relógio")
+    // e vão iguais pra todas as telas: traduz só o tipo, aqui no navegador.
+    // Também usado pelo control.js (prévia e card do preparado).
+    const TIPOS = {
+        'Nada no ar': _t('Nada no ar'), 'Tela dividida': _t('Tela dividida'),
+        'Letra': _t('Letra'), 'Cifra': _t('Cifra'), 'Bíblia': _t('Bíblia'),
+        'Foto': _t('Foto'), 'Imagem': _t('Imagem'), 'Vídeo': _t('Vídeo'),
+        'Relógio': _t('Relógio'), 'Cronômetro': _t('Cronômetro'),
+        'Apresentação': _t('Apresentação'), 'Página': _t('Página'),
+    };
+    const tipo = n => (Object.prototype.hasOwnProperty.call(TIPOS, n) ? TIPOS[n] : n);
+    window.ucTelaoLabel = function (label) {
+        const s = String(label == null ? '' : label);
+        const i = s.indexOf(' · ');
+        const head = i < 0 ? s : s.slice(0, i);
+        if (!Object.prototype.hasOwnProperty.call(TIPOS, head)) return s;
+        let rest = i < 0 ? '' : s.slice(i + 3);
+        if (head === 'Tela dividida') rest = rest.split(' + ').map(tipo).join(' + ');
+        return TIPOS[head] + (i < 0 ? '' : ' · ' + rest);
+    };
+
     const bar = document.getElementById('telao-bar');
     if (!bar) return;
 
@@ -22,7 +48,7 @@
                 let off = false;
                 try { off = !!window.top.__ucOffline; } catch (e) { /* sem acesso */ }
                 if (off) {
-                    try { (window.top.ucToast || window.ucToast)('Sem conexão com o servidor — o comando não foi enviado.', 'error'); } catch (e) { /* sem aviso */ }
+                    try { (window.top.ucToast || window.ucToast)(_t('Sem conexão com o servidor — o comando não foi enviado.'), 'error'); } catch (e) { /* sem aviso */ }
                     return this;
                 }
                 return original.call(this, event, ...args);
@@ -35,8 +61,8 @@
 
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const STAGED_NAMES = { image: 'Foto', lyrics: 'Letra', bible: 'Bíblia' };
-    const FOLLOW_TEXT = { image: 'Fotos entram direto', lyrics: 'Letra entra direto', bible: 'Bíblia entra direta' };
+    const STAGED_NAMES = { image: _t('Foto'), lyrics: _t('Letra'), bible: _t('Bíblia') };
+    const FOLLOW_TEXT = { image: _t('Fotos entram direto'), lyrics: _t('Letra entra direto'), bible: _t('Bíblia entra direta') };
     let socket = null;
 
     function stagedLabel(item) {
@@ -44,7 +70,7 @@
         // vivo — Refrão", "… - U-Control"): tira o nome da página
         const label = String(item.label || '')
             .replace(/\s+[·-]\s+(U-Control|Letra ao vivo)\b/g, '').trim();
-        return `${STAGED_NAMES[item.kind] || 'Conteúdo'}: ${label}`;
+        return `${STAGED_NAMES[item.kind] || _t('Conteúdo')}: ${window.ucTelaoLabel(label)}`;
     }
 
     function render(st) {
@@ -53,57 +79,57 @@
         if (offline) return;
         const parts = [];
         parts.push(
-            `<a class="tb-live" href="/control" title="No ar na tela pública — abrir o Controle">` +
-            `<span class="tb-dot"></span><b>No ar</b>` +
-            `<span class="tb-label">${esc(st.live.label)}</span></a>`);
+            `<a class="tb-live" href="/control" title="${esc(_t('No ar na tela pública — abrir o Controle'))}">` +
+            `<span class="tb-dot"></span><b>${esc(_t('No ar'))}</b>` +
+            `<span class="tb-label">${esc(window.ucTelaoLabel(st.live.label))}</span></a>`);
         if (st.blackout) {
-            parts.push('<span class="tb-chip tb-black" title="O público vê a tela toda preta"><i class="fas fa-moon"></i> Tela preta</span>');
+            parts.push(`<span class="tb-chip tb-black" title="${esc(_t('O público vê a tela toda preta'))}"><i class="fas fa-moon"></i> ${esc(_t('Tela preta'))}</span>`);
         }
         // Modo desta máquina (o servidor guarda um por PC — ver
         // display_state._device_modes); o GET já vem com st.mode
         const dev = document.cookie.match(/(?:^|;\s*)uc_device=([^;]*)/);
         const mode = st.mode || (st.modes || {})[dev ? decodeURIComponent(dev[1]) : null] || 'all';
         if (mode === 'public') {
-            parts.push('<span class="tb-chip tb-mode" title="Ações mudam só a tela do público"><i class="fas fa-users"></i> Só público</span>');
+            parts.push(`<span class="tb-chip tb-mode" title="${esc(_t('Ações mudam só a tela do público'))}"><i class="fas fa-users"></i> ${esc(_t('Só público'))}</span>`);
         } else if (mode === 'monitor') {
-            parts.push('<span class="tb-chip tb-mode" title="Ações mudam só o monitor de palco"><i class="fas fa-tv"></i> Só monitor</span>');
+            parts.push(`<span class="tb-chip tb-mode" title="${esc(_t('Ações mudam só o monitor de palco'))}"><i class="fas fa-tv"></i> ${esc(_t('Só monitor'))}</span>`);
         }
         if (st.monitor) {
-            parts.push(`<span class="tb-chip tb-monitor" title="O monitor de palco está mostrando outra coisa"><i class="fas fa-tv"></i> Monitor: <span class="tb-label">${esc(st.monitor.label)}</span></span>`);
+            parts.push(`<span class="tb-chip tb-monitor" title="${esc(_t('O monitor de palco está mostrando outra coisa'))}"><i class="fas fa-tv"></i> ${esc(_t('Monitor:'))} <span class="tb-label">${esc(window.ucTelaoLabel(st.monitor.label))}</span></span>`);
         }
         (st.staged || []).forEach(item => {
             parts.push(
-                `<span class="tb-chip tb-staged" title="Preparado — só vai ao telão quando liberar">` +
-                `<b>Preparado</b><span class="tb-label">${esc(stagedLabel(item))}</span>` +
-                `<button type="button" class="tb-btn tb-release" data-act="release" data-kind="${esc(item.kind)}">Liberar</button>` +
-                `<button type="button" class="tb-btn tb-x" data-act="discard" data-kind="${esc(item.kind)}" title="Descartar" aria-label="Descartar">&times;</button>` +
+                `<span class="tb-chip tb-staged" title="${esc(_t('Preparado — só vai ao telão quando liberar'))}">` +
+                `<b>${esc(_t('Preparado'))}</b><span class="tb-label">${esc(stagedLabel(item))}</span>` +
+                `<button type="button" class="tb-btn tb-release" data-act="release" data-kind="${esc(item.kind)}">${esc(_t('Liberar'))}</button>` +
+                `<button type="button" class="tb-btn tb-x" data-act="discard" data-kind="${esc(item.kind)}" title="${esc(_t('Descartar'))}" aria-label="${esc(_t('Descartar'))}">&times;</button>` +
                 `</span>`);
         });
         if (st.slideshow) {
             parts.push(
-                `<span class="tb-chip tb-running" title="Fotos trocando sozinhas no telão">` +
-                `<i class="fas fa-images"></i> Slideshow · a cada ${esc(st.slideshow.interval)}s` +
-                `<button type="button" class="tb-btn" data-act="stop-slideshow">parar</button></span>`);
+                `<span class="tb-chip tb-running" title="${esc(_t('Fotos trocando sozinhas no telão'))}">` +
+                `<i class="fas fa-images"></i> ${esc(_t('Slideshow · a cada {n}s', { n: st.slideshow.interval }))}` +
+                `<button type="button" class="tb-btn" data-act="stop-slideshow">${esc(_t('parar'))}</button></span>`);
         }
         if (st.ticker) {
-            const nomes = { public: 'público', monitor: 'palco', obs: 'transmissão' };
+            const nomes = { public: _t('público'), monitor: _t('palco'), obs: _t('transmissão') };
             const where = st.ticker.targets.length === 3 ? '' : ' (' + st.ticker.targets.map(t => nomes[t] || t).join(', ') + ')';
             parts.push(
-                `<span class="tb-chip tb-running" title="Aviso rolando na base da tela${esc(where)}">` +
-                `<i class="fas fa-bullhorn"></i> Aviso${esc(where)}: <span class="tb-label">${esc(st.ticker.text)}</span>` +
-                `<button type="button" class="tb-btn" data-act="stop-ticker">parar</button></span>`);
+                `<span class="tb-chip tb-running" title="${esc(_t('Aviso rolando na base da tela'))}${esc(where)}">` +
+                `<i class="fas fa-bullhorn"></i> ${esc(_t('Aviso'))}${esc(where)}: <span class="tb-label">${esc(st.ticker.text)}</span>` +
+                `<button type="button" class="tb-btn" data-act="stop-ticker">${esc(_t('parar'))}</button></span>`);
         }
         if (st.countdown) {
             parts.push(
-                `<span class="tb-chip tb-running" title="Cronômetro ${esc(st.countdown.label)}">` +
-                `<i class="fas fa-stopwatch"></i> Cronômetro <b class="tb-clock" data-countdown></b>` +
-                `<button type="button" class="tb-btn" data-act="stop-countdown">parar</button></span>`);
+                `<span class="tb-chip tb-running" title="${esc(_t('Cronômetro'))} ${esc(st.countdown.label)}">` +
+                `<i class="fas fa-stopwatch"></i> ${esc(_t('Cronômetro'))} <b class="tb-clock" data-countdown></b>` +
+                `<button type="button" class="tb-btn" data-act="stop-countdown">${esc(_t('parar'))}</button></span>`);
         }
         if (st.follow) {
             parts.push(
-                `<span class="tb-chip tb-follow" title="Depois de um Liberar, o que for preparado desse tipo vai direto ao telão">` +
-                `<i class="fas fa-bolt"></i> ${esc(st.follow_label === 'Letra e Bíblia' ? 'Letra e Bíblia entram direto' : (FOLLOW_TEXT[st.follow] || 'Entra direto'))}` +
-                `<button type="button" class="tb-btn" data-act="stop-follow">parar</button></span>`);
+                `<span class="tb-chip tb-follow" title="${esc(_t('Depois de um Liberar, o que for preparado desse tipo vai direto ao telão'))}">` +
+                `<i class="fas fa-bolt"></i> ${esc(st.follow_label === 'Letra e Bíblia' ? _t('Letra e Bíblia entram direto') : (FOLLOW_TEXT[st.follow] || _t('Entra direto')))}` +
+                `<button type="button" class="tb-btn" data-act="stop-follow">${esc(_t('parar'))}</button></span>`);
         }
         bar.innerHTML = parts.join('');
         bar.classList.toggle('is-black', !!st.blackout);
@@ -123,9 +149,9 @@
         const el = bar.querySelector('[data-countdown]');
         const cd = lastStatus && lastStatus.countdown;
         if (!el || !cd) return;
-        if (cd.paused) { el.textContent = `${fmt(cd.remaining_ms || 0)} · pausado`; return; }
+        if (cd.paused) { el.textContent = _t('{tempo} · pausado', { tempo: fmt(cd.remaining_ms || 0) }); return; }
         const left = (cd.end_ms || 0) - (Date.now() + clockSkew);
-        el.textContent = left > 0 ? fmt(left) : '00:00 · terminou';
+        el.textContent = left > 0 ? fmt(left) : _t('00:00 · terminou');
     }
     setInterval(tickCountdown, 1000);
 
@@ -159,12 +185,12 @@
             bar.classList.add('is-offline');
             bar.innerHTML =
                 '<span class="tb-offline"><i class="fas fa-triangle-exclamation"></i> ' +
-                '<b>Sem conexão com o servidor</b> — reconectando… Os comandos estão pausados.</span>';
+                '<b>' + _t('Sem conexão com o servidor') + '</b> — ' + _t('reconectando… Os comandos estão pausados.') + '</span>';
         } else {
             bar.classList.remove('is-offline');
             if (lastStatus) render(lastStatus);
             refresh();
-            if (window.ucToast) window.ucToast('Conexão com o servidor restabelecida.');
+            if (window.ucToast) window.ucToast(_t('Conexão com o servidor restabelecida.'));
         }
     }
 
@@ -184,7 +210,7 @@
             // Só com a queda detectada: na abertura da página o socket ainda
             // está conectando e o buffer normal do Socket.IO é o certo
             if (window.__ucOffline && event !== 'telao_ping') {
-                if (window.ucToast) window.ucToast('Sem conexão com o servidor — o comando não foi enviado.', 'error');
+                if (window.ucToast) window.ucToast(_t('Sem conexão com o servidor — o comando não foi enviado.'), 'error');
                 return this;
             }
             return original.call(this, event, ...args);

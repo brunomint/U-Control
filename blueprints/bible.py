@@ -18,6 +18,8 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 from flask_login import login_required
 from flask_socketio import emit
 
+from i18n import gettext as _
+
 from blueprints.lyrics import mostrar_se_escondido
 import paths
 from display_log import append_display_log
@@ -509,7 +511,7 @@ def bible_book(book_abbrev):
     book = get_book_by_abbrev(translation, book_abbrev)
 
     if not book:
-        flash('Livro não encontrado!', 'error')
+        flash(_('Livro não encontrado!'), 'error')
         return redirect(url_for('bible.bible_home'))
 
     metadata = load_bible_metadata()
@@ -531,12 +533,12 @@ def bible_chapter(book_abbrev, chapter):
     book = get_book_by_abbrev(translation, book_abbrev)
 
     if not book:
-        flash('Livro não encontrado!', 'error')
+        flash(_('Livro não encontrado!'), 'error')
         return redirect(url_for('bible.bible_home'))
 
     chapters = book.get('chapters', [])
     if chapter < 1 or chapter > len(chapters):
-        flash('Capítulo não encontrado!', 'error')
+        flash(_('Capítulo não encontrado!'), 'error')
         return redirect(url_for('bible.bible_book', book_abbrev=book_abbrev))
 
     metadata = load_bible_metadata()
@@ -574,7 +576,7 @@ def api_bible_search():
     translation_name = get_translation_name(translation)
 
     if len(query) < 3:
-        return jsonify({'error': 'Busca deve ter pelo menos 3 caracteres', 'results': []})
+        return jsonify({'error': _('Busca deve ter pelo menos 3 caracteres'), 'results': []})
 
     # Primeiro tenta como referência
     ref = parse_reference(query)
@@ -634,15 +636,15 @@ def api_bible_verse():
     verse_end = request.args.get('verse_end', type=int, default=None)
 
     if not all([book_abbrev, chapter, verse_start]):
-        return jsonify({'error': 'Parâmetros inválidos'}), 400
+        return jsonify({'error': _('Parâmetros inválidos')}), 400
 
     book = get_book_by_abbrev(translation, book_abbrev)
     if not book:
-        return jsonify({'error': 'Livro não encontrado'}), 404
+        return jsonify({'error': _('Livro não encontrado')}), 404
 
     chapters = book.get('chapters', [])
     if chapter < 1 or chapter > len(chapters):
-        return jsonify({'error': 'Capítulo não encontrado'}), 404
+        return jsonify({'error': _('Capítulo não encontrado')}), 404
 
     verses = chapters[chapter - 1]
     book_name = get_book_name(book_abbrev)
@@ -756,7 +758,7 @@ def api_bible_add_to_order():
     reference = data.get('reference', '').strip()
 
     if not reference:
-        return jsonify({'success': False, 'error': 'Referência vazia'})
+        return jsonify({'success': False, 'error': _('Referência vazia')})
 
     today = current_key(date.today().isoformat())
     order = get_order(today)
@@ -774,7 +776,7 @@ def api_bible_add_to_order():
         'success': True,
         'url': generate_bible_url(reference),
         'date': today,
-        'message': f"Adicionado à ordem de hoje ({date.today().strftime('%d/%m')})",
+        'message': _('Adicionado à ordem de hoje ({data})', data=date.today().strftime('%d/%m')),
     })
 
 @bible_bp.route('/api/bible/remove_from_order', methods=['POST'])
@@ -785,7 +787,7 @@ def api_bible_remove_from_order():
     reference = data.get('reference', '').strip()
 
     if not reference:
-        return jsonify({'success': False, 'error': 'Referência vazia'})
+        return jsonify({'success': False, 'error': _('Referência vazia')})
 
     today = current_key(date.today().isoformat())
     order = get_order(today)
@@ -795,7 +797,7 @@ def api_bible_remove_from_order():
     itens = [item for item in itens if not (item.get('isBible') and item.get('reference') == reference)]
 
     if len(itens) == original_len:
-        return jsonify({'success': False, 'error': 'Passagem não encontrada na ordem de hoje'})
+        return jsonify({'success': False, 'error': _('Passagem não encontrada na ordem de hoje')})
 
     if itens:
         order['itens'] = itens
@@ -830,7 +832,7 @@ def api_set_bible_translation2():
     """Segunda versão mostrada junto no telão ('' desliga)."""
     translation = (request.get_json(silent=True) or {}).get('translation') or ''
     if translation and translation not in load_bible_metadata().get('translations', {}):
-        return jsonify({'error': 'Tradução não encontrada.'}), 400
+        return jsonify({'error': _('Tradução não encontrada.')}), 400
     set_second_translation(translation)
     return jsonify({'success': True, 'translation': translation})
 

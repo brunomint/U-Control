@@ -9,9 +9,9 @@
     {% for t in tipos %}
     <option value="{{ t }}" {{ 'selected' if tipo_atual == t else '' }}>{{ t }}</option>
     {% endfor %}
-    <option value="Outro" {{ 'selected' if outro else '' }}>Outro</option>
+    <option value="Outro" {{ 'selected' if outro else '' }}>{{ _('Outro') }}</option>
 </select>
-<input class="{{ input_class }} tipo-outro" type="text" id="{{ id }}Outro" aria-label="Nome do culto"
-       placeholder="Nome do culto (ex.: Culto de Missões)"
+<input class="{{ input_class }} tipo-outro" type="text" id="{{ id }}Outro" aria-label="{{ _('Nome do culto') }}"
+       placeholder="{{ _('Nome do culto (ex.: Culto de Missões)') }}"
        value="{{ tipo_atual if outro and tipo_atual != 'Outro' else '' }}"{% if not outro %} hidden{% endif %}>
 {% endmacro %}

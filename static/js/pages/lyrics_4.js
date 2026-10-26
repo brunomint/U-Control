@@ -17,7 +17,7 @@ async function searchSongs(query) {
         if (songs.length === 0) {
             const noResult = document.createElement("div");
             noResult.className = "autocomplete-item";
-            noResult.textContent = "Nenhum resultado encontrado";
+            noResult.textContent = _t('Nenhum resultado encontrado');
             list.appendChild(noResult);
             return;
         }
@@ -115,8 +115,8 @@ function updateSongList(song) {
     const removeButton = document.createElement("button");
     removeButton.className = "remove-btn";
     removeButton.type = "button";
-    removeButton.title = "Remover da lista";
-    removeButton.setAttribute("aria-label", "Remover da lista");
+    removeButton.title = _t('Remover da lista');
+    removeButton.setAttribute("aria-label", _t('Remover da lista'));
     removeButton.innerHTML = '<i class="fas fa-trash-can"></i>';
     removeButton.onclick = () => songList.removeChild(songItem);
 
@@ -162,7 +162,7 @@ function addToList() {
     const textValue = freeTextInput.value.trim(); // Obtém o texto digitado, sem espaços extras
 
     if (textValue === "") {
-        alert("Por favor, digite algum texto.");
+        alert(_t('Por favor, digite algum texto.'));
         return;
     }
 
@@ -220,10 +220,10 @@ async function saveList() {
                 body: JSON.stringify(data),
             });
         }
-        alert("Lista salva com sucesso!");
+        alert(_t('Lista salva com sucesso!'));
     } catch (error) {
         console.error("Erro ao salvar a lista:", error);
-        alert("Erro ao salvar a lista.");
+        alert(_t('Erro ao salvar a lista.'));
     }
 }
 
@@ -247,7 +247,7 @@ async function searchBibleQuick(query) {
         if (data.error || !data.results || data.results.length === 0) {
             const noResult = document.createElement("div");
             noResult.className = "autocomplete-item";
-            noResult.textContent = data.error || "Nenhum resultado encontrado";
+            noResult.textContent = data.error || _t('Nenhum resultado encontrado');
             list.appendChild(noResult);
             return;
         }
@@ -261,7 +261,7 @@ async function searchBibleQuick(query) {
             const first = data.results[0], last = data.results[data.results.length - 1];
             const addAll = document.createElement("div");
             addAll.className = "autocomplete-item autocomplete-item-range";
-            addAll.textContent = `➕ Adicionar ${first.book_name} ${first.chapter}:${first.verse}-${last.verse} inteiro (${data.results.length} versos)`;
+            addAll.textContent = _t('➕ Adicionar {ref} inteiro ({n} versos)', { ref: `${first.book_name} ${first.chapter}:${first.verse}-${last.verse}`, n: data.results.length });
             addAll.onclick = () => addBibleRangeToList(data.results);
             list.appendChild(addAll);
         }
@@ -291,7 +291,7 @@ function addBibleVerseToList(verse) {
 
     // Feedback rápido de que adicionou — some sozinho depois de 1.5s
     const originalPlaceholder = input.placeholder;
-    input.placeholder = `✅ ${verse.reference} adicionado à lista!`;
+    input.placeholder = _t('✅ {ref} adicionado à lista!', { ref: verse.reference });
     setTimeout(() => { input.placeholder = originalPlaceholder; }, 1500);
 }
 
@@ -317,7 +317,7 @@ function addBibleRangeToList(results) {
     document.getElementById("bibleAutocompleteList").innerHTML = "";
 
     const originalPlaceholder = input.placeholder;
-    input.placeholder = `✅ ${reference} adicionado à lista!`;
+    input.placeholder = _t('✅ {ref} adicionado à lista!', { ref: reference });
     setTimeout(() => { input.placeholder = originalPlaceholder; }, 1500);
 }
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Início - U-Control{% endblock %}
+{% block title %}{{ _('Início') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link href="/static/vendor/fontawesome/css/all.min.css" rel="stylesheet">
@@ -16,30 +16,30 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1><span id="greeting">Olá</span>, {{ current_user.username }}</h1>
+            <h1><span id="greeting">{{ _('Olá') }}</span>, {{ current_user.username }}</h1>
             <div class="uc-page-sub" id="current-date"></div>
         </div>
         <div class="uc-btn-row">
-            <span class="uc-pill uc-pill-muted" id="server-pill"><span class="dot"></span>Verificando servidor…</span>
-            <span class="uc-pill uc-pill-muted" id="screens-pill"><i class="fas fa-display"></i> — telas conectadas</span>
+            <span class="uc-pill uc-pill-muted" id="server-pill"><span class="dot"></span>{{ _('Verificando servidor…') }}</span>
+            <span class="uc-pill uc-pill-muted" id="screens-pill"><i class="fas fa-display"></i> {{ _('— telas conectadas') }}</span>
         </div>
     </div>
 
     <div class="dash-top">
         <!-- Próximo culto: preenchido por dashboard.js via /api/culto/proximo -->
-        <section class="uc-card next" id="next-service" aria-label="Próximo culto">
-            <div class="uc-empty"><i class="fas fa-calendar-days"></i>Carregando o próximo culto…</div>
+        <section class="uc-card next" id="next-service" aria-label="{{ _('Próximo culto') }}">
+            <div class="uc-empty"><i class="fas fa-calendar-days"></i>{{ _('Carregando o próximo culto…') }}</div>
         </section>
 
         <section class="uc-card" aria-labelledby="shortcuts-title">
-            <div class="uc-card-head"><h2 id="shortcuts-title">Atalhos</h2></div>
+            <div class="uc-card-head"><h2 id="shortcuts-title">{{ _('Atalhos') }}</h2></div>
             <div class="shortcuts">
-                <a class="tile" href="{{ url_for('songs.list_songs') }}"><i class="fas fa-music"></i><span>Músicas<small>biblioteca</small></span></a>
-                <a class="tile" href="/view" target="_blank" rel="noopener"><i class="fas fa-guitar"></i><span>Cifra<small>para os músicos</small></span></a>
-                <a class="tile" href="{{ url_for('bible.bible_home') }}"><i class="fas fa-book-bible"></i><span>Bíblia<small>buscar versículo</small></span></a>
-                <a class="tile" href="/presenter" target="_blank" rel="noopener"><i class="fas fa-person-chalkboard"></i><span>Presenter<small>fotos no telão</small></span></a>
-                <a class="tile" href="{{ url_for('agenda.agenda_dashboard') }}"><i class="fas fa-calendar-days"></i><span>Agenda<small>escalas</small></span></a>
-                <a class="tile" href="{{ url_for('songs.new_song') }}"><i class="fas fa-plus"></i><span>Nova música<small>cadastrar letra</small></span></a>
+                <a class="tile" href="{{ url_for('songs.list_songs') }}"><i class="fas fa-music"></i><span>{{ _('Músicas') }}<small>{{ _('biblioteca') }}</small></span></a>
+                <a class="tile" href="/view" target="_blank" rel="noopener"><i class="fas fa-guitar"></i><span>{{ _('Cifra') }}<small>{{ _('para os músicos') }}</small></span></a>
+                <a class="tile" href="{{ url_for('bible.bible_home') }}"><i class="fas fa-book-bible"></i><span>{{ _('Bíblia') }}<small>{{ _('buscar versículo') }}</small></span></a>
+                <a class="tile" href="/presenter" target="_blank" rel="noopener"><i class="fas fa-person-chalkboard"></i><span>Presenter<small>{{ _('fotos no telão') }}</small></span></a>
+                <a class="tile" href="{{ url_for('agenda.agenda_dashboard') }}"><i class="fas fa-calendar-days"></i><span>{{ _('Agenda') }}<small>{{ _('escalas') }}</small></span></a>
+                <a class="tile" href="{{ url_for('songs.new_song') }}"><i class="fas fa-plus"></i><span>{{ _('Nova música') }}<small>{{ _('cadastrar letra') }}</small></span></a>
             </div>
         </section>
     </div>
@@ -47,8 +47,8 @@
     <div class="uc-grid-2">
         <section class="uc-card" aria-labelledby="recent-title">
             <div class="uc-card-head">
-                <h2 id="recent-title">Músicas recentes</h2>
-                <a class="uc-link" href="{{ url_for('songs.list_songs') }}">Ver todas</a>
+                <h2 id="recent-title">{{ _('Músicas recentes') }}</h2>
+                <a class="uc-link" href="{{ url_for('songs.list_songs') }}">{{ _('Ver todas') }}</a>
             </div>
             {% if recent_songs %}
             <ul class="uc-rows">
@@ -57,20 +57,20 @@
                     <i class="fas fa-music"></i>
                     <span class="grow">{{ song.title }}</span>
                     {% if song.url %}
-                    <a class="uc-btn uc-btn-ghost uc-btn-sm" href="{{ song.url }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-eye"></i> Abrir</a>
+                    <a class="uc-btn uc-btn-ghost uc-btn-sm" href="{{ song.url }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-eye"></i> {{ _('Abrir') }}</a>
                     {% endif %}
                 </li>
                 {% endfor %}
             </ul>
             {% else %}
-            <div class="uc-empty"><i class="fas fa-music"></i>Nenhuma música exibida ainda.</div>
+            <div class="uc-empty"><i class="fas fa-music"></i>{{ _('Nenhuma música exibida ainda.') }}</div>
             {% endif %}
         </section>
 
         <section class="uc-card" aria-labelledby="activity-title">
             <div class="uc-card-head">
-                <h2 id="activity-title">Atividade recente</h2>
-                <a class="uc-link" href="{{ url_for('utils.historico') }}">Histórico</a>
+                <h2 id="activity-title">{{ _('Atividade recente') }}</h2>
+                <a class="uc-link" href="{{ url_for('utils.historico') }}">{{ _('Histórico') }}</a>
             </div>
             {% if recent_activity %}
             <ul class="uc-rows">
@@ -93,46 +93,46 @@
                 {% endfor %}
             </ul>
             {% else %}
-            <div class="uc-empty"><i class="fas fa-clock-rotate-left"></i>Nada exibido no telão ainda.</div>
+            <div class="uc-empty"><i class="fas fa-clock-rotate-left"></i>{{ _('Nada exibido no telão ainda.') }}</div>
             {% endif %}
         </section>
     </div>
 
     <!-- Sistema: preenchido por dashboard.js via /api/system/status (a cada 5 s) -->
-    <section class="uc-card sys" id="system-strip" aria-label="Sistema">
-        <span class="uc-muted">Carregando status do sistema…</span>
+    <section class="uc-card sys" id="system-strip" aria-label="{{ _('Sistema') }}">
+        <span class="uc-muted">{{ _('Carregando status do sistema…') }}</span>
     </section>
 
     <details class="uc-card setup">
         <summary>
             <i class="fas fa-screwdriver-wrench"></i>
-            <span><b>Configurar aparelhos</b> <span class="uc-muted">· app Android, script do telão e QR codes</span></span>
+            <span><b>{{ _('Configurar aparelhos') }}</b> <span class="uc-muted">· {{ _('app Android, script do telão e QR codes') }}</span></span>
             <i class="fas fa-chevron-down chev"></i>
         </summary>
         <div class="setup-body">
             <div class="setup-item">
                 <h3><i class="fab fa-android"></i> App U-Control Screen</h3>
-                <p>Para TV ou celular. Abre o Monitor e a Exibição Pública em tela cheia, com vídeo e som.</p>
+                <p>{{ _('Para TV ou celular. Abre o Monitor e a Exibição Pública em tela cheia, com vídeo e som.') }}</p>
                 <div class="uc-btn-row">
-                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/static/U-Control-Screen.apk" download="U-Control-Screen.apk"><i class="fas fa-download"></i> Baixar .apk</a>
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/static/U-Control-Screen.apk" download="U-Control-Screen.apk"><i class="fas fa-download"></i> {{ _('Baixar .apk') }}</a>
                 </div>
-                <p class="small">Para instalar, desative o Play Protect na Play Store.</p>
+                <p class="small">{{ _('Para instalar, desative o Play Protect na Play Store.') }}</p>
             </div>
             <div class="setup-item">
-                <h3><i class="fas fa-display"></i> Script do telão</h3>
-                <p>Rode no PC ligado ao datashow: abre o monitor em tela cheia, com vídeo tocando com som. O endereço do servidor já vem preenchido.</p>
+                <h3><i class="fas fa-display"></i> {{ _('Script do telão') }}</h3>
+                <p>{{ _('Rode no PC ligado ao datashow: abre o monitor em tela cheia, com vídeo tocando com som. O endereço do servidor já vem preenchido.') }}</p>
                 <div class="uc-btn-row">
                     <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/download-monitor-launcher/windows"><i class="fab fa-windows"></i> Windows</a>
                     <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/download-monitor-launcher/linux"><i class="fab fa-linux"></i> Linux</a>
                     <a class="uc-btn uc-btn-secondary uc-btn-sm" href="/download-monitor-launcher/mac"><i class="fab fa-apple"></i> Mac</a>
                 </div>
-                <p class="small">Precisa de Chrome, Edge, Brave ou Chromium.</p>
+                <p class="small">{{ _('Precisa de Chrome, Edge, Brave ou Chromium.') }}</p>
             </div>
             <div class="setup-item">
                 <h3><i class="fas fa-qrcode"></i> QR codes</h3>
-                <p>Os códigos para abrir cada tela no celular ficam na página Links.</p>
+                <p>{{ _('Os códigos para abrir cada tela no celular ficam na página Links.') }}</p>
                 <div class="uc-btn-row">
-                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="{{ url_for('utils.exibir_links') }}"><i class="fas fa-qrcode"></i> Abrir Links e QR</a>
+                    <a class="uc-btn uc-btn-secondary uc-btn-sm" href="{{ url_for('utils.exibir_links') }}"><i class="fas fa-qrcode"></i> {{ _('Abrir Links e QR') }}</a>
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}{{ book_name }} {{ chapter }} · Controle da Bíblia{% endblock %}
+{% block title %}{{ book_name }} {{ chapter }} · {{ _('Controle da Bíblia') }}{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
@@ -18,26 +18,26 @@
 {% include "_nav.html" %}
 <div class="bc-layout">
     <!-- Leituras da ordem do culto (no celular abre por cima, pelo botão "Leituras") -->
-    <aside id="menu" class="uc-card bc-menu" aria-label="Leituras da ordem do culto">
+    <aside id="menu" class="uc-card bc-menu" aria-label="{{ _('Leituras da ordem do culto') }}">
         <div class="uc-card-head">
-            <h2>Leituras de hoje</h2>
-            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm menu-close" onclick="toggleMenu()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+            <h2>{{ _('Leituras de hoje') }}</h2>
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm menu-close" onclick="toggleMenu()" aria-label="{{ _('Fechar') }}"><i class="fas fa-xmark"></i></button>
         </div>
         {% if bible_items %}
         <ul class="passages">
             {% for item in bible_items %}
             <li>
                 <a href="{{ item.url if item.url else '#' }}" class="menu-item"><i class="fas fa-bookmark"></i> {{ item.reference }}</a>
-                <button type="button" class="remove-passage" onclick="removeBibleFromMenu('{{ item.reference }}')" title="Remover da ordem" aria-label="Remover {{ item.reference }}"><i class="fas fa-xmark"></i></button>
+                <button type="button" class="remove-passage" onclick="removeBibleFromMenu('{{ item.reference }}')" title="{{ _('Remover da ordem') }}" aria-label="{{ _('Remover {ref}', ref=item.reference) }}"><i class="fas fa-xmark"></i></button>
             </li>
             {% endfor %}
         </ul>
         {% else %}
-        <div class="menu-empty">Nenhuma leitura na ordem de hoje.</div>
+        <div class="menu-empty">{{ _('Nenhuma leitura na ordem de hoje.') }}</div>
         {% endif %}
         <div class="add-passage">
-            <input class="uc-input" type="text" id="menuBibleRef" placeholder="Ex.: Rm 8:28" aria-label="Nova leitura">
-            <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleFromMenu()"><i class="fas fa-plus"></i> Adicionar</button>
+            <input class="uc-input" type="text" id="menuBibleRef" placeholder="{{ _('Ex.: Rm 8:28') }}" aria-label="{{ _('Nova leitura') }}">
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleFromMenu()"><i class="fas fa-plus"></i> {{ _('Adicionar') }}</button>
         </div>
     </aside>
 
@@ -46,11 +46,11 @@
             <div>
                 <a class="uc-link" href="/bible/{{ book_abbrev }}?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> {{ book_name }}</a>
                 <h1>{{ book_name }} {{ chapter }}</h1>
-                <div class="uc-page-sub">Toque num versículo para prepará-lo · setas ↑ ↓ trocam · espaço mostra/esconde</div>
+                <div class="uc-page-sub">{{ _('Toque num versículo para prepará-lo · setas ↑ ↓ trocam · espaço mostra/esconde') }}</div>
             </div>
             <div class="head-controls">
-                <button type="button" id="toggle-menu" class="uc-btn uc-btn-secondary" onclick="toggleMenu()"><i class="fas fa-list-ol"></i> Leituras</button>
-                <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="Tradução">
+                <button type="button" id="toggle-menu" class="uc-btn uc-btn-secondary" onclick="toggleMenu()"><i class="fas fa-list-ol"></i> {{ _('Leituras') }}</button>
+                <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="{{ _('Tradução') }}">
                     {% for key, trans in translations.items() %}
                     <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.abbrev }}</option>
                     {% endfor %}
@@ -70,15 +70,15 @@
 
         <div class="chapter-nav">
             {% if prev_chapter %}
-            <a class="uc-btn uc-btn-secondary" href="/bible/control/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}"><i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}</a>
+            <a class="uc-btn uc-btn-secondary" href="/bible/control/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}"><i class="fas fa-chevron-left"></i> {{ _('Capítulo {n}', n=prev_chapter) }}</a>
             {% endif %}
-            <select class="uc-input" id="chapterSelect" onchange="goToChapter()" aria-label="Capítulo">
+            <select class="uc-input" id="chapterSelect" onchange="goToChapter()" aria-label="{{ _('Capítulo') }}">
                 {% for i in range(1, num_chapters + 1) %}
-                <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
+                <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>{{ _('Capítulo {n}', n=i) }}</option>
                 {% endfor %}
             </select>
             {% if next_chapter %}
-            <a class="uc-btn uc-btn-secondary" href="/bible/control/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}">Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i></a>
+            <a class="uc-btn uc-btn-secondary" href="/bible/control/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}">{{ _('Capítulo {n}', n=next_chapter) }} <i class="fas fa-chevron-right"></i></a>
             {% endif %}
         </div>
     </main>
@@ -88,11 +88,11 @@
 <div class="float-controls">
     <button type="button" id="toggle-bible" class="{{ 'show-mode' if not lyrics_visible else '' }}" onclick="toggleVisibility()">
         <i class="fas {{ 'fa-eye-slash' if not lyrics_visible else 'fa-eye' }}"></i>
-        <span id="toggle-text">{{ 'Mostrar' if not lyrics_visible else 'Esconder' }}</span>
+        <span id="toggle-text">{{ _('Mostrar') if not lyrics_visible else _('Esconder') }}</span>
     </button>
     <div class="nav-buttons">
-        <button type="button" class="nav-btn" id="prev" onclick="prevVerse()" aria-label="Versículo anterior"><i class="fas fa-arrow-up"></i></button>
-        <button type="button" class="nav-btn" id="next" onclick="nextVerse()" aria-label="Próximo versículo"><i class="fas fa-arrow-down"></i></button>
+        <button type="button" class="nav-btn" id="prev" onclick="prevVerse()" aria-label="{{ _('Versículo anterior') }}"><i class="fas fa-arrow-up"></i></button>
+        <button type="button" class="nav-btn" id="next" onclick="nextVerse()" aria-label="{{ _('Próximo versículo') }}"><i class="fas fa-arrow-down"></i></button>
     </div>
 </div>
 

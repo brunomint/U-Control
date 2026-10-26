@@ -32,7 +32,7 @@ async function loadAvailableOrders() {
         const keys = Object.keys(availableOrders).sort((a, b) => orderSortKey(a).localeCompare(orderSortKey(b)));
 
         if (keys.length === 0) {
-            select.append('<option value="">Nenhuma ordem encontrada</option>');
+            select.append($('<option value="">').text(_t('Nenhuma ordem encontrada')));
         } else {
             // Próximas (de hoje em diante) e as 3 últimas anteriores
             const today = localISO(new Date());
@@ -42,12 +42,12 @@ async function loadAvailableOrders() {
                 const g = $('<optgroup>').attr('label', label);
                 list.forEach(key => {
                     const itemCount = availableOrders[key]?.itens?.length || 0;
-                    g.append($('<option>').val(key).text(`${orderLabel(key)} (${itemCount} itens)`));
+                    g.append($('<option>').val(key).text(`${orderLabel(key)} (${_t('{n} itens', { n: itemCount })})`));
                 });
                 select.append(g);
             };
-            if (futureKeys.length) group('📅 Próximas', futureKeys);
-            if (pastKeys.length) group('📜 Anteriores', pastKeys);
+            if (futureKeys.length) group('📅 ' + _t('Próximas'), futureKeys);
+            if (pastKeys.length) group('📜 ' + _t('Anteriores'), pastKeys);
             // Já vem marcado o próximo culto (pula datas só com eventos)
             const first = futureKeys.find(hasCulto) || futureKeys[0] || pastKeys[0];
             if (first) select.val(first);
@@ -59,7 +59,7 @@ async function loadAvailableOrders() {
 
     } catch (error) {
         console.error('Erro ao carregar ordens:', error);
-        $('#orderDateSelect').html('<option value="">Erro ao carregar</option>');
+        $('#orderDateSelect').empty().append($('<option value="">').text(_t('Erro ao carregar')));
     }
 }
 
@@ -67,7 +67,7 @@ async function loadAvailableOrders() {
 function formatDate(dateStr) {
     const date = new Date(dateStr.slice(0, 10) + 'T12:00:00');
     const options = { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' };
-    return date.toLocaleDateString('pt-BR', options);
+    return date.toLocaleDateString(ucLocale(), options);
 }
 
 // Data + qual culto (num dia pode haver mais de um)
@@ -75,7 +75,7 @@ function orderLabel(key) {
     const o = availableOrders[key] || {};
     const culto = [o.tipo !== 'Nenhum' && o.tipo, o.horario_culto].filter(Boolean).join(' ');
     if (culto) return `${formatDate(key)} · ${culto}`;
-    return hasCulto(key) ? formatDate(key) : `${formatDate(key)} · sem culto cadastrado`;
+    return hasCulto(key) ? formatDate(key) : `${formatDate(key)} · ${_t('sem culto cadastrado')}`;
 }
 
 // Retorna próximo domingo
@@ -92,13 +92,13 @@ function getNextSunday() {
 async function createNewOrder() {
     const newDate = $('#newOrderDate').val();
     if (!newDate) {
-        showNotification('Selecione uma data para a nova ordem!', 'error');
+        showNotification(_t('Selecione uma data para a nova ordem!'), 'error');
         return;
     }
 
     if (availableOrders[newDate]) {
         $('#orderDateSelect').val(newDate);
-        showNotification('Ordem já existe! Selecionada automaticamente.');
+        showNotification(_t('Ordem já existe! Selecionada automaticamente.'));
         return;
     }
 
@@ -109,13 +109,13 @@ async function createNewOrder() {
             body: JSON.stringify({ itens: [] })
         });
 
-        showNotification(`Nova ordem criada para ${formatDate(newDate)}!`);
+        showNotification(_t('Nova ordem criada para {data}!', { data: formatDate(newDate) }));
         await loadAvailableOrders();
         $('#orderDateSelect').val(newDate);
 
     } catch (error) {
         console.error('Erro ao criar ordem:', error);
-        showNotification('Erro ao criar nova ordem!', 'error');
+        showNotification(_t('Erro ao criar nova ordem!'), 'error');
     }
 }
 
@@ -130,12 +130,12 @@ async function confirmAddToOrder() {
     const selectedDate = $('#orderDateSelect').val();
 
     if (!selectedDate) {
-        showNotification('Selecione uma data!', 'error');
+        showNotification(_t('Selecione uma data!'), 'error');
         return;
     }
 
     if (!selectedSongData) {
-        showNotification('Erro: música não selecionada!', 'error');
+        showNotification(_t('Erro: música não selecionada!'), 'error');
         return;
     }
 
@@ -157,7 +157,7 @@ async function confirmAddToOrder() {
         );
 
         if (exists) {
-            showNotification(`"${selectedSongData.songTitle}" já está na ordem de ${orderLabel(selectedDate)}!`);
+            showNotification(_t('"{musica}" já está na ordem de {ordem}!', { musica: selectedSongData.songTitle, ordem: orderLabel(selectedDate) }));
             closeOrderModal();
             return;
         }
@@ -174,9 +174,9 @@ async function confirmAddToOrder() {
         });
         if (!saved.ok) throw new Error(`HTTP ${saved.status}`);
 
-        button.html('<i class="fas fa-check"></i> Adicionada');
+        button.html('<i class="fas fa-check"></i> ').append(document.createTextNode(_t('Adicionada')));
         button.removeClass('add-order').addClass('view');
-        showNotification(`"${selectedSongData.songTitle}" adicionada à ordem de ${orderLabel(selectedDate)}!`);
+        showNotification(_t('"{musica}" adicionada à ordem de {ordem}!', { musica: selectedSongData.songTitle, ordem: orderLabel(selectedDate) }));
 
         setTimeout(() => {
             button.html(originalHtml);
@@ -187,7 +187,7 @@ async function confirmAddToOrder() {
 
     } catch (error) {
         console.error('Erro ao adicionar:', error);
-        showNotification('Erro ao adicionar à ordem!', 'error');
+        showNotification(_t('Erro ao adicionar à ordem!'), 'error');
     }
 }
 
@@ -298,7 +298,7 @@ $(document).ready(function() {
     // Funcionalidade de remoção de música
     $('.delete-song').click(function() {
         const songId = $(this).data('id');
-        if (confirm('Tem certeza que deseja remover esta música?')) {
+        if (confirm(_t('Tem certeza que deseja remover esta música?'))) {
             $.ajax({
                 type: 'POST',
                 url: '/delete_song/' + songId,
@@ -307,7 +307,7 @@ $(document).ready(function() {
                     location.reload();
                 },
                 error: function() {
-                    alert('Erro ao remover a música.');
+                    alert(_t('Erro ao remover a música.'));
                 }
             });
         }

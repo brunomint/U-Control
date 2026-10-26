@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Ordens de Culto - U-Control{% endblock %}
+{% block title %}{{ _('Ordens de Culto') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -16,41 +16,41 @@
 <main class="uc-page">
     <div class="uc-page-head">
         <div>
-            <h1>Ordens de culto</h1>
+            <h1>{{ _('Ordens de culto') }}</h1>
             <div class="uc-page-sub" id="resultsInfo">&nbsp;</div>
         </div>
-        <a href="/order/new" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> Nova ordem</a>
+        <a href="/order/new" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> {{ _('Nova ordem') }}</a>
     </div>
 
-    <section class="uc-card filters" aria-label="Filtros">
+    <section class="uc-card filters" aria-label="{{ _('Filtros') }}">
         <div class="uc-field">
-            <label for="filterStatus">Quando</label>
+            <label for="filterStatus">{{ _('Quando') }}</label>
             <select id="filterStatus" class="uc-input">
-                <option value="">Hoje e próximos</option>
-                <option value="futuro">Só futuros</option>
-                <option value="hoje">Hoje</option>
-                <option value="passado">Passados</option>
+                <option value="">{{ _('Hoje e próximos') }}</option>
+                <option value="futuro">{{ _('Só futuros') }}</option>
+                <option value="hoje">{{ _('Hoje') }}</option>
+                <option value="passado">{{ _('Passados') }}</option>
             </select>
         </div>
         <div class="uc-field">
-            <label for="filterDateFrom">De</label>
+            <label for="filterDateFrom">{{ _('De') }}</label>
             <input type="date" id="filterDateFrom" class="uc-input">
         </div>
         <div class="uc-field">
-            <label for="filterDateTo">Até</label>
+            <label for="filterDateTo">{{ _('Até') }}</label>
             <input type="date" id="filterDateTo" class="uc-input">
         </div>
         <div class="uc-field">
-            <label for="filterType">Tipo de culto</label>
+            <label for="filterType">{{ _('Tipo de culto') }}</label>
             <select id="filterType" class="uc-input">
-                <option value="">Todos</option>
+                <option value="">{{ _('Todos') }}</option>
             </select>
         </div>
         <div class="uc-field">
-            <label for="filterText">Dirigente ou pregador</label>
-            <input type="text" id="filterText" class="uc-input" placeholder="Buscar por nome">
+            <label for="filterText">{{ _('Dirigente ou pregador') }}</label>
+            <input type="text" id="filterText" class="uc-input" placeholder="{{ _('Buscar por nome') }}">
         </div>
-        <button type="button" class="uc-btn uc-btn-ghost" id="clearFilters"><i class="fas fa-xmark"></i> Limpar</button>
+        <button type="button" class="uc-btn uc-btn-ghost" id="clearFilters"><i class="fas fa-xmark"></i> {{ _('Limpar') }}</button>
     </section>
 
     <div class="orders-grid" id="ordersGrid">
@@ -58,15 +58,15 @@
     </div>
 
     <div class="pagination" id="pagination" style="display:none;">
-        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="prevPage"><i class="fas fa-chevron-left"></i> Anterior</button>
+        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="prevPage"><i class="fas fa-chevron-left"></i> {{ _('Anterior') }}</button>
         <span class="uc-muted" id="pageInfo"></span>
-        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="nextPage">Próxima <i class="fas fa-chevron-right"></i></button>
+        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="nextPage">{{ _('Próxima') }} <i class="fas fa-chevron-right"></i></button>
     </div>
 
     <div class="uc-card uc-empty" id="emptyState" style="display: none;">
         <i class="fas fa-calendar-xmark"></i>
-        <p>Nenhuma ordem de culto para esses filtros.</p>
-        <a href="/order/new" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> Criar ordem</a>
+        <p>{{ _('Nenhuma ordem de culto para esses filtros.') }}</p>
+        <a href="/order/new" class="uc-btn uc-btn-primary"><i class="fas fa-plus"></i> {{ _('Criar ordem') }}</a>
     </div>
 </main>
 {% endblock %}

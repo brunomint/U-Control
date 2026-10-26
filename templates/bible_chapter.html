@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}{{ book_name }} {{ chapter }} - Bíblia{% endblock %}
+{% block title %}{{ book_name }} {{ chapter }} - {{ _('Bíblia') }}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -19,11 +19,11 @@
         <div>
             <a class="uc-link" href="/bible/{{ book_abbrev }}?translation={{ current_translation }}"><i class="fas fa-arrow-left"></i> {{ book_name }}</a>
             <h1>{{ book_name }} {{ chapter }}</h1>
-            <div class="uc-page-sub">Toque num versículo para exibir · ↑ ↓ passam um por vez</div>
+            <div class="uc-page-sub">{{ _('Toque num versículo para exibir · ↑ ↓ passam um por vez') }}</div>
         </div>
         <div class="head-controls">
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="multiBtn" aria-pressed="false" onclick="toggleModoVarios()" title="Escolher vários versículos e exibir juntos (ex.: 16 a 18)"><i class="fas fa-list-check"></i> Vários versículos</button>
-            <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="Tradução">
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="multiBtn" aria-pressed="false" onclick="toggleModoVarios()" title="{{ _('Escolher vários versículos e exibir juntos (ex.: 16 a 18)') }}"><i class="fas fa-list-check"></i> {{ _('Vários versículos') }}</button>
+            <select class="uc-input" id="translationSelect" onchange="changeTranslation()" aria-label="{{ _('Tradução') }}">
                 {% for key, trans in translations.items() %}
                 <option value="{{ key }}" {% if key == current_translation %}selected{% endif %}>{{ trans.name }} ({{ trans.abbrev }})</option>
                 {% endfor %}
@@ -31,15 +31,15 @@
             {% include "_bible_segunda.html" %}
             <div class="chapter-nav">
                 {% if prev_chapter %}
-                <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="Capítulo {{ prev_chapter }}"><i class="fas fa-chevron-left"></i></a>
+                <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="{{ _('Capítulo {n}', n=prev_chapter) }}"><i class="fas fa-chevron-left"></i></a>
                 {% endif %}
-                <select class="uc-input" id="chapterSelect" onchange="goToChapter()" aria-label="Capítulo">
+                <select class="uc-input" id="chapterSelect" onchange="goToChapter()" aria-label="{{ _('Capítulo') }}">
                     {% for i in range(1, num_chapters + 1) %}
-                    <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>Capítulo {{ i }}</option>
+                    <option value="{{ i }}" {% if i == chapter %}selected{% endif %}>{{ _('Capítulo {n}', n=i) }}</option>
                     {% endfor %}
                 </select>
                 {% if next_chapter %}
-                <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="Capítulo {{ next_chapter }}"><i class="fas fa-chevron-right"></i></a>
+                <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary uc-btn-sm" aria-label="{{ _('Capítulo {n}', n=next_chapter) }}"><i class="fas fa-chevron-right"></i></a>
                 {% endif %}
             </div>
         </div>
@@ -56,11 +56,11 @@
 
     <div class="chapter-foot">
         {% if prev_chapter %}
-        <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary"><i class="fas fa-chevron-left"></i> Capítulo {{ prev_chapter }}</a>
+        <a href="/bible/{{ book_abbrev }}/{{ prev_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary"><i class="fas fa-chevron-left"></i> {{ _('Capítulo {n}', n=prev_chapter) }}</a>
         {% endif %}
-        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}" class="uc-btn uc-btn-ghost"><i class="fas fa-table-cells"></i> Todos os capítulos</a>
+        <a href="/bible/{{ book_abbrev }}?translation={{ current_translation }}" class="uc-btn uc-btn-ghost"><i class="fas fa-table-cells"></i> {{ _('Todos os capítulos') }}</a>
         {% if next_chapter %}
-        <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary">Capítulo {{ next_chapter }} <i class="fas fa-chevron-right"></i></a>
+        <a href="/bible/{{ book_abbrev }}/{{ next_chapter }}?translation={{ current_translation }}" class="uc-btn uc-btn-secondary">{{ _('Capítulo {n}', n=next_chapter) }} <i class="fas fa-chevron-right"></i></a>
         {% endif %}
     </div>
     {% set trad = translations.get(current_translation) %}
@@ -69,16 +69,16 @@
 
 <!-- Passar versículos sem teclado (telas touch); as setas do teclado também -->
 <div class="uc-float-nav">
-    <button type="button" class="uc-fab" onclick="passarVerso(-1)" aria-label="Versículo anterior" title="Versículo anterior (↑)"><i class="fas fa-arrow-up"></i></button>
-    <button type="button" class="uc-fab" onclick="passarVerso(1)" aria-label="Próximo versículo" title="Próximo versículo (↓)"><i class="fas fa-arrow-down"></i></button>
+    <button type="button" class="uc-fab" onclick="passarVerso(-1)" aria-label="{{ _('Versículo anterior') }}" title="{{ _('Versículo anterior (↑)') }}"><i class="fas fa-arrow-up"></i></button>
+    <button type="button" class="uc-fab" onclick="passarVerso(1)" aria-label="{{ _('Próximo versículo') }}" title="{{ _('Próximo versículo (↓)') }}"><i class="fas fa-arrow-down"></i></button>
 </div>
 
 <!-- Só no modo "Vários versículos": exibir/copiar os escolhidos juntos -->
 <div class="action-bar" id="actionBar">
-    <span class="selected-count"><span id="selectedCount">0</span> selecionado(s)</span>
-    <button type="button" class="uc-btn uc-btn-live uc-btn-sm" onclick="sendToDisplay()"><i class="fas fa-display"></i> Exibir juntos</button>
-    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="copyVerses()"><i class="fas fa-copy"></i> Copiar</button>
-    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearSelection()" aria-label="Limpar seleção"><i class="fas fa-xmark"></i></button>
+    <span class="selected-count">{{ _('{n} selecionado(s)', n='<span id="selectedCount">0</span>')|safe }}</span>
+    <button type="button" class="uc-btn uc-btn-live uc-btn-sm" onclick="sendToDisplay()"><i class="fas fa-display"></i> {{ _('Exibir juntos') }}</button>
+    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="copyVerses()"><i class="fas fa-copy"></i> {{ _('Copiar') }}</button>
+    <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearSelection()" aria-label="{{ _('Limpar seleção') }}"><i class="fas fa-xmark"></i></button>
 </div>
 
 <script id="bible-chapter-data" type="application/json">{{ {"bookName": book_name, "chapter": chapter, "bookAbbrev": book_abbrev, "translationAbbrev": translation_abbrev, "translationName": translation_name, "translation": current_translation, "prevChapter": prev_chapter, "nextChapter": next_chapter} | tojson }}</script>

@@ -45,7 +45,7 @@
             b.className = 'datashow-opcao';
             b.dataset.i = i;
             b.innerHTML = `<i class="fas ${s.icon}"></i><span class="grow"><b></b><small></small></span>` +
-                (s.abre ? '<span class="uc-pill uc-pill-muted">Abrir</span>' : '');
+                (s.abre ? '<span class="uc-pill uc-pill-muted">' + _t('Abrir') + '</span>' : '');
             b.querySelector('b').textContent = s.label;
             b.querySelector('small').textContent = s.detalhe;
             b.addEventListener('click', () => {
@@ -61,7 +61,7 @@
         const feat = `popup,fullscreen,left=${s.left},top=${s.top},width=${s.width},height=${s.height}`;
         janela = window.open(`${TELAS[tela]}?tela_cheia=1`, `uc_${tela}`, feat);
         if (!janela) {
-            aviso.textContent = 'O navegador bloqueou a janela. Libere pop-ups para este endereço e tente de novo.';
+            aviso.textContent = _t('O navegador bloqueou a janela. Libere pop-ups para este endereço e tente de novo.');
             return;
         }
         // Abrir a janela gasta o clique; a tela cheia precisa de outro, aqui
@@ -69,21 +69,21 @@
         // postMessage com delegate, ver tela_cheia.js). Liga quando ela carregar.
         cheiaBtn.hidden = false;
         cheiaBtn.disabled = true;
-        aviso.textContent = `Abrindo em ${s.label}…`;
+        aviso.textContent = _t('Abrindo em {tela}…', { tela: s.label });
     }
 
     window.addEventListener('message', e => {
         if (e.origin !== location.origin || !e.data || e.source !== janela) return;
         if (e.data.uc === 'tela_pronta') {
             cheiaBtn.disabled = false;
-            aviso.textContent = 'Janela aberta. Agora toque em "Pôr em tela cheia".';
+            aviso.textContent = _t('Janela aberta. Agora toque em "Pôr em tela cheia".');
         } else if (e.data.uc === 'tela_cheia_ok') {
             cheiaBtn.hidden = true;
             aviso.textContent = '';
-            ucToast('Tela pública em tela cheia.');
+            ucToast(_t('Tela pública em tela cheia.'));
             fecharDatashow();
         } else if (e.data.uc === 'tela_cheia_falhou') {
-            aviso.textContent = 'O navegador não deixou pôr em tela cheia daqui. Clique uma vez na janela da tela pública (ou aperte F11 nela).';
+            aviso.textContent = _t('O navegador não deixou pôr em tela cheia daqui. Clique uma vez na janela da tela pública (ou aperte F11 nela).');
         }
     });
 
@@ -104,33 +104,33 @@
         if ('getScreenDetails' in window && window.isSecureContext) {
             try {
                 list.innerHTML = '';
-                aviso.textContent = 'Permita "gerenciar janelas" no aviso do navegador, perto da barra de endereço (só na primeira vez).';
+                aviso.textContent = _t('Permita "gerenciar janelas" no aviso do navegador, perto da barra de endereço (só na primeira vez).');
                 const det = await window.getScreenDetails();
                 aviso.textContent = '';
                 const opcoes = det.screens.map((sc, i) => ({
                     left: sc.availLeft, top: sc.availTop, width: sc.availWidth, height: sc.availHeight,
-                    label: `Tela ${i + 1}${sc.isPrimary ? ' · principal' : ''}`,
+                    label: sc.isPrimary ? _t('Tela {n} · principal', { n: i + 1 }) : _t('Tela {n}', { n: i + 1 }),
                     detalhe: `${sc.width}×${sc.height}${sc.label ? ' · ' + sc.label : ''}`,
                     icon: sc.isPrimary ? 'fa-laptop' : 'fa-display', abre: true,
                 }));
                 render(opcoes);
-                if (opcoes.length === 1) aviso.textContent = 'Só uma tela ligada neste PC. Ligue o datashow (modo "Estender") e abra de novo.';
+                if (opcoes.length === 1) aviso.textContent = _t('Só uma tela ligada neste PC. Ligue o datashow (modo "Estender") e abra de novo.');
                 return;
             } catch (e) {
-                aviso.textContent = 'Sem permissão para ver as telas. Clique no cadeado da barra de endereço e permita "Gerenciamento de janelas".';
+                aviso.textContent = _t('Sem permissão para ver as telas. Clique no cadeado da barra de endereço e permita "Gerenciamento de janelas".');
             }
         } else {
             aviso.textContent = window.isSecureContext
-                ? 'Este navegador não lista as telas (só Chrome e Edge). Escolha a posição e baixe o atalho.'
-                : 'Pelo IP da rede o navegador não deixa listar as telas. Escolha onde está o datashow e baixe o atalho: ele abre direto em tela cheia lá.';
+                ? _t('Este navegador não lista as telas (só Chrome e Edge). Escolha a posição e baixe o atalho.')
+                : _t('Pelo IP da rede o navegador não deixa listar as telas. Escolha onde está o datashow e baixe o atalho: ele abre direto em tela cheia lá.');
         }
         // Sem a API: posição relativa à tela deste PC
         const w = window.screen.width, h = window.screen.height;
         render([
-            { left: w + 50, top: 50, width: 0, height: 0, label: 'Tela à direita', detalhe: 'Datashow à direita desta tela (o mais comum)', icon: 'fa-arrow-right' },
-            { left: -200, top: 50, width: 0, height: 0, label: 'Tela à esquerda', detalhe: 'Datashow à esquerda desta tela', icon: 'fa-arrow-left' },
+            { left: w + 50, top: 50, width: 0, height: 0, label: _t('Tela à direita'), detalhe: _t('Datashow à direita desta tela (o mais comum)'), icon: 'fa-arrow-right' },
+            { left: -200, top: 50, width: 0, height: 0, label: _t('Tela à esquerda'), detalhe: _t('Datashow à esquerda desta tela'), icon: 'fa-arrow-left' },
             { left: window.screen.availLeft || 0, top: window.screen.availTop || 0, width: window.screen.availWidth, height: window.screen.availHeight,
-              label: 'Esta tela', detalhe: `${w}×${h}`, icon: 'fa-laptop', abre: true },
+              label: _t('Esta tela'), detalhe: `${w}×${h}`, icon: 'fa-laptop', abre: true },
         ]);
     }
 

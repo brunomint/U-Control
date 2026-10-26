@@ -16,6 +16,7 @@ import display_state
 from connections import _skip_sids
 from display_log import append_display_log
 from extensions import db, socketio
+from i18n import gettext as _
 from models import LyricsState
 from orders_store import load_orders
 from songs_store import get_song, set_theme, touch_last_played
@@ -37,7 +38,7 @@ def lyrics(song_id):
     # de música" (2026-08-15).
     song = get_song(song_id)
     if not song:
-        return "Música não encontrada", 404
+        return _("Música não encontrada"), 404
 
     touch_last_played(song_id)
 
@@ -80,7 +81,7 @@ def api_lyrics(song_id):
     """Retorna os dados completos da música em JSON (para API)."""
     song = get_song(song_id)
     if not song:
-        return jsonify({'error': 'Música não encontrada'}), 404
+        return jsonify({'error': _('Música não encontrada')}), 404
 
     return jsonify(song)
 
@@ -97,7 +98,7 @@ def section(song_id, section_index):
     """Exibe uma seção específica da música."""
     song = get_song(song_id)
     if not song or section_index < 0 or section_index >= len(song['sections']):
-        return jsonify({'error': 'Seção inválida'}), 404
+        return jsonify({'error': _('Seção inválida')}), 404
 
     section = song['sections'][section_index]
     socketio.emit('update_lyrics', {
@@ -115,7 +116,7 @@ def lyrics_data(song_id):
     """Retorna os dados da primeira seção da música."""
     song = get_song(song_id)
     if not song:
-        return jsonify({'error': 'Música não encontrada'}), 404
+        return jsonify({'error': _('Música não encontrada')}), 404
 
     section = song['sections'][0]
     return jsonify({
@@ -128,7 +129,7 @@ def full_lyrics(song_id):
     """Retorna as letras completas da música."""
     song = get_song(song_id)
     if not song:
-        return jsonify({'error': 'Música não encontrada'}), 404
+        return jsonify({'error': _('Música não encontrada')}), 404
 
     full_lyrics_text = "\n".join([section['text'][0] for section in song['sections']])
     return jsonify({'lyrics': full_lyrics_text})

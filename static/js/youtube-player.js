@@ -33,23 +33,23 @@ class YouTubeFloatingPlayer {
         this.container.classList.toggle('minimized', this.isMinimized);
 
         this.container.innerHTML = `
-            <div class="yt-player-header" title="Arraste para mover">
+            <div class="yt-player-header" title="${_t('Arraste para mover')}">
                 <span class="yt-player-icon"><i class="fab fa-youtube"></i></span>
-                <span class="yt-player-title">Vídeo de referência</span>
+                <span class="yt-player-title">${_t('Vídeo de referência')}</span>
                 <button type="button" class="yt-icon-btn yt-btn-minimize"></button>
             </div>
             <div class="yt-player-body">
                 <div class="yt-player-empty" ${this.readOnly ? 'style="display:none;"' : ''}>
                     <i class="fab fa-youtube yt-empty-icon"></i>
-                    <p>Nenhum vídeo ainda</p>
-                    <button type="button" class="yt-btn-add-video"><i class="fas fa-plus"></i> Adicionar vídeo do YouTube</button>
+                    <p>${_t('Nenhum vídeo ainda')}</p>
+                    <button type="button" class="yt-btn-add-video"><i class="fas fa-plus"></i> ${_t('Adicionar vídeo do YouTube')}</button>
                 </div>
                 <div id="yt-player-frame" style="display: none;"></div>
             </div>
             <div class="yt-player-footer">
-                <label class="yt-speed-control" title="Velocidade">
+                <label class="yt-speed-control" title="${_t('Velocidade')}">
                     <i class="fas fa-gauge-high"></i>
-                    <select class="yt-speed-select" aria-label="Velocidade">
+                    <select class="yt-speed-select" aria-label="${_t('Velocidade')}">
                         <option value="0.5">0.5×</option>
                         <option value="0.75">0.75×</option>
                         <option value="1" selected>1×</option>
@@ -58,9 +58,9 @@ class YouTubeFloatingPlayer {
                     </select>
                 </label>
                 <div class="yt-footer-actions">
-                    <a class="yt-action yt-btn-external" href="#" target="_blank" rel="noopener" title="Abrir no YouTube" style="display:none;"><i class="fas fa-arrow-up-right-from-square"></i> <span class="yt-label">YouTube</span></a>
-                    ${this.readOnly ? '' : '<button type="button" class="yt-action yt-btn-download" title="Baixar o áudio e guardar no U-Control" style="display:none;"><i class="fas fa-download"></i> <span class="yt-label">Baixar áudio</span></button>'}
-                    ${this.readOnly ? '' : '<button type="button" class="yt-action yt-btn-change" title="Trocar por outro vídeo do YouTube" style="display:none;"><i class="fas fa-arrow-right-arrow-left"></i> <span class="yt-label">Trocar</span></button>'}
+                    <a class="yt-action yt-btn-external" href="#" target="_blank" rel="noopener" title="${_t('Abrir no YouTube')}" style="display:none;"><i class="fas fa-arrow-up-right-from-square"></i> <span class="yt-label">YouTube</span></a>
+                    ${this.readOnly ? '' : `<button type="button" class="yt-action yt-btn-download" title="${_t('Baixar o áudio e guardar no U-Control')}" style="display:none;"><i class="fas fa-download"></i> <span class="yt-label">${_t('Baixar áudio')}</span></button>`}
+                    ${this.readOnly ? '' : `<button type="button" class="yt-action yt-btn-change" title="${_t('Trocar por outro vídeo do YouTube')}" style="display:none;"><i class="fas fa-arrow-right-arrow-left"></i> <span class="yt-label">${_t('Trocar')}</span></button>`}
                 </div>
             </div>
         `;
@@ -340,7 +340,7 @@ class YouTubeFloatingPlayer {
 
     renderMinimizeButton() {
         const btn = this.container.querySelector('.yt-btn-minimize');
-        const label = this.isMinimized ? 'Abrir player' : 'Recolher player';
+        const label = this.isMinimized ? _t('Abrir player') : _t('Recolher player');
         if (!btn.firstElementChild) btn.innerHTML = '<i></i>';
         btn.firstElementChild.className = `fas fa-chevron-${this.isMinimized ? 'up' : 'down'}`;
         btn.title = label;
@@ -391,7 +391,7 @@ class YouTubeFloatingPlayer {
     }
 
     promptForVideo() {
-        const input = prompt('Cole o link do vídeo do YouTube:\n\nServe youtube.com/watch?v=…, youtu.be/…, código de incorporação (iframe) ou o ID do vídeo (11 caracteres).');
+        const input = prompt(_t('Cole o link do vídeo do YouTube:') + '\n\n' + _t('Serve youtube.com/watch?v=…, youtu.be/…, código de incorporação (iframe) ou o ID do vídeo (11 caracteres).'));
 
         if (input && input.trim()) {
             const videoId = this.extractVideoId(input.trim());
@@ -403,7 +403,7 @@ class YouTubeFloatingPlayer {
                     this.onVideoUrlChange(`https://www.youtube.com/watch?v=${videoId}`);
                 }
             } else {
-                alert('Não reconheci esse link do YouTube.\n\nServe youtube.com/watch?v=…, youtu.be/… ou o código de incorporação (iframe).');
+                alert(_t('Não reconheci esse link do YouTube.') + '\n\n' + _t('Serve youtube.com/watch?v=…, youtu.be/… ou o código de incorporação (iframe).'));
             }
         }
     }
@@ -444,7 +444,7 @@ class YouTubeFloatingPlayer {
                 src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${origin}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
-                title="Vídeo de referência"></iframe>
+                title="${_t('Vídeo de referência')}"></iframe>
         `;
 
         // Pede ao player do YouTube os eventos (onError): vídeo com
@@ -457,7 +457,7 @@ class YouTubeFloatingPlayer {
         this.listenYoutubeErrors();
 
         this.container.querySelector('.yt-btn-external').href = `https://www.youtube.com/watch?v=${videoId}`;
-        this.setHeader('video', 'Vídeo de referência');
+        this.setHeader('video', _t('Vídeo de referência'));
         this.setFooterActions({ external: true, download: true, change: true });
         this.setSpeedVisible(true);
         this.show();
@@ -465,7 +465,7 @@ class YouTubeFloatingPlayer {
 
     async downloadAudio() {
         if (!this.videoId) {
-            alert('Nenhum vídeo carregado.');
+            alert(_t('Nenhum vídeo carregado.'));
             return;
         }
 
@@ -473,7 +473,7 @@ class YouTubeFloatingPlayer {
         const originalHtml = downloadBtn.innerHTML;
 
         try {
-            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="yt-label">Baixando…</span>';
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="yt-label">' + _t('Baixando…') + '</span>';
             downloadBtn.disabled = true;
 
             const songIdField = document.getElementById('song_id') || document.querySelector('input[name="song_id"]');
@@ -494,19 +494,19 @@ class YouTubeFloatingPlayer {
             const isJson = (response.headers.get('content-type') || '').includes('application/json');
             if (!isJson) {
                 throw new Error(response.redirected || response.status === 401
-                    ? 'Sua sessão expirou. Entre de novo e tente outra vez.'
-                    : `O servidor respondeu ${response.status}.`);
+                    ? _t('Sua sessão expirou. Entre de novo e tente outra vez.')
+                    : _t('O servidor respondeu {status}.', { status: response.status }));
             }
             const data = await response.json();
 
-            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
+            if (!data.success) throw new Error(data.error || _t('Erro desconhecido'));
 
             if (audioField) audioField.value = data.audio_url;
             this.loadLocalAudio(data.audio_url);
-            alert('Áudio baixado.\n\nClique em Salvar para guardar na música.');
+            alert(_t('Áudio baixado.') + '\n\n' + _t('Clique em Salvar para guardar na música.'));
         } catch (error) {
             console.error('Erro ao baixar áudio:', error);
-            alert(`Não deu pra baixar o áudio:\n${error.message}`);
+            alert(_t('Não deu pra baixar o áudio:') + '\n' + error.message);
         } finally {
             downloadBtn.innerHTML = originalHtml;
             downloadBtn.disabled = false;
@@ -521,7 +521,7 @@ class YouTubeFloatingPlayer {
         playerFrame.style.display = 'block';
 
         // Título e autor dos campos do formulário se não vierem
-        if (!songTitle) songTitle = document.getElementById('title')?.value || 'Música';
+        if (!songTitle) songTitle = document.getElementById('title')?.value || _t('Música');
         if (!songAuthor) songAuthor = document.getElementById('author')?.value || '';
 
         const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -537,7 +537,7 @@ class YouTubeFloatingPlayer {
                 <audio controls class="local-audio-player" preload="metadata">
                     <source src="${esc(audioUrl)}" type="audio/mpeg">
                 </audio>
-                <div class="audio-player-badge"><i class="fas fa-circle-check"></i> Áudio guardado no U-Control</div>
+                <div class="audio-player-badge"><i class="fas fa-circle-check"></i> ${_t('Áudio guardado no U-Control')}</div>
             </div>
         `;
 
@@ -545,7 +545,7 @@ class YouTubeFloatingPlayer {
         if (audioElement) audioElement.playbackRate = this.playbackRate;
 
         this.videoId = null;
-        this.setHeader('audio', 'Áudio de referência');
+        this.setHeader('audio', _t('Áudio de referência'));
         // Já baixado: sem "Baixar"; "Trocar" põe outro vídeo do YouTube
         this.setFooterActions({ external: false, download: false, change: true });
         this.setSpeedVisible(true);
@@ -566,14 +566,14 @@ class YouTubeFloatingPlayer {
             if (!data || data.event !== 'onError' || !this.videoId) return;
             const code = Number(data.info);
             const reason = (code === 101 || code === 150 || code === 152 || code === 153)
-                ? 'O dono deste vídeo não deixa tocar fora do YouTube.'
-                : code === 100 ? 'Este vídeo foi removido ou é privado.' : 'O YouTube não conseguiu tocar este vídeo.';
+                ? _t('O dono deste vídeo não deixa tocar fora do YouTube.')
+                : code === 100 ? _t('Este vídeo foi removido ou é privado.') : _t('O YouTube não conseguiu tocar este vídeo.');
             this.showExternalLink(this.videoId, reason, code === 100 || code === 2);
         };
         window.addEventListener('message', this._ytErrorListener);
     }
 
-    showExternalLink(videoId, reason = 'Este vídeo não deixa tocar fora do YouTube.', gone = false) {
+    showExternalLink(videoId, reason = _t('Este vídeo não deixa tocar fora do YouTube.'), gone = false) {
         const emptyState = this.container.querySelector('.yt-player-empty');
         const playerFrame = this.container.querySelector('#yt-player-frame');
 
@@ -583,14 +583,14 @@ class YouTubeFloatingPlayer {
         // No editor: baixar o áudio resolve (fica guardado no U-Control e
         // toca aqui mesmo). Na cifra (somente leitura), só abrir no YouTube.
         const tip = !this.readOnly && !gone
-            ? '<p class="yt-empty-tip">Use <b>Baixar áudio</b> para guardar o áudio no U-Control e ouvir aqui.</p>'
+            ? '<p class="yt-empty-tip">' + _t('Use <b>Baixar áudio</b> para guardar o áudio no U-Control e ouvir aqui.') + '</p>'
             : '';
         emptyState.style.display = 'block';
         emptyState.innerHTML = `
             <i class="fab fa-youtube yt-empty-icon"></i>
             <p>${reason}</p>
             ${gone ? '' : `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="yt-btn-add-video">
-                <i class="fas fa-arrow-up-right-from-square"></i> Abrir no YouTube
+                <i class="fas fa-arrow-up-right-from-square"></i> ${_t('Abrir no YouTube')}
             </a>`}
             ${tip}
         `;

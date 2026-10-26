@@ -517,7 +517,7 @@
                     
                     // Limpa o editor atual
                     const anteriores = blocks;
-                    registrar('separar a letra em seções');
+                    registrar(_t('separar a letra em seções'));
                     blocks = [];
                     selectedBlocks.clear();
                     
@@ -674,7 +674,7 @@
                 ultimaFoiAcao = true;
                 renderBlocks(true);
                 atualizarBotoesHistorico();
-                ucToast(`${verbo}: ${passo.rotulo}`);
+                ucToast(verbo(passo.rotulo));
             }
 
             function atualizarBotoesHistorico() {
@@ -682,16 +682,16 @@
                 const ref = document.getElementById('redoBtn');
                 if (desf) {
                     desf.disabled = !historico.length;
-                    desf.title = historico.length ? `Desfazer: ${historico[historico.length - 1].rotulo} (Ctrl+Z)` : 'Nada para desfazer';
+                    desf.title = historico.length ? _t('Desfazer: {acao} (Ctrl+Z)', { acao: historico[historico.length - 1].rotulo }) : _t('Nada para desfazer');
                 }
                 if (ref) {
                     ref.disabled = !refazer.length;
-                    ref.title = refazer.length ? `Refazer: ${refazer[refazer.length - 1].rotulo} (Ctrl+Y)` : 'Nada para refazer';
+                    ref.title = refazer.length ? _t('Refazer: {acao} (Ctrl+Y)', { acao: refazer[refazer.length - 1].rotulo }) : _t('Nada para refazer');
                 }
             }
 
-            window.desfazerAcao = () => restaurar(historico, refazer, 'Desfeito');
-            window.refazerAcao = () => restaurar(refazer, historico, 'Refeito');
+            window.desfazerAcao = () => restaurar(historico, refazer, (acao) => _t('Desfeito: {acao}', { acao }));
+            window.refazerAcao = () => restaurar(refazer, historico, (acao) => _t('Refeito: {acao}', { acao }));
 
             document.addEventListener('input', () => { ultimaFoiAcao = false; });
             document.addEventListener('keydown', (e) => {
@@ -807,7 +807,7 @@
                 const button = document.createElement('button');
                 button.type = 'button'; // Importante: evita submit do formulário
                 button.innerHTML = '<i class="fas fa-plus"></i>';
-                button.title = 'Inserir bloco aqui';
+                button.title = _t('Inserir bloco aqui');
                 button.className = 'insert-btn';
                 
                 // Menu de opções (inicialmente oculto)
@@ -864,9 +864,9 @@
                 function montarOpcoes() {
                     menu.innerHTML = '';
                     const options = [
-                        { icon: 'fas fa-font', text: 'Bloco de Texto', action: () => insertBlockAt(position, 'text') },
-                        { icon: 'fas fa-heading', text: 'Seção (Coro, Verso...)', action: () => insertBlockAt(position, 'section') },
-                        { icon: 'fas fa-music', text: 'Partitura', action: () => insertBlockAt(position, 'sheet') }
+                        { icon: 'fas fa-font', text: _t('Bloco de Texto'), action: () => insertBlockAt(position, 'text') },
+                        { icon: 'fas fa-heading', text: _t('Seção (Coro, Verso...)'), action: () => insertBlockAt(position, 'section') },
+                        { icon: 'fas fa-music', text: _t('Partitura'), action: () => insertBlockAt(position, 'sheet') }
                     ];
                     options.forEach(option => {
                         menu.appendChild(menuItem(`<i class="${option.icon}"></i> ${option.text}`, () => {
@@ -875,7 +875,7 @@
                         }));
                     });
                     if (sectionGroups().some(g => blocks[g.start].type === 'section')) {
-                        menu.appendChild(menuItem('<i class="fas fa-clone"></i> Repetir uma seção…', listarSecoes));
+                        menu.appendChild(menuItem('<i class="fas fa-clone"></i> ' + _t('Repetir uma seção…'), listarSecoes));
                     }
                 }
 
@@ -883,9 +883,9 @@
                 // aqui (ex.: refrão de novo no fim), sem subir/descer depois
                 function listarSecoes() {
                     menu.innerHTML = '';
-                    menu.appendChild(menuItem('<i class="fas fa-arrow-left"></i> Voltar', montarOpcoes));
+                    menu.appendChild(menuItem('<i class="fas fa-arrow-left"></i> ' + _t('Voltar'), montarOpcoes));
                     sectionGroups().filter(g => blocks[g.start].type === 'section').forEach(g => {
-                        const titulo = (blocks[g.start].title || '').trim() || '(sem nome)';
+                        const titulo = (blocks[g.start].title || '').trim() || _t('(sem nome)');
                         const letra = blocks.slice(g.start + 1, g.end)
                             .filter(b => b.type === 'text')
                             .flatMap(b => (b.content || '').split('\n'))
@@ -951,7 +951,7 @@
                 if (type === 'text') {
                     newBlock = { type: 'text', content: '', id: Date.now() };
                 } else if (type === 'section') {
-                    const sectionName = prompt('Nome da seção (ex: Coro, Verso 1, Ponte...):', 'Coro');
+                    const sectionName = prompt(_t('Nome da seção (ex: Coro, Verso 1, Ponte...):'), 'Coro');
                     if (!sectionName) return;
                     newBlock = { type: 'section', title: sectionName, id: Date.now() };
                     // Seção já vem com o bloco de texto embaixo
@@ -961,7 +961,7 @@
                     newBlock = { type: 'sheet', content: '', id: Date.now() };
                 }
                 
-                registrar('inserir bloco');
+                registrar(_t('inserir bloco'));
                 // Salva a posição do scroll antes de re-renderizar
                 const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 
@@ -987,7 +987,7 @@
                 const div = document.createElement('textarea');
                 div.className = 'text-block';
                 div.style.cssText = `padding: ${selectionMode ? '10px 10px 10px 35px' : '10px'}; min-height: 50px; outline: none; border: none; border-bottom: 1px dashed var(--uc-line); background: ${selectedBlocks.has(index) ? 'var(--uc-accent-soft)' : 'var(--uc-surface-2)'}; border: ${selectedBlocks.has(index) ? '2px solid var(--uc-accent)' : '1px solid var(--uc-line)'}; border-radius: 6px; white-space: pre; overflow-x: auto; overflow-y: hidden; width: 100%; resize: none; line-height: 1.4; box-sizing: border-box; color: var(--uc-text);`;
-                div.setAttribute('placeholder', 'Digite a letra da música...');
+                div.setAttribute('placeholder', _t('Digite a letra da música...'));
                 div.setAttribute('wrap', 'off');
                 div.value = block.content || '';
                 ChordHighlight.attach(div);
@@ -1024,7 +1024,7 @@
                     }
                     if (e.key === 'Enter' && e.ctrlKey) {
                         e.preventDefault();
-                        registrar('nova seção (Ctrl+Enter)');
+                        registrar(_t('nova seção (Ctrl+Enter)'));
                         const before = div.value.slice(0, div.selectionStart).replace(/\n+$/, '');
                         const after = div.value.slice(div.selectionEnd).replace(/^\n+/, '');
                         blocks[index].content = before;
@@ -1048,7 +1048,7 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.type = 'button'; // Evita submit do formulário
                 deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
-                deleteBtn.title = 'Excluir bloco';
+                deleteBtn.title = _t('Excluir bloco');
                 deleteBtn.style.cssText = 'background: var(--uc-danger-soft); color: var(--uc-danger); border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
@@ -1103,10 +1103,10 @@
                         }
                     }).catch(error => {
                         console.error('Erro ao renderizar partitura:', error);
-                        sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Erro ao renderizar partitura</p>';
+                        sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">' + _t('Erro ao renderizar partitura') + '</p>';
                     });
                 } else {
-                    sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">Partitura sem dados</p>';
+                    sheetContainer.innerHTML = '<p style="color: #999; font-style: italic;">' + _t('Partitura sem dados') + '</p>';
                 }
                 div.appendChild(sheetContainer);
 
@@ -1118,7 +1118,7 @@
                 const editBtn = document.createElement('button');
                 editBtn.type = 'button'; // Evita submit do formulário
                 editBtn.textContent = '✏️';
-                editBtn.title = 'Editar';
+                editBtn.title = _t('Editar');
                 editBtn.style.cssText = 'background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 3px; padding: 4px 8px; margin-left: 4px; cursor: pointer; font-size: 12px;';
                 editBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
@@ -1129,7 +1129,7 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.type = 'button'; // Evita submit do formulário
                 deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
-                deleteBtn.title = 'Excluir';
+                deleteBtn.title = _t('Excluir');
                 deleteBtn.style.cssText = 'background: var(--uc-danger-soft); color: var(--uc-danger); border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; margin-left: 4px; cursor: pointer; font-size: 14px; ';
                 deleteBtn.onclick = (e) => {
                     e.preventDefault(); // Evita submit do formulário
@@ -1164,7 +1164,7 @@
                 // Input para o título da seção
                 const input = document.createElement('input');
                 input.type = 'text';
-                input.placeholder = 'Nome da seção (ex: Verso 1, Coro, Estrofe...)';
+                input.placeholder = _t('Nome da seção (ex: Verso 1, Coro, Estrofe...)');
                 input.value = block.title || '';
                 input.style.cssText = `background: transparent; border: none; color: var(--uc-accent-text); font-weight: bold; font-size: 16px; width: calc(100% - ${selectionMode ? '120px' : '180px'}); outline: none; margin-left: ${selectionMode ? '25px' : '0'};`;
                 
@@ -1212,10 +1212,10 @@
                     };
                     controls.appendChild(btn);
                 };
-                addBtn('fa-arrow-up', 'Subir seção (Alt+↑)', () => moveSection(index, -1), '', groupPos <= 0);
-                addBtn('fa-arrow-down', 'Descer seção (Alt+↓)', () => moveSection(index, 1), '', groupPos === groups.length - 1);
-                addBtn('fa-clone', 'Duplicar seção', () => duplicateSection(index));
-                addBtn('fa-trash-can', 'Excluir título da seção', () => deleteBlock(index), 'danger');
+                addBtn('fa-arrow-up', _t('Subir seção (Alt+↑)'), () => moveSection(index, -1), '', groupPos <= 0);
+                addBtn('fa-arrow-down', _t('Descer seção (Alt+↓)'), () => moveSection(index, 1), '', groupPos === groups.length - 1);
+                addBtn('fa-clone', _t('Duplicar seção'), () => duplicateSection(index));
+                addBtn('fa-trash-can', _t('Excluir título da seção'), () => deleteBlock(index), 'danger');
                 
                 div.appendChild(checkbox);
                 div.appendChild(input);
@@ -1226,7 +1226,7 @@
             
             // Adiciona bloco de texto
             function addTextBlock(position = -1) {
-                registrar('novo bloco de texto');
+                registrar(_t('novo bloco de texto'));
                 if (position === -1) position = blocks.length;
                 blocks.splice(position, 0, { type: 'text', content: '', id: Date.now() });
                 renderBlocks(true);
@@ -1241,7 +1241,7 @@
             // Adiciona uma seção já com o bloco de texto logo abaixo e põe o
             // cursor no nome da seção
             function addSectionBlock(position = -1, text = '', registrarAcao = true) {
-                if (registrarAcao) registrar('nova seção');
+                if (registrarAcao) registrar(_t('nova seção'));
                 if (position === -1) position = blocks.length;
                 const now = Date.now();
                 blocks.splice(position, 0,
@@ -1262,7 +1262,7 @@
                 const sheetData = localStorage.getItem('vexflow_sheet_data');
                 
                 if (!svgData) {
-                    alert('❌ Nenhuma partitura encontrada. Crie uma partitura primeiro!');
+                    alert(_t('❌ Nenhuma partitura encontrada. Crie uma partitura primeiro!'));
                     return;
                 }
                 
@@ -1271,7 +1271,7 @@
                     try {
                         const parsed = JSON.parse(sheetData);
                         if (parsed.measures && parsed.measures.length > 0 && parsed.measures[0].length === 0) {
-                            alert('⚠️ A partitura está vazia. Adicione algumas notas antes de inserir!');
+                            alert(_t('⚠️ A partitura está vazia. Adicione algumas notas antes de inserir!'));
                             return;
                         }
                     } catch (e) {
@@ -1286,7 +1286,7 @@
                 console.log('SVG:', svgData ? 'Presente' : 'Ausente');
                 console.log('JSON:', sheetData ? 'Presente' : 'Ausente');
                 
-                registrar('inserir partitura');
+                registrar(_t('inserir partitura'));
                 const newBlock = { 
                     type: 'sheet', 
                     svgData: svgData,
@@ -1327,7 +1327,7 @@
 
                 // Abre editor VexFlow
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-                if (!vexWindow) { alert('O navegador bloqueou a janela do editor de partitura. Libere pop-ups pra este site.'); return; }
+                if (!vexWindow) { alert(_t('O navegador bloqueou a janela do editor de partitura. Libere pop-ups pra este site.')); return; }
 
                 // Monitora fechamento
                 const checkClosed = setInterval(async () => {
@@ -1374,7 +1374,7 @@
                         console.log('Novos dados:', newSheetData ? 'Presente' : 'Ausente');
                         
                         if (newSvgData && newSheetData) {
-                            registrar('editar partitura');
+                            registrar(_t('editar partitura'));
                             blocks[index].svgData = newSvgData;
                             blocks[index].sheetData = newSheetData;
                             // objeto, não o texto: createSheetBlock desenha a
@@ -1401,13 +1401,13 @@
                 const deleteBtn = document.getElementById('deleteSelectedBtn');
                 
                 if (selectionMode) {
-                    selectBtn.innerHTML = '<i class="fas fa-xmark"></i> <span class="tool-label">Cancelar seleção</span>';
-                    selectBtn.title = selectBtn.ariaLabel = 'Cancelar seleção';
+                    selectBtn.innerHTML = '<i class="fas fa-xmark"></i> <span class="tool-label">' + _t('Cancelar seleção') + '</span>';
+                    selectBtn.title = selectBtn.ariaLabel = _t('Cancelar seleção');
                     selectBtn.classList.add('active');
                     deleteBtn.style.display = 'inline-flex';
                 } else {
-                    selectBtn.innerHTML = '<i class="fas fa-square-check"></i> <span class="tool-label">Selecionar</span>';
-                    selectBtn.title = selectBtn.ariaLabel = 'Selecionar';
+                    selectBtn.innerHTML = '<i class="fas fa-square-check"></i> <span class="tool-label">' + _t('Selecionar') + '</span>';
+                    selectBtn.title = selectBtn.ariaLabel = _t('Selecionar');
                     selectBtn.classList.remove('active');
                     deleteBtn.style.display = 'none';
                 }
@@ -1426,12 +1426,12 @@
             
             function deleteSelectedBlocks() {
                 if (selectedBlocks.size === 0) {
-                    alert('⚠️ Nenhum bloco selecionado!');
+                    alert(_t('⚠️ Nenhum bloco selecionado!'));
                     return;
                 }
                 
-                if (confirm(`🗑️ Tem certeza que deseja excluir ${selectedBlocks.size} bloco(s) selecionado(s)?`)) {
-                    registrar('excluir selecionados');
+                if (confirm(_t('🗑️ Tem certeza que deseja excluir {n} bloco(s) selecionado(s)?', { n: selectedBlocks.size }))) {
+                    registrar(_t('excluir selecionados'));
                     // Salva a posição do scroll antes de re-renderizar
                     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                     
@@ -1490,7 +1490,7 @@
                 const other = pos + dir;
                 if (pos < 0 || other < 0 || other >= groups.length) return;
                 const [a, b] = dir < 0 ? [groups[other], groups[pos]] : [groups[pos], groups[other]];
-                registrar('mover seção');
+                registrar(_t('mover seção'));
                 const first = blocks.slice(a.start, a.end);
                 const second = blocks.slice(b.start, b.end);
                 blocks.splice(a.start, b.end - a.start, ...second, ...first);
@@ -1504,7 +1504,7 @@
             function duplicateSection(index) {
                 const group = sectionGroups().find(g => g.start === index);
                 if (!group) return;
-                registrar('duplicar seção');
+                registrar(_t('duplicar seção'));
                 const now = Date.now();
                 const copy = blocks.slice(group.start, group.end)
                     .map((b, i) => ({ ...JSON.parse(JSON.stringify(b)), id: now + i }));
@@ -1519,7 +1519,7 @@
             function repeatSectionAt(start, position) {
                 const group = sectionGroups().find(g => g.start === start);
                 if (!group) return;
-                registrar('repetir seção');
+                registrar(_t('repetir seção'));
                 const now = Date.now();
                 const copy = blocks.slice(group.start, group.end)
                     .map((b, i) => ({ ...JSON.parse(JSON.stringify(b)), id: now + i }));
@@ -1534,8 +1534,13 @@
                 const blockType = block.type === 'section' ? 'seção' : 
                                  block.type === 'sheet' ? 'partitura' : 'texto';
                 
-                if (confirm(`🗑️ Tem certeza que deseja excluir este bloco de ${blockType}?`)) {
-                    registrar(`excluir ${blockType}`);
+                const [pergunta, rotulo] = block.type === 'section'
+                    ? [_t('🗑️ Tem certeza que deseja excluir este bloco de seção?'), _t('excluir seção')]
+                    : block.type === 'sheet'
+                    ? [_t('🗑️ Tem certeza que deseja excluir este bloco de partitura?'), _t('excluir partitura')]
+                    : [_t('🗑️ Tem certeza que deseja excluir este bloco de texto?'), _t('excluir texto')];
+                if (confirm(pergunta)) {
+                    registrar(rotulo);
                     // Salva a posição do scroll antes de re-renderizar
                     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                     
@@ -1836,7 +1841,7 @@
                     lyrics = await extractLyricsFromCifraClub(url);
                 }
                 
-                registrar('importar do Cifra Club');
+                registrar(_t('importar do Cifra Club'));
                 // Limpa blocos existentes
                 blocks = [];
                 
@@ -1873,15 +1878,15 @@
                 
                 // Notifica o usuário
                 if (lyrics) {
-                    alert(`🎵 Link processado com sucesso!\n\nArtista: ${info.artist}\nMúsica: ${info.song}\n\n✅ Letra extraída e dividida automaticamente em blocos!\n🎼 Seções: Intro, Versos, Refrão, Ponte, etc.`);
+                    alert(_t('🎵 Link processado com sucesso!') + '\n\n' + _t('Artista: {artista}', { artista: info.artist }) + '\n' + _t('Música: {musica}', { musica: info.song }) + '\n\n' + _t('✅ Letra extraída e dividida automaticamente em blocos!') + '\n' + _t('🎼 Seções: Intro, Versos, Refrão, Ponte, etc.'));
                 } else {
-                    const motivo = erro || 'Não foi possível buscar a cifra automaticamente.';
-                    if (confirm(`⚠️ ${motivo}\n\nO título e o artista já foram preenchidos. Na página do Cifra Club, selecione a cifra, copie e cole na caixa de texto vazia: o editor separa as seções sozinho.\n\nAbrir a música no Cifra Club agora?`)) {
+                    const motivo = erro || _t('Não foi possível buscar a cifra automaticamente.');
+                    if (confirm(`⚠️ ${motivo}\n\n` + _t('O título e o artista já foram preenchidos. Na página do Cifra Club, selecione a cifra, copie e cole na caixa de texto vazia: o editor separa as seções sozinho.') + '\n\n' + _t('Abrir a música no Cifra Club agora?'))) {
                         // Sem 'noopener' no open: com ele o retorno é sempre null
                         // e não dá pra saber se o navegador bloqueou a aba
                         const aba = window.open(url, '_blank');
                         if (aba) aba.opener = null;
-                        else alert('O navegador bloqueou a nova aba. Abra o link no navegador:\n\n' + url);
+                        else alert(_t('O navegador bloqueou a nova aba. Abra o link no navegador:') + '\n\n' + url);
                     }
                 }
                 
@@ -1908,7 +1913,7 @@
 
                 const links = detectCifraClubLink(text);
                 if (links && links.length > 0) {
-                    if (confirm(`🎵 Link do Cifra Club detectado!\n\n${links[0]}\n\nDeseja processar automaticamente?`)) {
+                    if (confirm(_t('🎵 Link do Cifra Club detectado!') + `\n\n${links[0]}\n\n` + _t('Deseja processar automaticamente?'))) {
                         await processCifraClubLink(links[0]);
                         if (el.isConnected) {
                             el.value = '';
@@ -1923,16 +1928,16 @@
                 const holder = el.classList.contains('text-block') && el.closest('[data-block-index]');
                 if (!holder || !detectLyrics(text)) return;
                 const perguntou = !hasBlankLines(text);
-                if (perguntou && !confirm(`🎵 Letra de música detectada!\n\nDeseja separar automaticamente em seções?\n\n✅ SIM: Organizar em versos, refrões, etc.\n❌ NÃO: Manter como texto único`)) return;
+                if (perguntou && !confirm(_t('🎵 Letra de música detectada!') + '\n\n' + _t('Deseja separar automaticamente em seções?') + '\n\n' + _t('✅ SIM: Organizar em versos, refrões, etc.') + '\n' + _t('❌ NÃO: Manter como texto único'))) return;
                 const ok = await processLyrics(text, Number(holder.dataset.blockIndex));
                 if (!ok && perguntou) {
-                    alert('⚠️ Não foi possível separar automaticamente.\nTente separar manualmente as seções com linhas em branco.');
+                    alert(_t('⚠️ Não foi possível separar automaticamente.') + '\n' + _t('Tente separar manualmente as seções com linhas em branco.'));
                 }
             }
             
             // Função para processamento manual de links
             window.processCifraClubManual = async function() {
-                const url = prompt(`🎵 Cole o link do Cifra Club:\n\nExemplo:\nhttps://www.cifraclub.com.br/legiao-urbana/tempo-perdido/`);
+                const url = prompt(_t('🎵 Cole o link do Cifra Club:') + '\n\n' + _t('Exemplo:') + '\nhttps://www.cifraclub.com.br/legiao-urbana/tempo-perdido/');
                 
                 if (url && url.trim()) {
                     const links = detectCifraClubLink(url.trim());
@@ -1940,10 +1945,10 @@
                     if (links && links.length > 0) {
                         await processCifraClubLink(links[0]);
                     } else {
-                        alert('❌ Link inválido!\n\nCertifique-se de que é um link válido do Cifra Club.\n\nExemplo correto:\nhttps://www.cifraclub.com.br/artista/musica/');
+                        alert(_t('❌ Link inválido!') + '\n\n' + _t('Certifique-se de que é um link válido do Cifra Club.') + '\n\n' + _t('Exemplo correto:') + '\nhttps://www.cifraclub.com.br/artista/musica/');
                     }
                 } else if (url !== null) {
-                    alert('⚠️ Nenhum link foi fornecido.');
+                    alert(_t('⚠️ Nenhum link foi fornecido.'));
                 }
             };
             
@@ -1961,7 +1966,7 @@
                 localStorage.removeItem('vexflow_sheet_data');
                 localStorage.removeItem('vexflow_sheet_svg');
                 const vexWindow = window.open('/sheet_editor', 'VexFlowEditor', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-                if (!vexWindow) { alert('O navegador bloqueou a janela do editor de partitura. Libere pop-ups pra este site.'); return; }
+                if (!vexWindow) { alert(_t('O navegador bloqueou a janela do editor de partitura. Libere pop-ups pra este site.')); return; }
                 vexWindow.focus();
                 const espera = setInterval(() => {
                     if (!vexWindow.closed) return;
@@ -1974,8 +1979,8 @@
             };
             
             document.getElementById('clearAllBtn').onclick = () => {
-                if (confirm('🗑️ Tem certeza que deseja limpar TODOS os blocos?\n\n(Dá pra desfazer com Ctrl+Z ou o botão Desfazer.)')) {
-                    registrar('limpar tudo');
+                if (confirm(_t('🗑️ Tem certeza que deseja limpar TODOS os blocos?') + '\n\n' + _t('(Dá pra desfazer com Ctrl+Z ou o botão Desfazer.)'))) {
+                    registrar(_t('limpar tudo'));
                     blocks = [{ type: 'text', content: '', id: Date.now() }];
                     selectedBlocks.clear();
                     renderBlocks();
@@ -2060,8 +2065,8 @@
                 const lbl = document.getElementById('tomScopeKey');
                 if (lbl) {
                     lbl.textContent = transposeScope !== 'sections' ? ''
-                        : blocked ? 'Marque as seções que vão mudar de tom'
-                        : `Tom das seções marcadas: ${key || '—'}`;
+                        : blocked ? _t('Marque as seções que vão mudar de tom')
+                        : _t('Tom das seções marcadas: {tom}', { tom: key || '—' });
                 }
             }
 
@@ -2094,18 +2099,18 @@
                             refreshTransposeControls();
                         };
                         const name = document.createElement('span');
-                        name.textContent = key === 'inicio' ? 'Início (sem título)' : (key.title || 'Seção sem nome');
+                        name.textContent = key === 'inicio' ? _t('Início (sem título)') : (key.title || _t('Seção sem nome'));
                         label.append(cb, name);
                         if (part.some(b => b.type === 'sheet')) {
                             const icon = document.createElement('i');
                             icon.className = 'fas fa-music';
-                            icon.title = 'Tem partitura — vai junto';
+                            icon.title = _t('Tem partitura — vai junto');
                             label.append(icon);
                         }
                         box.appendChild(label);
                     });
                     if (!box.children.length) {
-                        box.innerHTML = '<p class="tom-empty">Crie seções para transpor só uma parte da música.</p>';
+                        box.innerHTML = '<p class="tom-empty">' + _t('Crie seções para transpor só uma parte da música.') + '</p>';
                     }
                 }
                 refreshTransposeControls();
@@ -2119,7 +2124,7 @@
             window.transposeStep = async function(semitones) {
                 const targets = transposeTargets();
                 if (!targets.length) return;
-                registrar('transpor');
+                registrar(_t('transpor'));
                 const countRef = { count: 0 };
                 // sheet_render.js é ES module (import/export) — este arquivo
                 // é script clássico, então só dá pra acessar via import()
@@ -2152,7 +2157,7 @@
             window.undoTranspose = async function() {
                 const moved = blocks.filter(b => b._semi);
                 if (!moved.length) return;
-                registrar('voltar ao tom original');
+                registrar(_t('voltar ao tom original'));
                 const countRef = { count: 0 };
                 const { transposeSheetData } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
                 moved.forEach(block => {

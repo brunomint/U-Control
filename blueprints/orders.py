@@ -9,6 +9,7 @@ from datetime import date
 from flask import Blueprint, jsonify, render_template, request
 from flask_login import login_required
 
+from i18n import gettext as tr
 from orders_store import (
     CULTO_FIELDS,
     clear_feitos,
@@ -167,7 +168,7 @@ def api_get_order(date):
     orders = load_orders()
     if date in orders:
         return jsonify(orders[date])
-    return jsonify({"error": "Ordem não encontrada"}), 404
+    return jsonify({"error": tr("Ordem não encontrada")}), 404
 
 # API para salvar/atualizar uma ordem
 @orders_bp.route('/api/orders/<date>', methods=['POST'])
@@ -288,9 +289,9 @@ def api_save_order(date):
         # save_order(date, {}) já remove a ordem do banco se estiver vazia
         # (mesma "limpeza automática" que o dict inteiro tinha antes).
         if save_order(date, order):
-            return jsonify({"message": "Ordem salva com sucesso!"}), 200
+            return jsonify({"message": tr("Ordem salva com sucesso!")}), 200
 
-        return jsonify({"error": "Erro ao salvar ordem"}), 500
+        return jsonify({"error": tr("Erro ao salvar ordem")}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -303,8 +304,8 @@ def api_delete_order(date):
     try:
         if get_order(date):
             if save_order(date, {}):
-                return jsonify({"message": "Ordem deletada com sucesso!"}), 200
-        return jsonify({"error": "Ordem não encontrada"}), 404
+                return jsonify({"message": tr("Ordem deletada com sucesso!")}), 200
+        return jsonify({"error": tr("Ordem não encontrada")}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -324,10 +325,10 @@ def api_set_feito(date):
         return jsonify({'feitos': []})
     item_id = (data.get('item') or '').strip()
     if not item_id:
-        return jsonify({'error': 'Item obrigatório'}), 400
+        return jsonify({'error': tr('Item obrigatório')}), 400
     feitos = set_feito(date, item_id, bool(data.get('feito')))
     if feitos is None:
-        return jsonify({'error': 'Ordem não encontrada'}), 404
+        return jsonify({'error': tr('Ordem não encontrada')}), 404
     return jsonify({'feitos': feitos})
 
 
@@ -338,11 +339,11 @@ def api_set_feito(date):
 def api_delete_culto(date):
     order = get_order(date)
     if not order:
-        return jsonify({"error": "Culto não encontrado"}), 404
+        return jsonify({"error": tr("Culto não encontrado")}), 404
     for field in CULTO_FIELDS:
         order.pop(field, None)
     save_order(date, order if order.get('eventos') else {})
-    return jsonify({"message": "Culto excluído", "day": key_date(date)}), 200
+    return jsonify({"message": tr("Culto excluído"), "day": key_date(date)}), 200
 
 
 @orders_bp.route('/api/templates', methods=['GET'])
@@ -356,7 +357,7 @@ def api_save_template():
     name = data.get('name', '').strip()
     items = data.get('items', [])
     if not name:
-        return jsonify({'error': 'Nome obrigatório'}), 400
+        return jsonify({'error': tr('Nome obrigatório')}), 400
     templates = load_templates()
     templates[name] = items
     save_templates_file(templates)
@@ -382,7 +383,7 @@ def api_save_section_template(section):
     name = data.get('name', '').strip()
     fields = data.get('fields', {})
     if not name:
-        return jsonify({'error': 'Nome obrigatório'}), 400
+        return jsonify({'error': tr('Nome obrigatório')}), 400
     all_tpls = load_section_templates()
     all_tpls.setdefault(section, {})[name] = fields
     save_section_templates(all_tpls)
@@ -404,7 +405,7 @@ def api_apply_section_template_month():
     fields = data.get('fields', {})
     dates = data.get('dates', [])
     if not section or not fields or not dates:
-        return jsonify({'error': 'Parâmetros obrigatórios: section, fields, dates'}), 400
+        return jsonify({'error': tr('Parâmetros obrigatórios: section, fields, dates')}), 400
     orders = load_orders()
     for d in dates:
         order = orders.get(d, {})
@@ -435,7 +436,7 @@ def save_list():
         else:
             order.pop('itens', None)
         save_order(today, order)
-        return jsonify({"message": "Lista salva com sucesso!"}), 200
+        return jsonify({"message": tr("Lista salva com sucesso!")}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

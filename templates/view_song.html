@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}{{ song.title }} · Cifra{% endblock %}
+{% block title %}{{ song.title }} · {{ _('Cifra') }}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -19,17 +19,17 @@
 {% include "_nav.html" %}
 
     <!-- Botão para esconder/exibir o menu -->
-    <button type="button" id="toggle-menu" onclick="toggleMenu()" aria-label="Ordem do culto"><i class="fas fa-list-ol"></i></button>
+    <button type="button" id="toggle-menu" onclick="toggleMenu()" aria-label="{{ _('Ordem do culto') }}"><i class="fas fa-list-ol"></i></button>
 
     <!-- Menu -->
     <div class="menu" id="menu">
         {#- onclick no atributo: loadList() remonta o menu com innerHTML += #}
-        <button type="button" class="menu-close" onclick="closeMenu()" aria-label="Fechar lista" title="Fechar lista"><i class="fas fa-xmark"></i></button>
-        <div id="song-list" class="menu-item"><h2>Ordem do culto</h2></div>
+        <button type="button" class="menu-close" onclick="closeMenu()" aria-label="{{ _('Fechar lista') }}" title="{{ _('Fechar lista') }}"><i class="fas fa-xmark"></i></button>
+        <div id="song-list" class="menu-item"><h2>{{ _('Ordem do culto') }}</h2></div>
         
         {% if bible_items %}
         <div class="menu-title">
-            <i class="fas fa-book-bible"></i> Textos Bíblicos
+            <i class="fas fa-book-bible"></i> {{ _('Textos Bíblicos') }}
         </div>
         {% for item in bible_items %}
         <a href="{{ item.url }}" class="bible-link">
@@ -66,12 +66,12 @@
                  no navegador (não salva no servidor); o tom escolhido fica
                  guardado em localStorage por música. -->
             <div class="tom-widget">
-                <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">Tom <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
+                <button type="button" class="tom-trigger" onclick="toggleKeyGrid()">{{ _('Tom') }} <strong id="tomAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
                 <div class="tom-popover" id="tomPanel">
                     <div class="tom-popover-row">
-                        <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="Voltar ao tom original" aria-label="Voltar ao tom original"><i class="fas fa-rotate-left"></i></button>
-                        <button type="button" class="tom-btn" onclick="transposeStep(-1)">−½ tom</button>
-                        <button type="button" class="tom-btn" onclick="transposeStep(1)">+½ tom</button>
+                        <button type="button" class="tom-icon-btn" onclick="undoTranspose()" title="{{ _('Voltar ao tom original') }}" aria-label="{{ _('Voltar ao tom original') }}"><i class="fas fa-rotate-left"></i></button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(-1)">{{ _('−½ tom') }}</button>
+                        <button type="button" class="tom-btn" onclick="transposeStep(1)">{{ _('+½ tom') }}</button>
                         
                     </div>
                     <div class="tom-grid" id="tomGrid">
@@ -95,29 +95,29 @@
                  vale pra todas as músicas. As linhas nunca quebram (os
                  acordes ficam alinhados); se passar da largura, o quadro
                  da cifra rola de lado. -->
-            <div class="font-size-widget" role="group" aria-label="Tamanho da letra">
-                <button type="button" class="font-size-btn" onclick="changeCifraScale(-1)" aria-label="Diminuir letra" title="Diminuir letra">A<small>−</small></button>
-                <button type="button" class="font-size-value" id="cifraScaleLabel" onclick="changeCifraScale(0)" title="Voltar ao tamanho normal">100%</button>
-                <button type="button" class="font-size-btn" onclick="changeCifraScale(1)" aria-label="Aumentar letra" title="Aumentar letra">A<small>+</small></button>
+            <div class="font-size-widget" role="group" aria-label="{{ _('Tamanho da letra') }}">
+                <button type="button" class="font-size-btn" onclick="changeCifraScale(-1)" aria-label="{{ _('Diminuir letra') }}" title="{{ _('Diminuir letra') }}">A<small>−</small></button>
+                <button type="button" class="font-size-value" id="cifraScaleLabel" onclick="changeCifraScale(0)" title="{{ _('Voltar ao tamanho normal') }}">100%</button>
+                <button type="button" class="font-size-btn" onclick="changeCifraScale(1)" aria-label="{{ _('Aumentar letra') }}" title="{{ _('Aumentar letra') }}">A<small>+</small></button>
             </div>
 
             <div class="song-header-actions">
                 <div class="search-song-widget">
-                    <button type="button" class="search-song-btn" onclick="toggleSearchSong()" title="Buscar outra música">
-                        <i class="fas fa-search"></i> Buscar
+                    <button type="button" class="search-song-btn" onclick="toggleSearchSong()" title="{{ _('Buscar outra música') }}">
+                        <i class="fas fa-search"></i> {{ _('Buscar') }}
                     </button>
                     <div class="search-song-popover" id="searchSongPopover">
-                        <input type="text" id="searchSongInput" placeholder="Título, autor ou trecho da letra...">
+                        <input type="text" id="searchSongInput" placeholder="{{ _('Título, autor ou trecho da letra...') }}">
                         <div class="search-song-results" id="searchSongResults"></div>
                     </div>
                 </div>
-                <button type="button" class="print-btn" onclick="imprimirCifra()" title="Imprimir cifra">
-                    <i class="fas fa-print"></i> Imprimir
+                <button type="button" class="print-btn" onclick="imprimirCifra()" title="{{ _('Imprimir cifra') }}">
+                    <i class="fas fa-print"></i> {{ _('Imprimir') }}
                 </button>
                 {#- Só operador logado: a página é aberta pros músicos sem login #}
                 {% if current_user.is_authenticated %}
-                <a class="print-btn" href="{{ url_for('songs.edit_song', song_id=song.id) }}" title="Editar esta música">
-                    <i class="fas fa-pen"></i> Editar
+                <a class="print-btn" href="{{ url_for('songs.edit_song', song_id=song.id) }}" title="{{ _('Editar esta música') }}">
+                    <i class="fas fa-pen"></i> {{ _('Editar') }}
                 </a>
                 {% endif %}
             </div>
@@ -204,7 +204,7 @@
                             {% set clean_block = [] %}
                             {% for block_line in current_block %}
                                 {% if block_line.strip() or (clean_block and not clean_block[-1].strip()) %}
-                                    {% set _ = clean_block.append(block_line) %}
+                                    {% set _ignorado = clean_block.append(block_line) %}
                                 {% endif %}
                             {% endfor %}
                             {% if clean_block %}
@@ -217,10 +217,10 @@
                         {% set last_was_empty = false %}
                     {% else %}
                         {% if line.strip() %}
-                            {% set _ = current_block.append(line) %}
+                            {% set _ignorado = current_block.append(line) %}
                             {% set last_was_empty = false %}
                         {% elif current_block and not last_was_empty %}
-                            {% set _ = current_block.append('') %}
+                            {% set _ignorado = current_block.append('') %}
                             {% set last_was_empty = true %}
                         {% endif %}
                     {% endif %}
@@ -229,7 +229,7 @@
                     {% set clean_block = [] %}
                     {% for block_line in current_block %}
                         {% if block_line.strip() or (clean_block and not clean_block[-1].strip()) %}
-                            {% set _ = clean_block.append(block_line) %}
+                            {% set _ignorado = clean_block.append(block_line) %}
                         {% endif %}
                     {% endfor %}
                     {% if clean_block %}
@@ -246,25 +246,25 @@
                 {% endif %}
             {% endfor %}
         {% else %}
-            <p>Não há letra disponível para esta música.</p>
+            <p>{{ _('Não há letra disponível para esta música.') }}</p>
         {% endif %}
         </div> <!-- Fecha song-content-card -->
     </div>
 
     <div class="controls">
-        <span class="speed-label" title="Velocidade da rolagem automática"><i class="fas fa-gauge"></i> Rolagem</span>
-        <input type="range" id="speedControl" min="250" max="400" value="250" aria-label="Velocidade da rolagem" />
-        <button id="toggleScroll" class="scroll-toggle" title="Iniciar/Pausar">
+        <span class="speed-label" title="{{ _('Velocidade da rolagem automática') }}"><i class="fas fa-gauge"></i> {{ _('Rolagem') }}</span>
+        <input type="range" id="speedControl" min="250" max="400" value="250" aria-label="{{ _('Velocidade da rolagem') }}" />
+        <button id="toggleScroll" class="scroll-toggle" title="{{ _('Iniciar/Pausar') }}">
             <i class="fas fa-play"></i></button>
       
     </div>
     
     <!-- Botões flutuantes de scroll para touch/iPad -->
     <div class="scroll-buttons">
-        <button class="scroll-btn" id="scrollUpBtn" title="Scroll para cima">
+        <button class="scroll-btn" id="scrollUpBtn" title="{{ _('Scroll para cima') }}">
             <i class="fas fa-chevron-up"></i>
         </button>
-        <button class="scroll-btn" id="scrollDownBtn" title="Scroll para baixo">
+        <button class="scroll-btn" id="scrollDownBtn" title="{{ _('Scroll para baixo') }}">
             <i class="fas fa-chevron-down"></i>
         </button>
     </div>
@@ -281,7 +281,7 @@
                     $('#content').html(response);  // Atualiza o conteúdo da página
                 },
                 error: function() {
-                    $('#content').html('<p>Erro ao carregar o conteúdo.</p>');
+                    $('#content').html('<p>' + {{ _('Erro ao carregar o conteúdo.')|tojson }} + '</p>');
                 }
             });
         }
@@ -384,7 +384,7 @@
                 });
             } catch (error) {
                 console.error("Erro ao carregar a lista:", error);
-                document.getElementById("menu").insertAdjacentHTML('beforeend', '<p class="menu-error">Não deu pra carregar a ordem.</p>');
+                document.getElementById("menu").insertAdjacentHTML('beforeend', '<p class="menu-error">' + {{ _('Não deu pra carregar a ordem.')|tojson }} + '</p>');
             }
         }
 
@@ -832,7 +832,7 @@ window.onload = () => {
         if (songs.length === 0) {
           const vazio = document.createElement('div');
           vazio.className = 'search-song-item';
-          vazio.textContent = 'Nenhuma música encontrada';
+          vazio.textContent = {{ _('Nenhuma música encontrada')|tojson }};
           resultsEl.appendChild(vazio);
           return;
         }
@@ -1004,7 +1004,7 @@ window.onload = () => {
                     (Array.isArray(sheetData.measures) && sheetData.measures.some(m => Array.isArray(m) ? m.length > 0 : true)) ||
                     (Array.isArray(sheetData.notes) && sheetData.notes.length > 0);
                 if (!hasContent) {
-                    sheetElement.innerHTML = '<p style="text-align: center; color: #666;">Nenhuma nota encontrada</p>';
+                    sheetElement.innerHTML = '<p style="text-align: center; color: #666;">' + {{ _('Nenhuma nota encontrada')|tojson }} + '</p>';
                     continue;
                 }
 
@@ -1020,7 +1020,7 @@ window.onload = () => {
                     await renderSheetMusic(sheetElement, sheetData, { maxWidth, compact: true });
                 } catch (error) {
                     console.error('❌ Erro ao renderizar partitura ' + sheetId + ':', error);
-                    sheetElement.innerHTML = '<p style="text-align: center; color: #f44336;">Erro: ' + error.message + '</p>';
+                    sheetElement.innerHTML = '<p style="text-align: center; color: #f44336;">' + {{ _('Erro: {erro}')|tojson }}.replace('{erro}', () => error.message) + '</p>';
                 }
             }
         }

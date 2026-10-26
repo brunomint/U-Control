@@ -8,4 +8,6 @@
         if (valores) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in valores ? valores[k] : m));
         return s;
     };
+    // Idioma das datas (toLocaleDateString): o lang do <html> (i18n.py)
+    window.ucLocale = function () { return document.documentElement.lang || 'pt-BR'; };
 })();

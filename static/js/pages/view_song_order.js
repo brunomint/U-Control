@@ -9,7 +9,7 @@ function loadContent(url) {
             $('#content').html(response);  // Atualiza o conteúdo da página
         },
         error: function() {
-            $('#content').html('<p>Erro ao carregar o conteúdo.</p>');
+            $('#content').html($('<p>').text(_t('Erro ao carregar o conteúdo.')));
         }
     });
 }
@@ -106,10 +106,12 @@ async function loadList() {
             const dt = new Date(y, m - 1, d);
             const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
             const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-            dateEl.textContent = `${dias[dt.getDay()]}, ${d} de ${meses[m - 1]}`;
+            // Português do jeito de sempre; outros idiomas pelo Intl
+            dateEl.textContent = ucLocale().startsWith('pt') ? `${dias[dt.getDay()]}, ${d} de ${meses[m - 1]}`
+                : dt.toLocaleDateString(ucLocale(), { weekday: 'long', day: 'numeric', month: 'long' });
         }
         if (!data.length) {
-            menu.innerHTML += '<div class="uc-empty">Nenhuma música na ordem ainda. Use a busca acima.</div>';
+            menu.innerHTML += `<div class="uc-empty">${_t('Nenhuma música na ordem ainda. Use a busca acima.')}</div>`;
         }
 
         // Adiciona a lista de músicas diretamente no menu
@@ -117,7 +119,7 @@ async function loadList() {
             if (item.isBible) {
                 // Item de Bíblia - usa URL de controle gerada pelo backend
                 const url = generateBibleUrl(item.reference);
-                menu.innerHTML += `<a href="${url}" class="song-link bible"><span class="t">${item.reference}</span><span class="k">Bíblia</span></a>`;
+                menu.innerHTML += `<a href="${url}" class="song-link bible"><span class="t">${item.reference}</span><span class="k">${_t('Bíblia')}</span></a>`;
             } else if (item.url && item.title) {
                 let modifiedUrl = item.url.replace("/lyrics/", "/view/");
                 // Se for /order, mostra como texto
@@ -135,7 +137,7 @@ async function loadList() {
         });
     } catch (error) {
         console.error("Erro ao carregar a lista:", error);
-        document.getElementById("menu").innerHTML += '<div class="uc-empty">Não deu pra carregar a ordem. Recarregue a página.</div>';
+        document.getElementById("menu").innerHTML += `<div class="uc-empty">${_t('Não deu pra carregar a ordem. Recarregue a página.')}</div>`;
     }
 }
 
@@ -192,7 +194,7 @@ if (searchSongInput) {
                 if (songs.length === 0) {
                     const vazio = document.createElement('div');
                     vazio.className = 'search-song-item';
-                    vazio.textContent = 'Nenhuma música encontrada';
+                    vazio.textContent = _t('Nenhuma música encontrada');
                     resultsEl.appendChild(vazio);
                     return;
                 }

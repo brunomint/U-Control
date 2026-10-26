@@ -2,7 +2,7 @@
 {% from "_tipo_culto.html" import tipo_culto %}
 {% set app_theme = true %}
 
-{% block title %}{{ 'Nova ordem' if is_new else 'Editar ordem' }} - U-Control{% endblock %}
+{% block title %}{{ _('Nova ordem') if is_new else _('Editar ordem') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jspdf/jspdf.umd.min.js"></script>
@@ -18,73 +18,73 @@
 <main class="uc-page order-edit">
     <div class="uc-page-head">
         <div>
-            <a href="/order" class="uc-link back-link"><i class="fas fa-arrow-left"></i> Ordens de culto</a>
-            <h1>{{ 'Nova ordem de culto' if is_new else 'Editar ordem de culto' }}</h1>
+            <a href="/order" class="uc-link back-link"><i class="fas fa-arrow-left"></i> {{ _('Ordens de culto') }}</a>
+            <h1>{{ _('Nova ordem de culto') if is_new else _('Editar ordem de culto') }}</h1>
         </div>
         <div class="uc-btn-row">
-            <button type="button" class="uc-btn uc-btn-ghost" onclick="abrirModalTemplates()"><i class="fas fa-clone"></i> Modelos</button>
+            <button type="button" class="uc-btn uc-btn-ghost" onclick="abrirModalTemplates()"><i class="fas fa-clone"></i> {{ _('Modelos') }}</button>
             <button type="button" class="uc-btn uc-btn-ghost" onclick="createPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button type="button" class="uc-btn uc-btn-primary" onclick="saveOrder()"><i class="fas fa-floppy-disk"></i> Salvar</button>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="saveOrder()"><i class="fas fa-floppy-disk"></i> {{ _('Salvar') }}</button>
         </div>
     </div>
 
     <div class="edit-grid">
         <!-- Coluna esquerda: dados do culto -->
         <section class="uc-card" aria-labelledby="meta-title">
-            <div class="uc-card-head"><h2 id="meta-title">Culto</h2></div>
+            <div class="uc-card-head"><h2 id="meta-title">{{ _('Culto') }}</h2></div>
             <div class="uc-form-stack">
                 <div class="row-2">
                     <div class="uc-field">
-                        <label for="orderDate">Data</label>
+                        <label for="orderDate">{{ _('Data') }}</label>
                         <input class="uc-input" type="date" id="orderDate" value="{{ date[:10] }}">
                     </div>
                     <div class="uc-field">
-                        <label for="orderTime">Horário</label>
+                        <label for="orderTime">{{ _('Horário') }}</label>
                         <input class="uc-input" type="time" id="orderTime" value="{{ (order.horario or order.horario_culto or '18:40') if order else '18:40' }}">
                     </div>
                 </div>
                 <div class="uc-field">
-                    <label for="orderType">Tipo de culto</label>
+                    <label for="orderType">{{ _('Tipo de culto') }}</label>
                     {{ tipo_culto('orderType', order.tipo if order else '', input_class='uc-input') }}
                 </div>
                 <div class="uc-field">
-                    <label for="orderDirigente">Dirigente</label>
-                    <input class="uc-input" type="text" id="orderDirigente" placeholder="Nome do dirigente" value="{{ order.dirigente if order else '' }}">
+                    <label for="orderDirigente">{{ _('Dirigente') }}</label>
+                    <input class="uc-input" type="text" id="orderDirigente" placeholder="{{ _('Nome do dirigente') }}" value="{{ order.dirigente if order else '' }}">
                 </div>
                 <div class="uc-field">
-                    <label for="orderPregador">Pregação</label>
-                    <input class="uc-input" type="text" id="orderPregador" placeholder="Opcional" value="{{ order.pregador if order else '' }}">
+                    <label for="orderPregador">{{ _('Pregação') }}</label>
+                    <input class="uc-input" type="text" id="orderPregador" placeholder="{{ _('Opcional') }}" value="{{ order.pregador if order else '' }}">
                 </div>
                 <div class="uc-field">
-                    <label for="orderTema">Tema</label>
-                    <input class="uc-input" type="text" id="orderTema" placeholder="Opcional" value="{{ order.tema if order else '' }}">
+                    <label for="orderTema">{{ _('Tema') }}</label>
+                    <input class="uc-input" type="text" id="orderTema" placeholder="{{ _('Opcional') }}" value="{{ order.tema if order else '' }}">
                 </div>
             </div>
             {% if not is_new %}
             <div class="danger-zone">
-                <button type="button" class="uc-btn uc-btn-ghost uc-danger-text uc-btn-sm" onclick="deleteOrder()"><i class="fas fa-trash-can"></i> Excluir esta ordem</button>
+                <button type="button" class="uc-btn uc-btn-ghost uc-danger-text uc-btn-sm" onclick="deleteOrder()"><i class="fas fa-trash-can"></i> {{ _('Excluir esta ordem') }}</button>
             </div>
             {% endif %}
         </section>
 
         <!-- Coluna direita: itens da ordem -->
         <section class="uc-card" aria-labelledby="items-title">
-            <div class="uc-card-head"><h2 id="items-title">Ordem do culto</h2><span class="uc-muted small">Arraste para reordenar</span></div>
+            <div class="uc-card-head"><h2 id="items-title">{{ _('Ordem do culto') }}</h2><span class="uc-muted small">{{ _('Arraste para reordenar') }}</span></div>
 
             <div class="add-area">
                 <div class="search-box uc-search">
                     <i class="fas fa-music"></i>
-                    <input class="uc-input" type="text" id="searchInput" placeholder="Adicionar música: busque por título, autor ou letra" autocomplete="off">
+                    <input class="uc-input" type="text" id="searchInput" placeholder="{{ _('Adicionar música: busque por título, autor ou letra') }}" autocomplete="off">
                     <div id="autocompleteList" class="autocomplete-list"></div>
                 </div>
                 <div class="add-inputs">
                     <div class="add-input-group">
-                        <input class="uc-input" type="text" id="freeTextInput" placeholder="Texto livre (ex.: Oração, Avisos)">
-                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addToList()" aria-label="Adicionar texto"><i class="fas fa-plus"></i> Texto</button>
+                        <input class="uc-input" type="text" id="freeTextInput" placeholder="{{ _('Texto livre (ex.: Oração, Avisos)') }}">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addToList()" aria-label="{{ _('Adicionar texto') }}"><i class="fas fa-plus"></i> {{ _('Texto') }}</button>
                     </div>
                     <div class="add-input-group">
-                        <input class="uc-input" type="text" id="bibleRefInput" placeholder="Leitura bíblica (ex.: João 3:16)">
-                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleToList()" aria-label="Adicionar leitura"><i class="fas fa-plus"></i> Leitura</button>
+                        <input class="uc-input" type="text" id="bibleRefInput" placeholder="{{ _('Leitura bíblica (ex.: João 3:16)') }}">
+                        <button type="button" class="uc-btn uc-btn-secondary" onclick="addBibleToList()" aria-label="{{ _('Adicionar leitura') }}"><i class="fas fa-plus"></i> {{ _('Leitura') }}</button>
                     </div>
                 </div>
             </div>
@@ -94,8 +94,8 @@
             </div>
 
             <div class="edit-foot">
-                <a href="/order" class="uc-btn uc-btn-ghost">Cancelar</a>
-                <button type="button" class="uc-btn uc-btn-primary" onclick="saveOrder()"><i class="fas fa-floppy-disk"></i> Salvar ordem</button>
+                <a href="/order" class="uc-btn uc-btn-ghost">{{ _('Cancelar') }}</a>
+                <button type="button" class="uc-btn uc-btn-primary" onclick="saveOrder()"><i class="fas fa-floppy-disk"></i> {{ _('Salvar ordem') }}</button>
             </div>
         </section>
     </div>
@@ -105,15 +105,15 @@
 <div id="modal-templates" class="uc-modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalTemplates()">
     <div class="uc-modal" role="dialog" aria-modal="true" aria-labelledby="tpl-title">
         <div class="uc-modal-head">
-            <h2 id="tpl-title">Modelos de culto</h2>
-            <button type="button" class="uc-modal-close" onclick="fecharModalTemplates()" aria-label="Fechar">&times;</button>
+            <h2 id="tpl-title">{{ _('Modelos de culto') }}</h2>
+            <button type="button" class="uc-modal-close" onclick="fecharModalTemplates()" aria-label="{{ _('Fechar') }}">&times;</button>
         </div>
         <div class="uc-modal-body">
             <div class="uc-field">
-                <label for="tpl-nome">Salvar a lista atual como modelo</label>
+                <label for="tpl-nome">{{ _('Salvar a lista atual como modelo') }}</label>
                 <div class="tpl-save-row">
-                    <input class="uc-input" type="text" id="tpl-nome" placeholder="Nome do modelo (ex.: Culto Dominical)">
-                    <button type="button" class="uc-btn uc-btn-secondary" onclick="salvarComoModelo()">Salvar</button>
+                    <input class="uc-input" type="text" id="tpl-nome" placeholder="{{ _('Nome do modelo (ex.: Culto Dominical)') }}">
+                    <button type="button" class="uc-btn uc-btn-secondary" onclick="salvarComoModelo()">{{ _('Salvar') }}</button>
                 </div>
             </div>
             <div class="tpl-list" id="tpl-list"></div>

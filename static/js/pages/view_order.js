@@ -8,8 +8,12 @@ const dateStr = CONFIG.date;
 const [year, month, day] = dateStr.split('-');
 const dateObj = new Date(year, month - 1, day);
 
-document.getElementById('orderDate').textContent = `${day} de ${months[dateObj.getMonth()]}`;
-document.getElementById('orderWeekday').textContent = `${weekdays[dateObj.getDay()]} · ${year}`;
+// Português do jeito de sempre ("8 de Julho"); outros idiomas pelo Intl
+const pt = ucLocale().startsWith('pt');
+document.getElementById('orderDate').textContent = pt ? `${day} de ${months[dateObj.getMonth()]}`
+    : dateObj.toLocaleDateString(ucLocale(), { day: 'numeric', month: 'long' });
+document.getElementById('orderWeekday').textContent =
+    `${pt ? weekdays[dateObj.getDay()] : dateObj.toLocaleDateString(ucLocale(), { weekday: 'long' })} · ${year}`;
 
 // Count stats
 const items = document.querySelectorAll('.item');
@@ -30,7 +34,7 @@ document.getElementById('statBiblia').textContent = biblia;
 function copyLink() {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-        showToast('Link copiado para a área de transferência!');
+        showToast(_t('Link copiado para a área de transferência!'));
     }).catch(() => {
         // Fallback
         const input = document.createElement('input');
@@ -39,7 +43,7 @@ function copyLink() {
         input.select();
         document.execCommand('copy');
         document.body.removeChild(input);
-        showToast('Link copiado!');
+        showToast(_t('Link copiado!'));
     });
 }
 
@@ -61,7 +65,7 @@ function downloadPDF() {
     let y = 20;
 
     doc.setFontSize(18);
-    doc.text('Ordem do Culto', 105, y, { align: 'center' }); y += 8;
+    doc.text(_t('Ordem do Culto'), 105, y, { align: 'center' }); y += 8;
     doc.setFontSize(12);
     doc.text(
         document.getElementById('orderDate').textContent + ' — ' +
@@ -70,11 +74,11 @@ function downloadPDF() {
     ); y += 10;
 
     const o = CONFIG.order;
-    if (o.tipo) { doc.text('Tipo: ' + o.tipo, 20, y); y += 7; }
-    if (o.dirigente) { doc.text('Dirigente: ' + o.dirigente, 20, y); y += 7; }
-    if (o.pregador) { doc.text('Pregador: ' + o.pregador, 20, y); y += 7; }
-    if (o.horario) { doc.text('Horário: ' + o.horario, 20, y); y += 7; }
-    if (o.tema) { doc.text('Tema: ' + o.tema, 20, y); y += 7; }
+    if (o.tipo) { doc.text(_t('Tipo:') + ' ' + o.tipo, 20, y); y += 7; }
+    if (o.dirigente) { doc.text(_t('Dirigente:') + ' ' + o.dirigente, 20, y); y += 7; }
+    if (o.pregador) { doc.text(_t('Pregador:') + ' ' + o.pregador, 20, y); y += 7; }
+    if (o.horario) { doc.text(_t('Horário:') + ' ' + o.horario, 20, y); y += 7; }
+    if (o.tema) { doc.text(_t('Tema:') + ' ' + o.tema, 20, y); y += 7; }
     y += 5;
 
     doc.setFontSize(11);
@@ -91,24 +95,24 @@ function downloadPDF() {
 function copyWhatsapp() {
     const date = document.getElementById('orderDate').textContent;
     const weekday = document.getElementById('orderWeekday').textContent;
-    let text = `*Ordem do Culto — ${date}*\n_${weekday}_`;
+    let text = `*${_t('Ordem do Culto')} — ${date}*\n_${weekday}_`;
     const o = CONFIG.order;
-    if (o.tipo) text += '\n*Tipo:* ' + o.tipo;
-    if (o.dirigente) text += '\n*Dirigente:* ' + o.dirigente;
-    if (o.pregador) text += '\n*Pregador:* ' + o.pregador;
-    if (o.horario) text += '\n*Horário:* ' + o.horario;
-    if (o.tema) text += '\n*Tema:* _' + o.tema + '_';
-    text += '\n\n*Programação:*\n';
+    if (o.tipo) text += `\n*${_t('Tipo:')}* ` + o.tipo;
+    if (o.dirigente) text += `\n*${_t('Dirigente:')}* ` + o.dirigente;
+    if (o.pregador) text += `\n*${_t('Pregador:')}* ` + o.pregador;
+    if (o.horario) text += `\n*${_t('Horário:')}* ` + o.horario;
+    if (o.tema) text += `\n*${_t('Tema:')}* _` + o.tema + '_';
+    text += `\n\n*${_t('Programação:')}*\n`;
     o.itemLabels.forEach((label, i) => {
         text += (i + 1) + '. ' + label + '\n';
     });
     navigator.clipboard.writeText(text)
-        .then(() => showToast('Texto copiado para o WhatsApp!'))
+        .then(() => showToast(_t('Texto copiado para o WhatsApp!')))
         .catch(() => {
             const el = document.createElement('textarea');
             el.value = text; document.body.appendChild(el); el.select();
             document.execCommand('copy'); document.body.removeChild(el);
-            showToast('Texto copiado!');
+            showToast(_t('Texto copiado!'));
         });
 }
 
@@ -140,7 +144,7 @@ async function salvarFeito(body) {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         aplicarFeitos((await resp.json()).feitos);
     } catch (e) {
-        showToast('Não deu pra salvar a marcação', 'error');
+        showToast(_t('Não deu pra salvar a marcação'), 'error');
         atualizarFeitos();
     }
 }
@@ -163,7 +167,7 @@ if (CONFIG.canMark) {
         salvarFeito({ item: btn.closest('.item').dataset.item, feito });
     });
     document.getElementById('limparFeitos').addEventListener('click', () => {
-        if (confirm('Desmarcar todos os itens desta ordem?')) salvarFeito({ limpar: true });
+        if (confirm(_t('Desmarcar todos os itens desta ordem?'))) salvarFeito({ limpar: true });
     });
 }
 setInterval(atualizarFeitos, 10000);

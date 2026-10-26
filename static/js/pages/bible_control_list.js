@@ -3,7 +3,7 @@ async function addBiblePassage() {
     const reference = input.value.trim();
 
     if (!reference) {
-        alert('Digite uma referência bíblica');
+        alert(_t('Digite uma referência bíblica'));
         return;
     }
 
@@ -21,11 +21,11 @@ async function addBiblePassage() {
             // Recarrega a página para mostrar a nova passagem
             window.location.reload();
         } else {
-            alert(data.error || 'Erro ao adicionar passagem');
+            alert(data.error || _t('Erro ao adicionar passagem'));
         }
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao adicionar passagem');
+        alert(_t('Erro ao adicionar passagem'));
     }
 }
 
@@ -37,7 +37,7 @@ document.getElementById('newBibleRef').addEventListener('keypress', function(e) 
 });
 
 async function removeBiblePassage(reference) {
-    if (!confirm(`Remover "${reference}" da ordem do culto?`)) {
+    if (!confirm(_t('Remover "{ref}" da ordem do culto?', { ref: reference }))) {
         return;
     }
 
@@ -53,10 +53,10 @@ async function removeBiblePassage(reference) {
         if (data.success) {
             window.location.reload();
         } else {
-            alert(data.error || 'Erro ao remover passagem');
+            alert(data.error || _t('Erro ao remover passagem'));
         }
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao remover passagem');
+        alert(_t('Erro ao remover passagem'));
     }
 }

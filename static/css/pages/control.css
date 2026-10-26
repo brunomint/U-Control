@@ -83,6 +83,9 @@
 
 .live-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .live-actions .uc-btn { width: 100%; }
+/* Botão que sobra sozinho na última linha ocupa as duas colunas (em inglês
+   "Open on the projector" não cabia em meia largura) */
+.live-actions .uc-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
 #blackoutBtn.active { background: var(--uc-live); border-color: var(--uc-live); color: #fff; }
 
 .mode-choice { margin-top: 14px; display: grid; gap: 6px; }

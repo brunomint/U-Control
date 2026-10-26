@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Leituras de hoje - U-Control{% endblock %}
+{% block title %}{{ _('Leituras de hoje') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
@@ -17,9 +17,9 @@
 <main class="uc-page list-page">
     <div class="uc-page-head">
         <div>
-            <a class="uc-link" href="/bible"><i class="fas fa-arrow-left"></i> Bíblia</a>
-            <h1>Leituras de hoje</h1>
-            <div class="uc-page-sub">Passagens bíblicas da ordem do culto de hoje. Toque numa para abrir o controle.</div>
+            <a class="uc-link" href="/bible"><i class="fas fa-arrow-left"></i> {{ _('Bíblia') }}</a>
+            <h1>{{ _('Leituras de hoje') }}</h1>
+            <div class="uc-page-sub">{{ _('Passagens bíblicas da ordem do culto de hoje. Toque numa para abrir o controle.') }}</div>
         </div>
     </div>
 
@@ -33,23 +33,23 @@
                     <span class="reference">{{ item.reference }}</span>
                     <i class="fas fa-chevron-right"></i>
                 </a>
-                <button type="button" class="remove-passage" onclick="removeBiblePassage('{{ item.reference }}')" title="Remover da ordem" aria-label="Remover {{ item.reference }}"><i class="fas fa-trash-can"></i></button>
+                <button type="button" class="remove-passage" onclick="removeBiblePassage('{{ item.reference }}')" title="{{ _('Remover da ordem') }}" aria-label="{{ _('Remover {ref}', ref=item.reference) }}"><i class="fas fa-trash-can"></i></button>
             </li>
             {% endfor %}
         </ol>
         {% else %}
         <div class="uc-empty">
             <i class="fas fa-book-bible"></i>
-            Nenhuma leitura na ordem de hoje. Adicione uma abaixo.
+            {{ _('Nenhuma leitura na ordem de hoje. Adicione uma abaixo.') }}
         </div>
         {% endif %}
 
         <div class="add-passage">
             <div class="uc-field grow">
-                <label for="newBibleRef">Adicionar leitura</label>
-                <input class="uc-input" type="text" id="newBibleRef" placeholder="Ex.: João 3:16, Salmos 23:1-6">
+                <label for="newBibleRef">{{ _('Adicionar leitura') }}</label>
+                <input class="uc-input" type="text" id="newBibleRef" placeholder="{{ _('Ex.: João 3:16, Salmos 23:1-6') }}">
             </div>
-            <button type="button" class="uc-btn uc-btn-primary" onclick="addBiblePassage()"><i class="fas fa-plus"></i> Adicionar</button>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="addBiblePassage()"><i class="fas fa-plus"></i> {{ _('Adicionar') }}</button>
         </div>
     </section>
 </main>

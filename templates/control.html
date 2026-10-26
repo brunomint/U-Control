@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Controle - U-Control{% endblock %}
+{% block title %}{{ _('Controle') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
@@ -23,14 +23,14 @@
     <!-- ═══ 1. Telão agora ═══ -->
     <section class="uc-card ctl-live" aria-labelledby="live-title">
         <div class="uc-card-head">
-            <h2 id="live-title">Telão agora</h2>
-            <span class="uc-pill uc-pill-live" id="mode-pill"><span class="dot"></span>Público e monitor</span>
+            <h2 id="live-title">{{ _('Telão agora') }}</h2>
+            <span class="uc-pill uc-pill-live" id="mode-pill"><span class="dot"></span>{{ _('Público e monitor') }}</span>
         </div>
         <!-- Qual tela a prévia mostra. Troca sozinho pra Monitor no modo
              "Só monitor" (o que se muda vai pro palco) — control.js -->
-        <div class="uc-seg preview-view-seg" role="group" aria-label="Tela mostrada na prévia">
-            <button type="button" data-preview="public" aria-pressed="true"><i class="fas fa-users"></i> Público</button>
-            <button type="button" data-preview="monitor" aria-pressed="false"><i class="fas fa-tv"></i> Monitor de palco</button>
+        <div class="uc-seg preview-view-seg" role="group" aria-label="{{ _('Tela mostrada na prévia') }}">
+            <button type="button" data-preview="public" aria-pressed="true"><i class="fas fa-users"></i> {{ _('Público') }}</button>
+            <button type="button" data-preview="monitor" aria-pressed="false"><i class="fas fa-tv"></i> {{ _('Monitor de palco') }}</button>
         </div>
 
         <!-- "Preparar vs. liberar": conteúdo preparado em /lyrics/<id>,
@@ -39,35 +39,35 @@
         <div class="staged-panel" id="staged-panel"></div>
 
         <div class="iframe-container" id="iframe-container-wrap">
-            <div class="mode-indicator monitor" id="monitor-mode-indicator"><i class="fas fa-tv"></i> Modo monitor: ações não afetam o público</div>
-            <div class="mode-indicator public" id="public-mode-indicator"><i class="fas fa-users"></i> Modo público: o monitor de palco não muda</div>
+            <div class="mode-indicator monitor" id="monitor-mode-indicator"><i class="fas fa-tv"></i> {{ _('Modo monitor: ações não afetam o público') }}</div>
+            <div class="mode-indicator public" id="public-mode-indicator"><i class="fas fa-users"></i> {{ _('Modo público: o monitor de palco não muda') }}</div>
             <!-- Prévia do aviso em faixa (mesmo texto do /monitor e da tela pública) -->
             <div id="control-ticker-bar"><span id="control-ticker-text"></span></div>
             <!-- As telas são renderizadas em 1280×720 e reduzidas (control.js:
                  fitPreviewStage), pra prévia mostrar o mesmo enquadramento do telão. -->
             <div class="preview-stage" id="preview-stage">
-                <iframe id="iframe1" src="about:blank" title="Prévia do telão (esquerda)"></iframe>
-                <iframe id="iframe2" src="about:blank" title="Prévia do telão (direita)"></iframe>
+                <iframe id="iframe1" src="about:blank" title="{{ _('Prévia do telão (esquerda)') }}"></iframe>
+                <iframe id="iframe2" src="about:blank" title="{{ _('Prévia do telão (direita)') }}"></iframe>
             </div>
-            <div class="preview-screen-label" id="preview-screen-label" hidden><i class="fas fa-tv"></i> Monitor de palco</div>
-            <div class="preview-blackout" id="preview-blackout" hidden><i class="fas fa-moon"></i> Tela preta: o público vê tudo preto</div>
+            <div class="preview-screen-label" id="preview-screen-label" hidden><i class="fas fa-tv"></i> {{ _('Monitor de palco') }}</div>
+            <div class="preview-blackout" id="preview-blackout" hidden><i class="fas fa-moon"></i> {{ _('Tela preta: o público vê tudo preto') }}</div>
         </div>
         <!-- O que o monitor de palco mostra quando é diferente do público
              (Modo monitor, Modo público, tela dividida) — vem de telao.py -->
         <p class="preview-monitor-note" id="preview-monitor-note" hidden></p>
 
         <div class="live-actions">
-            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> <span>Tela preta</span></button>
-            <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="Copia o que está no público para o monitor de palco"><i class="fas fa-rotate"></i> Sincronizar monitor</button>
-            <button type="button" class="uc-btn uc-btn-secondary" onclick="abrirDatashow()" title="Escolhe em qual tela do PC a tela pública abre"><i class="fas fa-display"></i> Abrir no datashow</button>
+            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> <span>{{ _('Tela preta') }}</span></button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="{{ _('Copia o que está no público para o monitor de palco') }}"><i class="fas fa-rotate"></i> {{ _('Sincronizar monitor') }}</button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="abrirDatashow()" title="{{ _('Escolhe em qual tela do PC a tela pública abre') }}"><i class="fas fa-display"></i> {{ _('Abrir no datashow') }}</button>
         </div>
 
         <div class="mode-choice">
-            <div class="mode-choice-label">O que as ações mudam</div>
-            <div class="uc-seg mode-seg" role="group" aria-label="O que as ações mudam">
-                <button type="button" data-mode="all" aria-pressed="true" title="Público e monitor de palco">Os dois</button>
-                <button type="button" data-mode="public" aria-pressed="false" title="Só a tela do público muda; o monitor de palco fica como está">Só público</button>
-                <button type="button" data-mode="monitor" aria-pressed="false" title="Só o monitor de palco muda; o público fica como está">Só monitor</button>
+            <div class="mode-choice-label">{{ _('O que as ações mudam') }}</div>
+            <div class="uc-seg mode-seg" role="group" aria-label="{{ _('O que as ações mudam') }}">
+                <button type="button" data-mode="all" aria-pressed="true" title="{{ _('Público e monitor de palco') }}">{{ _('Os dois') }}</button>
+                <button type="button" data-mode="public" aria-pressed="false" title="{{ _('Só a tela do público muda; o monitor de palco fica como está') }}">{{ _('Só público') }}</button>
+                <button type="button" data-mode="monitor" aria-pressed="false" title="{{ _('Só o monitor de palco muda; o público fica como está') }}">{{ _('Só monitor') }}</button>
             </div>
         </div>
     </section>
@@ -75,110 +75,110 @@
     <!-- ═══ 2. O que mostrar ═══ -->
     <section class="uc-card ctl-show" aria-labelledby="show-title">
         <div class="uc-card-head show-head">
-            <h2 id="show-title">O que mostrar</h2>
+            <h2 id="show-title">{{ _('O que mostrar') }}</h2>
         </div>
-        <p class="show-hint">Um toque já envia ao telão</p>
+        <p class="show-hint">{{ _('Um toque já envia ao telão') }}</p>
         <div class="sources" data-slot="a"></div>
 
-        <h3 class="tools-title">Ferramentas</h3>
+        <h3 class="tools-title">{{ _('Ferramentas') }}</h3>
         <div class="tool-buttons">
-            <button type="button" class="tool-btn" data-open-page="fotos" title="Fotos, vídeos e slideshow (aba Fotos do painel)"><i class="fas fa-images"></i><span>Fotos e slideshow</span></button>
-            <button type="button" class="tool-btn" data-open-tool="timer" title="Cronômetro"><i class="fas fa-hourglass-half"></i><span>Cronômetro</span></button>
-            <button type="button" class="tool-btn" data-open-tool="ticker" title="Avisos em faixa"><i class="fas fa-bullhorn"></i><span>Avisos</span></button>
-            <button type="button" class="tool-btn tool-btn-monitor" data-open-tool="split" title="Monitor dividido (só no retorno de palco)"><i class="fas fa-table-columns"></i><span>Monitor dividido</span></button>
-            <button type="button" class="tool-btn" data-open-tool="urls" title="URLs com nome"><i class="fas fa-globe"></i><span>URLs</span></button>
-            <button type="button" class="tool-btn" data-open-tool="share" title="Mostrar a tela deste computador"><i class="fas fa-desktop"></i><span>Tela do PC</span></button>
-            {% if site_no_telao_disponivel() %}<button type="button" class="tool-btn" data-open-tool="site" title="Abrir um site no telão e comandar daqui"><i class="fas fa-globe"></i><span>Site</span></button>{% endif %}
-            <button type="button" class="tool-btn" data-open-tool="links" title="Abrir telas em outra aba"><i class="fas fa-up-right-from-square"></i><span>Abrir telas</span></button>
+            <button type="button" class="tool-btn" data-open-page="fotos" title="{{ _('Fotos, vídeos e slideshow (aba Fotos do painel)') }}"><i class="fas fa-images"></i><span>{{ _('Fotos e slideshow') }}</span></button>
+            <button type="button" class="tool-btn" data-open-tool="timer" title="{{ _('Cronômetro') }}"><i class="fas fa-hourglass-half"></i><span>{{ _('Cronômetro') }}</span></button>
+            <button type="button" class="tool-btn" data-open-tool="ticker" title="{{ _('Avisos em faixa') }}"><i class="fas fa-bullhorn"></i><span>{{ _('Avisos') }}</span></button>
+            <button type="button" class="tool-btn tool-btn-monitor" data-open-tool="split" title="{{ _('Monitor dividido (só no retorno de palco)') }}"><i class="fas fa-table-columns"></i><span>{{ _('Monitor dividido') }}</span></button>
+            <button type="button" class="tool-btn" data-open-tool="urls" title="{{ _('URLs com nome') }}"><i class="fas fa-globe"></i><span>URLs</span></button>
+            <button type="button" class="tool-btn" data-open-tool="share" title="{{ _('Mostrar a tela deste computador') }}"><i class="fas fa-desktop"></i><span>{{ _('Tela do PC') }}</span></button>
+            {% if site_no_telao_disponivel() %}<button type="button" class="tool-btn" data-open-tool="site" title="{{ _('Abrir um site no telão e comandar daqui') }}"><i class="fas fa-globe"></i><span>{{ _('Site') }}</span></button>{% endif %}
+            <button type="button" class="tool-btn" data-open-tool="links" title="{{ _('Abrir telas em outra aba') }}"><i class="fas fa-up-right-from-square"></i><span>{{ _('Abrir telas') }}</span></button>
         </div>
-        <button type="button" class="uc-btn uc-btn-secondary panel-reopen" id="panel-reopen"><i class="fas fa-table-columns"></i> Abrir painel</button>
+        <button type="button" class="uc-btn uc-btn-secondary panel-reopen" id="panel-reopen"><i class="fas fa-table-columns"></i> {{ _('Abrir painel') }}</button>
     </section>
 
     <!-- ═══ 3. Painel: páginas de comando (música, Bíblia, fotos) e
          ferramentas sem sair do Controle. Páginas abrem em iframe e
          escondem o próprio menu (html.uc-embed, ver _nav.html). ═══ -->
-    <section class="uc-card ctl-panel" id="ctl-panel" aria-label="Painel">
+    <section class="uc-card ctl-panel" id="ctl-panel" aria-label="{{ _('Painel') }}">
         <div class="panel-head">
-            <button type="button" class="panel-back" id="panel-back" aria-label="Voltar ao Controle"><i class="fas fa-chevron-left"></i> Controle</button>
-            <div class="panel-tabs" role="tablist" aria-label="Páginas do painel">
-                <button type="button" role="tab" class="panel-tab" data-page="musica" aria-selected="false">Música</button>
-                <button type="button" role="tab" class="panel-tab" data-page="biblia" aria-selected="false">Bíblia</button>
-                <button type="button" role="tab" class="panel-tab" data-page="fotos" aria-selected="false">Fotos</button>
-                <button type="button" role="tab" class="panel-tab" data-page="ordem" aria-selected="false">Ordem do culto</button>
+            <button type="button" class="panel-back" id="panel-back" aria-label="{{ _('Voltar ao Controle') }}"><i class="fas fa-chevron-left"></i> {{ _('Controle') }}</button>
+            <div class="panel-tabs" role="tablist" aria-label="{{ _('Páginas do painel') }}">
+                <button type="button" role="tab" class="panel-tab" data-page="musica" aria-selected="false">{{ _('Música') }}</button>
+                <button type="button" role="tab" class="panel-tab" data-page="biblia" aria-selected="false">{{ _('Bíblia') }}</button>
+                <button type="button" role="tab" class="panel-tab" data-page="fotos" aria-selected="false">{{ _('Fotos') }}</button>
+                <button type="button" role="tab" class="panel-tab" data-page="ordem" aria-selected="false">{{ _('Ordem do culto') }}</button>
             </div>
             <span class="panel-tool-title" id="panel-tool-title" hidden></span>
             <span class="panel-spacer"></span>
-            <a class="panel-icon" id="panel-newtab" href="#" target="_blank" rel="noopener" title="Abrir em nova aba" aria-label="Abrir em nova aba"><i class="fas fa-up-right-from-square"></i></a>
-            <button type="button" class="panel-icon" id="panel-expand" title="Expandir" aria-label="Expandir painel"><i class="fas fa-expand"></i></button>
-            <button type="button" class="panel-icon" id="panel-close" title="Fechar painel" aria-label="Fechar painel"><i class="fas fa-xmark"></i></button>
+            <a class="panel-icon" id="panel-newtab" href="#" target="_blank" rel="noopener" title="{{ _('Abrir em nova aba') }}" aria-label="{{ _('Abrir em nova aba') }}"><i class="fas fa-up-right-from-square"></i></a>
+            <button type="button" class="panel-icon" id="panel-expand" title="{{ _('Expandir') }}" aria-label="{{ _('Expandir painel') }}"><i class="fas fa-expand"></i></button>
+            <button type="button" class="panel-icon" id="panel-close" title="{{ _('Fechar painel') }}" aria-label="{{ _('Fechar painel') }}"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="panel-body">
             <div class="panel-pane page-pane" data-pane="musica" hidden></div>
             <div class="panel-pane page-pane" data-pane="biblia" hidden></div>
             <div class="panel-pane page-pane" data-pane="fotos" hidden></div>
             <div class="panel-pane" data-pane="ordem" hidden>
-                <div class="ordem-head"><h3 id="ordem-title">Ordem do culto</h3></div>
+                <div class="ordem-head"><h3 id="ordem-title">{{ _('Ordem do culto') }}</h3></div>
                 <ol class="ordem-list" id="ordem-list"></ol>
-                <p class="uc-note">Clique numa música ou leitura para abrir no painel.</p>
+                <p class="uc-note">{{ _('Clique numa música ou leitura para abrir no painel.') }}</p>
             </div>
 
             <!-- Monitor dividido: só o retorno de palco divide -->
             <div class="tool panel-pane" data-panel="split" hidden>
-                <p class="split-warn"><i class="fas fa-triangle-exclamation"></i> Aparece só no monitor de palco. A tela do público não divide.</p>
-                <div class="side-label">Lado esquerdo</div>
+                <p class="split-warn"><i class="fas fa-triangle-exclamation"></i> {{ _('Aparece só no monitor de palco. A tela do público não divide.') }}</p>
+                <div class="side-label">{{ _('Lado esquerdo') }}</div>
                 <div class="sources" data-slot="left"></div>
-                <div class="side-label">Lado direito</div>
+                <div class="side-label">{{ _('Lado direito') }}</div>
                 <div class="sources" data-slot="right"></div>
                 <div class="send-row">
-                    <span class="uc-muted" id="split-desc">Escolha os dois lados e envie.</span>
-                    <button type="button" class="uc-btn uc-btn-live" id="split-send" disabled><i class="fas fa-play"></i> Mostrar no monitor</button>
+                    <span class="uc-muted" id="split-desc">{{ _('Escolha os dois lados e envie.') }}</span>
+                    <button type="button" class="uc-btn uc-btn-live" id="split-send" disabled><i class="fas fa-play"></i> {{ _('Mostrar no monitor') }}</button>
                 </div>
             </div>
 
         <!-- Cronômetro -->
         <div class="tool panel-pane" data-panel="timer" hidden>
             <div class="uc-field">
-                <label for="countdownLabel">Texto acima do relógio (opcional)</label>
-                <input class="uc-input" type="text" id="countdownLabel" placeholder="Ex.: O culto começa em">
+                <label for="countdownLabel">{{ _('Texto acima do relógio (opcional)') }}</label>
+                <input class="uc-input" type="text" id="countdownLabel" placeholder="{{ _('Ex.: O culto começa em') }}">
             </div>
             <div class="tool-row">
                 <div class="uc-field grow">
-                    <label for="countdownMin">Minutos</label>
+                    <label for="countdownMin">{{ _('Minutos') }}</label>
                     <input class="uc-input" type="number" id="countdownMin" value="30" min="0" max="999">
                 </div>
                 <div class="uc-field grow">
-                    <label for="countdownSec">Segundos</label>
+                    <label for="countdownSec">{{ _('Segundos') }}</label>
                     <input class="uc-input" type="number" id="countdownSec" value="0" min="0" max="59">
                 </div>
             </div>
-            <button type="button" class="uc-btn uc-btn-secondary" onclick="showCountdownOnMonitor()"><i class="fas fa-display"></i> Exibir no telão</button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="showCountdownOnMonitor()"><i class="fas fa-display"></i> {{ _('Exibir no telão') }}</button>
             <div class="tool-row">
-                <button type="button" class="uc-btn uc-btn-primary grow" id="btnCountdownStart" onclick="startCountdown()"><i class="fas fa-play"></i> Iniciar</button>
-                <button type="button" class="uc-btn uc-btn-secondary grow" id="btnCountdownPause" onclick="pauseResumeCountdown()">⏸ Pausar</button>
-                <button type="button" class="uc-btn uc-btn-secondary" onclick="resetCountdown()" title="Zerar" aria-label="Zerar"><i class="fas fa-rotate-left"></i></button>
+                <button type="button" class="uc-btn uc-btn-primary grow" id="btnCountdownStart" onclick="startCountdown()"><i class="fas fa-play"></i> {{ _('Iniciar') }}</button>
+                <button type="button" class="uc-btn uc-btn-secondary grow" id="btnCountdownPause" onclick="pauseResumeCountdown()">{{ _('⏸ Pausar') }}</button>
+                <button type="button" class="uc-btn uc-btn-secondary" onclick="resetCountdown()" title="{{ _('Zerar') }}" aria-label="{{ _('Zerar') }}"><i class="fas fa-rotate-left"></i></button>
             </div>
         </div>
 
         <!-- Avisos em faixa -->
         <div class="tool panel-pane" data-panel="ticker" hidden>
             <div class="uc-field">
-                <label for="tickerText">Aviso em faixa rolante</label>
-                <textarea class="uc-input" id="tickerText" rows="3" placeholder="Texto do aviso…"></textarea>
+                <label for="tickerText">{{ _('Aviso em faixa rolante') }}</label>
+                <textarea class="uc-input" id="tickerText" rows="3" placeholder="{{ _('Texto do aviso…') }}"></textarea>
             </div>
             <div class="uc-field">
-                <label>Em quais telas</label>
+                <label>{{ _('Em quais telas') }}</label>
                 {#- Várias ao mesmo tempo; cada tela guarda o próprio aviso (ver
                     blueprints/ticker.py): mandar pra uma não mexe nas outras #}
-                <div class="uc-seg ticker-telas" role="group" aria-label="Telas do aviso">
-                    <button type="button" data-tela="public" aria-pressed="true"><i class="fas fa-users"></i> Tela pública</button>
-                    <button type="button" data-tela="monitor" aria-pressed="false"><i class="fas fa-tv"></i> Palco</button>
-                    <button type="button" data-tela="obs" aria-pressed="false"><i class="fas fa-video"></i> Transmissão</button>
+                <div class="uc-seg ticker-telas" role="group" aria-label="{{ _('Telas do aviso') }}">
+                    <button type="button" data-tela="public" aria-pressed="true"><i class="fas fa-users"></i> {{ _('Tela pública') }}</button>
+                    <button type="button" data-tela="monitor" aria-pressed="false"><i class="fas fa-tv"></i> {{ _('Palco') }}</button>
+                    <button type="button" data-tela="obs" aria-pressed="false"><i class="fas fa-video"></i> {{ _('Transmissão') }}</button>
                 </div>
             </div>
             <div class="tool-row">
-                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="sendTicker()"><i class="fas fa-bullhorn"></i> Mostrar</button>
-                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm grow" onclick="stopTicker()"><i class="fas fa-stop"></i> Tirar</button>
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearTicker()" title="Apaga o texto e tira o aviso de todas as telas"><i class="fas fa-xmark"></i> Limpar</button>
+                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="sendTicker()"><i class="fas fa-bullhorn"></i> {{ _('Mostrar') }}</button>
+                <button type="button" class="uc-btn uc-btn-danger uc-btn-sm grow" onclick="stopTicker()"><i class="fas fa-stop"></i> {{ _('Tirar') }}</button>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="clearTicker()" title="{{ _('Apaga o texto e tira o aviso de todas as telas') }}"><i class="fas fa-xmark"></i> {{ _('Limpar') }}</button>
             </div>
             <ul class="ticker-agora uc-muted small" id="tickerAgora" aria-live="polite"></ul>
         </div>
@@ -186,43 +186,43 @@
         <!-- URLs -->
         <div class="tool panel-pane" data-panel="urls" hidden>
             <div class="url-row">
-                <div class="uc-field"><label for="name1">Nome</label><input class="uc-input" type="text" id="name1" maxlength="80" placeholder="URL 1"></div>
-                <div class="uc-field grow"><label for="url1">Endereço</label><input class="uc-input uc-mono" type="text" id="url1" placeholder="Cole um link"></div>
+                <div class="uc-field"><label for="name1">{{ _('Nome') }}</label><input class="uc-input" type="text" id="name1" maxlength="80" placeholder="URL 1"></div>
+                <div class="uc-field grow"><label for="url1">{{ _('Endereço') }}</label><input class="uc-input uc-mono" type="text" id="url1" placeholder="{{ _('Cole um link') }}"></div>
             </div>
             <div class="url-row">
-                <div class="uc-field"><label for="name2">Nome</label><input class="uc-input" type="text" id="name2" maxlength="80" placeholder="URL 2"></div>
-                <div class="uc-field grow"><label for="url2">Endereço</label><input class="uc-input uc-mono" type="text" id="url2" placeholder="Cole um link"></div>
+                <div class="uc-field"><label for="name2">{{ _('Nome') }}</label><input class="uc-input" type="text" id="name2" maxlength="80" placeholder="URL 2"></div>
+                <div class="uc-field grow"><label for="url2">{{ _('Endereço') }}</label><input class="uc-input uc-mono" type="text" id="url2" placeholder="{{ _('Cole um link') }}"></div>
             </div>
             <div class="url-row">
-                <div class="uc-field"><label for="name3">Nome</label><input class="uc-input" type="text" id="name3" maxlength="80" placeholder="URL 3"></div>
-                <div class="uc-field grow"><label for="url3">Endereço</label><input class="uc-input uc-mono" type="text" id="url3" placeholder="Cole um link"></div>
+                <div class="uc-field"><label for="name3">{{ _('Nome') }}</label><input class="uc-input" type="text" id="name3" maxlength="80" placeholder="URL 3"></div>
+                <div class="uc-field grow"><label for="url3">{{ _('Endereço') }}</label><input class="uc-input uc-mono" type="text" id="url3" placeholder="{{ _('Cole um link') }}"></div>
             </div>
-            <button type="button" class="uc-btn uc-btn-primary" onclick="saveUrls()">Salvar URLs</button>
-            <p class="uc-note">Cada URL vira um botão em "O que mostrar", com o nome que você der (ex.: Câmera, Slides do pastor).</p>
+            <button type="button" class="uc-btn uc-btn-primary" onclick="saveUrls()">{{ _('Salvar URLs') }}</button>
+            <p class="uc-note">{{ _('Cada URL vira um botão em "O que mostrar", com o nome que você der (ex.: Câmera, Slides do pastor).') }}</p>
         </div>
 
         {% if site_no_telao_disponivel() %}{% include "_site_telao.html" %}{% endif %}
 
         <!-- Compartilhar tela -->
         <div class="tool panel-pane" data-panel="share" hidden>
-            <p class="uc-muted small">Mostra a tela deste computador no telão. Para ela ocupar só metade do palco, compartilhe em "Público" e escolha "Tela do PC" num dos lados do Monitor dividido.</p>
+            <p class="uc-muted small">{{ _('Mostra a tela deste computador no telão. Para ela ocupar só metade do palco, compartilhe em "Público" e escolha "Tela do PC" num dos lados do Monitor dividido.') }}</p>
             <div class="tool-row">
-                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('public')">Público</button>
-                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('monitor')">Monitor</button>
-                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="startScreenShare('all')">Ambos</button>
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('public')">{{ _('Público') }}</button>
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm grow" onclick="startScreenShare('monitor')">{{ _('Monitor') }}</button>
+                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm grow" onclick="startScreenShare('all')">{{ _('Ambos') }}</button>
             </div>
-            <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" onclick="stopScreenShare()"><i class="fas fa-stop"></i> Parar compartilhamento</button>
+            <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" onclick="stopScreenShare()"><i class="fas fa-stop"></i> {{ _('Parar compartilhamento') }}</button>
             <div id="screenShareStatus" class="uc-muted small"></div>
         </div>
 
         <!-- Abrir telas em nova aba (itens de nav_config com contexto "launcher") -->
         <div class="tool panel-pane" data-panel="links" hidden>
-            <p class="uc-muted small">Abre em outra aba, sem sair do Controle.</p>
+            <p class="uc-muted small">{{ _('Abre em outra aba, sem sair do Controle.') }}</p>
             <ul class="uc-rows">
                 {% for item in launcher_items %}
                 <li>
                     <i class="fas {{ item.icon }}"></i>
-                    <a class="grow launcher-link" href="{{ url_for(item.endpoint) }}" target="_blank" rel="noopener">{{ item.label }}</a>
+                    <a class="grow launcher-link" href="{{ url_for(item.endpoint) }}" target="_blank" rel="noopener">{{ _(item.label) }}</a>
                     <i class="fas fa-up-right-from-square"></i>
                 </li>
                 {% endfor %}
@@ -236,22 +236,22 @@
 <div class="uc-modal-overlay" id="modal-datashow" style="display:none" onclick="if(event.target===this)fecharDatashow()">
     <div class="uc-modal" role="dialog" aria-modal="true" aria-labelledby="datashow-title">
         <div class="uc-modal-head">
-            <h2 id="datashow-title">Abrir no datashow</h2>
-            <button type="button" class="uc-modal-close" onclick="fecharDatashow()" aria-label="Fechar">&times;</button>
+            <h2 id="datashow-title">{{ _('Abrir no datashow') }}</h2>
+            <button type="button" class="uc-modal-close" onclick="fecharDatashow()" aria-label="{{ _('Fechar') }}">&times;</button>
         </div>
         <div class="uc-modal-body">
-            <div class="uc-seg" role="group" aria-label="Qual tela abrir">
-                <button type="button" data-tela="publico" aria-pressed="true"><i class="fas fa-users"></i> Tela pública</button>
-                <button type="button" data-tela="palco" aria-pressed="false"><i class="fas fa-tv"></i> Retorno de palco</button>
+            <div class="uc-seg" role="group" aria-label="{{ _('Qual tela abrir') }}">
+                <button type="button" data-tela="publico" aria-pressed="true"><i class="fas fa-users"></i> {{ _('Tela pública') }}</button>
+                <button type="button" data-tela="palco" aria-pressed="false"><i class="fas fa-tv"></i> {{ _('Retorno de palco') }}</button>
             </div>
-            <p class="uc-muted small">Escolha a tela do datashow. A escolha fica guardada neste computador.</p>
+            <p class="uc-muted small">{{ _('Escolha a tela do datashow. A escolha fica guardada neste computador.') }}</p>
             <div class="datashow-list" id="datashowList"></div>
-            <button type="button" class="uc-btn uc-btn-primary uc-btn-lg" id="datashowCheia" hidden><i class="fas fa-expand"></i> Pôr em tela cheia</button>
+            <button type="button" class="uc-btn uc-btn-primary uc-btn-lg" id="datashowCheia" hidden><i class="fas fa-expand"></i> {{ _('Pôr em tela cheia') }}</button>
             <p class="datashow-aviso" id="datashowAviso" role="status"></p>
         </div>
         <div class="uc-modal-foot">
-            <span class="uc-muted small grow">Para os próximos cultos: o atalho abre direto em tela cheia na tela escolhida.</span>
-            <button type="button" class="uc-btn uc-btn-secondary" id="datashowBaixar" disabled><i class="fab fa-windows"></i> Baixar atalho</button>
+            <span class="uc-muted small grow">{{ _('Para os próximos cultos: o atalho abre direto em tela cheia na tela escolhida.') }}</span>
+            <button type="button" class="uc-btn uc-btn-secondary" id="datashowBaixar" disabled><i class="fab fa-windows"></i> {{ _('Baixar atalho') }}</button>
         </div>
     </div>
 </div>

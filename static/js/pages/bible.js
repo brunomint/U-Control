@@ -39,7 +39,7 @@ function searchBible() {
     const translation = document.getElementById('translationSelect').value;
 
     if (query.length < 3) {
-        alert('Digite pelo menos 3 caracteres para buscar');
+        alert(_t('Digite pelo menos 3 caracteres para buscar'));
         return;
     }
 
@@ -50,7 +50,7 @@ function searchBible() {
         })
         .catch(error => {
             console.error('Erro na busca:', error);
-            alert('Erro ao buscar. Tente novamente.');
+            alert(_t('Erro ao buscar. Tente novamente.'));
         });
 }
 
@@ -71,7 +71,7 @@ function displayResults(data) {
         container.innerHTML = html;
         resultsDiv.classList.add('active');
     } else {
-        container.innerHTML = '<div class="uc-empty">Nenhum resultado encontrado.</div>';
+        container.innerHTML = '<div class="uc-empty">' + _t('Nenhum resultado encontrado.') + '</div>';
         resultsDiv.classList.add('active');
     }
 }

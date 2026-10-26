@@ -1,41 +1,41 @@
 {#- Site no telão (navegador_telao.py, blueprints/site.py): painel do
     Controle. Só incluído onde funciona (site_no_telao_disponivel). #}
 <div class="tool panel-pane site-telao" data-panel="site" hidden>
-    <p class="uc-muted small">Abre um site em tela cheia no monitor do telão, num navegador de verdade, e comanda daqui — também pelo celular.</p>
+    <p class="uc-muted small">{{ _('Abre um site em tela cheia no monitor do telão, num navegador de verdade, e comanda daqui — também pelo celular.') }}</p>
     <form class="site-abrir" id="site-form">
-        <input class="uc-input uc-mono" type="text" id="site-url" placeholder="igreja.com.br" aria-label="Endereço do site" autocomplete="url">
-        <button type="submit" class="uc-btn uc-btn-primary uc-btn-sm"><i class="fas fa-up-right-from-square"></i> Abrir no telão</button>
+        <input class="uc-input uc-mono" type="text" id="site-url" placeholder="igreja.com.br" aria-label="{{ _('Endereço do site') }}" autocomplete="url">
+        <button type="submit" class="uc-btn uc-btn-primary uc-btn-sm"><i class="fas fa-up-right-from-square"></i> {{ _('Abrir no telão') }}</button>
     </form>
     <div class="site-salvos" id="site-salvos"></div>
 
     <div class="site-aberto" id="site-aberto" hidden>
         <div class="site-agora"><i class="fas fa-globe"></i> <span id="site-titulo"></span></div>
         <div class="site-teclas">
-            <span></span><button type="button" class="uc-btn uc-btn-secondary" data-site="cima" title="Seta para cima"><i class="fas fa-arrow-up"></i></button><span></span>
-            <button type="button" class="uc-btn uc-btn-secondary" data-site="esquerda" title="Seta para a esquerda"><i class="fas fa-arrow-left"></i></button>
+            <span></span><button type="button" class="uc-btn uc-btn-secondary" data-site="cima" title="{{ _('Seta para cima') }}"><i class="fas fa-arrow-up"></i></button><span></span>
+            <button type="button" class="uc-btn uc-btn-secondary" data-site="esquerda" title="{{ _('Seta para a esquerda') }}"><i class="fas fa-arrow-left"></i></button>
             <button type="button" class="uc-btn uc-btn-secondary" data-site="enter">Enter</button>
-            <button type="button" class="uc-btn uc-btn-secondary" data-site="direita" title="Seta para a direita"><i class="fas fa-arrow-right"></i></button>
-            <span></span><button type="button" class="uc-btn uc-btn-secondary" data-site="baixo" title="Seta para baixo"><i class="fas fa-arrow-down"></i></button><span></span>
+            <button type="button" class="uc-btn uc-btn-secondary" data-site="direita" title="{{ _('Seta para a direita') }}"><i class="fas fa-arrow-right"></i></button>
+            <span></span><button type="button" class="uc-btn uc-btn-secondary" data-site="baixo" title="{{ _('Seta para baixo') }}"><i class="fas fa-arrow-down"></i></button><span></span>
         </div>
         <div class="site-linha">
             <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="pagina-cima">Page Up</button>
             <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="pagina-baixo">Page Down</button>
             <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="inicio">Home</button>
             <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="fim">End</button>
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="espaco">Espaço</button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="espaco">{{ _('Espaço') }}</button>
         </div>
         <div class="site-linha">
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="rolar-cima"><i class="fas fa-angles-up"></i> Rolar</button>
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="rolar-baixo"><i class="fas fa-angles-down"></i> Rolar</button>
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="zoom-menos" title="Diminuir"><i class="fas fa-magnifying-glass-minus"></i></button>
-            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-site="zoom-normal" id="site-zoom" title="Tamanho normal">100%</button>
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="zoom-mais" title="Aumentar"><i class="fas fa-magnifying-glass-plus"></i></button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="rolar-cima"><i class="fas fa-angles-up"></i> {{ _('Rolar') }}</button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="rolar-baixo"><i class="fas fa-angles-down"></i> {{ _('Rolar') }}</button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="zoom-menos" title="{{ _('Diminuir') }}"><i class="fas fa-magnifying-glass-minus"></i></button>
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-site="zoom-normal" id="site-zoom" title="{{ _('Tamanho normal') }}">100%</button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="zoom-mais" title="{{ _('Aumentar') }}"><i class="fas fa-magnifying-glass-plus"></i></button>
         </div>
         <div class="site-linha">
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="voltar"><i class="fas fa-arrow-left-long"></i> Voltar página</button>
-            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="recarregar"><i class="fas fa-rotate-right"></i> Recarregar</button>
-            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="site-salvar"><i class="fas fa-star"></i> Salvar</button>
-            <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="site-fechar"><i class="fas fa-xmark"></i> Fechar site</button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="voltar"><i class="fas fa-arrow-left-long"></i> {{ _('Voltar página') }}</button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-site="recarregar"><i class="fas fa-rotate-right"></i> {{ _('Recarregar') }}</button>
+            <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="site-salvar"><i class="fas fa-star"></i> {{ _('Salvar') }}</button>
+            <button type="button" class="uc-btn uc-btn-danger uc-btn-sm" id="site-fechar"><i class="fas fa-xmark"></i> {{ _('Fechar site') }}</button>
         </div>
     </div>
     <p class="uc-note" id="site-msg" role="status"></p>

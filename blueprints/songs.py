@@ -8,6 +8,7 @@ import time
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
 
+from i18n import gettext as _
 import songs_store
 from songs_store import get_song, load_songs, next_song_id, save_song
 
@@ -189,7 +190,7 @@ def add_song():
 
     logger.debug(f"✅ [DEBUG] Música salva com sucesso!")
     # id: o "Salvar e continuar editando" do /new_song vai pra /edit_song/<id>
-    return jsonify({"message": "Música adicionada com sucesso!", "id": new_song["id"]})
+    return jsonify({"message": _("Música adicionada com sucesso!"), "id": new_song["id"]})
 
 @songs_bp.route('/edit_song/<int:song_id>', methods=['GET', 'POST'])
 @login_required
@@ -225,7 +226,7 @@ def edit_song(song_id):
         song_to_update = get_song(song_id)
 
         if not song_to_update:
-            return jsonify({"error": "Música não encontrada!"}), 404
+            return jsonify({"error": _("Música não encontrada!")}), 404
 
         # Atualiza os dados
         song_to_update.update({
@@ -267,7 +268,7 @@ def edit_song(song_id):
 
         save_song(song_to_update)
         logger.debug(f"✅ [DEBUG] Música {song_id} editada com sucesso!")
-        return jsonify({"message": "Música editada com sucesso!"})
+        return jsonify({"message": _("Música editada com sucesso!")})
 
     return render_template('edit_song.html', song=get_song(song_id))
 
@@ -277,7 +278,7 @@ def delete_song(song_id):
     """Exclui uma música."""
     songs_store.delete_song(song_id)
 
-    return jsonify({'message': 'Música removida com sucesso!'})
+    return jsonify({'message': _('Música removida com sucesso!')})
 
 @songs_bp.route("/search", methods=["GET"])
 def search():

@@ -39,7 +39,7 @@ async function searchSongs(query) {
         list.innerHTML = "";
 
         if (songs.length === 0) {
-            list.innerHTML = '<div class="autocomplete-item empty">Nenhuma música encontrada</div>';
+            list.innerHTML = '<div class="autocomplete-item empty">' + _t('Nenhuma música encontrada') + '</div>';
             list.classList.add('show');
             return;
         }
@@ -49,7 +49,7 @@ async function searchSongs(query) {
             item.className = "autocomplete-item";
             item.innerHTML = `
                 <div class="song-title">${song.title}</div>
-                <div class="song-author">${song.author || 'Autor desconhecido'}</div>
+                <div class="song-author">${song.author || _t('Autor desconhecido')}</div>
             `;
             item.onclick = () => {
                 addSongToList(song);
@@ -84,12 +84,12 @@ function addSongToList(song) {
     const url = baseUrl.includes('/lyrics/') ? `${baseUrl}?order=${orderDate}` : baseUrl;
 
     songItem.innerHTML = `
-        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">${displayText}</a>
         </div>
-        <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> Substituir</button>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
+        <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> ${_t('Substituir')}</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>
     `;
 
     songItem.ondragstart = (e) => {
@@ -98,7 +98,7 @@ function addSongToList(song) {
     };
 
     songList.appendChild(songItem);
-    showToast('Música adicionada!');
+    showToast(_t('Música adicionada!'));
 }
 
 // Adicionar texto livre
@@ -107,7 +107,7 @@ function addToList() {
     const text = input.value.trim();
 
     if (!text) {
-        showToast('Digite algum texto', 'error');
+        showToast(_t('Digite algum texto'), 'error');
         return;
     }
 
@@ -118,11 +118,11 @@ function addToList() {
     item.id = `text-${Date.now()}`;
 
     item.innerHTML = `
-        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="#">${text}</a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -132,7 +132,7 @@ function addToList() {
 
     songList.appendChild(item);
     input.value = "";
-    showToast('Item adicionado!');
+    showToast(_t('Item adicionado!'));
 }
 
 // Adicionar referência bíblica
@@ -141,7 +141,7 @@ function addBibleToList() {
     const ref = input.value.trim();
 
     if (!ref) {
-        showToast('Digite uma referência bíblica', 'error');
+        showToast(_t('Digite uma referência bíblica'), 'error');
         return;
     }
 
@@ -157,11 +157,11 @@ function addBibleToList() {
     const url = `/bible?search=${encodeURIComponent(ref)}`;
 
     item.innerHTML = `
-        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">📖 ${ref}</a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>
     `;
 
     item.ondragstart = (e) => {
@@ -171,7 +171,7 @@ function addBibleToList() {
 
     songList.appendChild(item);
     input.value = "";
-    showToast('Referência bíblica adicionada!');
+    showToast(_t('Referência bíblica adicionada!'));
 }
 
 // Drag and drop
@@ -201,7 +201,7 @@ async function saveOrder() {
     const date = orderKey();
 
     if (!date) {
-        showToast('Selecione uma data', 'error');
+        showToast(_t('Selecione uma data'), 'error');
         return;
     }
 
@@ -256,7 +256,7 @@ async function saveOrder() {
         });
 
         if (response.ok) {
-            showToast('Ordem salva com sucesso!', 'success');
+            showToast(_t('Ordem salva com sucesso!'), 'success');
 
             // Se a data mudou, redireciona para a nova
             if (date !== originalDate && !isNew) {
@@ -267,17 +267,17 @@ async function saveOrder() {
                 window.location.href = `/order/${date}`;
             }, 1500);
         } else {
-            showToast('Erro ao salvar ordem', 'error');
+            showToast(_t('Erro ao salvar ordem'), 'error');
         }
     } catch (error) {
         console.error("Erro:", error);
-        showToast('Erro ao salvar ordem', 'error');
+        showToast(_t('Erro ao salvar ordem'), 'error');
     }
 }
 
 // Deletar ordem
 async function deleteOrder() {
-    if (!confirm('Tem certeza que deseja excluir esta ordem de culto?')) {
+    if (!confirm(_t('Tem certeza que deseja excluir esta ordem de culto?'))) {
         return;
     }
 
@@ -287,16 +287,16 @@ async function deleteOrder() {
         });
 
         if (response.ok) {
-            showToast('Ordem excluída!');
+            showToast(_t('Ordem excluída!'));
             setTimeout(() => {
                 window.location.href = '/order';
             }, 1500);
         } else {
-            showToast('Erro ao excluir ordem', 'error');
+            showToast(_t('Erro ao excluir ordem'), 'error');
         }
     } catch (error) {
         console.error("Erro:", error);
-        showToast('Erro ao excluir ordem', 'error');
+        showToast(_t('Erro ao excluir ordem'), 'error');
     }
 }
 
@@ -304,7 +304,7 @@ async function deleteOrder() {
 function createPDF() {
     const { jsPDF } = window.jspdf;
     if (!jsPDF) {
-        showToast('Erro ao carregar biblioteca PDF', 'error');
+        showToast(_t('Erro ao carregar biblioteca PDF'), 'error');
         return;
     }
 
@@ -320,7 +320,7 @@ function createPDF() {
         .join('\n');
 
     if (!content) {
-        showToast('Adicione itens à ordem primeiro', 'error');
+        showToast(_t('Adicione itens à ordem primeiro'), 'error');
         return;
     }
 
@@ -331,15 +331,15 @@ function createPDF() {
     // Título
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('Ordem do Culto', 105, 20, { align: 'center' });
+    doc.text(_t('Ordem do Culto'), 105, 20, { align: 'center' });
 
     // Metadados
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('pt-BR');
-    doc.text(`Data: ${formattedDate} | ${tipo}`, 105, 30, { align: 'center' });
+    const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString(ucLocale());
+    doc.text(_t('Data: {data} | {tipo}', { data: formattedDate, tipo }), 105, 30, { align: 'center' });
     if (dirigente) {
-        doc.text(`Dirigente: ${dirigente}`, 105, 38, { align: 'center' });
+        doc.text(_t('Dirigente: {nome}', { nome: dirigente }), 105, 38, { align: 'center' });
     }
 
     // Linha separadora
@@ -352,7 +352,7 @@ function createPDF() {
     doc.text(lines, 20, 55);
 
     doc.save(`ordem_${date}.pdf`);
-    showToast('PDF gerado!');
+    showToast(_t('PDF gerado!'));
 }
 
 // Carregar ordem existente
@@ -371,11 +371,11 @@ async function loadExistingOrder() {
                 elem.dataset.reference = item.reference;
 
                 elem.innerHTML = `
-                    <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+                    <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                     <div class="song-info">
                         <a href="/bible?search=${encodeURIComponent(item.reference)}" target="_blank">${item.title || '📖 ' + item.reference}</a>
                     </div>
-                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>
                 `;
 
                 elem.ondragstart = (e) => {
@@ -396,12 +396,12 @@ async function loadExistingOrder() {
                 const linkUrl = item.url.includes('/lyrics/') ? `${item.url}?order=${orderDate}` : item.url;
 
                 elem.innerHTML = `
-                    <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+                    <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                     <div class="song-info">
                         <a href="${linkUrl}" target="_blank">${item.title}</a>
                     </div>
-                    <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> Substituir</button>
-                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
+                    <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> ${_t('Substituir')}</button>
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>
                 `;
 
                 elem.ondragstart = (e) => {
@@ -419,11 +419,11 @@ async function loadExistingOrder() {
 
                 const text = item.anyText || item.title;
                 elem.innerHTML = `
-                    <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+                    <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
                     <div class="song-info">
                         <a href="#">${text}</a>
                     </div>
-                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>
+                    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>
                 `;
 
                 elem.ondragstart = (e) => {
@@ -476,8 +476,8 @@ function substituirMusica(btn) {
     searchDiv.className = 'inline-search';
     searchDiv.innerHTML = `
         <div class="inline-search-wrap">
-            <input type="text" class="inline-search-input" placeholder="Buscar música substituta...">
-            <button type="button" class="inline-cancel-btn" aria-label="Cancelar substituição" onclick="this.closest('.inline-search').remove(); this.closest('.song-item').querySelector('.song-info').style.display=''">✕</button>
+            <input type="text" class="inline-search-input" placeholder="${_t('Buscar música substituta...')}">
+            <button type="button" class="inline-cancel-btn" aria-label="${_t('Cancelar substituição')}" onclick="this.closest('.inline-search').remove(); this.closest('.song-item').querySelector('.song-info').style.display=''">✕</button>
         </div>
         <div class="inline-ac"></div>`;
 
@@ -497,7 +497,7 @@ function substituirMusica(btn) {
             const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
             const songs = await res.json();
             if (!songs.length) {
-                ac.innerHTML = '<div class="inline-ac-item empty">Nenhuma música encontrada</div>';
+                ac.innerHTML = '<div class="inline-ac-item empty">' + _t('Nenhuma música encontrada') + '</div>';
                 ac.classList.add('show'); return;
             }
             ac.innerHTML = songs.map(s => {
@@ -551,34 +551,34 @@ async function renderTemplateList() {
     const names = Object.keys(tpls);
     const el = document.getElementById('tpl-list');
     if (!names.length) {
-        el.innerHTML = '<div class="tpl-empty">Nenhum modelo salvo ainda.</div>';
+        el.innerHTML = '<div class="tpl-empty">' + _t('Nenhum modelo salvo ainda.') + '</div>';
         return;
     }
     el.innerHTML = names.map(n => `
         <div class="tpl-item">
             <span>${n}</span>
-            <button class="tpl-load-btn" data-name="${n.replace(/"/g,'&quot;')}" onclick="carregarModelo(this.dataset.name)">Carregar</button>
+            <button class="tpl-load-btn" data-name="${n.replace(/"/g,'&quot;')}" onclick="carregarModelo(this.dataset.name)">${_t('Carregar')}</button>
             <button class="tpl-del-btn"  data-name="${n.replace(/"/g,'&quot;')}" onclick="deletarModelo(this.dataset.name)">✕</button>
         </div>`).join('');
 }
 
 async function salvarComoModelo() {
     const name = document.getElementById('tpl-nome').value.trim();
-    if (!name) { showToast('Digite um nome para o modelo.'); return; }
+    if (!name) { showToast(_t('Digite um nome para o modelo.')); return; }
     const items = getOrderItems();
-    if (!items.length) { showToast('A lista está vazia.'); return; }
+    if (!items.length) { showToast(_t('A lista está vazia.')); return; }
     await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, items })
     });
     document.getElementById('tpl-nome').value = '';
-    showToast('Modelo salvo!');
+    showToast(_t('Modelo salvo!'));
     renderTemplateList();
 }
 
 async function carregarModelo(name) {
-    if (!confirm(`Substituir a lista atual pelo modelo "${name}"?`)) return;
+    if (!confirm(_t('Substituir a lista atual pelo modelo "{nome}"?', { nome: name }))) return;
     const res = await fetch('/api/templates');
     const tpls = await res.json();
     const items = tpls[name];
@@ -594,11 +594,11 @@ async function carregarModelo(name) {
         }
     });
     fecharModalTemplates();
-    showToast(`Modelo "${name}" carregado.`);
+    showToast(_t('Modelo "{nome}" carregado.', { nome: name }));
 }
 
 async function deletarModelo(name) {
-    if (!confirm(`Excluir o modelo "${name}"?`)) return;
+    if (!confirm(_t('Excluir o modelo "{nome}"?', { nome: name }))) return;
     await fetch(`/api/templates/${encodeURIComponent(name)}`, { method: 'DELETE' });
     renderTemplateList();
 }
@@ -612,12 +612,12 @@ function addSongItemToList(url, title) {
     const orderDate = orderKey();
     const fullUrl = url.includes('/lyrics/') ? `${url}?order=${orderDate}` : url;
     item.innerHTML = `
-        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${fullUrl}" target="_blank">${title || ''}</a>
         </div>
-        <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> Substituir</button>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>`;
+        <button type="button" class="subst-btn" onclick="substituirMusica(this)"><i class="fas fa-right-left"></i> ${_t('Substituir')}</button>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>`;
     item.ondragstart = (e) => { draggedElement = item; e.dataTransfer.effectAllowed = "move"; };
     songList.appendChild(item);
 }
@@ -632,11 +632,11 @@ function addBibleItemToList(reference, title) {
     item.dataset.reference = reference;
     const url = `/bible?search=${encodeURIComponent(reference)}`;
     item.innerHTML = `
-        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="${url}" target="_blank">📖 ${title || reference}</a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>`;
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>`;
     item.ondragstart = (e) => { draggedElement = item; e.dataTransfer.effectAllowed = "move"; };
     songList.appendChild(item);
 }
@@ -648,11 +648,11 @@ function addTextItemToList(text) {
     item.setAttribute("draggable", "true");
     item.id = `text-${Date.now()}-${Math.random()}`;
     item.innerHTML = `
-        <span class="drag-handle" title="Arraste para reordenar" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
+        <span class="drag-handle" title="${_t('Arraste para reordenar')}" aria-hidden="true"><i class="fas fa-grip-vertical"></i></span>
         <div class="song-info">
             <a href="#"></a>
         </div>
-        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remover da ordem" aria-label="Remover da ordem"><i class="fas fa-trash-can"></i></button>`;
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="${_t('Remover da ordem')}" aria-label="${_t('Remover da ordem')}"><i class="fas fa-trash-can"></i></button>`;
     item.querySelector('a').textContent = text;
     item.ondragstart = (e) => { draggedElement = item; e.dataTransfer.effectAllowed = "move"; };
     songList.appendChild(item);

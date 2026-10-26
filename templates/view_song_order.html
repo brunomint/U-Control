@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set app_theme = true %}
 
-{% block title %}Cifras do culto - U-Control{% endblock %}
+{% block title %}{{ _('Cifras do culto') }} - U-Control{% endblock %}
 
 {% block head_extra %}
 <script src="/static/vendor/jquery/jquery-3.6.0.min.js"></script>
@@ -19,27 +19,27 @@
 <main class="uc-page cifras-page" id="content">
     <div class="uc-page-head">
         <div>
-            <h1>Cifras do culto</h1>
-            <div class="uc-page-sub" id="orderDateLabel">Ordem de hoje</div>
+            <h1>{{ _('Cifras do culto') }}</h1>
+            <div class="uc-page-sub" id="orderDateLabel">{{ _('Ordem de hoje') }}</div>
         </div>
     </div>
 
     <div class="search-song-widget">
-        <button type="button" class="search-song-btn" onclick="toggleSearchSong()" hidden>Buscar</button>
+        <button type="button" class="search-song-btn" onclick="toggleSearchSong()" hidden>{{ _('Buscar') }}</button>
         <div class="search-song-popover uc-search" id="searchSongPopover">
             <i class="fas fa-magnifying-glass"></i>
-            <input class="uc-input" type="search" id="searchSongInput" placeholder="Buscar outra música: título, autor ou trecho da letra" autocomplete="off">
+            <input class="uc-input" type="search" id="searchSongInput" placeholder="{{ _('Buscar outra música: título, autor ou trecho da letra') }}" autocomplete="off">
             <div class="search-song-results" id="searchSongResults"></div>
         </div>
     </div>
 
     <section class="uc-card">
         <div class="menu" id="menu">
-            <div id="song-list" class="uc-label-caps list-title">Ordem do culto</div>
+            <div id="song-list" class="uc-label-caps list-title">{{ _('Ordem do culto') }}</div>
         </div>
     </section>
 
-    <footer class="credits">Desenvolvido por Bruno Fragoso</footer>
+    <footer class="credits">{{ _('Desenvolvido por {nome}', nome='Bruno Fragoso') }}</footer>
 </main>
 
 <script id="view-song-order-data" type="application/json">{{ {"orderDate": order_date or ""} | tojson }}</script>

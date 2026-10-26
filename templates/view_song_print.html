@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{{ uc_lang_tag }}">
 <head>
 <meta charset="UTF-8">
 <title>{{ song.title }}</title>
@@ -96,7 +96,7 @@
         <div class="section-title">{{ section.title }}</div>
         {% endif %}
         {% if section.sem_partitura %}
-        <p class="sem-partitura">(partitura disponível só na tela)</p>
+        <p class="sem-partitura">({{ _('partitura disponível só na tela') }})</p>
         {% endif %}
         {% if section.html %}
         <pre>{{ section.html | safe }}</pre>

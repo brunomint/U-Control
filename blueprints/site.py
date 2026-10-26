@@ -11,6 +11,7 @@ from flask_login import login_required
 
 import navegador_telao
 from extensions import socketio
+from i18n import gettext as _
 
 site_bp = Blueprint('site', __name__)
 
@@ -29,7 +30,9 @@ def _avisar(estado):
 
 
 def _erro(e):
-    return jsonify({'ok': False, 'erro': str(e)}), 409
+    # Mensagens fixas do navegador_telao.SiteErro têm tradução no
+    # dicionário (a própria frase é a chave); as com valores ficam em português
+    return jsonify({'ok': False, 'erro': _(str(e))}), 409
 
 
 @site_bp.route('/api/site/estado')
@@ -56,7 +59,7 @@ def api_comando():
         return _erro(e)
     except Exception as e:  # janela fechada no meio, navegador travado
         current_app.logger.exception('site no telão: comando falhou')
-        return _erro(f'O navegador do site não respondeu ({e.__class__.__name__}).')
+        return _erro(_('O navegador do site não respondeu ({erro}).', erro=e.__class__.__name__))
 
 
 @site_bp.route('/api/site/fechar', methods=['POST'])
@@ -94,7 +97,7 @@ def api_salvar():
     try:
         url = navegador_telao.normalizar(dados.get('url'))
     except navegador_telao.SiteErro as e:
-        return jsonify({'ok': False, 'erro': str(e)}), 400
+        return jsonify({'ok': False, 'erro': _(str(e))}), 400
     nome = (dados.get('nome') or '').strip()[:60] or url.split('://', 1)[1].split('/')[0]
     salvos = [s for s in _salvos() if s['url'] != url]
     salvos.insert(0, {'nome': nome, 'url': url})

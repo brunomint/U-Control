@@ -11,6 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from display_log import load_display_log
 from extensions import db, login_manager
+from i18n import gettext as _
 from models import User
 
 auth_bp = Blueprint('auth', __name__)
@@ -57,7 +58,7 @@ def login():
         ip_cliente = _obter_ip_cliente(request)
 
         if _ip_esta_bloqueado(ip_cliente):
-            flash('Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.')
+            flash(_('Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.'))
             return redirect(url_for('auth.login'))
 
         username = request.form['username']
@@ -72,7 +73,7 @@ def login():
             return redirect(url_for('auth.dashboard'))
         else:
             _registrar_tentativa_falha(ip_cliente)
-            flash('Usuário ou senha incorretos.')
+            flash(_('Usuário ou senha incorretos.'))
     # Instalação nova (Windows, Docker): sem nenhum usuário ainda, a tela
     # de login vira "criar o primeiro" — ver primeiro_acesso()
     return render_template('login.html', primeiro_acesso=User.query.first() is None)
@@ -87,10 +88,10 @@ def primeiro_acesso():
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '')
     if not username or not password:
-        flash('Preencha usuário e senha.')
+        flash(_('Preencha usuário e senha.'))
         return redirect(url_for('auth.login'))
     if password != request.form.get('password_confirm', ''):
-        flash('As senhas não conferem.')
+        flash(_('As senhas não conferem.'))
         return redirect(url_for('auth.login'))
     user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
     db.session.add(user)
@@ -134,16 +135,18 @@ def _describe_activity(entry):
     """(ação, alvo) legíveis pra uma entrada do display_log."""
     kind, title = entry.get('type'), (entry.get('title') or '').strip()
     if kind == 'song':
-        return 'Exibiu a letra de', title
+        return _('Exibiu a letra de'), title
     if kind == 'bible':
-        return 'Exibiu', title
+        return _('Exibiu'), title
     if kind == 'ticker':
-        return 'Aviso no telão:', title
+        return _('Aviso no telão:'), title
     if title.startswith('/static/'):
         from urllib.parse import unquote
-        return 'Exibiu a imagem', unquote(title.rsplit('/', 1)[-1])
-    parts = [_ROUTE_NAMES.get(p.strip(), p.strip()) for p in title.split(' + ')]
-    return 'Telão mudou para', ' + '.join(parts)
+        return _('Exibiu a imagem'), unquote(title.rsplit('/', 1)[-1])
+    # Nome traduzido só das rotas conhecidas; URL crua passa como está
+    parts = [_(_ROUTE_NAMES[p.strip()]) if p.strip() in _ROUTE_NAMES else p.strip()
+             for p in title.split(' + ')]
+    return _('Telão mudou para'), ' + '.join(parts)
 
 
 def group_activity(log, limit=5):

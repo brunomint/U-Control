@@ -101,7 +101,7 @@ function sendToDisplay() {
         label: reference
     });
 
-    showToast('Preparado. Se o telão pedir, toque em “Liberar”.');
+    showToast(_t('Preparado. Se o telão pedir, toque em “Liberar”.'));
     toggleModoVarios();   // volta pro toque = exibir
 }
 
@@ -130,7 +130,7 @@ function sendSingleVerse(verseNum, text, silencioso) {
 
     // Pelas setas não avisa: com "Bíblia entra direto" já foi ao ar, e
     // senão a barra do telão já mostra "Preparado · Liberar"
-    if (!silencioso) showToast(`${reference} preparado. Toque em “Liberar no telão” para exibir.`);
+    if (!silencioso) showToast(_t('{ref} preparado. Toque em “Liberar no telão” para exibir.', { ref: reference }));
 }
 
 function copyVerses() {
@@ -141,7 +141,7 @@ function copyVerses() {
     const fullText = `${reference}\n\n${text}`;
 
     navigator.clipboard.writeText(fullText).then(() => {
-        showToast('Versículos copiados!');
+        showToast(_t('Versículos copiados!'));
     });
 }
 
@@ -215,11 +215,11 @@ function passarVerso(passo) {
     if (alvo >= 1 && alvo <= totalVersos) return sendSingleVerse(alvo, undefined, true);
     const borda = passo > 0 ? 'fim' : 'inicio';
     const cap = passo > 0 ? CONFIG.nextChapter : CONFIG.prevChapter;
-    if (!cap) return showToast(passo > 0 ? `Fim de ${bookName}.` : `Início de ${bookName}.`);
+    if (!cap) return showToast(passo > 0 ? _t('Fim de {livro}.', { livro: bookName }) : _t('Início de {livro}.', { livro: bookName }));
     if (avisoBorda === borda) return irCapitulo(cap, passo > 0 ? 1 : 'fim');
     avisoBorda = borda;
-    showToast(passo > 0 ? `Fim do capítulo ${chapter}. Aperte de novo para ir ao ${cap}.`
-                        : `Início do capítulo. Aperte de novo para voltar ao ${cap}.`);
+    showToast(passo > 0 ? _t('Fim do capítulo {capitulo}. Aperte de novo para ir ao {cap}.', { capitulo: chapter, cap: cap })
+                        : _t('Início do capítulo. Aperte de novo para voltar ao {cap}.', { cap: cap }));
 }
 
 document.addEventListener('keydown', e => {

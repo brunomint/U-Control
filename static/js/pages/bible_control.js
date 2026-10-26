@@ -103,11 +103,11 @@ function aplicarBotaoVisibilidade() {
 
     if (isVisible) {
         btn.classList.remove('show-mode');
-        text.textContent = 'Esconder';
+        text.textContent = _t('Esconder');
         icon.className = 'fas fa-eye';
     } else {
         btn.classList.add('show-mode');
-        text.textContent = 'Mostrar';
+        text.textContent = _t('Mostrar');
         icon.className = 'fas fa-eye-slash';
     }
 }
@@ -146,7 +146,7 @@ async function addBibleFromMenu() {
     const reference = input.value.trim();
 
     if (!reference) {
-        alert('Digite uma referência bíblica');
+        alert(_t('Digite uma referência bíblica'));
         return;
     }
 
@@ -163,11 +163,11 @@ async function addBibleFromMenu() {
             if (data.message) alert(data.message);
             window.location.reload();
         } else {
-            alert(data.error || 'Erro ao adicionar passagem');
+            alert(data.error || _t('Erro ao adicionar passagem'));
         }
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao adicionar passagem');
+        alert(_t('Erro ao adicionar passagem'));
     }
 }
 
@@ -180,7 +180,7 @@ document.getElementById('menuBibleRef').addEventListener('keypress', function(e)
 
 // Remover passagem do menu
 async function removeBibleFromMenu(reference) {
-    if (!confirm(`Remover "${reference}"?`)) {
+    if (!confirm(_t('Remover "{ref}"?', { ref: reference }))) {
         return;
     }
 
@@ -196,11 +196,11 @@ async function removeBibleFromMenu(reference) {
         if (data.success) {
             window.location.reload();
         } else {
-            alert(data.error || 'Erro ao remover');
+            alert(data.error || _t('Erro ao remover'));
         }
     } catch (error) {
         console.error('Erro:', error);
-        alert('Erro ao remover');
+        alert(_t('Erro ao remover'));
     }
 }
 

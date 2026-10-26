@@ -15,7 +15,7 @@ function populateTypeOptions() {
         if (o && o.tipo) dynamic.add(o.tipo);
     });
     const merged = Array.from(new Set([...baseOptions, ...dynamic]));
-    select.innerHTML = merged.map(v => `<option value="${v}">${v || 'Todos'}</option>`).join('');
+    select.innerHTML = merged.map(v => `<option value="${v}">${v || _t('Todos')}</option>`).join('');
 }
 
 function applyFilters() {
@@ -69,7 +69,7 @@ function renderGrid() {
         grid.innerHTML = '';
         emptyState.style.display = 'block';
         pagination.style.display = 'none';
-        resultsInfo.textContent = 'Nenhum resultado para os filtros.';
+        resultsInfo.textContent = _t('Nenhum resultado para os filtros.');
         return;
     }
 
@@ -86,8 +86,8 @@ function renderGrid() {
     pagination.style.display = totalPages > 1 ? 'flex' : 'none';
     document.getElementById('prevPage').disabled = currentPage === 1;
     document.getElementById('nextPage').disabled = currentPage === totalPages;
-    pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
-    resultsInfo.textContent = `Exibindo ${Math.min(end, total)} de ${total} ordens`;
+    pageInfo.textContent = _t('Página {atual} de {total}', { atual: currentPage, total: totalPages });
+    resultsInfo.textContent = _t('Exibindo {n} de {total} ordens', { n: Math.min(end, total), total });
 }
 
 function clearFilters() {
@@ -99,8 +99,8 @@ function clearFilters() {
     applyFilters();
 }
 
-const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const weekdays = [_t('Domingo'), _t('Segunda-feira'), _t('Terça-feira'), _t('Quarta-feira'), _t('Quinta-feira'), _t('Sexta-feira'), _t('Sábado')];
+const months = [_t('Jan'), _t('Fev'), _t('Mar'), _t('Abr'), _t('Mai'), _t('Jun'), _t('Jul'), _t('Ago'), _t('Set'), _t('Out'), _t('Nov'), _t('Dez')];
 
 function formatDate(dateStr) {
     const [year, month, day] = dateStr.split('-');
@@ -161,19 +161,19 @@ function createOrderCard(dateStr, order) {
     const past = isPast(dateStr);
 
     let state = 'future';
-    let badge = '<span class="uc-pill uc-pill-muted">Agendado</span>';
+    let badge = '<span class="uc-pill uc-pill-muted">' + _t('Agendado') + '</span>';
     if (today) {
         state = 'today';
-        badge = '<span class="uc-pill uc-pill-live"><span class="dot"></span>Hoje</span>';
+        badge = '<span class="uc-pill uc-pill-live"><span class="dot"></span>' + _t('Hoje') + '</span>';
     } else if (past) {
         state = 'past';
-        badge = '<span class="uc-pill uc-pill-muted">Passado</span>';
+        badge = '<span class="uc-pill uc-pill-muted">' + _t('Passado') + '</span>';
     }
 
     const people = [
-        order.dirigente && `<span><b>Dirigente</b> ${escapeHtml(order.dirigente)}</span>`,
-        order.pregador && `<span><b>Pregação</b> ${escapeHtml(order.pregador)}</span>`,
-        order.tema && `<span><b>Tema</b> ${escapeHtml(order.tema)}</span>`,
+        order.dirigente && `<span><b>${_t('Dirigente')}</b> ${escapeHtml(order.dirigente)}</span>`,
+        order.pregador && `<span><b>${_t('Pregação')}</b> ${escapeHtml(order.pregador)}</span>`,
+        order.tema && `<span><b>${_t('Tema')}</b> ${escapeHtml(order.tema)}</span>`,
     ].filter(Boolean).join('');
 
     const horario = order.horario_culto || order.horario || '';
@@ -186,22 +186,22 @@ function createOrderCard(dateStr, order) {
                     <span class="month">${date.month}</span>
                 </div>
                 <div class="order-head">
-                    <div class="order-tipo">${escapeHtml(order.tipo || 'Culto')}</div>
+                    <div class="order-tipo">${escapeHtml(order.tipo || _t('Culto'))}</div>
                     <div class="order-when">${date.weekday}${horario ? ` · ${escapeHtml(horario)}` : ''}</div>
                 </div>
                 ${badge}
             </div>
             ${people ? `<div class="order-people">${people}</div>` : ''}
             <div class="order-stats">
-                <span><i class="fas fa-music"></i> ${stats.musicas} ${stats.musicas === 1 ? 'música' : 'músicas'}</span>
-                <span><i class="fas fa-book-bible"></i> ${stats.biblia} ${stats.biblia === 1 ? 'leitura' : 'leituras'}</span>
-                <span><i class="fas fa-list"></i> ${stats.total} no total</span>
+                <span><i class="fas fa-music"></i> ${stats.musicas === 1 ? _t('1 música') : _t('{n} músicas', { n: stats.musicas })}</span>
+                <span><i class="fas fa-book-bible"></i> ${stats.biblia === 1 ? _t('1 leitura') : _t('{n} leituras', { n: stats.biblia })}</span>
+                <span><i class="fas fa-list"></i> ${_t('{n} no total', { n: stats.total })}</span>
             </div>
             <div class="order-actions">
-                <a href="/order/${dateStr}" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-pen"></i> Editar</a>
-                <a href="/view/order/${dateStr}" class="uc-btn uc-btn-ghost uc-btn-sm"><i class="fas fa-eye"></i> Ver</a>
-                <a href="/view?order=${dateStr}" class="uc-btn uc-btn-ghost uc-btn-sm" title="Abrir as cifras desta ordem"><i class="fas fa-guitar"></i> Cifras</a>
-                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyLink('${dateStr}')" title="Copiar link público da ordem" aria-label="Copiar link"><i class="fas fa-link"></i></button>
+                <a href="/order/${dateStr}" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-pen"></i> ${_t('Editar')}</a>
+                <a href="/view/order/${dateStr}" class="uc-btn uc-btn-ghost uc-btn-sm"><i class="fas fa-eye"></i> ${_t('Ver')}</a>
+                <a href="/view?order=${dateStr}" class="uc-btn uc-btn-ghost uc-btn-sm" title="${_t('Abrir as cifras desta ordem')}"><i class="fas fa-guitar"></i> ${_t('Cifras')}</a>
+                <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyLink('${dateStr}')" title="${_t('Copiar link público da ordem')}" aria-label="${_t('Copiar link')}"><i class="fas fa-link"></i></button>
             </div>
         </article>
     `;
@@ -210,7 +210,7 @@ function createOrderCard(dateStr, order) {
 function copyLink(dateStr) {
     const url = `${window.location.origin}/view/order/${dateStr}`;
     navigator.clipboard.writeText(url).then(() => {
-        showToast('Link copiado para a área de transferência!');
+        showToast(_t('Link copiado para a área de transferência!'));
     }).catch(() => {
         // Fallback para navegadores antigos
         const input = document.createElement('input');
@@ -219,7 +219,7 @@ function copyLink(dateStr) {
         input.select();
         document.execCommand('copy');
         document.body.removeChild(input);
-        showToast('Link copiado!');
+        showToast(_t('Link copiado!'));
     });
 }
 
@@ -235,7 +235,7 @@ async function loadOrders() {
         applyFilters();
     } catch (error) {
         console.error('Erro ao carregar ordens:', error);
-        showToast('Erro ao carregar as ordens de culto', 'error');
+        showToast(_t('Erro ao carregar as ordens de culto'), 'error');
     }
 }
 
