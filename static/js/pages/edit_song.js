@@ -1648,6 +1648,9 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             // colada de outro lugar tem repetição de propósito ("A terra alegre
             // está" 2x) e não pode perder linha.
             function limparColagemCifraClub(texto) {
+                // Espaço de largura zero (U+200B) que o Cifra Club põe no
+                // começo de cada linha: invisível, mas tira a cor dos acordes
+                texto = texto.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
                 const linhas = texto.split('\n');
                 if (!linhas.some(linha => linha.trim().startsWith('">'))) return texto;
                 const semFantasmas = linhas.filter(linha => !linha.trim().startsWith('">'));
@@ -1736,6 +1739,9 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
             // Divide letra em blocos automáticos
             function divideLyricsIntoBlocks(lyrics) {
                 console.log('🔄 Dividindo letra em blocos...');
+                // O servidor já tira (blueprints/cifras.py); aqui por garantia —
+                // o U+200B do Cifra Club deixava sobras nos marcadores [Intro]
+                lyrics = lyrics.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
                 
                 // A resposta de /cifra e /cifra_com_video sempre começa com
                 // "título\n\ncompositor\n\n" (blueprints/cifras.py) — pula os

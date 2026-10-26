@@ -53,7 +53,13 @@ def _extrair_titulo_compositor_cifra(soup):
 
     cifra_tag = soup.select_one('pre[data-chord-content="true"]') or soup.select_one('.cifra_cnt')
     if cifra_tag:
-        cifra = cifra_tag.get_text().strip()
+        # Cada linha vem com um espaço de largura zero (U+200B) na frente:
+        # invisível, mas a linha de acordes deixava de ser reconhecida
+        # (sem cor no editor, sem transpor, aparecendo no telão). Tira só
+        # as linhas vazias das pontas — strip() comeria o recuo da 1ª
+        # linha, que posiciona o acorde em cima da sílaba.
+        cifra = re.sub('[\u200b-\u200d\u2060\ufeff]', '', cifra_tag.get_text())
+        cifra = re.sub(r'\A(?:[ \t]*\n)+', '', cifra).rstrip()
     else:
         cifra = 'Cifra não encontrada'
         logger.warning('Cifra Club: bloco de cifra não encontrado — seletor desatualizado?')

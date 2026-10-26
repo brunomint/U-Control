@@ -1805,6 +1805,22 @@ def test_new_song_save_and_continue(app, logged_in_client):
     logged_in_client.post(f"/delete_song/{resp['id']}")
 
 
+def test_cifra_club_sem_espaco_de_largura_zero_e_com_recuo():
+    """O Cifra Club põe U+200B no começo de cada linha (dentro de <div>s no
+    <pre>): a linha de acordes deixava de ser reconhecida e ficava sem cor.
+    Tirar o caractere não pode mexer no recuo que posiciona o acorde."""
+    from bs4 import BeautifulSoup
+    from blueprints.cifras import _extrair_titulo_compositor_cifra
+    zw = "\u200b"
+    html = ('<pre data-chord-content="true">'
+            f'<div>{zw}        <b>Am7</b>  <b>F9/C</b>\n</div>'
+            f'<div>{zw}    Nada vai me separar\n</div>'
+            f'<div>{zw}[Intro] <b>C</b>  <b>G11/B</b>\n</div></pre>')
+    _, _, cifra = _extrair_titulo_compositor_cifra(BeautifulSoup(html, "html.parser"))
+    assert zw not in cifra
+    assert cifra.split("\n") == ["        Am7  F9/C", "    Nada vai me separar", "[Intro] C  G11/B"]
+
+
 def test_cifra_club_titulo_e_artista_com_acento():
     """Título e artista vêm do JSON-LD da página (com acento), não do
     endereço ("ministerio-morada" virava "Ministerio Morada")."""

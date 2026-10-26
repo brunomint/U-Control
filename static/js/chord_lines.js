@@ -79,8 +79,13 @@
     return null;
   }
 
+  // O Cifra Club começa cada linha da cifra com um espaço de largura zero
+  // (U+200B), que não conta como espaço (\s nem trim()): "​   Am7  F9"
+  // virava um token inválido e a linha toda caía como letra, sem cor.
+  const ZERO_WIDTH = /[\u200B-\u200D\u2060\uFEFF]/g;
+
   function chordTokens(line) {
-    const cleaned = line.trim()
+    const cleaned = line.replace(ZERO_WIDTH, '').trim()
       .replace(/[xX][0-9]+/g, '')
       .replace(/[0-9]+[xX]/g, '')
       .replace(/\|/g, ' ');
@@ -136,7 +141,7 @@
   // classificação manualmente nos raros casos em que o palpite
   // automático erraria.
   function isChordLine(line) {
-    const trimmed = line.trim();
+    const trimmed = line.replace(ZERO_WIDTH, '').trim();
     if (!trimmed) return false;
     if (/\/\/chords$/i.test(trimmed)) return true;
     if (/\/\/lyrics$/i.test(trimmed)) return false;
