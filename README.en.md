@@ -10,21 +10,20 @@ One computer runs U-Control (Windows, Raspberry Pi or Docker), and any
 device on the same network opens the Control panel or the screens at
 `http://<ip>:8585`. No internet needed during the service.
 
-> **Note:** the interface is in Portuguese for now (it was made for a
-> church in Brazil). An English translation is planned. If you would use
-> it, say so in the
-> [Discussions](https://github.com/brunomint/U-Control/discussions); that
-> helps decide what to translate first.
+> **Language:** the interface is in English and Portuguese (System →
+> Language). Automatic follows each person's browser. Searching the Bible
+> by reference still uses the Portuguese book names (for example
+> `João 3:16`); you can always pick the book and chapter from the list.
 
 **[⬇ Download for Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Project website](https://brunomint.github.io/U-Control/en/)
 
-![Control panel: the song in the panel and what is on the big screen next to it](docs/imagens/controle.png)
+![Control panel: the song in the panel and what is on the big screen next to it](docs/imagens/en/controle.png)
 
 | Big screen | Stage monitor (musicians) |
 |---|---|
-| ![Lyrics on the big screen](docs/imagens/telao-letra.png) | ![Chords on the stage monitor, with the next section below](docs/imagens/monitor-cifra.png) |
+| ![Lyrics on the big screen](docs/imagens/en/telao-letra.png) | ![Chords on the stage monitor, with the next section below](docs/imagens/en/monitor-cifra.png) |
 | **Bible in two versions** | **From your phone** |
-| ![Psalm 46:1 in two translations on the big screen](docs/imagens/telao-biblia.jpg) | <img src="docs/imagens/celular.png" alt="Control panel on a phone" width="240"> |
+| ![John 3:16 in the King James Version and the Bible in Basic English on the big screen](docs/imagens/en/telao-biblia.jpg) | <img src="docs/imagens/en/celular.png" alt="Control panel on a phone" width="240"> |
 
 ## Features
 
@@ -50,6 +49,7 @@ device on the same network opens the Control panel or the screens at
 - **Backup**, and export/import of songs and services between
   installations.
 - **Update notice** inside the app (Windows).
+- **Interface in English and Portuguese.**
 
 ## Installation
 
@@ -153,8 +153,10 @@ The Windows installer is built by GitHub Actions
 
 Found a problem or have an idea? Open an
 [issue](https://github.com/brunomint/U-Control/issues), in English or
-Portuguese. Fixes and improvements via pull request are welcome, and
-help with the English translation especially.
+Portuguese. Fixes and improvements via pull request are welcome. The
+interface text lives in [`translations/en.json`](translations/en.json)
+(Portuguese → English): better wording, or a new language, is a good
+first contribution.
 
 ## License
 
