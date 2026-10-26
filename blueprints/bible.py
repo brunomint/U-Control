@@ -299,7 +299,7 @@ def generate_bible_url(reference):
     verse_start = match.group(3)
     verse_end = match.group(4)
 
-    book_abbrev = book_map.get(book_name)
+    book_abbrev = book_map.get(book_name) or _livro(book_name)  # inglês ("John 3:16")
     if not book_abbrev:
         return f'/bible?search={reference}'
 
@@ -460,9 +460,68 @@ def search_bible(translation, query, limit=50):
     return results
 
 
+# Abreviações usuais em inglês -> abreviação da lista padrão. Os nomes por
+# extenso ("John", "Psalms", "Song of Solomon") vêm da própria KJV.
+_ABREV_INGLES = {
+    'gen': 'gn', 'exod': 'ex', 'lev': 'lv', 'num': 'nm', 'deut': 'dt', 'josh': 'js',
+    'judg': 'jz', 'ruth': 'rt', '1 sam': '1sm', '2 sam': '2sm', '1 kgs': '1rs', '2 kgs': '2rs',
+    '1 chr': '1cr', '2 chr': '2cr', 'neh': 'ne', 'esth': 'et', 'ps': 'sl', 'psa': 'sl', 'psalm': 'sl',
+    'prov': 'pv', 'eccl': 'ec', 'song': 'ct', 'isa': 'is', 'jer': 'jr', 'lam': 'lm', 'ezek': 'ez',
+    'dan': 'dn', 'hos': 'os', 'obad': 'ob', 'mic': 'mq', 'nah': 'na', 'hab': 'hc', 'zeph': 'sf',
+    'hag': 'ag', 'zech': 'zc', 'mal': 'ml', 'matt': 'mt', 'mk': 'mc', 'lk': 'lc', 'jn': 'jo',
+    'rom': 'rm', '1 cor': '1co', '2 cor': '2co', 'gal': 'gl', 'eph': 'ef', 'phil': 'fp',
+    'col': 'cl', '1 thess': '1ts', '2 thess': '2ts', '1 tim': '1tm', '2 tim': '2tm', 'tit': 'tt',
+    'phlm': 'fm', 'heb': 'hb', 'jas': 'tg', '1 pet': '1pe', '2 pet': '2pe', '1 jn': '1jo',
+    '2 jn': '2jo', '3 jn': '3jo', 'rev': 'ap',
+}
+
+
+def _livros_em_ingles():
+    """[(nome em inglês minúsculo, abreviação padrão)] na ordem da lista."""
+    meta = load_bible_metadata().get('books', [])
+    if not _bible_path('en_kjv'):
+        return []
+    return [(b.get('name', '').lower(), meta[i]['abbrev'])
+            for i, b in enumerate(load_bible('en_kjv')) if i < len(meta) and b.get('name')]
+
+
+def _livro_em_ingles(nome, parcial=False):
+    nome = re.sub(r'\s+', ' ', nome.strip().lower().rstrip('.'))
+    if not parcial:
+        if nome in _ABREV_INGLES:
+            return _ABREV_INGLES[nome]
+        return next((ab for n, ab in _livros_em_ingles() if n == nome), None)
+    return next((ab for n, ab in _livros_em_ingles() if n.startswith(nome)), None)
+
+
+def _livro_em_portugues(book_input, parcial=False):
+    for book in load_bible_metadata().get('books', []):
+        if not parcial and (book['abbrev'].lower() == book_input or book['name'].lower() == book_input):
+            return book['abbrev']
+        if parcial and (book_input in book['name'].lower() or book['name'].lower().startswith(book_input)):
+            return book['abbrev']
+    return None
+
+
+def _livro(book_input):
+    """Abreviação padrão do livro digitado. Português ou inglês ("John",
+    "Jn", "Psalms", "1 Cor"); com a interface em inglês o inglês vem
+    primeiro — "Jn" é Jonas em português e John em inglês."""
+    from i18n import idioma_atual
+    ordem = (_livro_em_ingles, _livro_em_portugues)
+    if idioma_atual() != 'en':
+        ordem = ordem[::-1]
+    for parcial in (False, True):
+        for achar in ordem:
+            ab = achar(book_input, parcial)
+            if ab:
+                return ab
+    return None
+
+
 def parse_reference(reference):
-    """Parseia uma referência bíblica como 'João 3:16' ou 'Jo 3:16-18'."""
-    metadata = load_bible_metadata()
+    """Parseia uma referência bíblica como 'João 3:16', 'Jo 3:16-18' ou,
+    em inglês, 'John 3:16', 'Ps 23'."""
 
     # Padrões: "João 3:16", "Jo 3:16", "João 3:16-18", "João 3"
     pattern = r'^(.+?)\s*(\d+)(?::(\d+)(?:-(\d+))?)?$'
@@ -476,20 +535,7 @@ def parse_reference(reference):
     verse_start = int(match.group(3)) if match.group(3) else None
     verse_end = int(match.group(4)) if match.group(4) else verse_start
 
-    # Encontra o livro pela abreviação ou nome
-    book_abbrev = None
-    for book in metadata.get('books', []):
-        if book['abbrev'].lower() == book_input or book['name'].lower() == book_input:
-            book_abbrev = book['abbrev']
-            break
-
-    if not book_abbrev:
-        # Tenta match parcial
-        for book in metadata.get('books', []):
-            if book_input in book['name'].lower() or book['name'].lower().startswith(book_input):
-                book_abbrev = book['abbrev']
-                break
-
+    book_abbrev = _livro(book_input)
     if not book_abbrev:
         return None
 

@@ -33,7 +33,7 @@ window.HELP_SECTIONS_I18N = {
         <h2>Bible in two versions</h2>
         <p>On the Bible pages, next to the translation, choose a <strong>2nd translation</strong>. The big screen then shows the verse in both, one below the other, each with its abbreviation. To go back to one, choose <strong>+ 2nd translation: none</strong>.</p>
         <p>The choice applies to every Control panel and stays after the program restarts.</p>
-        <div class="callout">Searching by reference uses the Portuguese book names for now (for example <code>João 3:16</code>, <code>Salmos 23</code>). You can always pick the book and chapter from the list.</div>`,
+        <p>Search by reference with the usual names and abbreviations, like <code>John 3:16</code>, <code>Ps 23</code> or <code>1 Cor 13:4-7</code>, or search for a word.</p>`,
 
     powerpoint: `
         <h2>PowerPoint and presentations</h2>

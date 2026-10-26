@@ -11,9 +11,7 @@ device on the same network opens the Control panel or the screens at
 `http://<ip>:8585`. No internet needed during the service.
 
 > **Language:** the interface is in English and Portuguese (System →
-> Language). Automatic follows each person's browser. Searching the Bible
-> by reference still uses the Portuguese book names (for example
-> `João 3:16`); you can always pick the book and chapter from the list.
+> Language). Automatic follows each person's browser.
 
 **[⬇ Download for Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Project website](https://brunomint.github.io/U-Control/en/)
 

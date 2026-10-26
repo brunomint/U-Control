@@ -3444,3 +3444,24 @@ def test_second_bible_version_found_from_english_book_name(monkeypatch):
             "version": bible.get_translation_name("en_kjv")}
     out = bible.com_segunda_versao(data)
     assert out.get("version2_abbrev") == "BBE" and out["verses2"][0]["num"] == 16
+
+
+def test_bible_reference_in_english(app, logged_in_client):
+    """A busca só entendia "João 3:16". Agora também "John 3:16", "Ps 23",
+    "1 Cor 13:4". "Jn" é Jonas em português e John em inglês: o idioma da
+    interface decide (o português continua igual pra quem já usa)."""
+    from blueprints.bible import generate_bible_url, parse_reference
+    with app.test_request_context():
+        assert parse_reference("Jn 3:16")["book_abbrev"] == "jn"          # Jonas
+        assert parse_reference("John 3:16")["book_abbrev"] == "jo"
+        assert parse_reference("João 3:16")["book_abbrev"] == "jo"
+        assert parse_reference("Rom 8:28")["book_abbrev"] == "rm"
+    with app.test_request_context(headers={"Accept-Language": "en"}):
+        assert parse_reference("Jn 3:16")["book_abbrev"] == "jo"          # John
+        for ref, livro in (("Ps 23", "sl"), ("Psalm 23:1", "sl"), ("1 Cor 13:4", "1co"),
+                           ("Song of Solomon 2:4", "ct"), ("Rev 21:4", "ap"), ("Salmos 23", "sl")):
+            assert parse_reference(ref)["book_abbrev"] == livro, ref
+        assert generate_bible_url("John 3:16") == "/bible/control/jo/3/16"
+    r = logged_in_client.get("/api/bible/search", query_string={"q": "John 3:16", "translation": "en_kjv"},
+                             headers={"Accept-Language": "en"}).get_json()
+    assert r["results"] and r["results"][0]["reference"] == "John 3:16"
