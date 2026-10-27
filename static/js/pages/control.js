@@ -179,27 +179,11 @@ function loadDisplayState() {
 
 
 
-let blackoutActive = false;
-
-function toggleBlackout() {
-    socket.emit('blackout', { active: !blackoutActive });
-    setBlackoutButton(!blackoutActive);
-}
-
-// O servidor guarda o estado: ao abrir o /control (identify) ou quando
-// outro operador/o /presenter liga a tela preta, o botão acompanha
+// Tela preta/branca/logo (static/js/telas_neutras.js). O servidor guarda
+// o estado: ao abrir o /control (identify) ou quando outro operador/o
+// /presenter liga uma delas, os botões acompanham
 socket.on('connect', () => socket.emit('identify', { role: 'control' }));
-socket.on('blackout', data => setBlackoutButton(!!data.active));
-
-function setBlackoutButton(active) {
-    blackoutActive = active;
-    const btn = document.getElementById('blackoutBtn');
-    btn.classList.toggle('active', blackoutActive);
-    btn.querySelector('i').className = blackoutActive ? 'fas fa-sun' : 'fas fa-moon';
-    btn.querySelector('span').textContent = blackoutActive ? _t('Voltar a imagem') : _t('Tela preta');
-    const overlay = document.getElementById('preview-blackout');
-    if (overlay) overlay.hidden = !blackoutActive;
-}
+TelasNeutras.iniciar(socket);
 
 // Funções do Ticker — escolhe as telas (uma, duas ou as três); cada tela
 // guarda o próprio aviso, então "Mostrar"/"Tirar" só mexem nas escolhidas
@@ -545,7 +529,7 @@ function applyTelaoStatus(st) {
     if (!st || !st.live) return;
     lastTelaoStatus = st;
     applyServerMode(myMode(st));
-    setBlackoutButton(!!st.blackout);
+    TelasNeutras.mostrar(!!st.blackout, st.blackout_tipo);
     renderPreview();
 }
 

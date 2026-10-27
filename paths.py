@@ -44,6 +44,10 @@ else:
 # Fica junto do banco, fora do git.
 BIBLES_PRIVATE_DIR = os.path.join(INSTANCE_DIR or os.path.join(APP_DIR, 'instance'), 'bibles')
 
+# Coisas da igreja que não são do banco (por enquanto o logo, mostrado na
+# "tela com logo" do telão — blueprints/logo_igreja.py). Entra no backup.
+IGREJA_DIR = os.path.join(INSTANCE_DIR or os.path.join(APP_DIR, 'instance'), 'igreja')
+
 # Pastas servidas em /static/<nome>/ que, com DATA_DIR, saem de lá
 SERVED_DATA_DIRS = {
     'imagens': IMAGE_FOLDER,

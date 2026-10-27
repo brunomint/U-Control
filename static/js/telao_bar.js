@@ -83,7 +83,13 @@
             `<span class="tb-dot"></span><b>${esc(_t('No ar'))}</b>` +
             `<span class="tb-label">${esc(window.ucTelaoLabel(st.live.label))}</span></a>`);
         if (st.blackout) {
-            parts.push(`<span class="tb-chip tb-black" title="${esc(_t('O público vê a tela toda preta'))}"><i class="fas fa-moon"></i> ${esc(_t('Tela preta'))}</span>`);
+            // Tela neutra no ar: preta, branca ou logo (static/js/telas_neutras.js)
+            const neutra = {
+                preta: ['fa-moon', 'Tela preta', 'O público vê a tela toda preta'],
+                branca: ['fa-square', 'Tela branca', 'O público vê a tela toda branca'],
+                logo: ['fa-church', 'Logo', 'O público vê o logo da igreja'],
+            }[st.blackout_tipo] || ['fa-moon', 'Tela preta', 'O público vê a tela toda preta'];
+            parts.push(`<span class="tb-chip tb-black" title="${esc(_t(neutra[2]))}"><i class="fas ${neutra[0]}"></i> ${esc(_t(neutra[1]))}</span>`);
         }
         // Modo desta máquina (o servidor guarda um por PC — ver
         // display_state._device_modes); o GET já vem com st.mode

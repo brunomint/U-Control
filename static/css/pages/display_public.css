@@ -204,3 +204,8 @@ html, body {
     transition: opacity .4s ease;
 }
 #blackout-layer.active { opacity: 1; }
+/* Tela branca e tela com o logo da igreja (static/js/telas_neutras.js) */
+#blackout-layer { display: flex; align-items: center; justify-content: center; }
+#blackout-layer[data-tipo="branca"] { background: #fff; }
+#blackout-logo { display: none; max-width: 60vw; max-height: 60vh; object-fit: contain; }
+#blackout-layer[data-tipo="logo"] #blackout-logo { display: block; }

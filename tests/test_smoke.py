@@ -3213,7 +3213,7 @@ def test_atalhos_exigem_chave_e_comandam_o_telao(app, client, logged_in_client):
     try:
         tela.get_received()
         r = client.post("/api/atalho/tela-preta-ligar", headers={"X-UControl-Chave": chave})
-        assert r.get_json() == {"ok": True, "tela_preta": True} and display_state._blackout_active is True
+        assert r.get_json() == {"ok": True, "tela_preta": True, "tipo": "preta"} and display_state._blackout_active is True
         assert any(m["name"] == "blackout" and m["args"][0]["active"] for m in tela.get_received())
         assert client.get(f"/api/atalho/tela-preta?chave={chave}").get_json()["tela_preta"] is False
 
@@ -3632,3 +3632,57 @@ def test_transpose_keeps_chords_in_their_columns():
     menor, maior = json.loads(subprocess.run([node, "-e", codigo], capture_output=True, text=True, check=True).stdout)
     assert menor == "G        D/F#   Em   C"
     assert maior == "F#m D"   # mais comprido: empurra, mas sempre com 1 espaço
+
+
+
+def test_white_and_logo_screens(app, logged_in_client, tmp_path, monkeypatch):
+    """Telas neutras: preta, branca e com o logo da igreja. O logo é enviado
+    no painel da Agenda; sem logo, pedir a tela com logo dá a preta."""
+    import io
+    import display_state
+    import paths
+    from PIL import Image
+    monkeypatch.setattr(paths, "IGREJA_DIR", str(tmp_path / "igreja"))
+    operator = _operator_socket(app)
+    screen = ucontrol_main.socketio.test_client(app)
+    screen.emit("identify", {"role": "public"})
+    screen.get_received()
+    try:
+        def ultimo():
+            return [m["args"][0] for m in screen.get_received() if m["name"] == "blackout"][-1]
+
+        operator.emit("blackout", {"active": True, "tipo": "branca"})
+        assert ultimo() == {"active": True, "tipo": "branca"}
+        operator.emit("blackout", {"active": True, "tipo": "logo"})   # ainda sem logo
+        assert ultimo()["tipo"] == "preta"
+
+        assert ucontrol_main.app.test_client().post("/api/logo-igreja").status_code in (302, 401)  # sem login
+        r = logged_in_client.post("/api/logo-igreja", data={"logo": (io.BytesIO(b"nao e imagem"), "x.png")})
+        assert r.status_code == 400
+        png = io.BytesIO()
+        Image.new("RGB", (4000, 1000), "red").save(png, "PNG")
+        png.seek(0)
+        assert logged_in_client.post("/api/logo-igreja", data={"logo": (png, "logo.png")}).get_json() == {"ok": True}
+        servido = ucontrol_main.app.test_client().get("/logo-igreja.png")   # a tela pública não tem login
+        assert servido.status_code == 200 and Image.open(io.BytesIO(servido.data)).size == (1920, 480)
+
+        operator.emit("blackout", {"active": True, "tipo": "logo"})
+        assert ultimo() == {"active": True, "tipo": "logo"}
+        tarde = ucontrol_main.socketio.test_client(app)            # quem abre depois vê a mesma
+        tarde.emit("identify", {"role": "public"})
+        assert {"active": True, "tipo": "logo"} in [m["args"][0] for m in tarde.get_received() if m["name"] == "blackout"]
+        tarde.disconnect()
+        assert 'data-tela="logo"' in logged_in_client.get("/control").get_data(as_text=True)
+
+        assert logged_in_client.post("/api/logo-igreja/remover").get_json() == {"ok": True}
+        assert ucontrol_main.app.test_client().get("/logo-igreja.png").status_code == 404
+    finally:
+        operator.emit("blackout", {"active": False})
+        display_state._blackout_tipo = "preta"
+        operator.disconnect()
+        screen.disconnect()
+
+
+def test_backup_includes_church_logo():
+    from blueprints import backup
+    assert "igreja" in backup.PASTAS

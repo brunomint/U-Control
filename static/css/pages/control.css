@@ -86,7 +86,6 @@
 /* Botão que sobra sozinho na última linha ocupa as duas colunas (em inglês
    "Open on the projector" não cabia em meia largura) */
 .live-actions .uc-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
-#blackoutBtn.active { background: var(--uc-live); border-color: var(--uc-live); color: #fff; }
 
 .mode-choice { margin-top: 14px; display: grid; gap: 6px; }
 .mode-choice-label { font-size: 12px; font-weight: 700; color: var(--uc-muted); }

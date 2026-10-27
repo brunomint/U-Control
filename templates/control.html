@@ -10,6 +10,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/control.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/telas_neutras.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/site_telao.css') }}">
 {% endblock %}
 
@@ -50,14 +51,22 @@
                 <iframe id="iframe2" src="about:blank" title="{{ _('Prévia do telão (direita)') }}"></iframe>
             </div>
             <div class="preview-screen-label" id="preview-screen-label" hidden><i class="fas fa-tv"></i> {{ _('Monitor de palco') }}</div>
-            <div class="preview-blackout" id="preview-blackout" hidden><i class="fas fa-moon"></i> {{ _('Tela preta: o público vê tudo preto') }}</div>
+            <div class="preview-blackout" id="preview-blackout" hidden><i class="fas fa-moon"></i> <span>{{ _('Tela preta: o público vê tudo preto') }}</span></div>
         </div>
         <!-- O que o monitor de palco mostra quando é diferente do público
              (Modo monitor, Modo público, tela dividida) — vem de telao.py -->
         <p class="preview-monitor-note" id="preview-monitor-note" hidden></p>
 
         <div class="live-actions">
-            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> <span>{{ _('Tela preta') }}</span></button>
+            <div class="telas-neutras" role="group" aria-label="{{ _('Telas neutras') }}">
+                <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" data-tela="preta" aria-pressed="false" title="{{ _('Tela toda preta') }}"><i class="fas fa-moon"></i> <span>{{ _('Preta') }}</span></button>
+                <button type="button" class="uc-btn uc-btn-secondary" data-tela="branca" aria-pressed="false" title="{{ _('Tela toda branca') }}"><i class="far fa-square"></i> <span>{{ _('Branca') }}</span></button>
+                {%- if tem_logo_igreja() %}
+                <button type="button" class="uc-btn uc-btn-secondary" data-tela="logo" aria-pressed="false" title="{{ _('Logo da igreja no centro, fundo preto') }}"><i class="fas fa-church"></i> <span>{{ _('Logo') }}</span></button>
+                {%- else %}
+                <a class="uc-btn uc-btn-ghost" href="/agenda/dashboard#igreja-title" title="{{ _('Envie o logo da igreja no painel da Agenda') }}"><i class="fas fa-church"></i> <span>{{ _('Pôr logo') }}</span></a>
+                {%- endif %}
+            </div>
             <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="{{ _('Copia o que está no público para o monitor de palco') }}"><i class="fas fa-rotate"></i> {{ _('Sincronizar monitor') }}</button>
             <button type="button" class="uc-btn uc-btn-secondary" onclick="abrirDatashow()" title="{{ _('Escolhe em qual tela do PC a tela pública abre') }}"><i class="fas fa-display"></i> {{ _('Abrir no datashow') }}</button>
         </div>
@@ -258,6 +267,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ versioned_static('js/telas_neutras.js') }}"></script>
 <script src="{{ versioned_static('js/pages/control.js') }}"></script>
 <script src="{{ versioned_static('js/screen_picker.js') }}"></script>
 <script src="{{ versioned_static('js/site_telao.js') }}"></script>

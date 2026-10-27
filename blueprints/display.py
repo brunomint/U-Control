@@ -554,9 +554,16 @@ def api_monitor_sync():
 
 @socketio.on('blackout')
 def handle_blackout(data):
-    """Escurece ou restaura a tela de exibição"""
+    """Cobre a tela pública com uma tela neutra — preta, branca ou com o
+    logo da igreja (tipo) — ou volta a imagem"""
+    from blueprints.logo_igreja import tem_logo
+    tipo = data.get('tipo') if data.get('tipo') in display_state.BLACKOUT_TIPOS else 'preta'
+    if tipo == 'logo' and not tem_logo():
+        tipo = 'preta'
     display_state._blackout_active = bool(data.get('active', True))
-    emit('blackout', {'active': display_state._blackout_active}, broadcast=True)
+    if display_state._blackout_active:
+        display_state._blackout_tipo = tipo
+    emit('blackout', {'active': display_state._blackout_active, 'tipo': display_state._blackout_tipo}, broadcast=True)
     telao.broadcast_status()
 
 @socketio.on('show_image_zoom')

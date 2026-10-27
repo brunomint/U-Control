@@ -1,0 +1,14 @@
+/* Botões das telas neutras — preta, branca, logo (static/js/telas_neutras.js) */
+.telas-neutras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.live-actions .telas-neutras { grid-column: 1 / -1; }
+/* control.css estica o último botão ímpar de .live-actions; aqui não */
+.live-actions .telas-neutras .uc-btn:last-child { grid-column: auto; }
+.telas-neutras .uc-btn { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.telas-neutras [data-tela].active { background: var(--uc-live); border-color: var(--uc-live); color: #fff; }
+.telas-neutras [data-tela="branca"].active { background: #fff; border-color: var(--uc-live); color: #111; box-shadow: 0 0 0 2px var(--uc-live); }
+/* Aviso em cima da prévia do Controle, na cor da tela que está no ar */
+.preview-blackout[data-tipo="branca"] { background: #fff; color: rgba(0, 0, 0, .7); }
+.preview-blackout[data-tipo="logo"] { background: #000 url("/logo-igreja.png") center / auto 55% no-repeat; align-items: flex-end; padding-bottom: 8px; }
+/* Com o grupo ocupando a linha toda, os botões seguintes do Controle
+   ficam um por linha (antes um ficava pela metade, sozinho) */
+.live-actions > .telas-neutras ~ .uc-btn { grid-column: 1 / -1; }

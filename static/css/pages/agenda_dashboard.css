@@ -7,3 +7,9 @@
 @media (max-width: 900px) {
   .agenda-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Logo da igreja (tela com logo do telão) */
+.logo-igreja-linha { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.logo-igreja-linha .uc-input { flex: 1; min-width: 0; }
+#logoIgrejaPrevia { width: 96px; height: 54px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--uc-line); }
+#logoIgrejaPrevia[hidden] { display: none; }

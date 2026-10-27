@@ -279,7 +279,14 @@
         // Antes só escurecia foto/vídeo: com letra, Bíblia ou relógio no
         // telão o botão "Tela preta" não fazia nada
         socket.on('blackout', (data) => {
-            document.getElementById('blackout-layer').classList.toggle('active', !!data.active);
+            const camada = document.getElementById('blackout-layer');
+            camada.classList.toggle('active', !!data.active);
+            // Tela branca / com logo: troca a cor só quando liga — ao
+            // desligar fica a mesma, pro esmaecer não piscar outra cor
+            if (data.active) {
+                camada.dataset.tipo = data.tipo || 'preta';
+                if (data.tipo === 'logo') document.getElementById('blackout-logo').src = '/logo-igreja.png?v=' + Date.now();
+            }
         });
 
         // ────────────────────────────────────────────────────────────

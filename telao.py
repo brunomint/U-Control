@@ -236,6 +236,7 @@ def build_status():
         'follow_label': ('Letra e Bíblia' if follow and display_state._live_follow_texto == display_state.TEXTO
                          else _FOLLOW_LABELS.get(follow)) if follow else None,
         'blackout': bool(display_state._blackout_active),
+        'blackout_tipo': display_state._blackout_tipo,
         **_extras(),
     }
 

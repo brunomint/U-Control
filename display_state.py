@@ -35,6 +35,9 @@ _current_display_mode = 'blank'
 # Tela preta ligada no telão público (blackout do /control ou /presenter) —
 # guardado pra tela que recarregar/conectar no meio continuar preta.
 _blackout_active = False
+# Qual tela neutra: 'preta', 'branca' ou 'logo' (logo da igreja)
+BLACKOUT_TIPOS = ('preta', 'branca', 'logo')
+_blackout_tipo = 'preta'
 _last_image_url = None
 
 # "Live-follow" do preparar/liberar (ver blueprints/display.py,

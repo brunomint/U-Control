@@ -49,7 +49,7 @@
             </section>
 
             <section class="uc-card" aria-labelledby="igreja-title">
-                <div class="uc-card-head"><h2 id="igreja-title">{{ _('Nome da igreja') }}</h2></div>
+                <div class="uc-card-head"><h2 id="igreja-title">{{ _('Nome e logo da igreja') }}</h2></div>
                 <div class="uc-form-stack">
                     <div class="uc-field">
                         <label for="nomeIgreja">{{ _('Aparece no calendário público') }}</label>
@@ -59,6 +59,18 @@
                     <p id="nomeIgrejaMsg" class="uc-muted" role="status"></p>
                     <div class="uc-btn-row">
                         <button type="button" class="uc-btn uc-btn-secondary" id="salvarNomeIgreja"><i class="fas fa-check"></i> {{ _('Salvar') }}</button>
+                    </div>
+                    {#- Logo: na "tela com logo" do telão (blueprints/logo_igreja.py) #}
+                    <div class="uc-field logo-igreja">
+                        <label for="logoIgreja">{{ _('Logo (aparece no telão com o botão Logo, no Controle)') }}</label>
+                        <div class="logo-igreja-linha">
+                            <img id="logoIgrejaPrevia" alt="{{ _('Logo da igreja') }}" {% if tem_logo_igreja() %}src="/logo-igreja.png"{% else %}hidden{% endif %}>
+                            <input class="uc-input" type="file" id="logoIgreja" accept="image/png,image/jpeg,image/webp,image/gif">
+                        </div>
+                    </div>
+                    <p id="logoIgrejaMsg" class="uc-muted" role="status"></p>
+                    <div class="uc-btn-row">
+                        <button type="button" class="uc-btn uc-btn-ghost" id="removerLogoIgreja" {% if not tem_logo_igreja() %}hidden{% endif %}><i class="fas fa-trash"></i> {{ _('Tirar o logo') }}</button>
                     </div>
                 </div>
             </section>

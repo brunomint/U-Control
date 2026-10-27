@@ -20,22 +20,10 @@
 
         socket.emit('identify', { role: 'presenter' });
 
-        let blackoutActive = false;
-        function toggleBlackout() {
-            socket.emit('blackout', { active: !blackoutActive });
-            setBlackoutButton(!blackoutActive);
-        }
-        // Acompanha o estado do servidor (outro operador, o Controle, ou
-        // esta página aberta com a tela preta já ligada — identify)
-        socket.on('blackout', data => setBlackoutButton(!!data.active));
-        function setBlackoutButton(active) {
-            blackoutActive = active;
-            const btn = document.getElementById('blackoutBtn');
-            btn.classList.toggle('active', blackoutActive);
-            btn.innerHTML = blackoutActive
-                ? '<i class="fas fa-sun"></i> ' + _t('Voltar a imagem')
-                : '<i class="fas fa-moon"></i> ' + _t('Tela preta');
-        }
+        // Tela preta/branca/logo (static/js/telas_neutras.js): acompanha o
+        // servidor (outro operador, o Controle, ou esta página aberta com
+        // uma delas já ligada — identify)
+        TelasNeutras.iniciar(socket);
 
         socket.on('atualizar_foto', function(data) {
             document.getElementById("foto-atual-iframe").src = data.foto_atual;

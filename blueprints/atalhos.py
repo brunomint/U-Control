@@ -130,11 +130,14 @@ def _liberar():
     return {'ok': True, 'liberado': preparado.label or preparado.kind}
 
 
-def _tela_preta(modo):
+def _tela_preta(modo, tipo='preta'):
     from blueprints.display import handle_blackout
-    ativo = (not display_state._blackout_active) if modo == 'alternar' else modo == 'ligar'
-    _handler(handle_blackout)({'active': ativo})
-    return {'ok': True, 'tela_preta': ativo}
+    # Alternar: desliga se ESTA tela (preta/branca/logo) está no ar; se for
+    # outra, troca pra esta
+    no_ar = display_state._blackout_active and display_state._blackout_tipo == tipo
+    ativo = (not no_ar) if modo == 'alternar' else modo == 'ligar'
+    _handler(handle_blackout)({'active': ativo, 'tipo': tipo})
+    return {'ok': True, 'tela_preta': ativo, 'tipo': display_state._blackout_tipo}
 
 
 def _texto(modo):
@@ -216,6 +219,8 @@ COMANDOS = {
     'tela-preta': ('Tela preta liga/desliga', lambda: _tela_preta('alternar')),
     'tela-preta-ligar': ('Tela preta: ligar', lambda: _tela_preta('ligar')),
     'tela-preta-desligar': ('Tela preta: desligar', lambda: _tela_preta('desligar')),
+    'tela-branca': ('Tela branca liga/desliga', lambda: _tela_preta('alternar', 'branca')),
+    'tela-logo': ('Tela com o logo da igreja liga/desliga', lambda: _tela_preta('alternar', 'logo')),
     'texto': ('Esconder/mostrar a letra ou o versículo', lambda: _texto('alternar')),
     'aviso': ('Mostrar aviso (?texto=...&telas=public,monitor,obs)', _aviso),
     'aviso-tirar': ('Tirar o aviso (?telas=... ou todas)', _aviso_tirar),

@@ -9,6 +9,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/presenter.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/telas_neutras.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -23,7 +24,15 @@
             <select class="uc-input" id="folderSelect" onchange="onFolderChange()" aria-label="{{ _('Pasta') }}"></select>
             <button type="button" class="uc-btn uc-btn-secondary menu-toggle" onclick="toggleMenu()"><i class="fas fa-folder-open"></i> {{ _('Arquivos e pastas') }}</button>
             <button type="button" class="uc-btn uc-btn-secondary" id="toggleSelectBtn" onclick="toggleSelectMode()"><i class="fas fa-square-check"></i> {{ _('Selecionar') }}</button>
-            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" onclick="toggleBlackout()"><i class="fas fa-moon"></i> {{ _('Tela preta') }}</button>
+            <div class="telas-neutras" role="group" aria-label="{{ _('Telas neutras') }}">
+            <button type="button" class="uc-btn uc-btn-secondary" id="blackoutBtn" data-tela="preta" aria-pressed="false" title="{{ _('Tela toda preta') }}"><i class="fas fa-moon"></i> <span>{{ _('Preta') }}</span></button>
+            <button type="button" class="uc-btn uc-btn-secondary" data-tela="branca" aria-pressed="false" title="{{ _('Tela toda branca') }}"><i class="far fa-square"></i> <span>{{ _('Branca') }}</span></button>
+            {%- if tem_logo_igreja() %}
+            <button type="button" class="uc-btn uc-btn-secondary" data-tela="logo" aria-pressed="false" title="{{ _('Logo da igreja no centro, fundo preto') }}"><i class="fas fa-church"></i> <span>{{ _('Logo') }}</span></button>
+            {%- else %}
+            <a class="uc-btn uc-btn-ghost" href="/agenda/dashboard#igreja-title" title="{{ _('Envie o logo da igreja no painel da Agenda') }}"><i class="fas fa-church"></i> <span>{{ _('Pôr logo') }}</span></a>
+            {%- endif %}
+        </div>
         </div>
     </div>
 
@@ -82,5 +91,6 @@
 
 {% block scripts %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ versioned_static('js/telas_neutras.js') }}"></script>
 <script src="{{ versioned_static('js/pages/presenter.js') }}"></script>
 {% endblock %}

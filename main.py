@@ -49,6 +49,7 @@ from blueprints.idioma import idioma_bp
 from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
+from blueprints.logo_igreja import logo_igreja_bp
 import blueprints.screen_share  # noqa: F401 — importado só pelo efeito colateral de registrar os handlers de socket
 from blueprints.lyrics import lyrics_bp
 from blueprints.display import display_bp
@@ -197,6 +198,7 @@ def create_app(config=None):
     app.register_blueprint(site_bp)
     app.register_blueprint(orders_bp)
     app.register_blueprint(agenda_bp)
+    app.register_blueprint(logo_igreja_bp)
     app.register_blueprint(lyrics_bp)
     app.register_blueprint(display_bp)
     app.register_blueprint(idioma_bp)

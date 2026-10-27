@@ -56,3 +56,43 @@ document.getElementById('salvarNomeIgreja').addEventListener('click', async () =
         msg.textContent = _t('Não deu pra salvar: {erro}', { erro: e.message });
     }
 });
+
+// Logo da igreja, pra tela com logo do telão (blueprints/logo_igreja.py)
+(function () {
+    const input = document.getElementById('logoIgreja');
+    const previa = document.getElementById('logoIgrejaPrevia');
+    const remover = document.getElementById('removerLogoIgreja');
+    const msg = document.getElementById('logoIgrejaMsg');
+    if (!input) return;
+    async function enviar(url, corpo) {
+        const r = await fetch(url, { method: 'POST', body: corpo });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    }
+    input.addEventListener('change', async () => {
+        if (!input.files.length) return;
+        const corpo = new FormData();
+        corpo.append('logo', input.files[0]);
+        msg.textContent = _t('Enviando...');
+        try {
+            await enviar('/api/logo-igreja', corpo);
+            previa.src = '/logo-igreja.png?v=' + Date.now();
+            previa.hidden = false;
+            remover.hidden = false;
+            msg.textContent = _t('Logo salvo. No Controle, o botão Logo mostra ele no telão.');
+        } catch (e) {
+            msg.textContent = _t('Não deu pra salvar: {erro}', { erro: e.message });
+        }
+        input.value = '';
+    });
+    remover.addEventListener('click', async () => {
+        try {
+            await enviar('/api/logo-igreja/remover');
+            previa.hidden = true;
+            remover.hidden = true;
+            msg.textContent = _t('Logo retirado.');
+        } catch (e) {
+            msg.textContent = _t('Não deu pra salvar: {erro}', { erro: e.message });
+        }
+    });
+})();

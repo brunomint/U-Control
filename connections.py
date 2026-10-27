@@ -60,7 +60,7 @@ def handle_identify(data):
         join_room('obs')  # avisos só pra transmissão (blueprints/ticker.py)
     # Telão público, /control ou /presenter abrindo com a tela preta já ligada
     if role in ('public', 'control', 'presenter') and display_state._blackout_active:
-        emit('blackout', {'active': True})
+        emit('blackout', {'active': True, 'tipo': display_state._blackout_tipo})
 
 
 def _get_monitor_sids():

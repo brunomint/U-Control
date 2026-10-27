@@ -9,6 +9,7 @@ O que vai no .zip:
     audio/...         áudios baixados
     bibles/...        Bíblias com direitos autorais que a igreja colocou
                       (paths.BIBLES_PRIVATE_DIR)
+    igreja/...        logo da igreja (paths.IGREJA_DIR)
 
 Restaurar troca tudo isso pelo que está no arquivo. Antes, guarda o que
 havia em <instance>/backups/antes-de-restaurar-*.zip."""
@@ -36,6 +37,7 @@ PASTAS = {  # nome no .zip -> pasta no disco
     'imagens': lambda: paths.IMAGE_FOLDER,
     'audio': lambda: paths.AUDIO_DIR,
     'bibles': lambda: paths.BIBLES_PRIVATE_DIR,
+    'igreja': lambda: paths.IGREJA_DIR,
 }
 GUARDAR_ANTES = 3  # cópias automáticas "antes de restaurar" mantidas
 # Já comprimidos: guardar sem comprimir de novo (no Pi, poupa minutos de CPU)
