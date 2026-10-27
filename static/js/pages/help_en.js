@@ -7,6 +7,7 @@ window.HELP_SECTIONS_I18N = {
         <p>One computer runs U-Control, and the other devices on the same network (phone, tablet, another PC) open the Control panel or the screens in a browser. No internet is needed during the service.</p>
         <ul>
             <li><strong>Control:</strong> lyrics with chords, Bible verses, photos, videos and PowerPoint go to the big screen with one tap.</li>
+            <li><strong>Service order:</strong> in the song editor, build the sequence (Verse 1 → Chorus → Verse 2 → Chorus) without repeating the chorus. Live, the arrow keys and the pedal follow the order, and the keys <kbd>1</kbd>–<kbd>9</kbd> (verses), <kbd>C</kbd> (chorus), <kbd>B</kbd> (bridge), <kbd>P</kbd> (pre-chorus), <kbd>I</kbd> (intro) and <kbd>F</kbd> (ending) jump straight there.</li>
             <li><strong>Synced screens:</strong> the public big screen and the stage monitor follow the Control panel.</li>
             <li><strong>Preparation:</strong> build the order of service, add songs and organize the team schedule ahead of time.</li>
             <li><strong>Bible in two versions</strong> on the big screen at the same time.</li>

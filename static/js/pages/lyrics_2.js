@@ -319,6 +319,55 @@ let currentTheme = CONFIG.theme;
         }
         $(document).on('click', '#ordem-faixa [data-passo]', function () { irParaPasso(Number(this.dataset.passo)); });
 
+        // Atalhos por seção, como no OpenSong: 1–9 o 1º, 2º… verso; C refrão,
+        // B ponte, P pré-refrão, I intro, F final, T tag. Vale também pelo
+        // Controle (control.js repassa a tecla) e segue a Ordem no culto:
+        // C de novo vai pro próximo refrão da sequência.
+        const TIPO_TECLA = {
+            p: /pr[eé][- ]?(refr[aã]o|chorus)/,   // antes do C: "pré-refrão" contém "refrão"
+            c: /refr[aã]o|\bcoro\b|chorus/,
+            b: /ponte|bridge/,
+            i: /\bintro/,
+            f: /\bfinal|ending|outro|encerramento/,
+            t: /\btag\b/,
+        };
+        const RE_VERSO = /vers[oe]|estrofe|\bparte\b|stanza|^\s*\d+\s*$/;
+        function tipoDaSecao(i) {
+            const t = (sections[i].title || '').toLowerCase();
+            for (const k of Object.keys(TIPO_TECLA)) if (TIPO_TECLA[k].test(t)) return k;
+            return RE_VERSO.test(t) ? 'v' : null;
+        }
+        // Versos na ordem em que estão escritos (1 = primeiro verso)
+        const versos = sections.map((_, i) => i).filter(i => tipoDaSecao(i) === 'v');
+
+        function teclaDaSecao(i) {
+            const tipo = tipoDaSecao(i);
+            if (tipo === 'v') { const n = versos.indexOf(i) + 1; return n <= 9 ? String(n) : ''; }
+            return tipo ? tipo.toUpperCase() : '';
+        }
+
+        function irPorTecla(tecla) {
+            const k = tecla.toLowerCase();
+            let alvos;
+            if (/^[1-9]$/.test(k)) {
+                const i = versos[Number(k) - 1];
+                alvos = i != null ? [i] : [];
+            } else if (TIPO_TECLA[k]) {
+                alvos = sections.map((_, i) => i).filter(i => tipoDaSecao(i) === k);
+            } else {
+                return false;
+            }
+            if (!alvos.length) return false;
+            // Próxima vez que aparece na ordem, a partir de onde está
+            for (let p = passoAtual + 1; p < passos.length; p++) {
+                if (alvos.includes(passos[p])) return irParaPasso(p);
+            }
+            const p = passos.findIndex(i => alvos.includes(i));
+            if (p >= 0) return irParaPasso(p);
+            loadSection(alvos[0]);   // fora da ordem: vai mesmo assim
+            return true;
+        }
+
         // ── Widget "Tom: X" estilo Cifra Club ────────────────────────
         // Transpõe tanto a prévia local (createSectionLinks/
         // renderSheetInSection) quanto o que é enviado ao vivo pro
@@ -505,7 +554,7 @@ let currentTheme = CONFIG.theme;
                 
                 const link = $(`
                     <div id="section-${i}" class="section-link">
-                        <span class="section-title">${section.title || _t('Seção {n}', { n: i + 1 })}</span>
+                        <span class="section-title">${section.title || _t('Seção {n}', { n: i + 1 })}${teclaDaSecao(i) ? `<kbd class="tecla-secao" title="${_t('Atalho: tecla {tecla}', { tecla: teclaDaSecao(i) })}">${teclaDaSecao(i)}</kbd>` : ''}</span>
                         ${content}
                     </div>
                 `);
@@ -846,6 +895,11 @@ $('#clear-lyrics').click(function() {
             // Adicionando a funcionalidade de navegação com as teclas "up" e "down"
             // Também suporta pedais Bluetooth (PageUp/PageDown, Space, Enter, etc.)
             $(document).keydown(function(event) {
+                // Atalho por seção (1–9, C, B, P, I, F, T) — não enquanto digita
+                if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey
+                    && !$(event.target).is('input, textarea, select, [contenteditable="true"]')) {
+                    if (irPorTecla(event.key)) { event.preventDefault(); return; }
+                }
                 // Teclas para VOLTAR seção (pedal esquerdo)
                 // ArrowUp, PageUp, ArrowLeft
                 if (event.key === "ArrowUp" || event.key === "PageUp" || event.key === "ArrowLeft") {

@@ -288,3 +288,9 @@ html body #yt-floating-player { left: 20px; right: auto; }
 .ordem-passo:hover { color: var(--uc-text); }
 .ordem-passo.active { background: var(--uc-live, #ef4444); border-color: transparent; color: #fff; }
 .ordem-faixa .ordem-seta { color: var(--uc-muted); font-size: 12px; }
+
+/* Atalho de teclado da seção (lyrics_2.js teclaDaSecao) */
+.tecla-secao {
+  margin-left: 8px; padding: 0 6px; border-radius: 4px; font: 700 11px/18px ui-monospace, Menlo, Consolas, monospace;
+  border: 1px solid var(--uc-line); background: var(--uc-surface-2); color: var(--uc-muted); vertical-align: 1px;
+}

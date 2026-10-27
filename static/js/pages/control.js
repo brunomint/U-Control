@@ -1061,7 +1061,9 @@ function setupPanel() {
         return panelState.view;
     }
     document.addEventListener('keydown', (e) => {
-        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
+        // Atalhos por seção da música (1–9, C, B, P, I, F, T — lyrics_2.js)
+        const teclaSecao = panelState.view === 'musica' && /^[1-9a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey;
+        if (!teclaSecao && !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
         if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
         if (repassarTecla(e.key)) e.preventDefault();
     });

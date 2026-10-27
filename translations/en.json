@@ -287,7 +287,6 @@
   "Fundo visual da letra no telão": "Visual background for the lyrics on the big screen",
   "Tema ativo": "Theme on",
   "Editar esta música (abre em outra aba)": "Edit this song (opens in another tab)",
-  "Toque numa seção para prepará-la · setas trocam de seção": "Tap a section to cue it · arrow keys change section",
   "Seção anterior": "Previous section",
   "Próxima seção": "Next section",
   "Tema visual da letra": "Lyrics visual theme",
@@ -1602,5 +1601,7 @@
   "Ordem:": "Order:",
   "<strong>OpenSong</strong>: os arquivos da pasta <code>Songs</code> (eles não têm extensão), ou a pasta inteira num <code>.zip</code> — com a cifra e a ordem no culto": "<strong>OpenSong</strong>: the files in the <code>Songs</code> folder (they have no extension), or the whole folder in a <code>.zip</code> — with chords and the service order",
   "Tag": "Tag",
-  "Verso": "Verse"
+  "Verso": "Verse",
+  "Toque numa seção para prepará-la · setas trocam de seção · teclas: 1–9 versos, C refrão, B ponte": "Tap a section to cue it · arrow keys change section · keys: 1–9 verses, C chorus, B bridge",
+  "Atalho: tecla {tecla}": "Shortcut: {tecla} key"
 }
