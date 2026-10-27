@@ -31,7 +31,7 @@ from i18n import gettext as tr
 from extensions import db, socketio
 from models import DisplayState, ImagePath, LyricsState, SavedUrls, StagedContent
 from settings_store import load_settings, save_settings
-from songs_store import get_song
+from songs_store import get_song, secoes_apresentadas
 from orders_store import current_key, mark_first_matching
 
 display_bp = Blueprint('display', __name__)
@@ -1221,8 +1221,11 @@ def api_current_display():
         # dado salvo antes desta persistência existir.
         if state and state.song_id:
             song = get_song(state.song_id)
-            if song and state.section_index < len(song['sections']):
-                section = song['sections'][state.section_index]
+            # section_index é a posição na lista apresentada (lyrics_2.js),
+            # não em song['sections'] — ver songs_store.secoes_apresentadas
+            apresentadas = secoes_apresentadas(song['sections']) if song else []
+            if 0 <= state.section_index < len(apresentadas) and apresentadas[state.section_index]['type'] == 'text':
+                section = apresentadas[state.section_index]
                 return jsonify({
                     'mode': 'lyrics',
                     'title': section['title'],

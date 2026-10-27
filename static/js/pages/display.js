@@ -209,16 +209,25 @@ const fitSheetsToScreen = () => {
                 .then(song => {
                     console.log('✅ Display: Música carregada:', song);
                     const idx = parseInt(sectionIndex || 0, 10);
-                    const section = song.sections[idx];
+                    // &section= é a posição na lista APRESENTADA (a mesma da
+                    // página da música, static/js/song_sections.js) — antes
+                    // era usada na lista salva e, em música com [NOME] no
+                    // texto ou seção vazia, o monitor mostrava outra seção.
+                    const apresentadas = SongSections.process(song.sections);
+                    const entrada = apresentadas[idx];
+                    // Texto: só a parte dessa seção; partitura/mista não é
+                    // dividida, então usa a seção salva inteira (com os marcadores)
+                    const section = !entrada ? null
+                        : entrada.type === 'text' ? { title: entrada.title, text: entrada.text } : song.sections[entrada.raw];
                     // Ordem no culto (Song.order): o "A seguir" e o mapa seguem
                     // a sequência; &passo= diz qual repetição (ex.: 2º refrão)
-                    const ordem = Array.isArray(song.order) && song.order.length ? song.order : song.sections.map((_, i) => i);
+                    const ordem = SongSections.passos(apresentadas, song.order);
                     let passo = parseInt(urlParams.get('passo'), 10);
                     if (!(ordem[passo] === idx)) passo = ordem.indexOf(idx);
-                    const next = passo >= 0 ? song.sections[ordem[passo + 1]] : song.sections[idx + 1];
-                    const nextText = next ? (Array.isArray(next.text) ? next.text.join('\n') : (next.text || '')) : null;
+                    const next = passo >= 0 ? apresentadas[ordem[passo + 1]] : apresentadas[idx + 1];
+                    const nextText = next ? (next.text || []).join('\n') : null;
                     renderFooter({
-                        sectionTitles: ordem.map(i => (song.sections[i] || {}).title),
+                        sectionTitles: ordem.map(i => apresentadas[i].title),
                         sectionIndex: idx,
                         mapIndex: passo,
                         nextTitle: next ? next.title : null,

@@ -93,24 +93,6 @@ def set_song_theme(song_id):
         return jsonify({'error': 'not found'}), 404
     return jsonify({'ok': True})
 
-@lyrics_bp.route('/section/<int:song_id>/<int:section_index>')
-def section(song_id, section_index):
-    """Exibe uma seção específica da música."""
-    song = get_song(song_id)
-    if not song or section_index < 0 or section_index >= len(song['sections']):
-        return jsonify({'error': _('Seção inválida')}), 404
-
-    section = song['sections'][section_index]
-    socketio.emit('update_lyrics', {
-        'title': section['title'],
-        'text': section['text'][0]
-    })
-
-    return jsonify({
-        'title': section['title'],
-        'text': section['text'][0]
-    })
-
 @lyrics_bp.route('/lyrics_data/<int:song_id>')
 def lyrics_data(song_id):
     """Retorna os dados da primeira seção da música."""

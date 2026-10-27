@@ -161,6 +161,42 @@ def set_theme(song_id, theme):
     return True
 
 
+_MARCA_PARTITURA = '🎼 PARTITURA_INTEGRADA_'
+
+
+def secoes_apresentadas(sections):
+    """Seções como são apresentadas — a mesma regra de
+    static/js/song_sections.js (process), pra o servidor achar a seção pelo
+    sectionIndex que as telas usam: [NOME] no texto vira uma seção por
+    marcador, seção vazia some, partitura vira 'sheet'/'mixed'. `raw` é a
+    posição em `sections`. Teste compara com o JS."""
+    saida = []
+    for raw, sec in enumerate(sections or []):
+        titulo = sec.get('title') or ''
+        if _MARCA_PARTITURA in titulo:
+            m = re.search(r'PARTITURA_INTEGRADA_(\d+)', titulo)
+            if m:
+                saida.append({'raw': raw, 'title': '🎼 Partitura', 'text': [''], 'type': 'sheet', 'sheetId': int(m.group(1))})
+            continue
+        texto = '\n\n'.join(sec.get('text') or [])
+        if _MARCA_PARTITURA in texto:
+            partes = re.split(r'🎼 PARTITURA_INTEGRADA_(\d+)', texto)
+            saida.append({'raw': raw, 'title': titulo, 'type': 'mixed',
+                          'text': [p.strip() for p in partes[0::2] if p.strip()],
+                          'sheetIds': [int(p) for p in partes[1::2]]})
+            continue
+        marcas = list(re.finditer(r'\[([^\]]+)\]', texto))
+        if marcas:
+            for k, m in enumerate(marcas):
+                fim = marcas[k + 1].start() if k + 1 < len(marcas) else len(texto)
+                conteudo = texto[m.end():fim].strip()
+                if conteudo:
+                    saida.append({'raw': raw, 'title': m.group(1), 'text': [conteudo], 'type': 'text'})
+        elif texto.strip():
+            saida.append({'raw': raw, 'title': titulo, 'text': [texto], 'type': 'text'})
+    return saida
+
+
 def normalize_order(order, n_sections):
     """Ordem de apresentação válida (posições entre 0 e n-1) ou None.
     Igual à ordem natural (0, 1, 2…) também vira None: não há o que guardar."""

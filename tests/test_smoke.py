@@ -3563,3 +3563,54 @@ def test_import_openlyrics_verse_order():
           '<verse name="v1"><lines>um</lines></verse><verse name="c"><lines>refrão</lines></verse>'
           '<verse name="v2"><lines>dois</lines></verse></lyrics></song>').encode()
     assert im.ler("t.xml", ol)[0]["order"] == [0, 1, 2, 1]
+
+
+_SECOES_EXEMPLO = [
+    {"title": "Intro", "text": ["C  G"]},
+    {"title": "", "text": ["[Verso 1]\nC\nlinha um\n\n[Refrão]\nF\nrefrão"]},   # 2 seções num texto
+    {"title": "Vazia", "text": [""]},                                            # some
+    {"title": "Com partitura", "text": ["antes\n🎼 PARTITURA_INTEGRADA_7\ndepois"]},
+    {"title": "🎼 PARTITURA_INTEGRADA_9", "text": [""]},
+    {"title": "Final", "text": ["G\nfim"]},
+]
+
+
+def test_presented_sections_same_rule_in_python_and_js():
+    """sectionIndex das telas é a posição na lista apresentada; o servidor
+    (Python) e as páginas (static/js/song_sections.js) precisam contar igual."""
+    import json
+    import shutil
+    import subprocess
+    import songs_store
+    py = songs_store.secoes_apresentadas(_SECOES_EXEMPLO)
+    assert [(s["raw"], s["title"], s["type"]) for s in py] == [
+        (0, "Intro", "text"), (1, "Verso 1", "text"), (1, "Refrão", "text"),
+        (3, "Com partitura", "mixed"), (4, "🎼 Partitura", "sheet"), (5, "Final", "text")]
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node não instalado")
+    codigo = ("global.window = {}; require('./static/js/song_sections.js');"
+              f"console.log(JSON.stringify(window.SongSections.process({json.dumps(_SECOES_EXEMPLO)})));")
+    js = json.loads(subprocess.run([node, "-e", codigo], capture_output=True, text=True, check=True).stdout)
+    assert js == py
+
+
+def test_monitor_fallback_uses_presented_section_index(app, client):
+    """Reconstrução do que está no ar (sem payload salvo): o índice salvo é
+    o da lista apresentada — com [NOME] no texto, antes vinha outra seção."""
+    import songs_store
+    from models import LyricsState
+    from extensions import db
+    with app.app_context():
+        sid = songs_store.next_song_id()
+        songs_store.save_song({"id": sid, "title": "Marcadores", "author": "T", "sections": _SECOES_EXEMPLO})
+        st = LyricsState.query.first() or LyricsState()
+        st.song_id, st.section_index, st.last_payload = sid, 2, None
+        db.session.add(st)
+        db.session.commit()
+        assert songs_store.secoes_apresentadas(songs_store.get_song(sid)["sections"])[2]["title"] == "Refrão"
+
+
+def test_unauthenticated_section_route_removed(client):
+    """/section/<id>/<n> mandava uma seção pro telão sem login (e nada usava)."""
+    assert client.get("/section/1/0").status_code == 404
