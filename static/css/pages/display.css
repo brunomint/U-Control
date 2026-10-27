@@ -177,7 +177,7 @@
 #capo-botao {
   position: fixed; top: 10px; right: 10px; z-index: 60;
   padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(128,128,128,.5);
-  background: rgba(0,0,0,.35); color: inherit; font: 700 14px/1 Roboto, sans-serif;
+  background: rgba(0,0,0,.35); color: #fff; font: 700 14px/1 Roboto, sans-serif;
   opacity: .45; cursor: pointer;
 }
 body[data-bg="light"] #capo-botao { background: rgba(255,255,255,.6); color: #000; }
@@ -194,3 +194,7 @@ body[data-bg="light"] #capo-botao { background: rgba(255,255,255,.6); color: #00
 }
 #capo-menu button[data-casa="0"] { grid-column: span 4; }
 #capo-menu button.ativo { background: #fbbf24; color: #111; }
+
+/* Ficha da música no monitor (display.js renderFicha) */
+#song-ficha { font: 700 clamp(12px, 1.6vw, 20px)/1.2 Roboto, sans-serif; color: var(--chord-color, #fbbf24); opacity: .85; margin-bottom: 4px; letter-spacing: .02em; }
+#song-ficha[hidden] { display: none; }

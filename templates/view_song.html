@@ -130,6 +130,17 @@
             {% for i in song.order %}{% if song.sections[i] %}{{ (song.sections[i].title or _('Seção {n}', n=i + 1)) | replace('[', '') | replace(']', '') | trim }}{% if not loop.last %} → {% endif %}{% endif %}{% endfor %}
         </p>
         {% endif %}
+        {#- Ficha da música (Song.info) #}
+        {% set ficha = song.info or {} %}
+        {% if ficha %}
+        <p class="song-order-line song-info-line">
+            {%- if ficha.get('key') %}<span><strong>{{ _('Tom original:') }}</strong> {{ ficha.get('key') }}</span>{% endif %}
+            {%- if ficha.get('tempo') %}<span>♩ {{ ficha.get('tempo') }} BPM</span>{% endif %}
+            {%- if ficha.get('time') %}<span>{{ ficha.get('time') }}</span>{% endif %}
+            {%- if ficha.get('copyright') %}<span>© {{ ficha.get('copyright') }}</span>{% endif %}
+            {%- if ficha.get('ccli') %}<span>CCLI {{ ficha.get('ccli') }}</span>{% endif %}
+        </p>
+        {% endif %}
 
         <!-- Card único para toda a música -->
         <div class="song-content-card">

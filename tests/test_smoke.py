@@ -3686,3 +3686,48 @@ def test_white_and_logo_screens(app, logged_in_client, tmp_path, monkeypatch):
 def test_backup_includes_church_logo():
     from blueprints import backup
     assert "igreja" in backup.PASTAS
+
+
+def test_song_info_saved_validated_and_shown(app, logged_in_client):
+    """Ficha da música: andamento/compasso/tom original pro monitor,
+    copyright/CCLI pro telão. Valores vazios ou fora do lugar não ficam."""
+    import songs_store
+    form = {"title": "Ficha", "author": "Autor X", "sections[]": ["Verso 1"], "texts[]": ["G\nletra"],
+            "info_copyright": " 2019 Editora ", "info_ccli": "1234567", "info_key": "G",
+            "info_tempo": "72", "info_time": "4/4"}
+    sid = logged_in_client.post("/add_song", data=form).get_json()["id"]
+    with app.app_context():
+        assert songs_store.get_song(sid)["info"] == {
+            "copyright": "2019 Editora", "ccli": "1234567", "key": "G", "tempo": 72, "time": "4/4"}
+    view = logged_in_client.get(f"/view/{sid}").get_data(as_text=True)
+    assert "© 2019 Editora" in view and "CCLI 1234567" in view
+    assert 'value="2019 Editora"' in logged_in_client.get(f"/edit_song/{sid}").get_data(as_text=True)
+    assert '"ccli": "1234567"' in logged_in_client.get(f"/lyrics/{sid}").get_data(as_text=True)
+    # andamento absurdo sai; salvar sem os campos (outro caminho) mantém a ficha
+    logged_in_client.post(f"/edit_song/{sid}", data={**form, "info_tempo": "9000", "info_ccli": ""})
+    with app.app_context():
+        assert songs_store.get_song(sid)["info"] == {"copyright": "2019 Editora", "key": "G", "time": "4/4"}
+    sem = {k: v for k, v in form.items() if not k.startswith("info_")}
+    logged_in_client.post(f"/edit_song/{sid}", data=sem)
+    with app.app_context():
+        assert songs_store.get_song(sid)["info"]["key"] == "G"
+    # tudo vazio: sem ficha
+    logged_in_client.post(f"/edit_song/{sid}", data={**sem, **{k: "" for k in form if k.startswith("info_")}})
+    with app.app_context():
+        assert "info" not in songs_store.get_song(sid)
+
+
+def test_import_reads_song_info_from_opensong_openlyrics_chordpro():
+    import importar_musicas as im
+    opensong = """<?xml version="1.0"?><song><title>A</title><author>B</author>
+<copyright>2001 Ed</copyright><ccli>999</ccli><key>D</key><tempo>Moderate</tempo><time_sig>3/4</time_sig>
+<lyrics>[V1]
+ letra</lyrics></song>"""
+    assert im.ler("A", opensong.encode())[0]["info"] == {"copyright": "2001 Ed", "ccli": "999", "key": "D", "time": "3/4"}
+    openlyrics = """<?xml version="1.0"?><song xmlns="http://openlyrics.info/namespace/2009/song" version="0.9">
+<properties><titles><title>C</title></titles><copyright>2010 X</copyright><ccliNo>42</ccliNo><tempo type="bpm">90</tempo></properties>
+<lyrics><verse name="v1"><lines>letra</lines></verse></lyrics></song>"""
+    assert im.ler("c.xml", openlyrics.encode())[0]["info"] == {"copyright": "2010 X", "ccli": "42", "tempo": 90}
+    chordpro = "{title: D}\n{copyright: 2020 Y}\n{key: E}\n{tempo: 120}\n{time: 6/8}\n[E]letra"
+    assert im.ler("d.cho", chordpro.encode())[0]["info"] == {"copyright": "2020 Y", "key": "E", "tempo": 120, "time": "6/8"}
+    assert "info" not in im.ler("e.cho", b"{title: E}\nletra")[0]

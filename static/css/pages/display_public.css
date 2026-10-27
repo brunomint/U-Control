@@ -209,3 +209,12 @@ html, body {
 #blackout-layer[data-tipo="branca"] { background: #fff; }
 #blackout-logo { display: none; max-width: 60vw; max-height: 60vh; object-fit: contain; }
 #blackout-layer[data-tipo="logo"] #blackout-logo { display: block; }
+
+/* Copyright/CCLI da música (lyrics_2.js CREDITOS): pequeno, no pé da tela */
+#song-credits {
+    position: fixed; left: 0; right: 0; bottom: 2.5vh; z-index: 3;
+    text-align: center; font-size: clamp(11px, 1.3vw, 22px); line-height: 1.3;
+    color: rgba(255, 255, 255, .75); text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+    padding: 0 4vw; pointer-events: none;
+}
+#song-credits[hidden] { display: none; }

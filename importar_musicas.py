@@ -47,9 +47,10 @@ class ArquivoInvalido(Exception):
     pass
 
 
-def _musica(titulo, autor, secoes, origem, ordem=None):
+def _musica(titulo, autor, secoes, origem, ordem=None, info=None):
     """ordem: posições em `secoes` (Ordem no culto). Seções vazias saem, e
-    a ordem é refeita pras posições que sobraram."""
+    a ordem é refeita pras posições que sobraram. info: ficha da música
+    (copyright, ccli, key, tempo, time — songs_store.normalize_info)."""
     novas, posicao = [], {}
     for i, (t, txt) in enumerate(secoes):
         if txt and txt.strip():
@@ -62,6 +63,9 @@ def _musica(titulo, autor, secoes, origem, ordem=None):
     ordem = [posicao[i] for i in (ordem or []) if i in posicao]
     if ordem and ordem != list(range(len(novas))):
         m['order'] = ordem
+    from songs_store import normalize_info
+    if normalize_info(info):
+        m['info'] = normalize_info(info)
     return m
 
 
@@ -179,7 +183,9 @@ def _openlyrics(conteudo, nome):
         secoes.append((_nome_secao(verso.get('name')), _bloco_com_acordes(texto)))
     ordem_ol = raiz.findtext(f'{_NS_OL}properties/{_NS_OL}verseOrder') or ''
     ordem = [por_nome[n] for n in ordem_ol.lower().split() if n in por_nome]
-    m = _musica(titulo, ', '.join(autores), secoes, f'OpenLyrics ({nome})', ordem)
+    prop = lambda campo: raiz.findtext(f'{_NS_OL}properties/{_NS_OL}{campo}')
+    info = {'copyright': prop('copyright'), 'ccli': prop('ccliNo'), 'key': prop('key'), 'tempo': prop('tempo')}
+    m = _musica(titulo, ', '.join(autores), secoes, f'OpenLyrics ({nome})', ordem, info)
     if not m:
         raise ArquivoInvalido(tr('{nome}: música sem título ou sem letra.', nome=nome))
     return [m]
@@ -237,7 +243,9 @@ def _opensong(raiz, nome):
             por_rotulo.setdefault(r.lower(), len(secoes))
             secoes.append((_nome_opensong(r), texto))
     ordem = [por_rotulo[r] for r in (raiz.findtext('presentation') or '').lower().split() if r in por_rotulo]
-    m = _musica(raiz.findtext('title'), raiz.findtext('author'), secoes, f'OpenSong ({nome})', ordem)
+    info = {'copyright': raiz.findtext('copyright'), 'ccli': raiz.findtext('ccli'), 'key': raiz.findtext('key'),
+            'tempo': raiz.findtext('tempo'), 'time': raiz.findtext('time_sig')}
+    m = _musica(raiz.findtext('title'), raiz.findtext('author'), secoes, f'OpenSong ({nome})', ordem, info)
     if not m:
         raise ArquivoInvalido(tr('{nome}: música sem título ou sem letra.', nome=nome))
     return [m]
@@ -265,7 +273,7 @@ _RE_DIRETIVA = re.compile(r'^\s*\{\s*([a-z_]+)\s*(?::\s*(.*?))?\s*\}\s*$', re.I)
 
 
 def _chordpro(texto, nome):
-    titulo, autor = None, None
+    titulo, autor, info = None, None, {}
     secoes, atual, linhas = [], None, []
     n_verso = 0
 
@@ -285,6 +293,8 @@ def _chordpro(texto, nome):
                 titulo = valor
             elif chave in ('artist', 'subtitle', 'st', 'composer') and not autor:
                 autor = valor
+            elif chave in ('copyright', 'ccli', 'key', 'tempo', 'time'):
+                info[chave] = valor
             elif chave in ('start_of_chorus', 'soc'):
                 fechar(); atual = valor or tr('Refrão')
             elif chave in ('start_of_verse', 'sov'):
@@ -307,7 +317,7 @@ def _chordpro(texto, nome):
             atual = tr('Verso {n}', n=n_verso)
         linhas.append(linha.rstrip())
     fechar()
-    m = _musica(titulo or os.path.splitext(nome)[0], autor, secoes, f'ChordPro ({nome})')
+    m = _musica(titulo or os.path.splitext(nome)[0], autor, secoes, f'ChordPro ({nome})', info=info)
     if not m:
         raise ArquivoInvalido(tr('{nome}: ChordPro sem letra.', nome=nome))
     return [m]

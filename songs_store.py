@@ -96,6 +96,8 @@ def _song_to_dict(song):
     d['sections'] = _sections_to_dicts(song.sections)
     if song.order:
         d['order'] = song.order
+    if song.info:
+        d['info'] = song.info
     if song.sheet_data:
         d['sheet_data'] = _sheets_to_dicts(song.sheet_data)
     return d
@@ -197,6 +199,30 @@ def secoes_apresentadas(sections):
     return saida
 
 
+# Ficha da música: campo -> tamanho máximo
+INFO_CAMPOS = {'copyright': 300, 'ccli': 20, 'key': 10, 'tempo': 3, 'time': 10}
+
+
+def normalize_info(info):
+    """Ficha da música só com o que tem valor (ou None). tempo vira número
+    de batidas por minuto entre 20 e 300; fora disso, some."""
+    if not isinstance(info, dict):
+        return None
+    saida = {}
+    for campo, tamanho in INFO_CAMPOS.items():
+        valor = str(info.get(campo) or '').strip()[:tamanho if campo != 'tempo' else 10]
+        if not valor:
+            continue
+        if campo == 'tempo':
+            m = re.match(r'\d+', valor)
+            if not m or not 20 <= int(m.group()) <= 300:
+                continue
+            saida[campo] = int(m.group())
+        else:
+            saida[campo] = valor
+    return saida or None
+
+
 def normalize_order(order, n_sections):
     """Ordem de apresentação válida (posições entre 0 e n-1) ou None.
     Igual à ordem natural (0, 1, 2…) também vira None: não há o que guardar."""
@@ -229,6 +255,7 @@ def _apply_song_fields(song, data, is_new):
         ]
 
     song.order = normalize_order(data.get('order'), len(incoming_sections))
+    song.info = normalize_info(data.get('info'))
 
     incoming_sheets = [_normalize_sheet(sh) for sh in (data.get('sheet_data') or [])]
     if is_new or incoming_sheets != _sheets_to_dicts(song.sheet_data):

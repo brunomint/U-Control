@@ -29,6 +29,13 @@ def _count_notes(sheet):
 
 # --- Rotas principais editor---
 
+def _ficha_do_form():
+    """Campos info_* do cartão "Ficha da música" dos editores
+    (songs_store.normalize_info valida ao salvar)."""
+    from songs_store import INFO_CAMPOS
+    return {campo: request.form.get('info_' + campo, '') for campo in INFO_CAMPOS}
+
+
 def _ordem_do_form():
     """Campo `order` dos editores: JSON com as posições das seções na ordem
     de apresentação (songs_store.normalize_order valida ao salvar)."""
@@ -140,6 +147,7 @@ def add_song():
             {"title": sections[i], "text": [texts[i]]} for i in range(len(sections))
         ],
         "order": _ordem_do_form(),
+        "info": _ficha_do_form(),
     }
 
     # Adiciona URL do vídeo se fornecida
@@ -249,6 +257,9 @@ def edit_song(song_id):
         # Sem o campo (quem salva por outro caminho), a ordem salva fica
         if 'order' in request.form:
             song_to_update["order"] = _ordem_do_form()
+        # Idem a ficha
+        if 'info_copyright' in request.form:
+            song_to_update["info"] = _ficha_do_form()
 
         # Se há dados de partitura, adiciona/atualiza
         if sheet_data_json:

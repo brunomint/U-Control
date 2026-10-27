@@ -294,6 +294,9 @@
         socket.on('update_lyrics', (data) => {
             showLyricsView();
             updateLyricsDisplay(data.title, data.text, data.id);
+            const creditos = document.getElementById('song-credits');
+            creditos.textContent = data.creditos || '';
+            creditos.hidden = !data.creditos;
             // Aplica tema visual da música
             const theme = data.theme;
             const mediaImg   = document.getElementById('media-img');
@@ -333,6 +336,7 @@
         
         // Escuta eventos de versículos da Bíblia
         socket.on('update_bible', (data) => {
+            document.getElementById('song-credits').hidden = true;
             // Letra dentro do monitor (tela dividida): a Bíblia só aparece
             // no palco na página dela, liberada pra ele
             if (new URLSearchParams(location.search).get('host') === 'monitor') return;

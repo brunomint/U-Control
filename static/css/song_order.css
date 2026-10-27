@@ -16,3 +16,15 @@
 .ordem-seta { color: var(--uc-muted); font-size: 13px; }
 .ordem-vazia { color: var(--uc-muted); font-size: 13px; }
 .ordem-botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* "Ficha da música" dos editores (_song_editor.html) — mesmo arquivo da
+   Ordem no culto, os dois cartões ficam juntos no fim do editor */
+.song-info { margin: 12px 0; }
+.song-info summary { display: flex; gap: 10px; align-items: baseline; cursor: pointer; list-style: none; }
+.song-info summary::-webkit-details-marker { display: none; }
+.song-info summary h2 { margin: 0; font-size: 1rem; display: flex; gap: 8px; align-items: center; }
+.song-info summary h2::after { content: "▸"; color: var(--uc-muted); margin-left: 4px; }
+.song-info[open] summary h2::after { content: "▾"; }
+.song-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0 8px; }
+.song-info-wide { grid-column: span 2; }
+@media (max-width: 520px) { .song-info-wide { grid-column: 1 / -1; } }

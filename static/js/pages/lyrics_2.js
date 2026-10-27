@@ -558,8 +558,19 @@ $('#clear-lyrics').click(function() {
         // guarda, então uma tela aberta depois também mostra. Antes iam só
         // em section_changed, emitido ao PREPARAR: o rodapé avançava antes
         // da seção entrar e sumia de qualquer tela recarregada.
+        // Ficha da música (Song.info): andamento/compasso/tom original pro
+        // monitor; copyright e CCLI no primeiro e no último passo do telão
+        const INFO = CONFIG.info || {};
+        const FICHA = (INFO.tempo || INFO.time || INFO.key)
+            ? { tempo: INFO.tempo || null, time: INFO.time || null, key: INFO.key || null } : null;
+        const CREDITOS = (INFO.copyright || INFO.ccli)
+            ? [CONFIG.author, INFO.copyright ? '© ' + INFO.copyright : '', INFO.ccli ? 'CCLI ' + INFO.ccli : '']
+                .filter(Boolean).join(' · ')
+            : null;
+
         function withFooter(payload, index) {
-            const proximo = passos[acharPasso(index) + 1];
+            const passo = acharPasso(index);
+            const proximo = passos[passo + 1];
             const nextSec = proximo != null ? sections[proximo] : null;
             const nextRaw = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
             let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
@@ -573,6 +584,8 @@ $('#clear-lyrics').click(function() {
                 mapIndex: acharPasso(index),
                 nextTitle: nextSec ? nextSec.title : null,
                 nextText: nextClean,
+                ficha: FICHA,
+                creditos: CREDITOS && (passo <= 0 || passo === passos.length - 1) ? CREDITOS : null,
             };
         }
 

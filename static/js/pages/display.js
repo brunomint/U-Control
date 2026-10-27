@@ -54,6 +54,7 @@
 
         $('#section-title').text(reference).addClass('bible-title');
         $('#section-text').text(text);
+        renderFicha(null);
         if (window.Capo) Capo.mostrar(false);
 
         // Bíblia: com quebra de linha (white-space: pre-wrap) e fonte normal
@@ -227,7 +228,9 @@ const fitSheetsToScreen = () => {
                     if (!(ordem[passo] === idx)) passo = ordem.indexOf(idx);
                     const next = passo >= 0 ? apresentadas[ordem[passo + 1]] : apresentadas[idx + 1];
                     const nextText = next ? (next.text || []).join('\n') : null;
+                    const info = song.info || {};
                     renderFooter({
+                        ficha: (info.tempo || info.time || info.key) ? info : null,
                         sectionTitles: ordem.map(i => apresentadas[i].title),
                         sectionIndex: idx,
                         mapIndex: passo,
@@ -470,7 +473,21 @@ const fitSheetsToScreen = () => {
     // entrou no ar (update_lyrics, ou /api/current-display ao abrir) — não
     // mais de section_changed, que a página da música emite ao PREPARAR (o
     // rodapé avançava antes da seção entrar e sumia em tela recarregada).
+    // Ficha da música (lyrics_2.js FICHA): ♩ 72 · 4/4 · Tom original G
+    function renderFicha(ficha) {
+        const el = document.getElementById('song-ficha');
+        if (!el) return;
+        const partes = !ficha ? [] : [
+            ficha.tempo ? '♩ ' + ficha.tempo : '',
+            ficha.time || '',
+            ficha.key ? _t('Tom original {tom}', { tom: ficha.key }) : '',
+        ].filter(Boolean);
+        el.textContent = partes.join('  ·  ');
+        el.hidden = !partes.length;
+    }
+
     function renderFooter(data) {
+        renderFicha(data.ficha);
         _mapTitles = data.sectionTitles || [];
         // mapIndex: posição na Ordem no culto (o mapa vem nessa ordem)
         _mapCurrent = data.mapIndex ?? data.sectionIndex ?? -1;

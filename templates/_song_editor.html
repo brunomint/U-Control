@@ -94,6 +94,38 @@
             <div><button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-limpar hidden><i class="fas fa-eraser"></i> {{ _('Limpar a ordem') }}</button></div>
         </section>
 
+        {#- Ficha da música (songs_store.normalize_info). Andamento, compasso e
+            tom original aparecem no monitor da banda; copyright e CCLI no
+            primeiro e no último slide do telão. new_song.js/edit_song.js
+            mandam os campos [data-ficha]. #}
+        {% set ficha = (song.info if song and song.info else {}) %}
+        <details class="uc-card song-info" id="songInfo" {% if ficha %}open{% endif %}>
+            <summary><h2><i class="fas fa-circle-info"></i> {{ _('Ficha da música') }}</h2> <span class="uc-muted">{{ _('opcional') }}</span></summary>
+            <div class="song-info-grid">
+                <div class="uc-field">
+                    <label for="info_key">{{ _('Tom original') }}</label>
+                    <input class="uc-input" type="text" id="info_key" name="info_key" data-ficha maxlength="10" value="{{ ficha.get('key') or '' }}" placeholder="{{ _('Ex.: G') }}">
+                </div>
+                <div class="uc-field">
+                    <label for="info_tempo">{{ _('Andamento (BPM)') }}</label>
+                    <input class="uc-input" type="number" id="info_tempo" name="info_tempo" data-ficha min="20" max="300" value="{{ ficha.get('tempo') or '' }}" placeholder="72">
+                </div>
+                <div class="uc-field">
+                    <label for="info_time">{{ _('Compasso') }}</label>
+                    <input class="uc-input" type="text" id="info_time" name="info_time" data-ficha maxlength="10" value="{{ ficha.get('time') or '' }}" placeholder="4/4">
+                </div>
+                <div class="uc-field song-info-wide">
+                    <label for="info_copyright">{{ _('Copyright') }}</label>
+                    <input class="uc-input" type="text" id="info_copyright" name="info_copyright" data-ficha maxlength="300" value="{{ ficha.get('copyright') or '' }}" placeholder="{{ _('Ex.: 2019 Editora Exemplo') }}">
+                </div>
+                <div class="uc-field">
+                    <label for="info_ccli">{{ _('Nº CCLI da música') }}</label>
+                    <input class="uc-input" type="text" id="info_ccli" name="info_ccli" data-ficha maxlength="20" value="{{ ficha.get('ccli') or '' }}" inputmode="numeric">
+                </div>
+            </div>
+            <p class="ordem-ajuda">{{ _('Andamento, compasso e tom original aparecem no monitor da banda. Copyright e CCLI saem em letra pequena no primeiro e no último slide do telão.') }}</p>
+        </details>
+
         <div class="footer">
             <button type="button" class="uc-btn uc-btn-ghost" onclick="processCifraClubManual()"><i class="fas fa-link"></i> {{ _('Importar link do Cifra Club') }}</button>
             <span class="grow"></span>

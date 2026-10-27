@@ -1633,5 +1633,16 @@
   "Branca": "White",
   "Tela toda preta": "All-black screen",
   "O público vê a tela toda branca": "The audience sees an all-white screen",
-  "O público vê o logo da igreja": "The audience sees the church logo"
+  "O público vê o logo da igreja": "The audience sees the church logo",
+  "Ficha da música": "Song details",
+  "opcional": "optional",
+  "Tom original": "Original key",
+  "Ex.: G": "E.g. G",
+  "Andamento (BPM)": "Tempo (BPM)",
+  "Copyright": "Copyright",
+  "Ex.: 2019 Editora Exemplo": "E.g. 2019 Example Publishing",
+  "Nº CCLI da música": "CCLI song number",
+  "Andamento, compasso e tom original aparecem no monitor da banda. Copyright e CCLI saem em letra pequena no primeiro e no último slide do telão.": "Tempo, time signature and original key show on the band's monitor. Copyright and CCLI appear in small print on the first and last slide on the big screen.",
+  "Tom original {tom}": "Original key {tom}",
+  "Tom original:": "Original key:"
 }

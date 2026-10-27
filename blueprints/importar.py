@@ -119,6 +119,9 @@ def api_importar():
         # order: Ordem no culto do arquivo (OpenSong, OpenLyrics); sem ela,
         # None — numa música substituída, a ordem antiga não vale pras seções novas
         dados = {'title': m['title'], 'author': m['author'], 'sections': m['sections'], 'order': m.get('order')}
+        # Ficha do arquivo (copyright, CCLI, tom…); sem ela, a de cá fica
+        if m.get('info'):
+            dados['info'] = m['info']
         if chave in daqui:
             if i not in substituir:
                 feito['puladas'] += 1

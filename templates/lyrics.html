@@ -182,7 +182,7 @@
     </div>
 </div>
 
-<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible, "videoUrl": (song.video_url or ""), "audioUrl": (song.audio_url or ""), "title": song.title, "author": (song.author or ""), "order": (song.order or none)} | tojson }}</script>
+<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible, "videoUrl": (song.video_url or ""), "audioUrl": (song.audio_url or ""), "title": song.title, "author": (song.author or ""), "order": (song.order or none), "info": (song.info or none)} | tojson }}</script>
 <script>
     // Lido por lyrics_2.js pra buscar sheet_render.js (ES module, import() dinâmico) com cache-busting.
     window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";

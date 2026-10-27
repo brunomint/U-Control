@@ -19,6 +19,10 @@ class Song(db.Model):
     # Ordem de apresentação: posições em `sections`, com repetição
     # ([0, 1, 2, 1] = verso 1, refrão, verso 2, refrão). None = de cima pra baixo.
     order = db.Column(db.JSON, nullable=True)
+    # Ficha: {'copyright', 'ccli', 'key' (tom original), 'tempo' (BPM),
+    # 'time' (compasso)} — só as que têm valor; None = sem ficha.
+    # songs_store.normalize_info valida.
+    info = db.Column(db.JSON, nullable=True)
 
     sections = db.relationship(
         'SongSection', backref='song', order_by='SongSection.position',

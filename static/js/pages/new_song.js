@@ -181,6 +181,8 @@
                     sectionsToSend.forEach((section, i) => { if (section.blockId != null) posicaoPorId[section.blockId] = i; });
                     formData.append('order', JSON.stringify(SongOrder.posicoes(posicaoPorId)));
                 }
+                // Ficha da música (_song_editor.html)
+                document.querySelectorAll('[data-ficha]').forEach(el => formData.append(el.name, el.value));
                 
                 console.log('📋 Dados estruturados preparados para envio');
                 
