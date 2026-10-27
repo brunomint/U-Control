@@ -3614,3 +3614,21 @@ def test_monitor_fallback_uses_presented_section_index(app, client):
 def test_unauthenticated_section_route_removed(client):
     """/section/<id>/<n> mandava uma seção pro telão sem login (e nada usava)."""
     assert client.get("/section/1/0").status_code == 404
+
+
+def test_transpose_keeps_chords_in_their_columns():
+    """Trocar o tom (ou o capo do monitor) não pode tirar o acorde de cima
+    da sílaba: F#m -> Em encurta, e o acorde seguinte ficava 1 coluna antes."""
+    import json
+    import shutil
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node não instalado")
+    codigo = ("global.window = global; require('./static/js/chord_lines.js');"
+              "console.log(JSON.stringify(["
+              "ChordLines.transposeLine('A        E/G#   F#m  D', -2),"
+              "ChordLines.transposeLine('Em C', 2)]));")
+    menor, maior = json.loads(subprocess.run([node, "-e", codigo], capture_output=True, text=True, check=True).stdout)
+    assert menor == "G        D/F#   Em   C"
+    assert maior == "F#m D"   # mais comprido: empurra, mas sempre com 1 espaço

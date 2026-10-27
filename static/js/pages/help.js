@@ -6,6 +6,7 @@ const HELP_SECTIONS = {
         <p>Um computador roda o U-Control, e os outros aparelhos da mesma rede (celular, tablet, outro PC) abrem o controle ou as telas pelo navegador. Não precisa de internet durante o culto.</p>
         <ul>
             <li><strong>Controle:</strong> letras com cifra, versículos, fotos, vídeos e PowerPoint vão para o telão com um toque.</li>
+            <li><strong>Capotraste:</strong> no Monitor, o botão <em>Capo</em> no canto mostra os acordes como o violonista vai tocar (música em Lá com capo na 2ª casa aparece em Sol). Vale só naquele aparelho.</li>
             <li><strong>Ordem no culto:</strong> no editor da música, monte a sequência (Verso 1 → Refrão → Verso 2 → Refrão) sem repetir o refrão. Ao vivo, as setas e o pedal seguem a ordem, e as teclas <kbd>1</kbd>–<kbd>9</kbd> (versos), <kbd>C</kbd> (refrão), <kbd>B</kbd> (ponte), <kbd>P</kbd> (pré-refrão), <kbd>I</kbd> (intro) e <kbd>F</kbd> (final) pulam direto.</li>
             <li><strong>Telas sincronizadas:</strong> o telão do público e o retorno de palco acompanham o Controle.</li>
             <li><strong>Preparação:</strong> monte a ordem do culto, cadastre músicas e organize as escalas antes.</li>

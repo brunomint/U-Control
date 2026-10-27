@@ -153,20 +153,21 @@
     return !!tokens && tokens.length > 0;
   }
 
-  // Transpõe só os tokens de uma linha já confirmada como cifra,
-  // preservando os espaços originais entre eles (mantém o alinhamento
-  // da cifra em cima da sílaba certa da letra).
+  // Transpõe só os tokens de uma linha já confirmada como cifra, cada
+  // acorde começando na MESMA coluna de antes — é o que o deixa em cima da
+  // sílaba certa da letra. Antes só os espaços eram mantidos, e um acorde
+  // que mudava de tamanho (F#m -> Em, Bb -> A) empurrava os seguintes.
+  // Se o novo for mais comprido e não couber, fica 1 espaço entre eles.
   function transposeLine(line, semitones, countRef, names) {
-    const leading = line.match(/^\s*/)[0];
-    const rest = line.slice(leading.length);
-    const parts = rest.split(/(\s+)/);
-    const transposedParts = parts.map(part => {
-      if (part === '' || /^\s+$/.test(part)) return part;
+    let saida = '';
+    line.replace(/\S+/g, (part, coluna) => {
       const transposed = transposeChord(part, semitones, names);
       if (transposed !== part && countRef) countRef.count++;
-      return transposed;
+      const inicio = saida.length ? Math.max(coluna, saida.length + 1) : coluna;
+      saida += ' '.repeat(inicio - saida.length) + transposed;
+      return part;
     });
-    return leading + transposedParts.join('');
+    return saida;
   }
 
   // Transpõe o conteúdo de um bloco de texto inteiro (múltiplas linhas),

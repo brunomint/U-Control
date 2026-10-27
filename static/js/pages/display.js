@@ -54,6 +54,7 @@
 
         $('#section-title').text(reference).addClass('bible-title');
         $('#section-text').text(text);
+        if (window.Capo) Capo.mostrar(false);
 
         // Bíblia: com quebra de linha (white-space: pre-wrap) e fonte normal
         // (não monoespaçada) — sem cifra pra alinhar, o <pre> herdado de
@@ -375,8 +376,22 @@ const fitSheetsToScreen = () => {
         return text.split('\n').some(l => l.trim() && ChordLines.isChordLine(l));
     }
 
+    // Capotraste (static/js/capo.js): só no monitor dos músicos. Guarda o
+    // que está desenhado pra redesenhar quando a casa muda.
+    const _capoDesenhos = new Map();   // elemento -> texto original
+    if (_isMonitorHost && window.Capo) {
+        Capo.iniciar(() => _capoDesenhos.forEach((t, el) => {
+            if (el.isConnected) applyChordColors(el, t); else _capoDesenhos.delete(el);
+        }));
+    }
+
     function applyChordColors(el, text) {
         el.textContent = '';
+        if (_isMonitorHost && window.Capo) {
+            _capoDesenhos.set(el, text);
+            if (el.id === 'section-text') Capo.mostrar(!!text && temCifra(text));
+            text = Capo.aplicar(text);
+        }
         if (!text) return;
         const lines = text.split('\n');
         lines.forEach((line, i) => {
