@@ -80,6 +80,20 @@
 | ~~**Importar slides**~~ (PPT/Google Slides) | ~~Baixo — URLs de apresentação já funcionam via iframe~~ | ✅ Feito |
 | **Câmera ao vivo** (RTSP/webcam) | Baixo para igrejas menores | Alto |
 
+## 📋 Próximos (fila)
+
+Versões pequenas, de 2–3 itens cada.
+
+- [ ] **Problemas achados no uso da 1.0.9** — aguardando o relato do culto.
+- [ ] **Aposentar o eventlet** (o projeto está só em manutenção e desencoraja
+      uso novo). No `gunicorn.conf.py`: `worker_class = "gthread"` e
+      `threads = 100`; depois tirar `eventlet` do `requirements.txt`. Testado
+      em 2026-10-27, só localmente: o travamento de agosto era o gunicorn
+      com 1 thread (o padrão), que a primeira conexão do Socket.IO ocupava.
+      Com 100 threads, 5 telas abertas e WebSocket de verdade funcionaram.
+      Ir numa versão só com isso, fácil de desfazer no Pi.
+- [ ] **Quebra de slide com `||`** dentro da seção (ideia do OpenSong).
+
 ---
 
 ## 🏗️ Arquitetura resumida
