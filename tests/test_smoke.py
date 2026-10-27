@@ -3513,3 +3513,53 @@ def test_song_presentation_order_saved_and_validated(app, logged_in_client):
     logged_in_client.post(f"/edit_song/{sid}", data=sem)
     with app.app_context():
         assert songs_store.get_song(sid)["order"] == [2, 1, 0]
+
+
+def test_import_opensong_with_chords_numbered_verses_and_order():
+    """OpenSong: arquivo sem extensão, linhas de acorde com "." em cima das
+    de letra, [V] com versos numerados (os acordes servem pros dois) e
+    <presentation> virando a Ordem no culto."""
+    import importar_musicas as im
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<song>
+  <title>Amazing Grace</title>
+  <author>John Newton</author>
+  <presentation>V1 C V2 C</presentation>
+  <lyrics>[V]
+.G          C       G
+1Amazing grace how sweet the sound
+2'Twas grace that taught my heart to fear
+;comentário que não entra
+[C]
+.C        G
+ My chains are gone
+</lyrics>
+</song>""".encode()
+    m = im.ler("Amazing Grace", xml)[0]       # sem extensão, como na pasta Songs
+    assert (m["title"], m["author"]) == ("Amazing Grace", "John Newton")
+    assert [s["title"] for s in m["sections"]] == ["Verso 1", "Verso 2", "Refrão"]
+    assert m["sections"][0]["text"] == ["G          C       G\nAmazing grace how sweet the sound"]
+    assert m["sections"][1]["text"] == ["G          C       G\n'Twas grace that taught my heart to fear"]
+    assert m["sections"][2]["text"] == ["C        G\nMy chains are gone"]
+    assert m["order"] == [0, 2, 1, 2]
+    # .xml também é reconhecido, e o OpenLyrics continua indo pro leitor dele
+    assert im.ler("a.xml", xml)[0]["order"] == [0, 2, 1, 2]
+
+
+def test_imported_section_names_all_in_english(app):
+    """Nomes montados por variável (tr(base)) não são vistos pelo teste de
+    textos marcados: todos os tipos de seção precisam de inglês."""
+    import importar_musicas as im
+    with app.test_request_context(headers={"Accept-Language": "en"}):
+        for base in set(im._TIPOS.values()) | set(im._TIPOS_OPENSONG.values()):
+            if base:
+                assert im.tr(base) != base or base in ("Intro", "Tag"), base
+
+
+def test_import_openlyrics_verse_order():
+    import importar_musicas as im
+    ol = ('<song xmlns="http://openlyrics.info/namespace/2009/song"><properties><titles><title>T</title></titles>'
+          '<verseOrder>v1 c v2 c</verseOrder></properties><lyrics>'
+          '<verse name="v1"><lines>um</lines></verse><verse name="c"><lines>refrão</lines></verse>'
+          '<verse name="v2"><lines>dois</lines></verse></lyrics></song>').encode()
+    assert im.ler("t.xml", ol)[0]["order"] == [0, 1, 2, 1]

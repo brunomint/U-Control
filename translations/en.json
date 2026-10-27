@@ -1599,5 +1599,8 @@
   "Tirar {secao} da ordem": "Remove {secao} from the order",
   "Sem ordem: as seções aparecem de cima pra baixo.": "No order: the sections go from top to bottom.",
   "Dê nome às seções para montar a ordem.": "Name the sections to build the order.",
-  "Ordem:": "Order:"
+  "Ordem:": "Order:",
+  "<strong>OpenSong</strong>: os arquivos da pasta <code>Songs</code> (eles não têm extensão), ou a pasta inteira num <code>.zip</code> — com a cifra e a ordem no culto": "<strong>OpenSong</strong>: the files in the <code>Songs</code> folder (they have no extension), or the whole folder in a <code>.zip</code> — with chords and the service order",
+  "Tag": "Tag",
+  "Verso": "Verse"
 }

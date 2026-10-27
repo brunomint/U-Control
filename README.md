@@ -36,7 +36,7 @@ qualquer aparelho na mesma rede abre o Controle ou as telas pelo endereço
   rola, avança e dá zoom.
 - **Relógio, cronômetro e avisos** passando no rodapé.
 - **Atalhos para Stream Deck** e outros botões, por endereço web.
-- **Importar músicas** do Holyrics, OpenLP/OpenLyrics, ChordPro ou texto.
+- **Importar músicas** do Holyrics, OpenLP/OpenLyrics, OpenSong, ChordPro ou texto.
 - **Backup** e exportar/importar músicas e cultos entre instalações.
 - **Atualização** avisada no próprio programa (Windows).
 

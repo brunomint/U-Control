@@ -27,12 +27,15 @@
             <ul class="imp-formatos">
                 <li>{{ _('<strong>Holyrics</strong>: arquivo <code>.json</code> ou <code>.txt</code> exportado pelo Holyrics')|safe }}</li>
                 <li>{{ _('<strong>OpenLP</strong> e outros: <code>.xml</code> no formato OpenLyrics (Músicas → Exportar)')|safe }}</li>
+                <li>{{ _('<strong>OpenSong</strong>: os arquivos da pasta <code>Songs</code> (eles não têm extensão), ou a pasta inteira num <code>.zip</code> — com a cifra e a ordem no culto')|safe }}</li>
                 <li>{{ _('<strong>ChordPro</strong>: <code>.cho</code>, <code>.chordpro</code>, <code>.crd</code> — cifras com <code>[G]</code> no meio da letra')|safe }}</li>
                 <li>{{ _('<strong>Texto</strong>: <code>.txt</code>, um trecho por parágrafo; o nome do arquivo vira o título')|safe }}</li>
                 <li>{{ _('Muitas de uma vez: junte num <code>.zip</code>')|safe }}</li>
             </ul>
+            {#- Sem accept=: as músicas do OpenSong não têm extensão e o
+                navegador nem as mostraria; o servidor recusa o que não lê #}
             <div class="imp-arquivo">
-                <input type="file" id="imp-arquivos" multiple accept=".json,.xml,.txt,.zip,.cho,.chordpro,.chopro,.crd,.pro" aria-label="{{ _('Arquivos das músicas') }}">
+                <input type="file" id="imp-arquivos" multiple aria-label="{{ _('Arquivos das músicas') }}">
                 <button type="button" class="uc-btn uc-btn-primary" id="imp-conferir" disabled><i class="fas fa-magnifying-glass"></i> {{ _('Conferir') }}</button>
             </div>
             <p id="imp-msg" role="status"></p>

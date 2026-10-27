@@ -21,7 +21,8 @@ const HELP_SECTIONS = {
         <p>Em <a href="/importar-musicas">Criar → Importar Músicas</a>, escolha um ou mais arquivos. O U-Control mostra o que encontrou antes de gravar qualquer coisa.</p>
         <ul>
             <li><strong>Holyrics:</strong> músicas exportadas em JSON.</li>
-            <li><strong>OpenLP, OpenSong e outros:</strong> arquivos OpenLyrics (<code>.xml</code>), inclusive com cifra.</li>
+            <li><strong>OpenLP e outros:</strong> arquivos OpenLyrics (<code>.xml</code>), inclusive com cifra e a ordem das seções.</li>
+            <li><strong>OpenSong:</strong> os arquivos da pasta <code>Songs</code> (eles não têm extensão) ou a pasta inteira num <code>.zip</code>, com a cifra e a ordem de apresentação.</li>
             <li><strong>ChordPro</strong> (<code>.cho</code>, <code>.chordpro</code>, <code>.pro</code>…): os acordes entre colchetes viram a linha de cifra em cima da letra.</li>
             <li><strong>Texto</strong> (<code>.txt</code>), um arquivo por música, e <strong>.zip</strong> com vários desses arquivos dentro.</li>
         </ul>

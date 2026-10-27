@@ -22,7 +22,8 @@ window.HELP_SECTIONS_I18N = {
         <p>In <a href="/importar-musicas">Create → Import songs</a>, choose one or more files. U-Control shows what it found before saving anything.</p>
         <ul>
             <li><strong>Holyrics:</strong> songs exported as JSON.</li>
-            <li><strong>OpenLP, OpenSong and others:</strong> OpenLyrics files (<code>.xml</code>), including chords.</li>
+            <li><strong>OpenLP and others:</strong> OpenLyrics files (<code>.xml</code>), including chords and the section order.</li>
+            <li><strong>OpenSong:</strong> the files in the <code>Songs</code> folder (they have no extension) or the whole folder in a <code>.zip</code>, with chords and the presentation order.</li>
             <li><strong>ChordPro</strong> (<code>.cho</code>, <code>.chordpro</code>, <code>.pro</code>…): the chords in brackets become the chord line above the lyrics.</li>
             <li><strong>Text</strong> (<code>.txt</code>), one file per song, and <strong>.zip</strong> files with several of those inside.</li>
         </ul>

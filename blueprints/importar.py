@@ -116,7 +116,9 @@ def api_importar():
         if i not in escolhidas:
             continue
         chave = chave_musica(m['title'], m['author'])
-        dados = {'title': m['title'], 'author': m['author'], 'sections': m['sections']}
+        # order: Ordem no culto do arquivo (OpenSong, OpenLyrics); sem ela,
+        # None — numa música substituída, a ordem antiga não vale pras seções novas
+        dados = {'title': m['title'], 'author': m['author'], 'sections': m['sections'], 'order': m.get('order')}
         if chave in daqui:
             if i not in substituir:
                 feito['puladas'] += 1

@@ -42,7 +42,7 @@ device on the same network opens the Control panel or the screens at
   and the Control panel scrolls, advances and zooms it.
 - **Clock, countdown and announcements** scrolling at the bottom.
 - **Stream Deck shortcuts** and other buttons, via web addresses.
-- **Import songs** from OpenLP/OpenLyrics, ChordPro, Holyrics or plain
+- **Import songs** from OpenLP/OpenLyrics, OpenSong, ChordPro, Holyrics or plain
   text.
 - **Backup**, and export/import of songs and services between
   installations.
