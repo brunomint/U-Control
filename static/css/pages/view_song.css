@@ -441,3 +441,7 @@ a.print-btn { text-decoration: none; }
   .content pre, .content pre * { font-size: 11px !important; line-height: 1.4 !important; }
   .song-content-card { display: block; }
 }
+
+/* Ordem no culto (view_song.html) */
+.song-order-line { margin: 0 0 12px; font-size: 14px; color: var(--uc-muted, #888); line-height: 1.6; }
+.song-order-line strong { color: inherit; }

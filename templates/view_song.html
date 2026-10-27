@@ -123,6 +123,14 @@
             </div>
         </div>
 
+        {#- Ordem no culto (Song.order): a sequência pra banda — as seções
+            abaixo ficam escritas uma vez cada #}
+        {% if song.order %}
+        <p class="song-order-line"><strong>{{ _('Ordem:') }}</strong>
+            {% for i in song.order %}{% if song.sections[i] %}{{ (song.sections[i].title or _('Seção {n}', n=i + 1)) | replace('[', '') | replace(']', '') | trim }}{% if not loop.last %} → {% endif %}{% endif %}{% endfor %}
+        </p>
+        {% endif %}
+
         <!-- Card único para toda a música -->
         <div class="song-content-card">
         {% if song.sections %}

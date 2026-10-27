@@ -626,6 +626,15 @@ def api_image_zoom():
 _KIND_LABELS = {'lyrics': 'Letra', 'bible': 'Bíblia', 'image': 'Foto'}
 
 
+def _url_cifra_monitor(payload):
+    """Página da cifra no monitor pra esta seção. &passo= é a posição na
+    Ordem no culto (mapIndex), pro "A seguir" saber qual repetição é."""
+    url = f"/lyrics/display?song_id={payload['songId']}&section={payload['sectionIndex']}&host=monitor"
+    if isinstance(payload.get('mapIndex'), int):
+        url += f"&passo={payload['mapIndex']}"
+    return url
+
+
 def _is_media_file(url):
     path = (url or '').split('?')[0]
     return path.startswith('/static/') or \
@@ -738,7 +747,7 @@ def _release_kind(kind, payload):
         # verdade nos dois branches abaixo.
         lyrics_url = None
         if song_id is not None and section_index is not None:
-            lyrics_url = f'/lyrics/display?song_id={song_id}&section={section_index}&host=monitor'
+            lyrics_url = _url_cifra_monitor(payload)
 
         split_pane = telao.monitor_split_pane(lyrics_url) if lyrics_url else None
         if monitor_only and split_pane:
@@ -842,7 +851,7 @@ def _secao_onde_a_letra_esta(payload):
     if volta_cifra:
         # Direto (não via handle_show_monitor_content, que encerraria o
         # "acompanhar ao vivo" da Bíblia — letra e Bíblia andam juntas)
-        cifra_url = f"/lyrics/display?song_id={payload['songId']}&section={payload['sectionIndex']}&host=monitor"
+        cifra_url = _url_cifra_monitor(payload)
         telao.set_monitor_url(cifra_url)
         for sid in _get_monitor_sids():
             emit('display_monitor_content', {'url': cifra_url}, to=sid)

@@ -1591,5 +1591,13 @@
   "Culto de Jovens": "Youth service",
   "Culto de Ensino": "Bible study service",
   "Culto Santa Ceia": "Communion service",
-  "Culto Especial": "Special service"
+  "Culto Especial": "Special service",
+  "Ordem no culto": "Service order",
+  "Monte a sequência tocando nas seções: o refrão é escrito uma vez e pode entrar várias vezes. As setas e o pedal seguem esta ordem ao vivo.": "Build the sequence by tapping the sections: the chorus is written once and can come in several times. The arrow keys and the pedal follow this order live.",
+  "Limpar a ordem": "Clear the order",
+  "Tirar da ordem": "Remove from the order",
+  "Tirar {secao} da ordem": "Remove {secao} from the order",
+  "Sem ordem: as seções aparecem de cima pra baixo.": "No order: the sections go from top to bottom.",
+  "Dê nome às seções para montar a ordem.": "Name the sections to build the order.",
+  "Ordem:": "Order:"
 }

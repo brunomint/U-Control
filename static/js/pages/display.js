@@ -210,11 +210,17 @@ const fitSheetsToScreen = () => {
                     console.log('✅ Display: Música carregada:', song);
                     const idx = parseInt(sectionIndex || 0, 10);
                     const section = song.sections[idx];
-                    const next = song.sections[idx + 1];
+                    // Ordem no culto (Song.order): o "A seguir" e o mapa seguem
+                    // a sequência; &passo= diz qual repetição (ex.: 2º refrão)
+                    const ordem = Array.isArray(song.order) && song.order.length ? song.order : song.sections.map((_, i) => i);
+                    let passo = parseInt(urlParams.get('passo'), 10);
+                    if (!(ordem[passo] === idx)) passo = ordem.indexOf(idx);
+                    const next = passo >= 0 ? song.sections[ordem[passo + 1]] : song.sections[idx + 1];
                     const nextText = next ? (Array.isArray(next.text) ? next.text.join('\n') : (next.text || '')) : null;
                     renderFooter({
-                        sectionTitles: song.sections.map(s => s.title),
+                        sectionTitles: ordem.map(i => (song.sections[i] || {}).title),
                         sectionIndex: idx,
+                        mapIndex: passo,
                         nextTitle: next ? next.title : null,
                         nextText: nextText,
                     });
@@ -422,7 +428,7 @@ const fitSheetsToScreen = () => {
         const el = document.getElementById('song-map');
         if (!_mapTitles.length) { el.innerHTML = ''; return; }
         el.innerHTML = _mapTitles.map((t, i) =>
-            `<span class="map-chip${i === _mapCurrent ? ' active' : ''}">${t}</span>`
+            `<span class="map-chip${i === _mapCurrent ? ' active' : ''}">${escapeHtml(t || '')}</span>`
         ).join('');
         // next-section-box e song-map ficam no fluxo normal (não fixed)
         // e nessa ordem no HTML — não precisa mais calcular/posicionar
@@ -442,7 +448,8 @@ const fitSheetsToScreen = () => {
     // rodapé avançava antes da seção entrar e sumia em tela recarregada).
     function renderFooter(data) {
         _mapTitles = data.sectionTitles || [];
-        _mapCurrent = data.sectionIndex ?? -1;
+        // mapIndex: posição na Ordem no culto (o mapa vem nessa ordem)
+        _mapCurrent = data.mapIndex ?? data.sectionIndex ?? -1;
         renderSongMap();
 
         // Próximo slide

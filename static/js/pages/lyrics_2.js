@@ -175,14 +175,14 @@ let currentTheme = CONFIG.theme;
         function processSections(rawSections) {
             const processedSections = [];
             
-            rawSections.forEach(section => {
+            rawSections.forEach((section, raw) => {   // raw: posição na música salva (Ordem no culto)
                 // Verifica se é uma seção de partitura integrada no título
                 if (section.title && section.title.includes('🎼 PARTITURA_INTEGRADA_')) {
                     // Extrai o ID da partitura do título
                     const sheetIdMatch = section.title.match(/PARTITURA_INTEGRADA_(\d+)/);
                     if (sheetIdMatch) {
                         const sheetId = parseInt(sheetIdMatch[1]);
-                        processedSections.push({
+                        processedSections.push({ raw,
                             title: '🎼 Partitura',
                             text: [''],
                             type: 'sheet',
@@ -218,7 +218,7 @@ let currentTheme = CONFIG.theme;
                     }
                     
                     // Adiciona uma única seção com texto e IDs das partituras
-                    processedSections.push({
+                    processedSections.push({ raw,
                         title: section.title || '',
                         text: sectionContent,
                         type: 'mixed', // Indica que tem texto e partitura
@@ -245,7 +245,7 @@ let currentTheme = CONFIG.theme;
                         const sectionContent = fullText.substring(startIndex, endIndex).trim();
                         
                         if (sectionContent) {
-                            processedSections.push({
+                            processedSections.push({ raw,
                                 title: sectionTitle,
                                 text: [sectionContent],
                                 type: 'text'
@@ -255,7 +255,7 @@ let currentTheme = CONFIG.theme;
                 } else {
                     // Sem marcadores, usa a seção como está
                     if (fullText.trim()) {
-                        processedSections.push({
+                        processedSections.push({ raw,
                             title: section.title || '',
                             text: [fullText],
                             type: 'text'
@@ -274,6 +274,50 @@ let currentTheme = CONFIG.theme;
         });
         
         let currentSectionIndex = 0; // Índice da seção atual
+
+        // Ordem no culto (Song.order: posições das seções salvas, com
+        // repetição — Verso 1 → Refrão → Verso 2 → Refrão). Os "passos" são
+        // índices de `sections` nessa ordem; sem ordem, de cima pra baixo,
+        // como sempre. Setas, pedal, Controle e Stream Deck andam por passos.
+        const passos = (() => {
+            const ordem = Array.isArray(CONFIG.order) ? CONFIG.order : null;
+            const p = ordem ? ordem.flatMap(r => sections.map((s, i) => (s.raw === r ? i : -1)).filter(i => i >= 0)) : [];
+            return p.length ? p : sections.map((_, i) => i);
+        })();
+        const temOrdem = Array.isArray(CONFIG.order) && passos.length > 0;
+        let passoAtual = 0;
+
+        // Passo de uma seção clicada/recebida: o atual se for ela, senão a
+        // próxima vez que ela aparece, senão a primeira. Seção fora da ordem
+        // não move o passo (a seta continua de onde estava).
+        function acharPasso(index) {
+            if (passos[passoAtual] === index) return passoAtual;
+            const depois = passos.indexOf(index, passoAtual + 1);
+            if (depois >= 0) return depois;
+            const p = passos.indexOf(index);
+            return p >= 0 ? p : passoAtual;
+        }
+
+        function irParaPasso(p) {
+            if (p < 0 || p >= passos.length) return false;
+            passoAtual = p;
+            loadSection(passos[p]);
+            return true;
+        }
+
+        // Faixa com a sequência (só quando a música tem ordem)
+        function renderFaixa() {
+            const faixa = document.getElementById('ordem-faixa');
+            if (!faixa) return;
+            faixa.hidden = !temOrdem;
+            if (!temOrdem) return;
+            faixa.innerHTML = passos.map((i, p) => {
+                const t = sections[i].title || _t('Seção {n}', { n: i + 1 });
+                const titulo = $('<span>').text(t).html();   // título vem da música: escapa
+                return `<button type="button" class="ordem-passo${p === passoAtual ? ' active' : ''}" data-passo="${p}">${titulo}</button>`;
+            }).join('<span class="ordem-seta" aria-hidden="true">→</span>');
+        }
+        $(document).on('click', '#ordem-faixa [data-passo]', function () { irParaPasso(Number(this.dataset.passo)); });
 
         // ── Widget "Tom: X" estilo Cifra Club ────────────────────────
         // Transpõe tanto a prévia local (createSectionLinks/
@@ -564,14 +608,18 @@ $('#clear-lyrics').click(function() {
         // em section_changed, emitido ao PREPARAR: o rodapé avançava antes
         // da seção entrar e sumia de qualquer tela recarregada.
         function withFooter(payload, index) {
-            const nextSec = sections[index + 1] || null;
+            const proximo = passos[acharPasso(index) + 1];
+            const nextSec = proximo != null ? sections[proximo] : null;
             const nextRaw = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
             let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
             if (nextClean && transposeOffset !== 0) nextClean = ChordLines.transposeBlockContent(nextClean, transposeOffset);
             return {
                 ...payload,
-                sectionTitles: sections.map(s => s.title),
-                total: sections.length,
+                // Mapa do rodapé na ordem de apresentação; mapIndex = onde
+                // está nele (sem ordem, igual ao sectionIndex)
+                sectionTitles: passos.map(i => sections[i].title),
+                total: passos.length,
+                mapIndex: acharPasso(index),
                 nextTitle: nextSec ? nextSec.title : null,
                 nextText: nextClean,
             };
@@ -583,6 +631,7 @@ $('#clear-lyrics').click(function() {
                 return;
             }
 
+            passoAtual = acharPasso(index);
             // Usa os dados locais das seções processadas (não precisa chamar o backend)
             const section = sections[index];
 
@@ -682,6 +731,7 @@ $('#clear-lyrics').click(function() {
             
             highlightActiveSection(index);
             currentSectionIndex = index; // Atualiza o índice da seção atual
+            renderFaixa();
             
             // Ajusta fonte do conteúdo para não quebrar linha
             setTimeout(() => {
@@ -702,19 +752,18 @@ $('#clear-lyrics').click(function() {
             // Só emite section_changed se não veio de um evento remoto (evita loop)
             // nem for uma restauração silenciosa
             if (!fromRemote && !silent) {
-                const nextSec  = sections[currentSectionIndex + 1] || null;
-                const nextRaw  = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
-                let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
-                if (nextClean && transposeOffset !== 0) nextClean = ChordLines.transposeBlockContent(nextClean, transposeOffset);
+                const rodape = withFooter({}, currentSectionIndex);
                 const currRaw  = sections[currentSectionIndex]?.text?.[0] || '';
                 const currObs  = separarNotas(currRaw).notas;
                 socket.emit('section_changed', {
                     songId: songId,
                     sectionIndex: currentSectionIndex,
-                    sectionTitles: sections.map(s => s.title),
-                    total: sections.length,
-                    nextTitle: nextSec ? nextSec.title : null,
-                    nextText: nextClean,
+                    passo: passoAtual,   // outras abas: mesma posição na ordem
+                    sectionTitles: rodape.sectionTitles,
+                    total: rodape.total,
+                    mapIndex: rodape.mapIndex,
+                    nextTitle: rodape.nextTitle,
+                    nextText: rodape.nextText,
                     currentObs: currObs
                 });
             }
@@ -785,19 +834,11 @@ $('#clear-lyrics').click(function() {
             loadLyricsState(); // Carrega estado salvo (música + seção)
     
             $('#next').click(function() {
-                if (currentSectionIndex < sections.length - 1) {
-                    loadSection(currentSectionIndex + 1); // Carrega a próxima seção
-                } else {
-                    alert(_t('Você já está na última seção.'));
-                }
+                if (!irParaPasso(passoAtual + 1)) alert(_t('Você já está na última seção.'));
             });
     
             $('#prev').click(function() {
-                if (currentSectionIndex > 0) {
-                    loadSection(currentSectionIndex - 1); // Carrega a seção anterior
-                } else {
-                    alert(_t('Você já está na primeira seção.'));
-                }
+                if (!irParaPasso(passoAtual - 1)) alert(_t('Você já está na primeira seção.'));
             });
             
             $('#toggle-lyrics').click(toggleLyricsVisibility);
@@ -809,9 +850,7 @@ $('#clear-lyrics').click(function() {
                 // ArrowUp, PageUp, ArrowLeft
                 if (event.key === "ArrowUp" || event.key === "PageUp" || event.key === "ArrowLeft") {
                     event.preventDefault();
-                    if (currentSectionIndex > 0) {
-                        loadSection(currentSectionIndex - 1);
-                    }
+                    irParaPasso(passoAtual - 1);
                 } 
                 // Teclas para AVANÇAR seção (pedal direito)
                 // ArrowDown, PageDown, ArrowRight, Space, Enter
@@ -821,9 +860,7 @@ $('#clear-lyrics').click(function() {
                         return;
                     }
                     event.preventDefault();
-                    if (currentSectionIndex < sections.length - 1) {
-                        loadSection(currentSectionIndex + 1);
-                    }
+                    irParaPasso(passoAtual + 1);
                 }
             });
     
@@ -834,6 +871,7 @@ $('#clear-lyrics').click(function() {
                     // isRemoteSync=true evita re-preparar (ver comentário
                     // de loadSection) — isto é só ressincronização visual,
                     // não uma ação real do operador desta aba.
+                    if (Number.isInteger(data.passo) && passos[data.passo] === data.sectionIndex) passoAtual = data.passo;
                     loadSection(data.sectionIndex, true, false, true);
                 }
             });

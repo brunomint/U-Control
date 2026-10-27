@@ -1,0 +1,18 @@
+/* "Ordem no culto" dos editores de música (static/js/song_order.js) */
+.song-order { margin: 12px 0; display: grid; gap: 10px; }
+.song-order h2 { margin: 0; font-size: 1rem; display: flex; gap: 8px; align-items: center; }
+.song-order .ordem-ajuda { margin: 0; color: var(--uc-muted); font-size: 13px; }
+.ordem-sequencia { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 32px; }
+.ordem-ficha {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px;
+  border-radius: 999px; background: var(--uc-accent-soft, rgba(139, 92, 246, .18));
+  color: var(--uc-text); font-weight: 700; font-size: 13px;
+}
+.ordem-ficha button {
+  border: 0; background: transparent; color: var(--uc-muted); cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 0 6px; border-radius: 999px;
+}
+.ordem-ficha button:hover, .ordem-ficha button:focus-visible { color: var(--uc-text); background: rgba(255, 255, 255, .08); }
+.ordem-seta { color: var(--uc-muted); font-size: 13px; }
+.ordem-vazia { color: var(--uc-muted); font-size: 13px; }
+.ordem-botoes { display: flex; flex-wrap: wrap; gap: 6px; }

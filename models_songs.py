@@ -16,6 +16,9 @@ class Song(db.Model):
     audio_url = db.Column(db.String(500), nullable=True)
     theme = db.Column(db.JSON, nullable=True)
     last_played = db.Column(db.DateTime, nullable=True)
+    # Ordem de apresentação: posições em `sections`, com repetição
+    # ([0, 1, 2, 1] = verso 1, refrão, verso 2, refrão). None = de cima pra baixo.
+    order = db.Column(db.JSON, nullable=True)
 
     sections = db.relationship(
         'SongSection', backref='song', order_by='SongSection.position',

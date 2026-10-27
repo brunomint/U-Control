@@ -106,6 +106,8 @@
     </div>
 
     <p class="lyrics-hint">{{ _('Toque numa seção para prepará-la · setas trocam de seção') }}</p>
+    {#- Ordem no culto (lyrics_2.js renderFaixa): só quando a música tem ordem #}
+    <nav class="ordem-faixa" id="ordem-faixa" aria-label="{{ _('Ordem no culto') }}" hidden></nav>
     <div id="sections-list"></div>
 </main>
 
@@ -180,7 +182,7 @@
     </div>
 </div>
 
-<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible, "videoUrl": (song.video_url or ""), "audioUrl": (song.audio_url or ""), "title": song.title, "author": (song.author or "")} | tojson }}</script>
+<script id="lyrics-config" type="application/json">{{ {"songId": song.id, "sections": song.sections, "sheetData": (song.sheet_data if song.sheet_data else []), "theme": (song.theme if song.theme else none), "orderDate": (order_date or ""), "lyricsVisible": lyrics_visible, "videoUrl": (song.video_url or ""), "audioUrl": (song.audio_url or ""), "title": song.title, "author": (song.author or ""), "order": (song.order or none)} | tojson }}</script>
 <script>
     // Lido por lyrics_2.js pra buscar sheet_render.js (ES module, import() dinâmico) com cache-busting.
     window.__sheetRenderURL = "{{ versioned_static('js/sheet_render.js') }}";

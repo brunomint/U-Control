@@ -3490,3 +3490,26 @@ def test_service_types_translated_only_on_screen(logged_in_client):
     assert logged_in_client.get("/api/orders/2099-03-01", headers=en).get_json()["tipo"] == "Culto Dominical"
     html_pt = logged_in_client.get("/order/2099-03-01").get_data(as_text=True)
     assert '<option value="Culto Dominical" selected>Culto Dominical</option>' in html_pt
+
+
+def test_song_presentation_order_saved_and_validated(app, logged_in_client):
+    """Ordem de apresentação: o refrão escrito uma vez, repetido na ordem."""
+    import songs_store
+    form = {"title": "Ordem", "author": "Teste", "sections[]": ["Verso 1", "Refrão", "Verso 2"],
+            "texts[]": ["a", "b", "c"], "order": "[0, 1, 2, 1]"}
+    sid = logged_in_client.post("/add_song", data=form).get_json()["id"]
+    with app.app_context():
+        assert songs_store.get_song(sid)["order"] == [0, 1, 2, 1]
+    # posição que não existe sai; igual à ordem natural não é guardada
+    logged_in_client.post(f"/edit_song/{sid}", data={**form, "order": "[0, 9, 1]"})
+    with app.app_context():
+        assert songs_store.get_song(sid)["order"] == [0, 1]
+    logged_in_client.post(f"/edit_song/{sid}", data={**form, "order": "[0, 1, 2]"})
+    with app.app_context():
+        assert "order" not in songs_store.get_song(sid)
+    # salvar sem o campo não apaga a ordem
+    logged_in_client.post(f"/edit_song/{sid}", data={**form, "order": "[2, 1, 0]"})
+    sem = {k: v for k, v in form.items() if k != "order"}
+    logged_in_client.post(f"/edit_song/{sid}", data=sem)
+    with app.app_context():
+        assert songs_store.get_song(sid)["order"] == [2, 1, 0]

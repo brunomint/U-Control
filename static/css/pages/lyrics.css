@@ -277,3 +277,14 @@ html body #yt-floating-player { left: 20px; right: auto; }
 @media (max-width: 768px) {
   html body #yt-floating-player { left: 12px; right: auto; bottom: 84px; }
 }
+
+/* Ordem no culto (lyrics_2.js renderFaixa): a sequência, com o passo atual */
+.ordem-faixa { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px; }
+.ordem-faixa[hidden] { display: none; }
+.ordem-passo {
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 10px;
+  border-radius: 999px; border: 1px solid var(--uc-line); background: var(--uc-surface-2); color: var(--uc-muted);
+}
+.ordem-passo:hover { color: var(--uc-text); }
+.ordem-passo.active { background: var(--uc-live, #ef4444); border-color: transparent; color: #fff; }
+.ordem-faixa .ordem-seta { color: var(--uc-muted); font-size: 12px; }

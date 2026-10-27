@@ -29,6 +29,15 @@ def _count_notes(sheet):
 
 # --- Rotas principais editor---
 
+def _ordem_do_form():
+    """Campo `order` dos editores: JSON com as posições das seções na ordem
+    de apresentação (songs_store.normalize_order valida ao salvar)."""
+    try:
+        return json.loads(request.form.get('order') or 'null')
+    except ValueError:
+        return None
+
+
 @songs_bp.route('/songs')
 @login_required
 def list_songs():
@@ -129,7 +138,8 @@ def add_song():
         "author": author,
         "sections": [
             {"title": sections[i], "text": [texts[i]]} for i in range(len(sections))
-        ]
+        ],
+        "order": _ordem_do_form(),
     }
 
     # Adiciona URL do vídeo se fornecida
@@ -236,6 +246,9 @@ def edit_song(song_id):
                 {"title": sections[i], "text": [texts[i]]} for i in range(len(sections))
             ]
         })
+        # Sem o campo (quem salva por outro caminho), a ordem salva fica
+        if 'order' in request.form:
+            song_to_update["order"] = _ordem_do_form()
 
         # Se há dados de partitura, adiciona/atualiza
         if sheet_data_json:

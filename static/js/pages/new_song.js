@@ -50,7 +50,8 @@
                         // Cria nova seção pendente
                         currentSection = {
                             title: block.title || '',
-                            text: []
+                            text: [],
+                            blockId: block.id   // pra converter a Ordem no culto em posições
                         };
                         console.log(`📋 Nova seção criada: "${block.title}"`);
                         
@@ -173,6 +174,13 @@
                 });
                 
                 console.log('📋 Total de seções enviadas:', sectionsToSend.length);
+
+                // Ordem no culto: ids dos blocos -> posições das seções enviadas
+                if (window.SongOrder) {
+                    const posicaoPorId = {};
+                    sectionsToSend.forEach((section, i) => { if (section.blockId != null) posicaoPorId[section.blockId] = i; });
+                    formData.append('order', JSON.stringify(SongOrder.posicoes(posicaoPorId)));
+                }
                 
                 console.log('📋 Dados estruturados preparados para envio');
                 
@@ -643,6 +651,8 @@
                 get: () => blocks,
                 set: (v) => { blocks = v; },
             });
+            // Ordem no culto (static/js/song_order.js)
+            if (window.SongOrder) SongOrder.init({ getBlocks: () => window.editorBlocks || [] });
 
             // ===== DESFAZER / REFAZER (Ctrl+Z / Ctrl+Y) =====
             // O Ctrl+Z do navegador só vale dentro de cada caixa de texto; as

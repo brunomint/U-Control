@@ -85,6 +85,15 @@
             </div>
         </div>
 
+        {#- Ordem no culto (static/js/song_order.js): seções com repetição #}
+        <section class="uc-card song-order" id="songOrder" aria-labelledby="songOrderTitle">
+            <h2 id="songOrderTitle"><i class="fas fa-list-ol"></i> {{ _('Ordem no culto') }}</h2>
+            <p class="ordem-ajuda">{{ _('Monte a sequência tocando nas seções: o refrão é escrito uma vez e pode entrar várias vezes. As setas e o pedal seguem esta ordem ao vivo.') }}</p>
+            <div class="ordem-sequencia" aria-live="polite"></div>
+            <div class="ordem-botoes"></div>
+            <div><button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" data-limpar hidden><i class="fas fa-eraser"></i> {{ _('Limpar a ordem') }}</button></div>
+        </section>
+
         <div class="footer">
             <button type="button" class="uc-btn uc-btn-ghost" onclick="processCifraClubManual()"><i class="fas fa-link"></i> {{ _('Importar link do Cifra Club') }}</button>
             <span class="grow"></span>

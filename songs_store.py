@@ -94,6 +94,8 @@ def _song_to_dict(song):
     if song.last_played is not None:
         d['last_played'] = song.last_played.isoformat()
     d['sections'] = _sections_to_dicts(song.sections)
+    if song.order:
+        d['order'] = song.order
     if song.sheet_data:
         d['sheet_data'] = _sheets_to_dicts(song.sheet_data)
     return d
@@ -159,6 +161,21 @@ def set_theme(song_id, theme):
     return True
 
 
+def normalize_order(order, n_sections):
+    """Ordem de apresentação válida (posições entre 0 e n-1) ou None.
+    Igual à ordem natural (0, 1, 2…) também vira None: não há o que guardar."""
+    if not isinstance(order, list):
+        return None
+    try:
+        ordem = [int(i) for i in order]
+    except (TypeError, ValueError):
+        return None
+    ordem = [i for i in ordem if 0 <= i < n_sections]
+    if not ordem or ordem == list(range(n_sections)):
+        return None
+    return ordem
+
+
 def _apply_song_fields(song, data, is_new):
     song.title = data.get('title')
     song.author = data.get('author')
@@ -174,6 +191,8 @@ def _apply_song_fields(song, data, is_new):
             SongSection(position=i, title=sec.get('title'), text=sec.get('text'))
             for i, sec in enumerate(incoming_sections)
         ]
+
+    song.order = normalize_order(data.get('order'), len(incoming_sections))
 
     incoming_sheets = [_normalize_sheet(sh) for sh in (data.get('sheet_data') or [])]
     if is_new or incoming_sheets != _sheets_to_dicts(song.sheet_data):

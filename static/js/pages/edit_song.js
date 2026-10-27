@@ -50,7 +50,8 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                         // Cria nova seção pendente
                         currentSection = {
                             title: block.title || '',
-                            text: []
+                            text: [],
+                            blockId: block.id   // pra converter a Ordem no culto em posições
                         };
                         console.log(`📋 Nova seção criada: "${block.title}"`);
                         
@@ -189,6 +190,13 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 });
                 
                 console.log('📋 Total de seções enviadas:', sectionsToSend.length);
+
+                // Ordem no culto: ids dos blocos -> posições das seções enviadas
+                if (window.SongOrder) {
+                    const posicaoPorId = {};
+                    sectionsToSend.forEach((section, i) => { if (section.blockId != null) posicaoPorId[section.blockId] = i; });
+                    formData.append('order', JSON.stringify(SongOrder.posicoes(posicaoPorId)));
+                }
                 
                 console.log('📋 Dados estruturados preparados para envio');
                 
@@ -662,6 +670,8 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 get: () => blocks,
                 set: (v) => { blocks = v; },
             });
+            // Ordem no culto (static/js/song_order.js)
+            if (window.SongOrder) SongOrder.init({ getBlocks: () => window.editorBlocks || [] });
 
             // ===== DESFAZER / REFAZER (Ctrl+Z / Ctrl+Y) =====
             // O Ctrl+Z do navegador só vale dentro de cada caixa de texto; as
@@ -2316,6 +2326,7 @@ if (CONFIG.song) {
                 const songData = CONFIG.song;
                 console.log('📊 Dados da música:', songData);
                 
+                const idPorPosicao = {};   // Ordem no culto: posição da seção -> id do bloco
                 if (songData.sections && songData.sections.length > 0) {
                     songData.sections.forEach(function(section, index) {
                         console.log(`📦 Processando seção ${index}:`, section);
@@ -2353,6 +2364,7 @@ if (CONFIG.song) {
                                     id: Date.now() + window.editorBlocks.length
                                 };
                                 window.editorBlocks.push(newBlock);
+                                idPorPosicao[index] = newBlock.id;
                                 console.log('📋 Bloco de seção adicionado:', section.title);
                             }
                         }
@@ -2425,6 +2437,7 @@ if (CONFIG.song) {
                 }
                 
                 console.log('📦 Total de blocos carregados:', window.editorBlocks.length);
+                if (window.SongOrder) SongOrder.carregar(songData.order, idPorPosicao);
                 console.log('🔍 Verificando função renderBlocksFunction:', typeof window.renderBlocksFunction);
                 
                 // Renderiza os blocos usando a função global
