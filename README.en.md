@@ -13,7 +13,7 @@ device on the same network opens the Control panel or the screens at
 > **Language:** the interface is in English and Portuguese (System →
 > Language). Automatic follows each person's browser.
 
-**[⬇ Download for Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Project website](https://brunomint.github.io/U-Control/en/)
+**[⬇ Download for Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Project website](https://brunomint.github.io/U-Control/en/) · [On AlternativeTo](https://alternativeto.net/software/u-control/about/)
 
 ![Control panel: the song in the panel and what is on the big screen next to it](docs/imagens/en/controle.png)
 
@@ -155,6 +155,9 @@ Portuguese. Fixes and improvements via pull request are welcome. The
 interface text lives in [`translations/en.json`](translations/en.json)
 (Portuguese → English): better wording, or a new language, is a good
 first contribution.
+
+Like it? Give U-Control a like on [AlternativeTo](https://alternativeto.net/software/u-control/about/) — that is how other
+churches looking for an OpenLP or ProPresenter alternative find it.
 
 ## License
 

@@ -10,7 +10,7 @@ Um computador roda o U-Control (Windows, Raspberry Pi ou Docker) e
 qualquer aparelho na mesma rede abre o Controle ou as telas pelo endereço
 `http://<ip>:8585`. Não precisa de internet durante o culto.
 
-**[⬇ Baixar para Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Site do projeto](https://brunomint.github.io/U-Control/)
+**[⬇ Baixar para Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Site do projeto](https://brunomint.github.io/U-Control/) · [No AlternativeTo](https://alternativeto.net/software/u-control/about/)
 
 ![Controle: a música no painel e o que está no telão ao lado](docs/imagens/controle.png)
 
@@ -141,6 +141,9 @@ arquivo `VERSION`, publica uma Release.
 Achou um problema ou tem uma ideia? Abra uma
 [issue](https://github.com/brunomint/U-Control/issues). Correções e
 melhorias por pull request são bem-vindas.
+
+Gostou? Curta o U-Control no [AlternativeTo](https://alternativeto.net/software/u-control/about/): é assim que ele aparece
+para outras igrejas que procuram uma alternativa ao Holyrics ou ao OpenLP.
 
 ## Licença
 
