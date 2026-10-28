@@ -1230,7 +1230,8 @@ def test_monitor_sync_copies_lyrics_released_from_other_page(app, client, logged
     assert client.post("/api/monitor/sync").status_code in (302, 401)  # exige login
     assert logged_in_client.post("/api/monitor/sync").status_code == 200
     sent = [m["args"][0]["url"] for m in monitor.get_received() if m["name"] == "display_monitor_content"]
-    assert sent == ["/lyrics/display/public"]
+    # A cifra da mesma seção — o palco não recebe mais a página do público
+    assert sent == ["/lyrics/display?song_id=1&section=0&host=monitor"]
 
     op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
     op.emit("stop_live_follow", {})
@@ -4024,6 +4025,7 @@ def test_sync_monitor_gives_stage_the_chords_of_the_lyrics_on_air(app, logged_in
     palco = ucontrol_main.socketio.test_client(app)
     palco.emit("identify", {"role": "monitor"})
     antes = display_state._last_lyrics_payload
+    antes_telao = (telao._public, telao._monitor)
     try:
         telao.set_public("lyrics", "/lyrics/display/public")
         display_state._last_lyrics_payload = {"songId": 7, "sectionIndex": 2, "mapIndex": 3, "title": "Coro"}
@@ -4037,4 +4039,5 @@ def test_sync_monitor_gives_stage_the_chords_of_the_lyrics_on_air(app, logged_in
         assert [m["args"][0]["url"] for m in palco.get_received() if m["name"] == "display_monitor_content"] == ["/bible/display"]
     finally:
         display_state._last_lyrics_payload = antes
+        telao._public, telao._monitor = antes_telao
         palco.disconnect()
