@@ -88,6 +88,12 @@ Versões pequenas, de 2–3 itens cada.
       ligavam sozinhos (conflito de `data-tela` com o aviso e o "Abrir no
       datashow") — corrigido, e agora dá pra escolher Público/Palco/Os dois.
       Falta lançar (1.0.10).
+- [ ] **Observar o vídeo no Android real** (depois da 1.0.10; o acerto
+      automático, `static/js/video_sync.js`, só foi testado com atraso
+      simulado). Ver: (1) vídeo de 20–30 min, se continua alinhado; (2) vídeo
+      longo com o celular entrando alguns segundos atrasado, se alcança;
+      (3) pausar e retomar, se não há saltos. Não complicar o algoritmo antes
+      de ver isso.
 - [ ] **Aposentar o eventlet** (o projeto está só em manutenção e desencoraja
       uso novo). No `gunicorn.conf.py`: `worker_class = "gthread"` e
       `threads = 100`; depois tirar `eventlet` do `requirements.txt`. Testado
