@@ -4014,3 +4014,27 @@ def test_stage_sheet_width_never_negative():
     assert not re.search(r"clientWidth\s*-\s*20\)\s*\|\|", js)
     assert js.count("larguraParaPartitura(container)") >= 2
     assert "ResizeObserver(redesenharSeMudouLargura)" in js
+
+
+def test_sync_monitor_gives_stage_the_chords_of_the_lyrics_on_air(app, logged_in_client):
+    """Sincronizar monitor com o público na letra: o palco recebe a cifra
+    da mesma música e seção, não a página do público (sem acordes)."""
+    import display_state
+    import telao
+    palco = ucontrol_main.socketio.test_client(app)
+    palco.emit("identify", {"role": "monitor"})
+    antes = display_state._last_lyrics_payload
+    try:
+        telao.set_public("lyrics", "/lyrics/display/public")
+        display_state._last_lyrics_payload = {"songId": 7, "sectionIndex": 2, "mapIndex": 3, "title": "Coro"}
+        palco.get_received()
+        assert logged_in_client.post("/api/monitor/sync").get_json()["monitors"] >= 1
+        urls = [m["args"][0]["url"] for m in palco.get_received() if m["name"] == "display_monitor_content"]
+        assert urls == ["/lyrics/display?song_id=7&section=2&host=monitor&passo=3"]
+        # Bíblia: a mesma página, que no palco já é a versão dele
+        telao.set_public("bible", "/bible/display")
+        logged_in_client.post("/api/monitor/sync")
+        assert [m["args"][0]["url"] for m in palco.get_received() if m["name"] == "display_monitor_content"] == ["/bible/display"]
+    finally:
+        display_state._last_lyrics_payload = antes
+        palco.disconnect()

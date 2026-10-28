@@ -546,6 +546,15 @@ def api_monitor_sync():
         # letra ou Bíblia liberada por outra página não entrava e o
         # monitor recebia a coisa errada
         url = telao.public_url()
+        if url == '/lyrics/display/public':
+            # Público na letra: o palco recebe a CIFRA da mesma música e
+            # seção (o que ele mostra em "Os dois"), não a página do
+            # público — antes os músicos perdiam acordes, "A seguir" e o
+            # mapa ao sincronizar. Bíblia não precisa: /bible/display com
+            # host=monitor (monitor.js noMonitor) já é a versão do palco.
+            payload = display_state._last_lyrics_payload or {}
+            url = _url_cifra_monitor(payload) if payload.get('songId') is not None \
+                and payload.get('sectionIndex') is not None else '/lyrics/display?host=monitor'
         if url:
             for sid in sids:
                 socketio.emit('display_monitor_content', {'url': url}, to=sid)
