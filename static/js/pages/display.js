@@ -424,6 +424,39 @@ const fitSheetsToScreen = () => {
     // então precisa reprocessar com renderSheetMusic de novo.
     let _lastSheetCall = null;
 
+    // Largura pra desenhar a partitura. Tela ainda sem tamanho (o /monitor
+    // carrega esta página num quadro escondido e só depois mostra; janela
+    // abrindo) dava container 0 e "0 - 20" = -20, que conta como valor: a
+    // partitura saía com largura negativa e sobrava só o papel branco —
+    // achado no Windows. Usa a primeira medida que presta (a do papel
+    // branco, senão a da tela); nenhuma, 900.
+    let _larguraDesenhada = 0;
+    function larguraParaPartitura(container) {
+        const lyrics = document.getElementById('lyrics');
+        const medidas = [container ? container.clientWidth : 0,
+                         (lyrics ? lyrics.clientWidth : 0) - 20,
+                         window.innerWidth - 40];
+        return medidas.find(w => w >= 200) || 900;
+    }
+    // Ganhou tamanho (apareceu, janela mudou): desenha de novo na largura
+    // certa — mesmo mecanismo da troca de fundo (applyDisplayBg)
+    let _redesenhoPendente = null;
+    function redesenharSeMudouLargura() {
+        if (!_lastSheetCall) return;
+        const agora = larguraParaPartitura(document.getElementById('sheet-container'));
+        if (Math.abs(agora - _larguraDesenhada) < 40) return;
+        clearTimeout(_redesenhoPendente);
+        _redesenhoPendente = setTimeout(() => {
+            if (!_lastSheetCall) return;
+            if (_lastSheetCall.type === 'single') renderSheet(_lastSheetCall.title, _lastSheetCall.sheetData);
+            else renderMixedSectionOrdered(_lastSheetCall.title, _lastSheetCall.elements);
+        }, 150);
+    }
+    window.addEventListener('resize', redesenharSeMudouLargura);
+    if (window.ResizeObserver) {
+        new ResizeObserver(redesenharSeMudouLargura).observe(document.getElementById('lyrics'));
+    }
+
     // Alterna fundo preto/branco
     function applyDisplayBg(dark) {
         _bgDark = dark;
@@ -617,7 +650,8 @@ const fitSheetsToScreen = () => {
     async function desenharPartituraGrande(container, sheetData) {
         const { renderSheetMusic } = await import(window.__sheetRenderURL || '/static/js/sheet_render.js');
         const lyrics = document.getElementById('lyrics');
-        const availW = container.clientWidth || (lyrics.clientWidth - 20) || 900;
+        const availW = larguraParaPartitura(container);
+        _larguraDesenhada = availW;
         const availH = lyrics.getBoundingClientRect().bottom - container.getBoundingClientRect().top - 16;
         // Sempre preto: a partitura fica num "papel" branco (display.css)
         const color = '#000';
@@ -714,7 +748,8 @@ const fitSheetsToScreen = () => {
         // Mesmo motivo de renderSheet(): usa a largura real disponível
         // em vez de um valor fixo, pra minimizar quantos sistemas
         // (linhas) a partitura precisa, facilitando caber na tela.
-        const availW = container.clientWidth || (document.getElementById('lyrics').clientWidth - 20) || 900;
+        const availW = larguraParaPartitura(container);
+        _larguraDesenhada = availW;
         import(window.__sheetRenderURL || '/static/js/sheet_render.js').then(({ renderSheetMusic }) =>
             renderSheetMusic(container, sheetData, { maxWidth: availW, color: '#000', compact: true })
         ).then(() => {

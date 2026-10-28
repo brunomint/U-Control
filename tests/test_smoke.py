@@ -4001,3 +4001,16 @@ def test_video_sync_only_reads_the_clock_on_every_screen(logged_in_client):
     assert "/video_state" in js and "emit(" not in js
     for pagina in ("/lyrics/display/public", "/monitor", "/img"):
         assert "video_sync.js" in logged_in_client.get(pagina).get_data(as_text=True), pagina
+
+
+def test_stage_sheet_width_never_negative():
+    """Retorno de palco desenhando a partitura com a tela ainda sem tamanho
+    (quadro escondido do /monitor, janela abrindo): "0 - 20 || 900" dava
+    -20 e a partitura saía com largura negativa — só o papel branco, no
+    Windows. Agora larguraParaPartitura() e redesenho ao ganhar tamanho."""
+    import pathlib
+    import re
+    js = pathlib.Path("static/js/pages/display.js").read_text(encoding="utf-8")
+    assert not re.search(r"clientWidth\s*-\s*20\)\s*\|\|", js)
+    assert js.count("larguraParaPartitura(container)") >= 2
+    assert "ResizeObserver(redesenharSeMudouLargura)" in js
