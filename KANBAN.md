@@ -84,7 +84,10 @@
 
 Versões pequenas, de 2–3 itens cada.
 
-- [ ] **Problemas achados no uso da 1.0.9** — aguardando o relato do culto.
+- [x] **Problemas achados no uso da 1.0.9**: botões Preta/Branca/Logo
+      ligavam sozinhos (conflito de `data-tela` com o aviso e o "Abrir no
+      datashow") — corrigido, e agora dá pra escolher Público/Palco/Os dois.
+      Falta lançar (1.0.10).
 - [ ] **Aposentar o eventlet** (o projeto está só em manutenção e desencoraja
       uso novo). No `gunicorn.conf.py`: `worker_class = "gthread"` e
       `threads = 100`; depois tirar `eventlet` do `requirements.txt`. Testado
