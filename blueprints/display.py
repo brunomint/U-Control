@@ -897,7 +897,12 @@ def _secao_onde_a_letra_esta(payload):
             emit('display_monitor_content', {'url': cifra_url}, to=sid)
 
     _marcar_feito_no_ar('lyrics', payload)
-    display_state.follow_confirma('lyrics')
+    # "Acompanhar" é do público (o que vai direto pra tela de texto dele):
+    # seção que foi só pro palco não conta. Antes contava, e com o público
+    # na Bíblia e o palco na cifra a 2ª seção tocada tirava a Bíblia do
+    # público ("letra e Bíblia andam juntas")
+    if no_publico:
+        display_state.follow_confirma('lyrics')
     emit('content_released', {'kind': 'lyrics'}, broadcast=True)
     telao.broadcast_status()
     return True
@@ -926,7 +931,8 @@ def _versiculo_onde_a_biblia_esta(payload):
     from blueprints.bible import enviar_biblia
     enviar_biblia(payload, publico=no_publico, monitor=no_monitor)
     _marcar_feito_no_ar('bible', payload)
-    display_state.follow_confirma('bible')
+    if no_publico:   # idem: versículo só no palco não muda o acompanhar do público
+        display_state.follow_confirma('bible')
     emit('content_released', {'kind': 'bible'}, broadcast=True)
     telao.broadcast_status()
     return True

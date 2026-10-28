@@ -4056,3 +4056,33 @@ def test_capo_lives_on_the_chord_page_not_on_the_stage_monitor(app, logged_in_cl
     assert 'id="capoGrid"' in view and "setCapo(2)" in view
     assert "capo.js" not in logged_in_client.get("/lyrics/display?host=monitor").get_data(as_text=True)
     assert not pathlib.Path("static/js/capo.js").exists()
+
+
+def test_bible_on_public_chords_on_stage_sections_only_go_to_stage(app):
+    """Público na Bíblia (liberada em "Só público"), palco na cifra: tocar
+    seções da música muda só o palco — todas elas. Antes a 1ª seção ia só
+    pro palco mas marcava "letra e Bíblia juntas" no público, e a 2ª tirava
+    a Bíblia do público."""
+    import display_state
+    import telao
+    op = _operator_socket(app)
+    lyr = lambda i: {"kind": "lyrics", "payload": {"songId": 1, "sectionIndex": i, "title": f"S{i}", "text": "x", "type": "text"}}
+    bib = lambda v: {"kind": "bible", "payload": {"reference": f"João 3:{v}", "text": "Porque Deus",
+                                                  "verses": [{"num": v, "text": "Porque Deus"}]}}
+    try:
+        op.emit("set_display_mode", {})
+        op.emit("stop_live_follow", {})
+        op.emit("stage_content", lyr(0))
+        op.emit("release_staged_content", {"kind": "lyrics"})       # letra nos dois
+        op.emit("set_display_mode", {"exclude_monitor": True})
+        op.emit("stage_content", bib(16))
+        op.emit("release_staged_content", {"kind": "bible"})        # Bíblia só no público
+        for i in (1, 2, 3):
+            op.emit("stage_content", lyr(i))
+            assert telao._public_entry()["kind"] == "bible", f"seção {i}"
+        op.emit("stage_content", bib(17))                            # o versículo seguinte continua direto
+        assert telao._public_entry()["kind"] == "bible"
+    finally:
+        op.emit("set_display_mode", {})
+        op.emit("stop_live_follow", {})
+        op.disconnect()
