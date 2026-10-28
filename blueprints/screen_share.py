@@ -27,6 +27,9 @@ DISCONNECT_GRACE = 15
 
 _share = {'sid': None, 'target': None}
 _viewers = {}  # sid -> 'public' | 'monitor' | 'any'
+# Controles cujo compartilhamento acabou (conteúdo novo, "Parar") — se um
+# deles reconecta e tenta retomar, é avisado em vez de voltar por cima
+_encerrados = set()
 _lock = threading.Lock()
 
 
@@ -34,8 +37,10 @@ def _ve(role, target):
     return role == 'any' or target == 'all' or role == target
 
 
-def _parar_tudo():
+def _parar_tudo(encerrado=True):
     with _lock:
+        if encerrado and _share['sid']:
+            _encerrados.add(_share['sid'])
         _share.update(sid=None, target=None)
         viewers = list(_viewers)
     for sid in viewers:
@@ -51,7 +56,7 @@ def forget(sid):
         def _talvez_parar():
             socketio.sleep(DISCONNECT_GRACE)
             if _share['sid'] == sid:  # não voltou (reconectar manda start de novo)
-                _parar_tudo()
+                _parar_tudo(encerrado=False)   # se voltar depois, pode retomar
         socketio.start_background_task(_talvez_parar)
 
 
@@ -82,6 +87,7 @@ def tirar_da_tela(tela):
             _share['target'] = sobra
             parar = [sid for sid, role in _viewers.items() if role == tela]
         else:
+            _encerrados.add(quem)
             _share.update(sid=None, target=None)
             parar = list(_viewers)
     for sid in parar:
@@ -104,11 +110,41 @@ def relay_screen_share_hello(data):
 
 @socketio.on('screen_share_start')
 def relay_screen_share_start(data):
-    target = (data or {}).get('target')
+    data = data or {}
+    target = data.get('target')
     target = target if target in ('public', 'monitor') else 'all'
+    pedido = target
     with _lock:
-        _share.update(sid=request.sid, target=target)
+        if data.get('retomar'):
+            # Controle que reconectou (sid novo). O que mudou enquanto ele
+            # estava fora vale: acabou -> avisa e não volta; diminuiu (só o
+            # palco) -> segue o daqui. Servidor que reiniciou não sabe de
+            # nada: retoma como o Controle pede.
+            anterior = data.get('sid_anterior')
+            if anterior in _encerrados:
+                _encerrados.discard(anterior)
+                fim = True
+            else:
+                fim = False
+                if anterior and _share['sid'] == anterior:
+                    target = _share['target']
+        else:
+            fim = False
+        if not fim:
+            # Compartilhamento novo (ou retomado) deste Controle: o que
+            # acabou antes não vale mais
+            _encerrados.discard(request.sid)
+            _encerrados.discard(data.get('sid_anterior'))
+            _share.update(sid=request.sid, target=target)
         viewers = dict(_viewers)
+    if fim:
+        emit('screen_share_tirada', {'tela': None, 'restante': None, 'parados': []})
+        return
+    if target != pedido:
+        # parados: telas que saíram enquanto o Controle estava fora — ele
+        # fecha a conexão com elas (senão contava "2 telas recebendo")
+        fora = [sid for sid, role in viewers.items() if not _ve(role, target)]
+        emit('screen_share_tirada', {'tela': None, 'restante': target, 'parados': fora})
     for sid, role in viewers.items():
         if _ve(role, target):
             emit('screen_share_start', {'from_sid': request.sid}, to=sid)

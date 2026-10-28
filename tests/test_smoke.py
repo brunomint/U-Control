@@ -3888,3 +3888,61 @@ def test_next_section_with_pc_screen_follows_mode_not_shortcut(app):
         op.emit("set_display_mode", {})
         screen_share._share.update(sid=None, target=None)
         op.disconnect()
+
+
+def test_control_resuming_share_respects_changes_made_while_away(app):
+    """Controle que cai e volta retoma o compartilhamento — mas o que mudou
+    enquanto estava fora vale: antes, letra liberada nesse meio tempo
+    ficava de novo por baixo do PC."""
+    from blueprints import screen_share
+    op = _operator_socket(app)
+
+    def tiradas(c):
+        return [m["args"][0] for m in c.get_received() if m["name"] == "screen_share_tirada"]
+    try:
+        op.emit("set_display_mode", {})
+        # 1) Acabou enquanto estava fora: avisa, não volta
+        a = _operator_socket(app)
+        a.emit("screen_share_start", {"target": "all"})
+        sid_a = screen_share._share["sid"]
+        a.disconnect()
+        op.emit("show_image", {"image_url": "/clock"})            # letra/relógio nos dois
+        assert screen_share._share["sid"] is None
+        b = _operator_socket(app)
+        b.emit("screen_share_start", {"target": "all", "retomar": True, "sid_anterior": sid_a})
+        assert tiradas(b) == [{"tela": None, "restante": None, "parados": []}]
+        assert screen_share._share["sid"] is None
+        # 2) Diminuiu enquanto estava fora (sobrou o palco): segue o daqui
+        b.emit("screen_share_start", {"target": "all"})
+        sid_b = screen_share._share["sid"]
+        b.disconnect()
+        op.emit("set_display_mode", {"exclude_monitor": True})
+        op.emit("show_image", {"image_url": "/clock", "exclude_monitor": True})
+        assert screen_share._share == {"sid": sid_b, "target": "monitor"}
+        c = _operator_socket(app)
+        c.emit("screen_share_start", {"target": "all", "retomar": True, "sid_anterior": sid_b})
+        assert screen_share._share["target"] == "monitor"
+        assert [t["restante"] for t in tiradas(c)] == ["monitor"]   # (parados: telas públicas abertas)
+        # 2b) Parou e começou de novo sem cair, depois caiu e voltou sem
+        # mudança: retoma (o "parar" de antes não conta)
+        d = _operator_socket(app)
+        d.emit("screen_share_start", {"target": "all"})
+        sid_d = screen_share._share["sid"]
+        d.emit("screen_share_stop", {})
+        d.emit("screen_share_start", {"target": "all"})
+        d.disconnect()
+        e = _operator_socket(app)
+        e.emit("screen_share_start", {"target": "all", "retomar": True, "sid_anterior": sid_d})
+        assert screen_share._share["target"] == "all" and not tiradas(e)
+        e.disconnect()
+        # 3) Servidor reiniciou (não sabe de nada): retoma como o Controle pede
+        screen_share._share.update(sid=None, target=None)
+        screen_share._encerrados.clear()
+        c.emit("screen_share_start", {"target": "all", "retomar": True, "sid_anterior": "de-antes-de-reiniciar"})
+        assert screen_share._share["target"] == "all" and not tiradas(c)
+        c.disconnect()
+    finally:
+        op.emit("set_display_mode", {})
+        screen_share._share.update(sid=None, target=None)
+        screen_share._encerrados.clear()
+        op.disconnect()

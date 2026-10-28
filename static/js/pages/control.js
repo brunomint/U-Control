@@ -339,9 +339,14 @@ socket.on('screen_share_tirada', function (d) {
 });
 
 // Reconectou (Wi-Fi caiu, servidor reiniciou): avisa de novo que está
-// compartilhando, senão o servidor esquece e para as telas
+// compartilhando, senão o servidor esquece e para as telas. Vai como
+// "retomar" com a conexão anterior: se enquanto isso outro conteúdo tirou
+// a Tela do PC do ar, o servidor avisa (screen_share_tirada) em vez de o
+// PC voltar por cima da letra.
+let _sidAnterior = null;
 socket.on('connect', function () {
-    if (_screenStream) socket.emit('screen_share_start', { target: _screenTarget });
+    if (_screenStream) socket.emit('screen_share_start', { target: _screenTarget, retomar: true, sid_anterior: _sidAnterior });
+    _sidAnterior = socket.id;
 });
 
 // O Chrome segura o vídeo em ~2,5 Mbps (pensado pra internet); na rede
