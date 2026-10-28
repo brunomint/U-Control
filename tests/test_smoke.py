@@ -3974,3 +3974,19 @@ def test_neutral_screens_follow_this_computers_mode(app):
         display_state._telas_neutras.update(public=None, monitor=None)
         display_state._blackout_active = False
         op.disconnect()
+
+
+def test_screens_reopened_mid_video_resume_without_sending_orders():
+    """Telão e monitor abertos/recarregados com vídeo no ar perguntam ao
+    servidor (/video_state) o ponto e se está pausado, e entram ali — sem
+    mandar ordem. Antes o monitor mandava "pausar + voltar ao zero" pra
+    todas as telas, e o telão recomeçava do zero e tocando."""
+    import pathlib
+    import re
+    for arquivo in ("static/js/pages/monitor.js", "static/js/pages/display_public.js"):
+        js = pathlib.Path(arquivo).read_text(encoding="utf-8")
+        corpo = re.search(r"function retomarVideo\(urlSalva\) \{(.*?)\n        \}", js, re.S)
+        assert corpo, arquivo
+        assert "/video_state" in corpo.group(1) and "socket.emit" not in corpo.group(1), arquivo
+    monitor = pathlib.Path("static/js/pages/monitor.js").read_text(encoding="utf-8")
+    assert "isVideoUrl(state.url1)" in monitor and "retomarVideo(state.url1)" in monitor

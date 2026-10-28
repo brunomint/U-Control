@@ -8,6 +8,8 @@
         displayVideo.addEventListener('ended', function() {
             socket.emit('video_ended', {});
         });
+        // Fica no mesmo ponto das outras telas mesmo abrindo devagar (static/js/video_sync.js)
+        ucVideoSync(displayVideo);
 
         // Se /monitor está dentro de iframe (ex: home/control.html), fica mudo para
         // evitar áudio duplicado. Como tela autônoma, toca com som.
@@ -130,8 +132,10 @@
             }
 
             const seekAndPlay = () => {
-                if (startAt > 0) {
-                    try { displayVideo.currentTime = startAt; } catch (_) {}
+                // Retomando (retomarVideo): soma o tempo que levou pra carregar
+                const alvo = startAt + (opts.pedidoEm ? (performance.now() - opts.pedidoEm) / 1000 : 0);
+                if (alvo > 0) {
+                    try { displayVideo.currentTime = alvo; } catch (_) {}
                 }
                 displayVideo.play().then(() => {
                     console.log('🎬 Monitor: vídeo tocando @', startAt.toFixed(2) + 's:', url);
@@ -187,6 +191,9 @@
                         iframe1.src = noMonitor(state.url1);
                         iframe2.src = noMonitor(state.url2);
                         showDoubleIframe();
+                    } else if (state.url1 && isVideoUrl(state.url1)) {
+                        // Vídeo no ar: entra onde ele está (retomarVideo)
+                        retomarVideo(state.url1);
                     } else if (state.url1) {
                         // Uma URL - tela cheia
                         console.log(`🎵 Monitor: Carregando URL do display: ${state.url1}`);
@@ -201,6 +208,22 @@
                     console.error('❌ Monitor: Erro ao carregar estado do display:', err);
                     loadLyricsState(); // Fallback para estado das letras
                 });
+        }
+
+        // Monitor aberto/recarregado com vídeo no ar: pergunta ao servidor em
+        // que ponto está e se está pausado, e entra ali — como o /img. Nunca
+        // manda ordem: antes caía no showImage, que carregava do início e
+        // mandava "pausar + voltar ao zero" pra TODAS as telas (um músico
+        // recarregando o monitor parava o vídeo do culto no telão).
+        function retomarVideo(urlSalva) {
+            const pedidoEm = performance.now();
+            fetch('/video_state')
+                .then(r => r.json())
+                .then(s => {
+                    if (s.url) playVideo(s.url, { startAt: s.position, paused: s.paused, pedidoEm });
+                    else playVideo(urlSalva, { paused: true });
+                })
+                .catch(() => playVideo(urlSalva, { paused: true }));
         }
 
         // Carrega o estado das letras (música + seção) e exibe no monitor

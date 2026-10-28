@@ -93,7 +93,7 @@
                         else if (data.image_url.includes('/lyrics/display')) { showLyricsView(); }
                         else { showRoute(data.image_url); }
                     } else if (data && data.mode === 'video' && data.video_url) {
-                        showVideo(data.video_url);
+                        retomarVideo(data.video_url);
                     } else {
                         // Servidor sem estado: tenta localStorage
                         const savedSongId = localStorage.getItem('currentSongId');
@@ -190,7 +190,11 @@
             lyricsLayer.style.display = lyricsHidden ? 'none' : 'flex';
         }
 
-        function showVideo(url) {
+        // opts (tela aberta/recarregada no meio do vídeo — retomarVideo):
+        // startAt = ponto do vídeo no servidor, paused, pedidoEm = quando
+        // perguntou (soma o tempo de carregar)
+        function showVideo(url, opts) {
+            opts = opts || {};
             routeLayer.src = 'about:blank';
             routeLayer.style.display = 'none';
             mediaImg.style.display = 'none';
@@ -199,11 +203,30 @@
             mediaVideo.src = url;
             mediaVideo.style.display = 'block';
             lyricsLayer.style.display = 'none';
+            const tocar = () => {
+                const startAt = Number(opts.startAt) || 0;
+                const alvo = startAt + (opts.pedidoEm && !opts.paused ? (performance.now() - opts.pedidoEm) / 1000 : 0);
+                if (alvo > 0) { try { mediaVideo.currentTime = alvo; } catch (_) {} }
+                if (opts.paused) { mediaVideo.pause(); return; }
+                mediaVideo.play().catch(() => {
+                    mediaVideo.muted = true;
+                    mediaVideo.play().catch(() => {});
+                });
+            };
             mediaVideo.load();
-            mediaVideo.play().catch(() => {
-                mediaVideo.muted = true;
-                mediaVideo.play().catch(() => {});
-            });
+            if (opts.startAt || opts.paused) mediaVideo.addEventListener('loadedmetadata', tocar, { once: true });
+            else tocar();
+        }
+
+        // Telão aberto/recarregado com vídeo no ar: entra no ponto e no
+        // estado (pausado ou não) do servidor. Antes recomeçava do zero e
+        // tocando, mesmo com o vídeo pausado nas outras telas.
+        function retomarVideo(urlSalva) {
+            const pedidoEm = performance.now();
+            fetch('/video_state')
+                .then(r => r.json())
+                .then(s => showVideo(s.url || urlSalva, s.url ? { startAt: s.position, paused: s.paused, pedidoEm } : {}))
+                .catch(() => showVideo(urlSalva));
         }
 
         function showRoute(url) {
@@ -215,6 +238,9 @@
             routeLayer.src = url;
             routeLayer.style.display = 'block';
         }
+
+        // Fica no mesmo ponto das outras telas mesmo abrindo devagar (static/js/video_sync.js)
+        ucVideoSync(mediaVideo);
 
         // Vídeo terminou naturalmente → volta para letras e notifica slideshow
         mediaVideo.addEventListener('ended', function() {
