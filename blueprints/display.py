@@ -554,14 +554,20 @@ def api_monitor_sync():
 
 @socketio.on('blackout')
 def handle_blackout(data):
-    """Cobre as telas escolhidas (telas: 'public' e/ou 'monitor'; sem o
-    campo, só a pública) com uma tela neutra — preta, branca ou com o logo
-    da igreja (tipo) — ou volta a imagem nelas"""
+    """Cobre telas com uma tela neutra — preta, branca ou com o logo da
+    igreja (tipo) — ou volta a imagem nelas. Quais: usar_modo segue o "O
+    que as ações mudam" deste computador, como letra e foto (botões do
+    Controle e do Apresentador); telas: 'public'/'monitor' explícitas
+    (Stream Deck ?telas=); sem nenhum dos dois, só a pública."""
     from blueprints.logo_igreja import tem_logo
     tipo = data.get('tipo') if data.get('tipo') in display_state.BLACKOUT_TIPOS else 'preta'
     if tipo == 'logo' and not tem_logo():
         tipo = 'preta'
-    telas = [t for t in (data.get('telas') or ['public']) if t in display_state.BLACKOUT_TELAS] or ['public']
+    if data.get('usar_modo') and not data.get('telas'):
+        modo = display_state.device_mode()
+        telas = {'public': ['public'], 'monitor': ['monitor']}.get(modo, ['public', 'monitor'])
+    else:
+        telas = [t for t in (data.get('telas') or ['public']) if t in display_state.BLACKOUT_TELAS] or ['public']
     ativo = bool(data.get('active', True))
     for t in telas:
         display_state._telas_neutras[t] = tipo if ativo else None

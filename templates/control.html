@@ -66,12 +66,6 @@
                 {%- else %}
                 <a class="uc-btn uc-btn-ghost" href="/agenda/dashboard#igreja-title" title="{{ _('Envie o logo da igreja no painel da Agenda') }}"><i class="fas fa-church"></i> <span>{{ _('Pôr logo') }}</span></a>
                 {%- endif %}
-                {#- Onde as telas neutras valem (static/js/telas_neutras.js) #}
-                <div class="uc-seg neutra-alvo" role="group" aria-label="{{ _('Onde as telas preta, branca e logo valem') }}">
-                    <button type="button" data-neutra-alvo="public" aria-pressed="true"><i class="fas fa-users"></i> {{ _('Público') }}</button>
-                    <button type="button" data-neutra-alvo="monitor" aria-pressed="false"><i class="fas fa-tv"></i> {{ _('Palco') }}</button>
-                    <button type="button" data-neutra-alvo="ambos" aria-pressed="false">{{ _('Os dois') }}</button>
-                </div>
             </div>
             <button type="button" class="uc-btn uc-btn-secondary" onclick="syncMonitor()" title="{{ _('Copia o que está no público para o monitor de palco') }}"><i class="fas fa-rotate"></i> {{ _('Sincronizar monitor') }}</button>
             <button type="button" class="uc-btn uc-btn-secondary" onclick="abrirDatashow()" title="{{ _('Escolhe em qual tela do PC a tela pública abre') }}"><i class="fas fa-display"></i> {{ _('Abrir no datashow') }}</button>

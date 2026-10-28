@@ -3777,7 +3777,10 @@ def test_neutral_screen_buttons_dont_catch_other_data_tela_buttons(logged_in_cli
     js = pathlib.Path("static/js/telas_neutras.js").read_text(encoding="utf-8")
     assert "[data-tela]" not in js and "[data-tela-neutra]" in js
     html = logged_in_client.get("/control").get_data(as_text=True)
-    assert 'data-tela-neutra="preta"' in html and 'data-neutra-alvo="ambos"' in html
+    assert 'data-tela-neutra="preta"' in html
+    # Sem seletor próprio: seguem o "O que as ações mudam" (eram 3 seletores
+    # parecidos e a tela branca ia pro palco achando que ia pro público)
+    assert "data-neutra-alvo" not in html and "usar_modo" in js
     assert 'data-tela="preta"' not in html and 'data-tela="monitor"' in html   # o do aviso continua
     for pagina in ("/monitor", "/lyrics/display/public", "/img"):
         assert "camada_neutra.js" in logged_in_client.get(pagina).get_data(as_text=True), pagina
@@ -3945,4 +3948,29 @@ def test_control_resuming_share_respects_changes_made_while_away(app):
         op.emit("set_display_mode", {})
         screen_share._share.update(sid=None, target=None)
         screen_share._encerrados.clear()
+        op.disconnect()
+
+
+
+def test_neutral_screens_follow_this_computers_mode(app):
+    """Botões Preta/Branca/Logo seguem o "O que as ações mudam" deste
+    computador, como letra e foto. Sem usar_modo nem telas (Stream Deck),
+    só o público, como sempre."""
+    import display_state
+    op = _operator_socket(app)
+    try:
+        for modo, esperado in (({}, {"public": "branca", "monitor": "branca"}),
+                               ({"exclude_monitor": True}, {"public": "branca", "monitor": None}),
+                               ({"monitor_only": True}, {"public": None, "monitor": "branca"})):
+            op.emit("set_display_mode", modo)
+            op.emit("blackout", {"active": True, "tipo": "branca", "usar_modo": True})
+            assert display_state._telas_neutras == esperado, modo
+            op.emit("blackout", {"active": False, "telas": ["public", "monitor"]})
+        op.emit("set_display_mode", {})
+        op.emit("blackout", {"active": True, "tipo": "preta"})          # sem nada: só o público
+        assert display_state._telas_neutras == {"public": "preta", "monitor": None}
+    finally:
+        op.emit("set_display_mode", {})
+        display_state._telas_neutras.update(public=None, monitor=None)
+        display_state._blackout_active = False
         op.disconnect()

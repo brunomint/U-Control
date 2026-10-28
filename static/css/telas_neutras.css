@@ -12,7 +12,3 @@
 /* Com o grupo ocupando a linha toda, os botões seguintes do Controle
    ficam um por linha (antes um ficava pela metade, sozinho) */
 .live-actions > .telas-neutras ~ .uc-btn { grid-column: 1 / -1; }
-
-/* Onde valem: público, palco ou os dois (linha de baixo do grupo) */
-.telas-neutras .neutra-alvo { grid-column: 1 / -1; }
-.telas-neutras .neutra-alvo button { flex: 1; font-size: 12px; }
