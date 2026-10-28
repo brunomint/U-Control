@@ -3236,6 +3236,7 @@ def test_atalhos_exigem_chave_e_comandam_o_telao(app, client, logged_in_client):
     finally:
         tela.disconnect()
         display_state._blackout_active = False
+        display_state._telas_neutras.update(public=None, monitor=None)
 
     with app.test_request_context():
         nova = atalhos.trocar_chave()
@@ -3649,7 +3650,8 @@ def test_white_and_logo_screens(app, logged_in_client, tmp_path, monkeypatch):
     screen.get_received()
     try:
         def ultimo():
-            return [m["args"][0] for m in screen.get_received() if m["name"] == "blackout"][-1]
+            d = [m["args"][0] for m in screen.get_received() if m["name"] == "blackout"][-1]
+            return {"active": d["active"], "tipo": d["tipo"]}
 
         operator.emit("blackout", {"active": True, "tipo": "branca"})
         assert ultimo() == {"active": True, "tipo": "branca"}
@@ -3670,15 +3672,16 @@ def test_white_and_logo_screens(app, logged_in_client, tmp_path, monkeypatch):
         assert ultimo() == {"active": True, "tipo": "logo"}
         tarde = ucontrol_main.socketio.test_client(app)            # quem abre depois vê a mesma
         tarde.emit("identify", {"role": "public"})
-        assert {"active": True, "tipo": "logo"} in [m["args"][0] for m in tarde.get_received() if m["name"] == "blackout"]
+        assert "logo" in [m["args"][0]["telas"]["public"] for m in tarde.get_received() if m["name"] == "blackout"]
         tarde.disconnect()
-        assert 'data-tela="logo"' in logged_in_client.get("/control").get_data(as_text=True)
+        assert 'data-tela-neutra="logo"' in logged_in_client.get("/control").get_data(as_text=True)
 
         assert logged_in_client.post("/api/logo-igreja/remover").get_json() == {"ok": True}
         assert ucontrol_main.app.test_client().get("/logo-igreja.png").status_code == 404
     finally:
         operator.emit("blackout", {"active": False})
         display_state._blackout_tipo = "preta"
+        display_state._telas_neutras.update(public=None, monitor=None)
         operator.disconnect()
         screen.disconnect()
 
@@ -3731,3 +3734,65 @@ def test_import_reads_song_info_from_opensong_openlyrics_chordpro():
     chordpro = "{title: D}\n{copyright: 2020 Y}\n{key: E}\n{tempo: 120}\n{time: 6/8}\n[E]letra"
     assert im.ler("d.cho", chordpro.encode())[0]["info"] == {"copyright": "2020 Y", "key": "E", "tempo": 120, "time": "6/8"}
     assert "info" not in im.ler("e.cho", b"{title: E}\nletra")[0]
+
+
+
+def test_neutral_screens_per_screen_public_monitor_or_both(app):
+    """Tela preta/branca/logo: o operador escolhe se vale no público, no
+    palco ou nos dois; cada tela guarda a sua. Sem `telas`, só o público
+    (Stream Deck e páginas antigas)."""
+    import display_state
+    operator = _operator_socket(app)
+    publico = ucontrol_main.socketio.test_client(app)
+    publico.emit("identify", {"role": "public"})
+    publico.get_received()
+
+    def ultimo():
+        return [m["args"][0] for m in publico.get_received() if m["name"] == "blackout"][-1]
+    try:
+        operator.emit("blackout", {"active": True, "tipo": "branca", "telas": ["monitor"]})
+        d = ultimo()
+        assert d["telas"] == {"public": None, "monitor": "branca"} and d["active"] is False
+        operator.emit("blackout", {"active": True, "tipo": "preta"})            # sem telas: só o público
+        assert ultimo()["telas"] == {"public": "preta", "monitor": "branca"}
+        assert display_state._blackout_active is True
+        palco = ucontrol_main.socketio.test_client(app)                        # palco que abre depois
+        palco.emit("identify", {"role": "monitor"})
+        assert [m["args"][0]["telas"]["monitor"] for m in palco.get_received() if m["name"] == "blackout"] == ["branca"]
+        palco.disconnect()
+        operator.emit("blackout", {"active": False, "tipo": "preta", "telas": ["public", "monitor", "x"]})
+        assert ultimo()["telas"] == {"public": None, "monitor": None}
+    finally:
+        display_state._telas_neutras.update(public=None, monitor=None)
+        display_state._blackout_active = False
+        operator.disconnect()
+        publico.disconnect()
+
+
+def test_neutral_screen_buttons_dont_catch_other_data_tela_buttons(logged_in_client):
+    """Na 1.0.9 os botões Preta/Branca/Logo eram achados por [data-tela], que
+    o Controle também usa nas telas do aviso e no "Abrir no datashow":
+    escolher "Palco" no aviso ligava a tela preta."""
+    import pathlib
+    js = pathlib.Path("static/js/telas_neutras.js").read_text(encoding="utf-8")
+    assert "[data-tela]" not in js and "[data-tela-neutra]" in js
+    html = logged_in_client.get("/control").get_data(as_text=True)
+    assert 'data-tela-neutra="preta"' in html and 'data-neutra-alvo="ambos"' in html
+    assert 'data-tela="preta"' not in html and 'data-tela="monitor"' in html   # o do aviso continua
+    for pagina in ("/monitor", "/lyrics/display/public", "/img"):
+        assert "camada_neutra.js" in logged_in_client.get(pagina).get_data(as_text=True), pagina
+
+
+def test_atalho_tela_preta_no_palco(app, client):
+    import display_state
+    from blueprints import atalhos
+    with app.test_request_context():
+        chave = atalhos.chave()
+    try:
+        r = client.post("/api/atalho/tela-preta?telas=monitor", headers={"X-UControl-Chave": chave}).get_json()
+        assert r["tela_preta"] is True and display_state._telas_neutras == {"public": None, "monitor": "preta"}
+        client.post("/api/atalho/tela-preta?telas=monitor", headers={"X-UControl-Chave": chave})
+        assert display_state._telas_neutras["monitor"] is None
+    finally:
+        display_state._telas_neutras.update(public=None, monitor=None)
+        display_state._blackout_active = False

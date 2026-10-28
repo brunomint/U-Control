@@ -58,9 +58,10 @@ def handle_identify(data):
         join_room(role)
     elif role == 'obs_overlay':
         join_room('obs')  # avisos só pra transmissão (blueprints/ticker.py)
-    # Telão público, /control ou /presenter abrindo com a tela preta já ligada
-    if role in ('public', 'control', 'presenter') and display_state._blackout_active:
-        emit('blackout', {'active': True, 'tipo': display_state._blackout_tipo})
+    # Telão, monitor, /control ou /presenter abrindo com uma tela neutra
+    # (preta/branca/logo) já ligada em alguma tela
+    if role in ('public', 'monitor', 'control', 'presenter') and any(display_state._telas_neutras.values()):
+        emit('blackout', display_state.blackout_payload())
 
 
 def _get_monitor_sids():

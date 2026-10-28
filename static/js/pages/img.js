@@ -238,13 +238,11 @@ socket.on('display_two_urls', function() {
     }
 });
 
-// Blackout: escurece/restaura a tela
-socket.on('blackout', function(data) {
-    blackoutActive = data.active;
-    const opacity = data.active ? '0' : '1';
-    document.getElementById('imageUr').style.opacity = opacity;
-    document.getElementById('videoEl').style.opacity = opacity;
-});
+// Tela preta/branca/logo (static/js/camada_neutra.js) — só aberta direto
+// no datashow. Dentro de outra tela (iframe do telão ou do /monitor), a
+// camada é a dela; antes o /img apagava sozinho e o /monitor ficava preto
+// junto com o público.
+if (!isInsideIframe) ucCamadaNeutra(socket, 'public');
 
 // Zoom do /presenter: translate(pan%) scale(zoom), origem no centro —
 // a mesma transformação que o modal de zoom aplica na prévia. Só vale

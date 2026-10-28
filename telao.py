@@ -237,6 +237,7 @@ def build_status():
                          else _FOLLOW_LABELS.get(follow)) if follow else None,
         'blackout': bool(display_state._blackout_active),
         'blackout_tipo': display_state._blackout_tipo,
+        'telas_neutras': dict(display_state._telas_neutras),
         **_extras(),
     }
 

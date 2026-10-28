@@ -371,6 +371,8 @@
             box.style.height = `calc(100% - ${bar.offsetHeight}px)`;
         }
         socket.on('ticker_update', function(data) { updateTicker(data.text || ''); });
+        // Tela preta/branca/logo do palco (static/js/camada_neutra.js)
+        ucCamadaNeutra(socket, 'monitor');
         fetch('/api/ticker').then(r => r.json()).then(d => { updateTicker((d.by_target || {})['monitor'] || ''); });
 
         // ── Tela do PC (WebRTC, static/js/screen_share_viewer.js) ─────────

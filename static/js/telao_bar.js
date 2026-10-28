@@ -82,14 +82,21 @@
             `<a class="tb-live" href="/control" title="${esc(_t('No ar na tela pública — abrir o Controle'))}">` +
             `<span class="tb-dot"></span><b>${esc(_t('No ar'))}</b>` +
             `<span class="tb-label">${esc(window.ucTelaoLabel(st.live.label))}</span></a>`);
-        if (st.blackout) {
-            // Tela neutra no ar: preta, branca ou logo (static/js/telas_neutras.js)
-            const neutra = {
-                preta: ['fa-moon', 'Tela preta', 'O público vê a tela toda preta'],
-                branca: ['fa-square', 'Tela branca', 'O público vê a tela toda branca'],
-                logo: ['fa-church', 'Logo', 'O público vê o logo da igreja'],
-            }[st.blackout_tipo] || ['fa-moon', 'Tela preta', 'O público vê a tela toda preta'];
-            parts.push(`<span class="tb-chip tb-black" title="${esc(_t(neutra[2]))}"><i class="fas ${neutra[0]}"></i> ${esc(_t(neutra[1]))}</span>`);
+        // Tela neutra no ar (preta, branca ou logo — static/js/telas_neutras.js),
+        // uma por tela: público e palco
+        const neutras = st.telas_neutras || { public: st.blackout ? (st.blackout_tipo || 'preta') : null };
+        const NEUTRA = {
+            preta: ['fa-moon', 'Tela preta', 'O público vê a tela toda preta', 'O palco vê a tela toda preta'],
+            branca: ['fa-square', 'Tela branca', 'O público vê a tela toda branca', 'O palco vê a tela toda branca'],
+            logo: ['fa-church', 'Logo', 'O público vê o logo da igreja', 'O palco vê o logo da igreja'],
+        };
+        if (neutras.public && NEUTRA[neutras.public]) {
+            const n = NEUTRA[neutras.public];
+            parts.push(`<span class="tb-chip tb-black" title="${esc(_t(n[2]))}"><i class="fas ${n[0]}"></i> ${esc(_t(n[1]))}</span>`);
+        }
+        if (neutras.monitor && NEUTRA[neutras.monitor]) {
+            const n = NEUTRA[neutras.monitor];
+            parts.push(`<span class="tb-chip tb-black" title="${esc(_t(n[3]))}"><i class="fas fa-tv"></i> ${esc(_t('Palco: {tela}', { tela: _t(n[1]) }))}</span>`);
         }
         // Modo desta máquina (o servidor guarda um por PC — ver
         // display_state._device_modes); o GET já vem com st.mode

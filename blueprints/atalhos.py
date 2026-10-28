@@ -132,12 +132,15 @@ def _liberar():
 
 def _tela_preta(modo, tipo='preta'):
     from blueprints.display import handle_blackout
-    # Alternar: desliga se ESTA tela (preta/branca/logo) está no ar; se for
-    # outra, troca pra esta
-    no_ar = display_state._blackout_active and display_state._blackout_tipo == tipo
+    # ?telas=public,monitor (sem: só a pública, como sempre foi)
+    telas = [t for t in (request.values.get('telas') or 'public').split(',')
+             if t in display_state.BLACKOUT_TELAS] or ['public']
+    # Alternar: desliga se ESTA tela (preta/branca/logo) está no ar em todas
+    # as escolhidas; senão liga (ou troca pra esta)
+    no_ar = all(display_state._telas_neutras[t] == tipo for t in telas)
     ativo = (not no_ar) if modo == 'alternar' else modo == 'ligar'
-    _handler(handle_blackout)({'active': ativo, 'tipo': tipo})
-    return {'ok': True, 'tela_preta': ativo, 'tipo': display_state._blackout_tipo}
+    _handler(handle_blackout)({'active': ativo, 'tipo': tipo, 'telas': telas})
+    return {'ok': True, 'tela_preta': ativo, 'tipo': tipo}
 
 
 def _texto(modo):
@@ -216,7 +219,7 @@ COMANDOS = {
     'proximo': ('Próximo: estrofe ou versículo aberto no painel do Controle, animação do PowerPoint ou página do site no ar', lambda: _navegar(1)),
     'anterior': ('Anterior', lambda: _navegar(-1)),
     'liberar': ('Liberar o que está preparado', _liberar),
-    'tela-preta': ('Tela preta liga/desliga', lambda: _tela_preta('alternar')),
+    'tela-preta': ('Tela preta liga/desliga (?telas=public,monitor — sem, só a pública)', lambda: _tela_preta('alternar')),
     'tela-preta-ligar': ('Tela preta: ligar', lambda: _tela_preta('ligar')),
     'tela-preta-desligar': ('Tela preta: desligar', lambda: _tela_preta('desligar')),
     'tela-branca': ('Tela branca liga/desliga', lambda: _tela_preta('alternar', 'branca')),

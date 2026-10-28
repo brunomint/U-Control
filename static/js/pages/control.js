@@ -529,11 +529,12 @@ function applyTelaoStatus(st) {
     if (!st || !st.live) return;
     lastTelaoStatus = st;
     applyServerMode(myMode(st));
-    TelasNeutras.mostrar(!!st.blackout, st.blackout_tipo);
+    TelasNeutras.mostrar({ active: !!st.blackout, tipo: st.blackout_tipo, telas: st.telas_neutras });
     renderPreview();
 }
 
 function renderPreview() {
+    TelasNeutras.setPrevia(previewView);   // aviso de tela neutra da tela mostrada
     const st = lastTelaoStatus;
     if (!st) return;
     const showMonitor = previewView === 'monitor';

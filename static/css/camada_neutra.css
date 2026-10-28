@@ -1,0 +1,17 @@
+/* Camada das telas neutras (static/js/camada_neutra.js): telão público,
+   /monitor e /img. Por cima de tudo — letra, rota, mídia, tela do PC, aviso. */
+#blackout-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .4s ease;
+}
+#blackout-layer.active { opacity: 1; }
+/* Tela branca e tela com o logo da igreja (static/js/telas_neutras.js) */
+#blackout-layer { display: flex; align-items: center; justify-content: center; }
+#blackout-layer[data-tipo="branca"] { background: #fff; }
+#blackout-logo { display: none; max-width: 60vw; max-height: 60vh; object-fit: contain; }
+#blackout-layer[data-tipo="logo"] #blackout-logo { display: block; }

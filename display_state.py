@@ -32,12 +32,23 @@ _last_bible_payload_monitor = None
 
 # Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
 _current_display_mode = 'blank'
-# Tela preta ligada no telão público (blackout do /control ou /presenter) —
-# guardado pra tela que recarregar/conectar no meio continuar preta.
-_blackout_active = False
-# Qual tela neutra: 'preta', 'branca' ou 'logo' (logo da igreja)
+# Telas neutras (preta, branca ou logo da igreja — blackout do /control ou
+# /presenter), uma por tela: o operador escolhe se valem no público, no
+# monitor de palco ou nos dois. Guardado pra tela que recarregar/conectar
+# no meio continuar coberta. None = mostrando o conteúdo normal.
 BLACKOUT_TIPOS = ('preta', 'branca', 'logo')
+BLACKOUT_TELAS = ('public', 'monitor')
+_telas_neutras = {'public': None, 'monitor': None}
+# Atalhos pro telão público (o que existia antes de ter uma por tela) —
+# handle_blackout mantém em dia; OBS, /img e Stream Deck leem estes
+_blackout_active = False
 _blackout_tipo = 'preta'
+
+
+def blackout_payload():
+    """O que vai no evento 'blackout': `telas` tem o de cada tela;
+    active/tipo são os do público (telas antigas, OBS, /img)."""
+    return {'active': _blackout_active, 'tipo': _blackout_tipo, 'telas': dict(_telas_neutras)}
 _last_image_url = None
 
 # "Live-follow" do preparar/liberar (ver blueprints/display.py,

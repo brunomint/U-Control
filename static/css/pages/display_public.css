@@ -193,23 +193,6 @@ html, body {
     to   { transform: translateX(-100%); }
 }
 
-/* Tela preta: cobre letra, rota, mídia, compartilhamento e aviso */
-#blackout-layer {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: #000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .4s ease;
-}
-#blackout-layer.active { opacity: 1; }
-/* Tela branca e tela com o logo da igreja (static/js/telas_neutras.js) */
-#blackout-layer { display: flex; align-items: center; justify-content: center; }
-#blackout-layer[data-tipo="branca"] { background: #fff; }
-#blackout-logo { display: none; max-width: 60vw; max-height: 60vh; object-fit: contain; }
-#blackout-layer[data-tipo="logo"] #blackout-logo { display: block; }
-
 /* Copyright/CCLI da música (lyrics_2.js CREDITOS): pequeno, no pé da tela */
 #song-credits {
     position: fixed; left: 0; right: 0; bottom: 2.5vh; z-index: 3;
