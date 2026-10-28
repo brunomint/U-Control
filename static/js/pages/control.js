@@ -321,6 +321,23 @@ function stopScreenShare() {
     _shareStatus('');
 }
 
+// Outro conteúdo foi ao ar numa tela que mostrava a Tela do PC: o último
+// no ar é o que aparece (blueprints/screen_share.py tirar_da_tela). Sem
+// tela nenhuma, solta a captura (o aviso "compartilhando" do navegador some)
+socket.on('screen_share_tirada', function (d) {
+    if (!_screenStream) return;
+    if (!d || !d.restante) {
+        _screenStream.getTracks().forEach(t => t.stop());
+        _screenStream = null;
+        Object.keys(_screenPeers).forEach(_fecharPeer);
+        _shareStatus(_t('Tela do PC saiu do ar: outro conteúdo entrou. Toque em Público, Monitor ou Ambos para voltar.'));
+        return;
+    }
+    _screenTarget = d.restante;
+    (d.parados || []).forEach(sid => { if (_screenPeers[sid]) _fecharPeer(sid); });
+    _shareContagem();
+});
+
 // Reconectou (Wi-Fi caiu, servidor reiniciou): avisa de novo que está
 // compartilhando, senão o servidor esquece e para as telas
 socket.on('connect', function () {

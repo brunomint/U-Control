@@ -3796,3 +3796,95 @@ def test_atalho_tela_preta_no_palco(app, client):
     finally:
         display_state._telas_neutras.update(public=None, monitor=None)
         display_state._blackout_active = False
+
+
+def test_last_content_on_air_replaces_pc_screen(app):
+    """Tela do PC: o último conteúdo no ar é o que aparece. Letra/foto/etc.
+    numa tela tiram o compartilhamento dela; sem tela nenhuma, acaba, e o
+    Controle que compartilha é avisado. Telas neutras e aviso não contam."""
+    import telao
+    from blueprints import screen_share
+    controle = _operator_socket(app)
+    operador = _operator_socket(app)
+    publico = ucontrol_main.socketio.test_client(app)
+    palco = ucontrol_main.socketio.test_client(app)
+    publico.emit("screen_share_hello", {"role": "public"})
+    palco.emit("screen_share_hello", {"role": "monitor"})
+
+    def recebeu(c, nome):
+        return [m["args"][0] for m in c.get_received() if m["name"] == nome]
+    try:
+        telao.set_monitor(None)
+        controle.emit("screen_share_start", {"target": "all"})
+        for c in (controle, publico, palco):
+            c.get_received()
+        # Tela preta e aviso por cima: o compartilhamento continua
+        operador.emit("blackout", {"active": True, "tipo": "preta", "telas": ["public", "monitor"]})
+        operador.emit("blackout", {"active": False, "telas": ["public", "monitor"]})
+        operador.emit("set_ticker", {"text": "aviso", "targets": ["public"]})
+        assert not recebeu(publico, "screen_share_stop") and screen_share._share["target"] == "all"
+        # Foto só no público (modo "Só público"): sai do público, fica no palco
+        operador.emit("show_image", {"image_url": "/static/x.png", "exclude_monitor": True})
+        assert recebeu(publico, "screen_share_stop") and not recebeu(palco, "screen_share_stop")
+        tirada = recebeu(controle, "screen_share_tirada")
+        assert [(t["tela"], t["restante"]) for t in tirada] == [("public", "monitor")]
+        assert len(tirada[0]["parados"]) == 1   # só a tela pública saiu
+        assert screen_share._share["target"] == "monitor"
+        # Conteúdo no palco: acabou, e o Controle solta a captura
+        operador.emit("show_monitor_content", {"url": "/clock"})
+        assert recebeu(palco, "screen_share_stop")
+        assert [(t["tela"], t["restante"]) for t in recebeu(controle, "screen_share_tirada")] == [("monitor", None)]
+        assert screen_share._share["sid"] is None
+        # Compartilhando nos dois, letra nos dois (palco espelhando): acaba
+        telao.set_monitor(None)
+        controle.emit("screen_share_start", {"target": "all"})
+        for c in (controle, publico, palco):
+            c.get_received()
+        operador.emit("show_image", {"image_url": "/clock"})
+        assert recebeu(publico, "screen_share_stop") and recebeu(palco, "screen_share_stop")
+        assert recebeu(controle, "screen_share_tirada")[-1]["restante"] is None
+    finally:
+        screen_share._share.update(sid=None, target=None)
+        operador.emit("stop_ticker", {"target": "all"})
+        for c in (controle, operador, publico, palco):
+            c.disconnect()
+
+
+
+def test_public_only_lyrics_keep_pc_screen_on_stage(app):
+    """"Só público" manda a seção nova pro palco quando ele já mostra a
+    letra — mas com a Tela do PC no palco, ele mostra o PC: fica lá."""
+    import telao
+    from blueprints import screen_share
+    try:
+        telao.set_monitor(None)
+        telao.set_public("lyrics", "/lyrics/display/public")   # público e palco com a letra
+        assert telao.monitor_mostra_letra() is True
+        screen_share._share.update(sid="controle-falso", target="all")
+        assert telao.monitor_mostra_letra() is False
+        screen_share._share.update(target="public")
+        assert telao.monitor_mostra_letra() is True
+    finally:
+        screen_share._share.update(sid=None, target=None)
+
+
+def test_next_section_with_pc_screen_follows_mode_not_shortcut(app):
+    """Letra no ar nos dois, depois Tela do PC nos dois: a seção seguinte em
+    "Só público" sai do PC só no público. Antes o atalho "direto pra onde a
+    letra está" achava que o palco ainda mostrava a letra e tirava o PC dele."""
+    from blueprints import screen_share
+    op = _operator_socket(app)
+    try:
+        op.emit("set_display_mode", {})
+        op.emit("stage_content", {"kind": "lyrics", "payload": {"title": "V1", "text": "a", "type": "text"}})
+        op.emit("release_staged_content", {"kind": "lyrics"})
+        op.emit("screen_share_start", {"target": "all"})
+        op.emit("set_display_mode", {"exclude_monitor": True})
+        op.emit("stage_content", {"kind": "lyrics", "payload": {"title": "V2", "text": "b", "type": "text"}})
+        assert screen_share._share["target"] == "all"      # preparou, não foi direto
+        op.emit("release_staged_content", {"kind": "lyrics"})
+        assert screen_share._share["target"] == "monitor"  # saiu só do público
+    finally:
+        op.emit("set_display_mode", {})
+        screen_share._share.update(sid=None, target=None)
+        op.disconnect()

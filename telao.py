@@ -55,9 +55,18 @@ def kind_of_url(url):
     return 'page' if url else 'blank'
 
 
+def _tirar_tela_do_pc(tela):
+    # O último conteúdo no ar é o que aparece (blueprints/screen_share.py)
+    from blueprints import screen_share
+    screen_share.tirar_da_tela(tela)
+
+
 def set_public(kind, url=''):
     global _public
     _public = {'kind': kind, 'url': url or ''}
+    _tirar_tela_do_pc('public')
+    if _monitor is None:   # o monitor espelha o público: mostra o mesmo
+        _tirar_tela_do_pc('monitor')
 
 
 def set_public_url(url):
@@ -68,6 +77,8 @@ def set_monitor(kind=None, url=''):
     """kind=None: monitor volta a acompanhar o público."""
     global _monitor
     _monitor = {'kind': kind, 'url': url or ''} if kind else None
+    if kind:
+        _tirar_tela_do_pc('monitor')
 
 
 def set_monitor_url(url):
@@ -255,6 +266,7 @@ def broadcast_status():
 def set_monitor_split(url1, url2):
     global _monitor
     _monitor = {'kind': 'split', 'url1': url1 or '', 'url2': url2 or ''}
+    _tirar_tela_do_pc('monitor')
 
 
 # Que lado da tela dividida do monitor recebe cada tipo de conteúdo: a
@@ -285,7 +297,11 @@ def monitor_mostra_letra():
     dividida)? Sem conteúdo próprio, o monitor mostra o mesmo que o
     público. Em "Só público", aí a seção nova vai pro monitor também —
     trocar de seção só acompanha a música que já está lá; o congelamento
-    é pra não trocar O QUE o palco mostra (foto, relógio…)."""
+    é pra não trocar O QUE o palco mostra (foto, relógio…).
+    Com a Tela do PC no palco, ele está mostrando o PC, não a letra."""
+    from blueprints import screen_share
+    if screen_share.mostra_em('monitor'):
+        return False
     m = _monitor or _public_entry()
     if not m:
         return False
@@ -347,7 +363,10 @@ def monitor_tem_foto_propria():
 def diverge_monitor_from_public():
     """Ação "só público": o monitor fica congelado no que o público
     mostrava até agora (se já não estava mostrando outra coisa)."""
+    global _monitor
     if _monitor is None:
-        prev = _public_entry()
-        if prev:
-            set_monitor(prev.get('kind'), prev.get('url', ''))
+        # Direto, sem set_monitor: o palco não muda de conteúdo, então a
+        # Tela do PC (se estava lá) continua. Sem nada registrado ainda,
+        # 'blank' — senão o palco seguiria "espelhando" e sairia junto
+        prev = _public_entry() or {'kind': 'blank', 'url': ''}
+        _monitor = {'kind': prev.get('kind'), 'url': prev.get('url', '')}

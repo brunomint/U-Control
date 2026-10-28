@@ -53,6 +53,7 @@ const HELP_SECTIONS = {
         <h2>Tela do PC e site no telão</h2>
         <h3>Tela do PC</h3>
         <p>No computador que vai compartilhar, abra o Controle e use a ferramenta <strong>Tela do PC</strong>: o navegador pergunta o que mostrar no telão (uma janela, uma aba ou a tela inteira). A qualidade depende da rede: no cabo ou num Wi-Fi bom, o texto fica nítido.</p>
+        <p><strong>O último conteúdo no ar é o que aparece:</strong> mandar uma letra, versículo ou foto para uma tela tira a Tela do PC dela (em "Só público", o palco continua com o PC). As telas preta, branca e logo só cobrem: ao tocar em Voltar, aparece o que estava por baixo, inclusive o PC.</p>
         <h3>Site no telão (Windows)</h3>
         <p>A ferramenta <strong>Site</strong> abre um site em tela cheia no monitor do telão, num navegador de verdade (Chrome ou Edge), e o Controle comanda: rolar, página abaixo e acima, setas, Enter, zoom, voltar e recarregar. Funciona também pelo celular.</p>
         <ul>

@@ -813,6 +813,17 @@ def _release_kind(kind, payload):
     telao.broadcast_status()
 
 
+def _sem_tela_do_pc(no_publico, no_monitor):
+    """Atalhos "direto pra onde a letra/foto/Bíblia está": tela mostrando
+    a Tela do PC não está mostrando a letra (o PC está por cima e o último
+    no ar é o que aparece — blueprints/screen_share.py). Nela a próxima
+    seção/foto/versículo segue o preparar/liberar, com o modo escolhido —
+    antes ia direto e tirava o PC até de um palco em "Só público"."""
+    from blueprints import screen_share
+    return (no_publico and not screen_share.mostra_em('public'),
+            no_monitor and not screen_share.mostra_em('monitor'))
+
+
 def _secao_onde_a_letra_esta(payload):
     """Troca de seção de uma letra que já está liberada em algum lugar:
     vai direto (sem Liberar) pra ONDE a letra está — público, monitor ou
@@ -832,6 +843,7 @@ def _secao_onde_a_letra_esta(payload):
     else:   # acompanhando o público: tem letra se o público está na letra (não na Bíblia)
         p = telao._public_entry()
         no_monitor = bool(p) and p.get('kind') in ('cifra', 'lyrics')
+    no_publico, no_monitor = _sem_tela_do_pc(no_publico, no_monitor)
     if not (no_publico or no_monitor):
         return False
 
@@ -888,6 +900,7 @@ def _versiculo_onde_a_biblia_esta(payload):
     no_publico = telao.publico_mostra('bible') or \
         (telao.publico_mostra_letra() and display_state.follow_inclui('bible'))
     no_monitor = telao.monitor_mostra_biblia()
+    no_publico, no_monitor = _sem_tela_do_pc(no_publico, no_monitor)
     if not (no_publico or no_monitor):
         return False
     with current_app.app_context():
@@ -922,6 +935,7 @@ def _foto_onde_a_foto_esta(payload):
         no_monitor = telao.monitor_tem_foto_propria()
     else:
         no_monitor = no_publico          # monitor acompanhando o público
+    no_publico, no_monitor = _sem_tela_do_pc(no_publico, no_monitor)
     if not (no_publico or no_monitor):
         return False
 

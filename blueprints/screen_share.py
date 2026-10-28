@@ -10,7 +10,12 @@ Controle pra cada tela; o servidor só repassa sdp/ice e lembra:
 
 Se o Controle que compartilha some (aba fechada, PC desligado) e não
 volta em DISCONNECT_GRACE segundos, as telas param de mostrar — antes
-ficavam no último quadro congelado."""
+ficavam no último quadro congelado.
+
+O último conteúdo que vai ao ar numa tela é o que aparece: letra, Bíblia,
+foto etc. tiram a Tela do PC daquela tela (tirar_da_tela, chamado por
+telao.set_public/set_monitor). Antes o vídeo ficava por cima e a letra
+liberada não aparecia até alguém tocar em "Parar compartilhamento"."""
 import threading
 
 from flask import request
@@ -48,6 +53,41 @@ def forget(sid):
             if _share['sid'] == sid:  # não voltou (reconectar manda start de novo)
                 _parar_tudo()
         socketio.start_background_task(_talvez_parar)
+
+
+def mostra_em(tela):
+    """A Tela do PC está no ar em `tela` ('public' ou 'monitor')?"""
+    with _lock:
+        return bool(_share['sid']) and _share['target'] in ('all', tela)
+
+
+def tirar_da_tela(tela):
+    """Outro conteúdo foi ao ar em `tela` ('public' ou 'monitor'): a Tela
+    do PC sai dela. Se não sobra tela nenhuma, o compartilhamento acaba.
+    O Controle que compartilha é avisado (screen_share_tirada, com a tela
+    que sobrou ou None) pra soltar a captura ou atualizar a mensagem. A
+    fonte do monitor dividido (/tela-do-pc, papel 'any') é escolha à parte
+    e não muda."""
+    with _lock:
+        alvo, quem = _share['target'], _share['sid']
+        if not quem:
+            return
+        if alvo == 'all':
+            sobra = 'monitor' if tela == 'public' else 'public'
+        elif alvo == tela:
+            sobra = None
+        else:
+            return
+        if sobra:
+            _share['target'] = sobra
+            parar = [sid for sid, role in _viewers.items() if role == tela]
+        else:
+            _share.update(sid=None, target=None)
+            parar = list(_viewers)
+    for sid in parar:
+        socketio.emit('screen_share_stop', {}, to=sid)
+    # parados: as telas que saíram — o Controle fecha a conexão com elas
+    socketio.emit('screen_share_tirada', {'tela': tela, 'restante': sobra, 'parados': parar}, to=quem)
 
 
 @socketio.on('screen_share_hello')

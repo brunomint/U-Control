@@ -55,6 +55,7 @@ window.HELP_SECTIONS_I18N = {
         <h2>PC screen and website on the big screen</h2>
         <h3>PC screen</h3>
         <p>On the computer that will share, open the Control panel and use the <strong>PC screen</strong> tool: the browser asks what to show on the big screen (a window, a tab or the whole screen). Quality depends on the network: on a cable or good Wi-Fi, text stays sharp.</p>
+        <p><strong>The last content put on air is what shows:</strong> sending lyrics, a verse or a photo to a screen takes the PC screen off it (in "Public only", the stage keeps the PC). The black, white and logo screens only cover: tapping Back shows what was underneath, including the PC.</p>
         <h3>Website on the big screen (Windows)</h3>
         <p>The <strong>Website</strong> tool opens a website full screen on the big-screen monitor, in a real browser (Chrome or Edge), and the Control panel drives it: scroll, page down and up, arrows, Enter, zoom, back and reload. It also works from a phone.</p>
         <ul>

@@ -1652,5 +1652,6 @@
   "O palco vê a tela toda preta": "The stage sees an all-black screen",
   "O palco vê a tela toda branca": "The stage sees an all-white screen",
   "O palco vê o logo da igreja": "The stage sees the church logo",
-  "Palco: {tela}": "Stage: {tela}"
+  "Palco: {tela}": "Stage: {tela}",
+  "Tela do PC saiu do ar: outro conteúdo entrou. Toque em Público, Monitor ou Ambos para voltar.": "PC screen went off air: other content went live. Tap Public, Monitor or Both to bring it back."
 }
