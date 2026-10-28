@@ -2301,12 +2301,18 @@ def test_photo_goes_where_photos_are_shown(app):
         telao.set_monitor('cifra', '/lyrics/display?song_id=1&section=0&host=monitor')
         display_state._live_follow_kind = None
         monitor.get_received(); publico.get_received()
-        for m in ("all", "monitor", "public"):
+        for m in ("all", "public"):
             modo(m)
             op.emit("stage_content", foto("b"))
             assert not pendente()
             assert fotos(publico) == ["/static/imagens/b.jpg"] and fotos(monitor) == []
             assert telao._monitor["kind"] == "cifra"
+        # "Só monitor" não mexe no telão (dois PCs: o do palco não troca a
+        # foto do público) — aqui a foto não tem onde ir, então pede Liberar
+        modo("monitor")
+        op.emit("stage_content", foto("b"))
+        assert pendente() and fotos(publico) == [] and fotos(monitor) == []
+        op.emit("discard_staged_content", {"kind": "image"})
 
         # Monitor com foto, público com a letra
         telao.set_public('lyrics', '/lyrics/display/public')
@@ -4086,3 +4092,72 @@ def test_bible_on_public_chords_on_stage_sections_only_go_to_stage(app):
         op.emit("set_display_mode", {})
         op.emit("stop_live_follow", {})
         op.disconnect()
+
+
+def test_two_computers_one_on_public_one_on_stage_dont_step_on_each_other(app):
+    """Dois PCs: A em "Só público" cuida do telão, B em "Só monitor" cuida
+    do palco, na mesma música. Antes a seção que B tocava ia pro telão
+    (o atalho "direto pra onde a letra está" ignorava o modo) e o palco
+    ficava vazio (congelado como "mostrando a letra" sem estar)."""
+    import telao
+    lyr = lambda i: {"kind": "lyrics", "payload": {"songId": 1, "sectionIndex": i, "title": f"S{i}", "text": f"t{i}", "type": "text"}}
+    A, Bm = _operator_socket(app), _operator_socket(app)
+    palco = ucontrol_main.socketio.test_client(app)
+    palco.emit("identify", {"role": "monitor"})
+    try:
+        for c in (A, Bm):
+            c.emit("stop_live_follow", {})
+        telao.set_monitor(None)
+        A.emit("set_display_mode", {"exclude_monitor": True})
+        Bm.emit("set_display_mode", {"monitor_only": True})
+
+        def no_palco():
+            return [m for m in palco.get_received() if m["name"] in ("display_monitor_content", "update_lyrics")]
+        A.emit("stage_content", lyr(0))
+        A.emit("release_staged_content", {"kind": "lyrics"})
+        assert telao._public_entry()["kind"] == "lyrics" and not no_palco()
+        Bm.emit("stage_content", lyr(0))
+        Bm.emit("release_staged_content", {"kind": "lyrics"})
+        assert [m["args"][0].get("url") for m in no_palco()] == ["/lyrics/display?song_id=1&section=0&host=monitor"]
+        A.emit("stage_content", lyr(1))                 # A troca de seção: só o telão
+        assert display_state_secao() == 1 and not no_palco()
+        Bm.emit("stage_content", lyr(2))                # B troca de seção: só o palco
+        assert display_state_secao() == 1
+        assert [m["args"][0]["sectionIndex"] for m in no_palco() if m["name"] == "update_lyrics"] == [2]
+    finally:
+        for c in (A, Bm):
+            c.emit("set_display_mode", {})
+            c.emit("stop_live_follow", {})
+            c.disconnect()
+        palco.disconnect()
+
+
+def display_state_secao():
+    import display_state
+    return (display_state._last_lyrics_payload or {}).get("sectionIndex")
+
+
+def test_one_operator_public_only_stage_still_follows_the_song(app):
+    """Um PC só, em "Só público", com o palco já na música: a seção nova vai
+    pro palco também (só acompanha a música) — o que muda com outro PC em
+    "Só monitor" não pode tirar isso de quem opera sozinho."""
+    import telao
+    lyr = lambda i: {"kind": "lyrics", "payload": {"songId": 1, "sectionIndex": i, "title": f"S{i}", "text": "x", "type": "text"}}
+    op = _operator_socket(app)
+    palco = ucontrol_main.socketio.test_client(app)
+    palco.emit("identify", {"role": "monitor"})
+    try:
+        op.emit("stop_live_follow", {})
+        telao.set_monitor(None)
+        op.emit("set_display_mode", {})
+        op.emit("stage_content", lyr(0))
+        op.emit("release_staged_content", {"kind": "lyrics"})          # letra nos dois
+        op.emit("set_display_mode", {"exclude_monitor": True})
+        palco.get_received()
+        op.emit("stage_content", lyr(1))
+        assert [m["args"][0]["sectionIndex"] for m in palco.get_received() if m["name"] == "update_lyrics"] == [1]
+    finally:
+        op.emit("set_display_mode", {})
+        op.emit("stop_live_follow", {})
+        op.disconnect()
+        palco.disconnect()

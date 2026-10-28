@@ -22,6 +22,9 @@ def handle_connect():
     global socketio_clients_connected
     sid = request.sid
     socketio_clients_by_sid[sid] = socketio_clients_by_sid.get(sid) or {'role': 'unknown'}
+    # Máquina desta conexão (cookie uc_device): pra saber se OUTRO PC
+    # conectado cuida do palco (display_state.palco_de_outro_pc)
+    socketio_clients_by_sid[sid]['device'] = request.cookies.get('uc_device') or ''
     socketio_clients_connected = len(socketio_clients_by_sid)
     logger.info('Cliente conectado')
 

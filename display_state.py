@@ -141,6 +141,17 @@ def device_mode(device=None):
     return _device_modes.get(device if device is not None else current_device(), 'all')
 
 
+def palco_de_outro_pc():
+    """Outro PC conectado agora está em "Só monitor" — duas pessoas, uma
+    no telão e outra no palco. Aí o "Só público" deste PC não arrasta o
+    palco junto (o palco é do outro). Só conta quem está conectado: um PC
+    que ficou em "Só monitor" e foi embora não prende ninguém."""
+    from connections import socketio_clients_by_sid
+    eu = current_device()
+    conectados = {info.get('device') for info in list(socketio_clients_by_sid.values())}
+    return any(d and d != eu and _device_modes.get(d) == 'monitor' for d in conectados)
+
+
 def set_device_mode(mode, device=None):
     device = device if device is not None else current_device()
     if mode in ('public', 'monitor'):

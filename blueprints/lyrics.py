@@ -165,6 +165,14 @@ def mostrar_se_escondido():
 def handle_update_lyrics(data):
     logger.debug(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
     mostrar_se_escondido()
+    import telao
+    # "Só público": congela o palco no que o público mostrava ANTES desta
+    # letra — antes isto vinha depois de _current_display_mode = 'lyrics',
+    # e _public_entry() (sem nada registrado) já dizia "letra": o palco
+    # vazio ficava marcado como "mostrando a letra", e a seção de outro PC
+    # em "Só monitor" ia como troca de seção pra uma cifra que não existia
+    if data.get('exclude_monitor'):
+        telao.diverge_monitor_from_public()
     display_state._last_lyrics_payload = data
     display_state._current_display_mode = 'lyrics'
     # Persiste o payload exato (não só em memória) — display_state
@@ -183,9 +191,6 @@ def handle_update_lyrics(data):
     except Exception:
         logger.exception('Falha ao persistir last_payload de update_lyrics')
     emit('update_lyrics', data, broadcast=True, skip_sid=_skip_sids(data))
-    import telao
-    if data.get('exclude_monitor'):
-        telao.diverge_monitor_from_public()
     telao.set_public('lyrics', '/lyrics/display/public')
     telao.broadcast_status()
 

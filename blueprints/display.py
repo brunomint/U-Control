@@ -764,7 +764,8 @@ def _release_kind(kind, payload):
     if kind == 'lyrics':
         # "Só público" congela o monitor — mas se ele já mostra a letra/
         # cifra, a seção nova vai pra ele também (só acompanha a música)
-        if exclude_monitor and telao.monitor_mostra_letra():
+        # (a não ser que outro PC conectado cuide do palco — "Só monitor")
+        if exclude_monitor and telao.monitor_mostra_letra() and not display_state.palco_de_outro_pc():
             exclude_monitor = False
         song_id = payload.get('songId')
         section_index = payload.get('sectionIndex')
@@ -828,6 +829,20 @@ def _release_kind(kind, payload):
     telao.broadcast_status()
 
 
+def _pelo_modo_deste_pc(no_publico, no_monitor):
+    """Atalhos "direto pra onde a letra/foto/Bíblia está" respeitam o PC
+    que tocou: em "Só monitor" nunca mexe no telão; em "Só público" não
+    arrasta o palco se outro PC conectado cuida dele (palco_de_outro_pc).
+    Antes ignoravam o modo, e com dois PCs — um no telão, outro no palco —
+    a seção que o do palco tocava ia pro telão."""
+    modo = display_state.device_mode()
+    if modo == 'monitor':
+        no_publico = False
+    elif modo == 'public' and display_state.palco_de_outro_pc():
+        no_monitor = False
+    return no_publico, no_monitor
+
+
 def _sem_tela_do_pc(no_publico, no_monitor):
     """Atalhos "direto pra onde a letra/foto/Bíblia está": tela mostrando
     a Tela do PC não está mostrando a letra (o PC está por cima e o último
@@ -859,6 +874,7 @@ def _secao_onde_a_letra_esta(payload):
         p = telao._public_entry()
         no_monitor = bool(p) and p.get('kind') in ('cifra', 'lyrics')
     no_publico, no_monitor = _sem_tela_do_pc(no_publico, no_monitor)
+    no_publico, no_monitor = _pelo_modo_deste_pc(no_publico, no_monitor)
     if not (no_publico or no_monitor):
         return False
 
@@ -921,6 +937,7 @@ def _versiculo_onde_a_biblia_esta(payload):
         (telao.publico_mostra_letra() and display_state.follow_inclui('bible'))
     no_monitor = telao.monitor_mostra_biblia()
     no_publico, no_monitor = _sem_tela_do_pc(no_publico, no_monitor)
+    no_publico, no_monitor = _pelo_modo_deste_pc(no_publico, no_monitor)
     if not (no_publico or no_monitor):
         return False
     with current_app.app_context():
@@ -957,6 +974,7 @@ def _foto_onde_a_foto_esta(payload):
     else:
         no_monitor = no_publico          # monitor acompanhando o público
     no_publico, no_monitor = _sem_tela_do_pc(no_publico, no_monitor)
+    no_publico, no_monitor = _pelo_modo_deste_pc(no_publico, no_monitor)
     if not (no_publico or no_monitor):
         return False
 
