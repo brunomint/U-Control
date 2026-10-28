@@ -242,7 +242,7 @@ socket.on('display_two_urls', function() {
 // no datashow. Dentro de outra tela (iframe do telão ou do /monitor), a
 // camada é a dela; antes o /img apagava sozinho e o /monitor ficava preto
 // junto com o público.
-if (!isInsideIframe) ucCamadaNeutra(socket, 'public');
+if (!isInsideIframe) ucCamadaNeutra(socket, new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public');
 
 // Zoom do /presenter: translate(pan%) scale(zoom), origem no centro —
 // a mesma transformação que o modal de zoom aplica na prévia. Só vale

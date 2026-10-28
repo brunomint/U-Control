@@ -18,7 +18,9 @@
         
         const socket = io();
 
-        socket.emit('identify', { role: 'presenter' });
+        // A cada (re)conexão: o servidor responde com o estado das telas
+        // preta/branca/logo — se a rede cair, os botões não ficam velhos
+        socket.on('connect', () => socket.emit('identify', { role: 'presenter' }));
 
         // Tela preta/branca/logo (static/js/telas_neutras.js): acompanha o
         // servidor (outro operador, o Controle, ou esta página aberta com
