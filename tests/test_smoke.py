@@ -4041,3 +4041,18 @@ def test_sync_monitor_gives_stage_the_chords_of_the_lyrics_on_air(app, logged_in
         display_state._last_lyrics_payload = antes
         telao._public, telao._monitor = antes_telao
         palco.disconnect()
+
+
+
+def test_capo_lives_on_the_chord_page_not_on_the_stage_monitor(app, logged_in_client):
+    """Capotraste: na cifra de cada músico (/view/<id>, ao lado do Tom), não
+    no monitor de palco — uma TV vista pela banda toda."""
+    import pathlib
+    import songs_store
+    with app.app_context():
+        sid = songs_store.next_song_id()
+        songs_store.save_song({"id": sid, "title": "Capo", "author": "T", "sections": [{"title": "V", "text": ["A D\nletra"]}]})
+    view = logged_in_client.get(f"/view/{sid}").get_data(as_text=True)
+    assert 'id="capoGrid"' in view and "setCapo(2)" in view
+    assert "capo.js" not in logged_in_client.get("/lyrics/display?host=monitor").get_data(as_text=True)
+    assert not pathlib.Path("static/js/capo.js").exists()

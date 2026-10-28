@@ -91,6 +91,23 @@
             </div>
             </div>
 
+            <!-- Capotraste: mostra as formas que o violonista toca (Lá com
+                 capo na 2ª casa aparece em Sol). Só neste aparelho e por
+                 música (localStorage), como o Tom; o Tom continua dizendo o
+                 tom que soa. A partitura não muda (é escrita no som real).
+                 Antes ficava no monitor de palco — uma TV vista pela banda. -->
+            <div class="tom-widget capo-widget">
+                <button type="button" class="tom-trigger" onclick="toggleCapoGrid()" title="{{ _('Capotraste: mostra os acordes como você vai tocar (só neste aparelho)') }}">{{ _('Capo') }} <strong id="capoAtual">—</strong> <i class="fas fa-chevron-down"></i></button>
+                <div class="tom-popover" id="capoPanel">
+                    <div class="tom-grid capo-grid" id="capoGrid">
+                        {% for n in range(0, 8) %}
+                        <button type="button" class="tom-key-btn" data-capo="{{ n }}" onclick="setCapo({{ n }})">{{ n if n else _('Sem capo') }}</button>
+                        {% endfor %}
+                    </div>
+                    <p class="capo-dica" id="capoDica"></p>
+                </div>
+            </div>
+
             <!-- Tamanho da letra da cifra — só neste aparelho (localStorage),
                  vale pra todas as músicas. As linhas nunca quebram (os
                  acordes ficam alinhados); se passar da largura, o quadro
@@ -525,6 +542,11 @@ window.onload = () => {
   const TEM_PARTITURA = {{ 'true' if tem_partitura else 'false' }};
   const TRANSPOSE_STORAGE_KEY = 'ucontrol_transpose_' + SONG_ID;
   let transposeOffset = parseInt(localStorage.getItem(TRANSPOSE_STORAGE_KEY), 10) || 0;
+  // Capotraste (por música, neste aparelho): os acordes saem descidos
+  // `capo` semitons; o Tom e a partitura seguem o som real
+  const CAPO_STORAGE_KEY = 'ucontrol_capo_' + SONG_ID;
+  let capo = 0;
+  try { capo = Math.max(0, Math.min(11, parseInt(localStorage.getItem(CAPO_STORAGE_KEY), 10) || 0)); } catch (e) { /* sem storage */ }
   // Aplica o tom salvo na partitura assim que a página carrega. Não dá
   // pra confiar em document.addEventListener('DOMContentLoaded', ...)
   // dentro do script `type="module"` (mais abaixo) pra isso sozinho:
@@ -568,9 +590,10 @@ window.onload = () => {
       const content = transposeOffset !== 0
         ? ChordLines.transposeBlockContent(raw, transposeOffset)
         : raw;
-      currentContents.push(content);
+      currentContents.push(content);   // o Tom diz o tom que soa
+      const tocado = capo ? ChordLines.transposeBlockContent(raw, transposeOffset - capo) : content;
 
-      const lines = content.split('\n');
+      const lines = tocado.split('\n');
       // Comentário "//", linha de cifra e acorde entre barras — mesma
       // regra do editor de música (ChordLines.highlightLineHtml)
       const processedLines = lines.map(ChordLines.highlightLineHtml);
@@ -588,7 +611,39 @@ window.onload = () => {
         btn.classList.toggle('active', btn.dataset.key === root);
       });
     }
+
+    // Capo: "Capo 2" e as formas (Lá com capo 2 = formas de G)
+    const capoEl = document.getElementById('capoAtual');
+    if (capoEl) {
+      capoEl.textContent = capo ? String(capo) : '—';
+      const dica = document.getElementById('capoDica');
+      const soa = ChordLines.detectFirstChordToken(currentContents);
+      const formas = soa && capo ? ChordLines.describeKey(ChordLines.transposeChord(soa, -capo)) : null;
+      if (dica) dica.textContent = formas ? _t('Capo {n} · formas de {tom}', { n: capo, tom: formas }) : '';
+      document.querySelectorAll('#capoGrid button[data-capo]').forEach(btn => {
+        btn.classList.toggle('active', Number(btn.dataset.capo) === capo);
+      });
+    }
   }
+
+  window.setCapo = function(n) {
+    capo = n;
+    try {
+      if (capo) localStorage.setItem(CAPO_STORAGE_KEY, String(capo));
+      else localStorage.removeItem(CAPO_STORAGE_KEY);
+    } catch (e) { /* sem storage: vale só nesta visita */ }
+    renderChords();
+    const panel = document.getElementById('capoPanel');   // escolheu: fecha a lista
+    if (panel) panel.style.display = 'none';
+  };
+
+  window.toggleCapoGrid = function() {
+    const panel = document.getElementById('capoPanel');
+    if (!panel) return;
+    const isHidden = getComputedStyle(panel).display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+    if (isHidden && window.ucFitPopover) window.ucFitPopover(panel);
+  };
 
   window.transposeStep = function(semitones) {
     transposeOffset += semitones;

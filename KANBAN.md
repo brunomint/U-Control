@@ -101,7 +101,7 @@ Versões pequenas, de 2–3 itens cada.
       com 1 thread (o padrão), que a primeira conexão do Socket.IO ocupava.
       Com 100 threads, 5 telas abertas e WebSocket de verdade funcionaram.
       Ir numa versão só com isso, fácil de desfazer no Pi.
-- [ ] **Capotraste só no `/view/<id>`**, ao lado do botão Tom (pedido em
+- [x] **Capotraste só no `/view/<id>`** (feito 2026-10-28), ao lado do botão Tom (pedido em
       2026-10-28). Tirar do monitor (`static/js/capo.js` + gancho no
       `display.js`): o monitor costuma ser uma TV no palco vista por todos
       (o capo do violonista mudaria os acordes do tecladista), e ninguém

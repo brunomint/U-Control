@@ -1601,7 +1601,6 @@
   "Verso": "Verse",
   "Toque numa seção para prepará-la · setas trocam de seção · teclas: 1–9 versos, C refrão, B ponte": "Tap a section to cue it · arrow keys change section · keys: 1–9 verses, C chorus, B bridge",
   "Atalho: tecla {tecla}": "Shortcut: {tecla} key",
-  "Capo {n}": "Capo {n}",
   "Capo": "Capo",
   "Sem capo": "No capo",
   "Capotraste: mostra os acordes como você vai tocar (só neste aparelho)": "Capo: shows the chords as you will play them (this device only)",
@@ -1653,5 +1652,6 @@
   "Tela do PC saiu do ar: outro conteúdo entrou. Toque em Público, Monitor ou Ambos para voltar.": "PC screen went off air: other content went live. Tap Public, Monitor or Both to bring it back.",
   "Cifra — palco": "Chords — stage",
   "Telão — público": "Big screen — audience",
-  "Cifra para os músicos": "Chords for the musicians"
+  "Cifra para os músicos": "Chords for the musicians",
+  "Capo {n} · formas de {tom}": "Capo {n} · {tom} shapes"
 }
