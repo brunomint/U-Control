@@ -4,6 +4,8 @@ let currentImageUrl = ''; // Armazena URL atual para evitar recargas desnecessá
 document.getElementById('videoEl').addEventListener('ended', function() {
     socket.emit('video_ended', {});
 });
+// Fica no mesmo ponto das outras telas mesmo abrindo devagar (static/js/video_sync.js)
+ucVideoSync(document.getElementById('videoEl'));
 let blackoutActive = false;
 
 // Se /img está dentro de iframe (ex: home/control.html), fica mudo para

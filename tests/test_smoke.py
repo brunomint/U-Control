@@ -3990,3 +3990,14 @@ def test_screens_reopened_mid_video_resume_without_sending_orders():
         assert "/video_state" in corpo.group(1) and "socket.emit" not in corpo.group(1), arquivo
     monitor = pathlib.Path("static/js/pages/monitor.js").read_text(encoding="utf-8")
     assert "isVideoUrl(state.url1)" in monitor and "retomarVideo(state.url1)" in monitor
+
+
+def test_video_sync_only_reads_the_clock_on_every_screen(logged_in_client):
+    """Tela que abre o vídeo devagar (celular) se acerta sozinha com o
+    relógio do servidor (static/js/video_sync.js) — e só lê: mandar ordem
+    daqui pararia/pularia o vídeo nas outras telas."""
+    import pathlib
+    js = pathlib.Path("static/js/video_sync.js").read_text(encoding="utf-8")
+    assert "/video_state" in js and "emit(" not in js
+    for pagina in ("/lyrics/display/public", "/monitor", "/img"):
+        assert "video_sync.js" in logged_in_client.get(pagina).get_data(as_text=True), pagina
