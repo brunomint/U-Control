@@ -123,7 +123,7 @@ NAV_ITEMS = [
     # ── Telas de exibição passiva (só como alvo de lançamento do
     #    control.html — nunca na barra "nav", de propósito) ──────────
     {
-        "endpoint": "lyrics.lyrics_display", "label": "Visualização das Canções", "icon": "fa-tv",
+        "endpoint": "lyrics.lyrics_display", "label": "Cifra para os músicos", "icon": "fa-tv",
         "group": None, "login_required": False, "contexts": ["launcher", "qr"],
     },
     {

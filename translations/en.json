@@ -624,7 +624,6 @@
   "Overlay OBS (fundo transparente)": "OBS overlay (transparent background)",
   "Retorno de Palco": "Stage monitor",
   "Texto para o Público": "Text for the congregation",
-  "Visualização das Canções": "Song view",
   "Visualização de Imagens": "Image view",
   "Telão agora": "On the big screen now",
   "Público e monitor": "Public and monitor",
@@ -927,7 +926,6 @@
   "A seguir:": "Up next:",
   "Partitura vazia - sem notas para exibir": "Empty sheet music - no notes to show",
   "Clique aqui para tela cheia": "Click here for full screen",
-  "Exibição de Letras": "Lyrics display",
   "Iframe Esquerdo": "Left frame",
   "Iframe Direito": "Right frame",
   "Monitor de Imagens": "Image monitor",
@@ -1652,5 +1650,8 @@
   "O palco vê a tela toda branca": "The stage sees an all-white screen",
   "O palco vê o logo da igreja": "The stage sees the church logo",
   "Palco: {tela}": "Stage: {tela}",
-  "Tela do PC saiu do ar: outro conteúdo entrou. Toque em Público, Monitor ou Ambos para voltar.": "PC screen went off air: other content went live. Tap Public, Monitor or Both to bring it back."
+  "Tela do PC saiu do ar: outro conteúdo entrou. Toque em Público, Monitor ou Ambos para voltar.": "PC screen went off air: other content went live. Tap Public, Monitor or Both to bring it back.",
+  "Cifra — palco": "Chords — stage",
+  "Telão — público": "Big screen — audience",
+  "Cifra para os músicos": "Chords for the musicians"
 }
