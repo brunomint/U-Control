@@ -1,0 +1,5 @@
+# Copie para scripts/pi.conf (fica fora do Git) e troque pelos dados do
+# seu Pi. Lido por scripts/deploy.py e scripts/backup_do_pi.sh.
+PI_HOST=100.64.0.1            # IP ou nome do Pi (ex.: o do Tailscale)
+PI_USER=pi                    # usuário SSH
+PI_PATH=/home/pi/ucontrol-v2  # pasta do projeto no Pi

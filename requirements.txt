@@ -1,5 +1,5 @@
 # Gerado a partir do `pip freeze` da venv em produção no Raspberry Pi
-# (/home/piano-25/14.3_calendario_U-Control/venv), em 2026-08-05.
+# (o venv do projeto no Pi), em 2026-08-05.
 # A venv local deste repositório estava quebrada (símbolos de outra pasta
 # antiga) e desatualizada em relação ao que roda de verdade — por isso a
 # fonte da verdade aqui é o Pi, não o ambiente de desenvolvimento local.

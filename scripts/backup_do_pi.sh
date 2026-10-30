@@ -15,8 +15,16 @@
 # Rodar na mão: scripts/backup_do_pi.sh
 set -euo pipefail
 
-PI="${UCONTROL_PI:-piano-25@100.64.46.84}"
-APP="${UCONTROL_APP:-/home/piano-25/ucontrol-v2}"
+# Endereço, usuário e pasta do Pi: scripts/pi.conf (fora do Git — modelo em
+# pi.conf.example), o mesmo do deploy.py. UCONTROL_PI / UCONTROL_APP ainda valem.
+CONF="$(dirname "$(readlink -f "$0")")/pi.conf"
+[ -f "$CONF" ] && . "$CONF"
+PI="${UCONTROL_PI:-${PI_USER:-}@${PI_HOST:-}}"
+APP="${UCONTROL_APP:-${PI_PATH:-}}"
+if [ "$PI" = "@" ] || [ -z "$APP" ]; then
+    echo "Falta o destino do Pi: copie scripts/pi.conf.example para scripts/pi.conf e preencha." >&2
+    exit 1
+fi
 DEST="${UCONTROL_BACKUP_DIR:-$HOME/Backups/U-Control}"
 MANTER="${UCONTROL_BACKUP_MANTER:-30}"
 SSH=(ssh -o BatchMode=yes -o ConnectTimeout=20)

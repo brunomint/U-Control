@@ -19,9 +19,28 @@ import argparse
 import os
 import sys
 
-DEFAULT_HOST = "100.64.46.84"  # Tailscale — funciona de qualquer rede
-DEFAULT_USER = "piano-25"
-DEFAULT_PATH = "/home/piano-25/ucontrol-v2"  # desde 2026-08-15 (antes 14.3_calendario_U-Control)
+def _ler_pi_conf():
+    """scripts/pi.conf (KEY=VALUE, fora do Git — modelo em
+    pi.conf.example): endereço, usuário e pasta do Pi. Não ficam no
+    código porque o repositório é público."""
+    conf = {}
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pi.conf")
+    try:
+        with open(caminho, encoding="utf-8") as f:
+            for linha in f:
+                linha = linha.split("#", 1)[0].strip()
+                if "=" in linha:
+                    chave, valor = linha.split("=", 1)
+                    conf[chave.strip()] = valor.strip()
+    except FileNotFoundError:
+        pass
+    return conf
+
+
+_PI = _ler_pi_conf()
+DEFAULT_HOST = _PI.get("PI_HOST")  # ex.: o IP do Tailscale — funciona de qualquer rede
+DEFAULT_USER = _PI.get("PI_USER")
+DEFAULT_PATH = _PI.get("PI_PATH")
 DEFAULT_BRANCH = "main"  # desde a v1.0 (2026-10-13); antes "rebuild"
 # Há dois serviços com "ucontrol" no nome (o do túnel Cloudflare também);
 # a detecção automática pegava o primeiro da lista
@@ -125,6 +144,9 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="só mostra o plano, não conecta em lugar nenhum")
     parser.add_argument("--yes", action="store_true", help="não pede confirmação antes de executar")
     args = parser.parse_args()
+    if not (args.host and args.user and args.path):
+        sys.exit("Falta o destino do Pi: copie scripts/pi.conf.example para scripts/pi.conf "
+                 "e preencha (ou passe --host, --user e --path).")
 
     print("=== Plano de deploy ===")
     print(f"Host:    {args.user}@{args.host}")

@@ -50,3 +50,6 @@ windows/bin/
 # músicas e ordens de culto antigas, e um snippet de outro projeto
 data_backup_pre_sql/
 pagbank_pix_update.js
+
+# Destino do deploy/backup (endereço e usuário do Pi): só local
+scripts/pi.conf
