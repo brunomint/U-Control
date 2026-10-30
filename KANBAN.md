@@ -94,7 +94,8 @@ Versões pequenas, de 2–3 itens cada.
       longo com o celular entrando alguns segundos atrasado, se alcança;
       (3) pausar e retomar, se não há saltos. Não complicar o algoritmo antes
       de ver isso.
-- [ ] **Aposentar o eventlet** (o projeto está só em manutenção e desencoraja
+- [~] **Aposentar o eventlet** — 1ª etapa feita 2026-10-30: Pi/Docker no gthread (threads=100, workers=1). Falta, depois de alguns cultos sem problema: tirar `eventlet` do `requirements.txt`.
+      Era: (o projeto está só em manutenção e desencoraja
       uso novo). No `gunicorn.conf.py`: `worker_class = "gthread"` e
       `threads = 100`; depois tirar `eventlet` do `requirements.txt`. Testado
       em 2026-10-27, só localmente: o travamento de agosto era o gunicorn

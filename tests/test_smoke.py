@@ -3235,6 +3235,13 @@ def test_atalhos_exigem_chave_e_comandam_o_telao(app, client, logged_in_client):
         r = client.get(f"/api/atalho/liberar?chave={chave}").get_json()
         assert r == {"ok": True, "liberado": "Relógio"}
         assert client.get(f"/api/atalho/liberar?chave={chave}").get_json()["ok"] is False
+        # Letra: liberar apaga o preparado — o rótulo tem que ser lido antes
+        # (lendo depois dava DetachedInstanceError e o atalho respondia erro)
+        operador.emit("stage_content", {"kind": "lyrics", "label": "Música — Verso 1", "payload":
+                                        {"songId": 1, "sectionIndex": 0, "title": "Verso 1", "text": "x", "type": "text"}})
+        r = client.get(f"/api/atalho/liberar?chave={chave}")
+        assert r.status_code == 200 and r.get_json() == {"ok": True, "liberado": "Música — Verso 1"}
+        operador.emit("stop_live_follow", {})
         operador.disconnect()
 
         # sem Controle aberto, "próximo" explica

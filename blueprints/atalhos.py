@@ -126,8 +126,11 @@ def _liberar():
     preparado = db.session.query(StagedContent).order_by(StagedContent.updated_at.desc()).first()
     if not preparado:
         return {'ok': False, 'erro': tr('Nada preparado pra liberar.')}
-    _handler(handle_release_staged_content)({'kind': preparado.kind})
-    return {'ok': True, 'liberado': preparado.label or preparado.kind}
+    # Lê antes de liberar: liberar apaga o preparado do banco, e ler depois
+    # dava DetachedInstanceError (o atalho respondia erro com a liberação feita)
+    kind, rotulo = preparado.kind, preparado.label or preparado.kind
+    _handler(handle_release_staged_content)({'kind': kind})
+    return {'ok': True, 'liberado': rotulo}
 
 
 def _tela_preta(modo, tipo='preta'):
