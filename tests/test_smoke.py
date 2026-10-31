@@ -1420,7 +1420,7 @@ def test_screens_load_shared_zoom_fit(client):
 def test_agenda_edit_has_whatsapp_share_buttons(logged_in_client):
     html = logged_in_client.get("/agenda/edit").get_data(as_text=True)
     for marker in ('id="copyWhatsBtn"', 'id="shareMenu"', 'data-format="grid"', 'data-format="light"',
-                   'data-format="dark"', 'id="saveImgBtn"', "js/pages/agenda_share.js"):
+                   'data-format="dark"', 'id="saveMenu"', 'data-save="classic"', 'data-format="classic"', "js/pages/agenda_share.js"):
         assert marker in html, marker
 
 

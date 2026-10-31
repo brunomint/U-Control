@@ -34,11 +34,20 @@
                 <summary class="uc-btn uc-btn-secondary"><i class="fas fa-share-nodes"></i> {{ _('Compartilhar imagem') }} <i class="fas fa-chevron-down"></i></summary>
                 <div class="share-menu-list" role="menu">
                     <button type="button" role="menuitem" data-format="grid"><i class="fas fa-calendar-days"></i><span>{{ _('Grade do mês') }}<small>{{ _('o calendário como na tela') }}</small></span></button>
+                    <button type="button" role="menuitem" data-format="classic"><i class="fas fa-table-cells"></i><span>{{ _('Calendário clássico') }}<small>{{ _('como a planilha do WhatsApp, letra grande e colorida') }}</small></span></button>
                     <button type="button" role="menuitem" data-format="light"><i class="fas fa-list"></i><span>{{ _('Lista · fundo claro') }}<small>{{ _('só os dias com algo, letra grande') }}</small></span></button>
                     <button type="button" role="menuitem" data-format="dark"><i class="fas fa-list"></i><span>{{ _('Lista · fundo escuro') }}<small>{{ _('só os dias com algo, letra grande') }}</small></span></button>
                 </div>
             </details>
-            <button type="button" class="uc-btn uc-btn-ghost" id="saveImgBtn" title="{{ _('Baixar o calendário do mês como imagem') }}"><i class="fas fa-download"></i> {{ _('Salvar imagem') }}</button>
+            <details class="share-menu" id="saveMenu">
+                <summary class="uc-btn uc-btn-ghost" title="{{ _('Baixar o calendário do mês como imagem') }}"><i class="fas fa-download"></i> {{ _('Salvar imagem') }} <i class="fas fa-chevron-down"></i></summary>
+                <div class="share-menu-list" role="menu">
+                    <button type="button" role="menuitem" data-save="grid"><i class="fas fa-calendar-days"></i><span>{{ _('Grade do mês') }}<small>{{ _('o calendário como na tela') }}</small></span></button>
+                    <button type="button" role="menuitem" data-save="classic"><i class="fas fa-table-cells"></i><span>{{ _('Calendário clássico') }}<small>{{ _('como a planilha do WhatsApp, letra grande e colorida') }}</small></span></button>
+                    <button type="button" role="menuitem" data-save="light"><i class="fas fa-list"></i><span>{{ _('Lista · fundo claro') }}<small>{{ _('só os dias com algo, letra grande') }}</small></span></button>
+                    <button type="button" role="menuitem" data-save="dark"><i class="fas fa-list"></i><span>{{ _('Lista · fundo escuro') }}<small>{{ _('só os dias com algo, letra grande') }}</small></span></button>
+                </div>
+            </details>
         </div>
     </div>
 
