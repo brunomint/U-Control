@@ -38,6 +38,29 @@ const HELP_SECTIONS = {
         <p>Nas páginas da Bíblia, ao lado da tradução, escolha uma <strong>2ª versão</strong>. O telão passa a mostrar o versículo nas duas, uma embaixo da outra, cada uma com a sigla. Para voltar a uma só, escolha <strong>+ 2ª versão: nenhuma</strong>.</p>
         <p>A escolha vale para todos os Controles e continua depois de reiniciar o programa.</p>`,
 
+    temas: `
+        <h2>Temas, avisos e destaque de palavras</h2>
+        <p>Tudo isto vale <strong>só no telão do público</strong>. O palco (cifra e monitor) continua com o visual de sempre.</p>
+        <h3>Temas e fundos</h3>
+        <p>Em <a href="/temas">Criar → Temas e fundos</a>, monte o visual do telão: fundo (cor, degradê, imagem ou <strong>vídeo em loop</strong>), fonte, cor, maiúsculas, contorno, sombra, faixa atrás da letra, posição e a <strong>transição</strong> entre os slides (suave, deslizar, zoom). A prévia mostra o resultado.</p>
+        <ul>
+            <li><strong>Qual tema vale:</strong> o escolhido na música (botão <em>Tema</em> na tela da música) → o do culto (campo <em>Tema do telão</em> na ordem do culto) → o <strong>tema padrão</strong> → o visual de sempre (fundo preto, letra branca).</li>
+            <li><strong>Fundo de uma parte:</strong> no botão <em>Tema</em> da música, em <em>Aplicar a</em>, escolha uma parte (como o Refrão) e dê a ela um fundo próprio.</li>
+            <li><strong>Bíblia:</strong> em <em>Tema da Bíblia</em>, na mesma página, os versículos ganham um tema só deles.</li>
+            <li><strong>Vídeos de fundo:</strong> envie na página de temas; o U-Control deixa o vídeo leve (sem som, até 1080p; 720p no Raspberry Pi).</li>
+            <li>Salvar um tema muda o telão na hora, se ele estiver em uso.</li>
+        </ul>
+        <h3>Avisos em slides</h3>
+        <p>Em <a href="/avisos">Criar → Avisos em slides</a>, escreva os avisos (um por caixa), escolha o tema e o tempo de cada um e toque em <strong>Exibir no telão</strong>. Eles passam sozinhos, em loop, até você tocar em <strong>Parar</strong> ou mandar uma música, foto, vídeo ou a Bíblia.</p>
+        <h3>Destacar palavras na letra</h3>
+        <p>No editor da música (e nos avisos), escreva:</p>
+        <ul>
+            <li><code>**Senhor**</code> para <strong>negrito</strong> e <code>*graça*</code> para <em>itálico</em>;</li>
+            <li><code>{amarelo}Santo{/}</code> para cor: amarelo, dourado, vermelho, laranja, verde, azul, roxo, rosa, branco, preto, cinza ou um código como <code>{#ffcc00}</code>;</li>
+            <li><code>{grande}Aleluia{/}</code> para tamanho: pequeno, grande ou maior.</li>
+        </ul>
+        <p>Dá para combinar: <code>{amarelo}**Jesus**{/}</code>. No palco, no OBS, na visualização e na impressão aparece só o texto, sem as marcações.</p>
+        <div class="callout">Temas, vídeos de fundo e os temas usados pelas músicas e cultos vão junto em <a href="/pacote">Sistema → Exportar e importar</a>.</div>`,
     powerpoint: `
         <h2>PowerPoint e apresentações</h2>
         <ul>

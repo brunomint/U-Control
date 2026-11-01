@@ -40,6 +40,29 @@ window.HELP_SECTIONS_I18N = {
         <p>The choice applies to every Control panel and stays after the program restarts.</p>
         <p>Search by reference with the usual names and abbreviations, like <code>John 3:16</code>, <code>Ps 23</code> or <code>1 Cor 13:4-7</code>, or search for a word.</p>`,
 
+    temas: `
+        <h2>Themes, announcements and highlighted words</h2>
+        <p>All of this applies <strong>only to the audience screen</strong>. The stage (chords and monitor) keeps its usual look.</p>
+        <h3>Themes and backgrounds</h3>
+        <p>In <a href="/temas">Create → Themes &amp; backgrounds</a>, design the screen's look: background (color, gradient, image or <strong>looping video</strong>), font, color, uppercase, outline, shadow, band behind the text, position and the <strong>transition</strong> between slides (smooth, slide, zoom). The preview shows the result.</p>
+        <ul>
+            <li><strong>Which theme applies:</strong> the one chosen for the song (<em>Theme</em> button on the song's live page) → the service's (<em>Screen theme</em> field in the order of service) → the <strong>default theme</strong> → the usual look (black background, white text).</li>
+            <li><strong>Background for one part:</strong> in the song's <em>Theme</em> button, under <em>Apply to</em>, pick a part (like the Chorus) and give it its own background.</li>
+            <li><strong>Bible:</strong> with <em>Bible theme</em>, on the same page, verses get a theme of their own.</li>
+            <li><strong>Background videos:</strong> upload them on the themes page; U-Control makes the video light (no sound, up to 1080p; 720p on Raspberry Pi).</li>
+            <li>Saving a theme changes the screen right away if it is in use.</li>
+        </ul>
+        <h3>Announcement slides</h3>
+        <p>In <a href="/avisos">Create → Announcement slides</a>, write the announcements (one per box), choose the theme and how long each stays, and tap <strong>Show on screen</strong>. They play by themselves in a loop until you tap <strong>Stop</strong> or send a song, photo, video or the Bible.</p>
+        <h3>Highlight words in the lyrics</h3>
+        <p>In the song editor (and in announcements), write:</p>
+        <ul>
+            <li><code>**Lord**</code> for <strong>bold</strong> and <code>*grace*</code> for <em>italic</em>;</li>
+            <li><code>{amarelo}Holy{/}</code> for color (Portuguese names): amarelo (yellow), dourado (gold), vermelho (red), laranja (orange), verde (green), azul (blue), roxo (purple), rosa (pink), branco (white), preto (black), cinza (gray) or a code like <code>{#ffcc00}</code>;</li>
+            <li><code>{grande}Hallelujah{/}</code> for size: pequeno (small), grande (large) or maior (larger).</li>
+        </ul>
+        <p>They can be combined: <code>{amarelo}**Jesus**{/}</code>. The stage, OBS, song view and printouts show plain text, without the marks.</p>
+        <div class="callout">Themes, background videos and the themes used by songs and services travel along in <a href="/pacote">System → Export and import</a>.</div>`,
     powerpoint: `
         <h2>PowerPoint and presentations</h2>
         <ul>
