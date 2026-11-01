@@ -91,6 +91,15 @@ class Setting(db.Model):
     tema_biblia_id = db.Column(db.Integer, nullable=True)
 
 
+# Avisos em slides (blueprints/avisos.py): linha única, como Setting
+class AvisosConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    itens = db.Column(db.JSON, nullable=True)        # ["Sejam bem-vindos!", ...]
+    tema_id = db.Column(db.Integer, nullable=True)   # None = o tema padrão
+    segundos = db.Column(db.Integer, nullable=True)
+    embaralhar = db.Column(db.Boolean, nullable=True)
+
+
 # Tema do telão do público: fundo + estilo da letra (temas_store.py)
 class Tema(db.Model):
     id = db.Column(db.Integer, primary_key=True)

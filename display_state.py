@@ -32,6 +32,8 @@ _last_bible_payload_monitor = None
 
 # Modo atual do display: 'lyrics' | 'image' | 'video' | 'blank'
 _current_display_mode = 'blank'
+# Avisos em slides no ar (blueprints/avisos.py): a lista que o telão roda; _current_display_mode = 'avisos'
+_avisos_payload = None
 # Telas neutras (preta, branca ou logo da igreja — blackout do /control ou
 # /presenter), uma por tela: o operador escolhe se valem no público, no
 # monitor de palco ou nos dois. Guardado pra tela que recarregar/conectar

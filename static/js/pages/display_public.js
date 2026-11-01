@@ -89,7 +89,9 @@
             fetch('/api/current-display')
                 .then(r => r.json())
                 .then(data => {
-                    if (data && data.mode === 'lyrics' && data.title) {
+                    if (data && data.mode === 'avisos') {
+                        exibirAvisos(data);
+                    } else if (data && data.mode === 'lyrics' && data.title) {
                         aplicarTemaCompleto(data);  // antes o fundo sumia ao recarregar o telão
                         updateLyricsDisplay(data.title, data.text || '', data.id || null);
                     } else if (data && data.mode === 'image' && data.image_url) {
@@ -209,6 +211,59 @@
             bgEscurecer.style.opacity = (imagem || video) ? escurecer / 100 : 0;
         }
 
+        // ── Avisos em slides (blueprints/avisos.py) ─────────────────
+        // O rodízio roda aqui: um aviso por vez, com o tema e a transição dele,
+        // em loop. Letra, foto, vídeo, Bíblia ou "Parar" encerram.
+        let avisos = null;
+        const embaralhar = lista => {
+            for (let i = lista.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [lista[i], lista[j]] = [lista[j], lista[i]]; }
+            return lista;
+        };
+        function pararAvisos() {
+            if (!avisos) return;
+            clearTimeout(avisos.timer);
+            avisos = null;
+        }
+        function exibirAvisos(p) {
+            if (ehMonitor || !p || !p.slides || !p.slides.length) return;
+            const jaNaTela = !!avisos;
+            pararAvisos();
+            const ordem = p.slides.map((_, i) => i);
+            avisos = Object.assign({}, p, { ordem: p.embaralhar ? embaralhar(ordem) : ordem, pos: 0 });
+            showLyricsView();
+            mostrarAviso(jaNaTela);
+        }
+        function mostrarAviso(animar) {
+            const a = avisos;
+            if (!a) return;
+            const texto = a.slides[a.ordem[a.pos]] || '';
+            const textoEl = document.getElementById('section-text');
+            const trocar = () => {
+                if (avisos !== a) return;
+                aplicarTemaCompleto({ tema: a.tema });
+                textoEl.innerHTML = $('<div>').text(texto).html().replace(/\n/g, '<br>');
+                document.getElementById('song-credits').hidden = true;
+                document.getElementById('bible-reference').style.display = 'none';
+                document.getElementById('bible-version').style.display = 'none';
+                adjustFontSize();
+            };
+            UcTema.trocarComTransicao(textoEl, animar && a.tema ? a.tema.transicao : null, trocar);
+            if (a.slides.length > 1) {
+                a.timer = setTimeout(() => {
+                    if (avisos !== a) return;
+                    a.pos = (a.pos + 1) % a.ordem.length;
+                    if (a.pos === 0 && a.embaralhar) embaralhar(a.ordem);
+                    mostrarAviso(true);
+                }, (Number(a.segundos) || 10) * 1000);
+            }
+        }
+        socket.on('avisos_exibir', exibirAvisos);
+        socket.on('avisos_parar', () => {
+            if (!avisos) return;
+            pararAvisos();
+            document.getElementById('section-text').textContent = '';
+        });
+
         // Foto, vídeo da galeria, Bíblia ou outra rota no ar: o fundo some (e o vídeo pausa)
         function mostrarFundo(sim) {
             fundoVisivel = sim;
@@ -238,6 +293,7 @@
         socket.on('connect', sincronizarEscondido);
 
         function showImage(url, zoom) {
+            pararAvisos();
             mostrarFundo(false);
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
@@ -270,6 +326,7 @@
         // perguntou (soma o tempo de carregar)
         function showVideo(url, opts) {
             opts = opts || {};
+            pararAvisos();
             mostrarFundo(false);
             routeLayer.src = 'about:blank';
             routeLayer.style.display = 'none';
@@ -304,6 +361,7 @@
         }
 
         function showRoute(url) {
+            pararAvisos();
             mostrarFundo(false);
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
@@ -386,6 +444,7 @@
         // ────────────────────────────────────────────────────────────
 
         socket.on('update_lyrics', (data) => {
+            pararAvisos();
             const textoEl = document.getElementById('section-text');
             // Transição do tema só de letra para letra, com texto diferente e a letra visível
             const jaNaLetra = lyricsLayer.style.display !== 'none' && fundoVisivel && textoEl.textContent.trim() !== '';

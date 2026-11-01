@@ -79,6 +79,10 @@ NAV_ITEMS = [
         "endpoint": "temas.temas_page", "label": "Temas e fundos do telão", "nav_label": "Temas e fundos", "icon": "fa-palette",
         "group": "criar", "login_required": True, "contexts": ["nav"],
     },
+    {
+        "endpoint": "avisos.avisos_page", "label": "Avisos em slides", "icon": "fa-bullhorn",
+        "group": "criar", "login_required": True, "contexts": ["nav"],
+    },
 
     {
         "endpoint": "agenda.agenda_dashboard", "label": "Agenda de Equipes", "nav_label": "Agenda", "icon": "fa-calendar-days",

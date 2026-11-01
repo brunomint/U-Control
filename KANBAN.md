@@ -139,7 +139,7 @@ Versões pequenas, de 2–3 itens cada.
         termina a anterior na hora; sem animação com texto igual, letra
         escondida ou vindo de foto/vídeo; só no telão do público. Editor:
         bloco "Transição entre slides" com "Ver a transição" na prévia.
-  - [~] Etapa 4 (2026-11-01, feitos 3 de 6):
+  - [~] Etapa 4 (2026-11-01, feitos 4 de 6):
     - [x] Tema da Bíblia (`Setting.tema_biblia_id`, seletor em /temas): fundo,
           fonte, cor, contorno, faixa e posição nos versículos de
           /bible/display; sem tema, o visual de sempre; no palco
@@ -149,7 +149,13 @@ Versões pequenas, de 2–3 itens cada.
           fundo ("avulsos"); tema com o mesmo nome é o mesmo; ids reescritos.
     - [x] Fundo próprio por parte da música (`Song.theme["secoes"]`, pelo
           título do slide): "Aplicar a" no botão Tema.
-    - [ ] Avisos em rodízio com tema.
+    - [x] Avisos em slides (/avisos, menu Criar; `blueprints/avisos.py`,
+          tabela `avisos_config`): textos que passam sozinhos no telão do
+          público, em loop, com tema e transição; tempo de cada um, ordem
+          aleatória; prévia na página. O rodízio roda no telão (evento
+          `avisos_exibir`); recarregar continua (/api/current-display, modo
+          "avisos"); letra/foto/vídeo/Bíblia ou "Parar" encerram; editar com
+          os avisos no ar atualiza; barra "No ar" mostra "Avisos em slides".
     - [ ] Formatar uma palavra só dentro da letra.
     - [ ] Importar temas do Holyrics.
 

@@ -1765,5 +1765,21 @@
   "{n} temas": "{n} themes",
   "{n} imagem ou vídeo de fundo vai junto.": "{n} background image or video is included.",
   "{n} imagens ou vídeos de fundo vão junto.": "{n} background images or videos are included.",
-  "Escolha ao menos uma música, culto, pasta ou tema.": "Choose at least one song, service, folder or theme."
+  "Escolha ao menos uma música, culto, pasta ou tema.": "Choose at least one song, service, folder or theme.",
+  "Avisos em slides": "Announcement slides",
+  "Avisos que passam sozinhos no telão do público, em loop, com o visual de um tema. Para antes do culto, a oferta e os intervalos.": "Announcements that play by themselves on the audience screen, in a loop, with a theme's look. For before the service, the offering and breaks.",
+  "No telão": "On screen",
+  "Um aviso por caixa. Enter quebra a linha dentro do aviso.": "One announcement per box. Enter breaks the line inside it.",
+  "Adicionar aviso": "Add announcement",
+  "Como passam": "How they play",
+  "Cada aviso fica": "Each announcement stays",
+  "Ordem aleatória": "Random order",
+  "Fundo, letra e transição vêm do tema. Crie e edite em": "Background, text and transition come from the theme. Create and edit them in",
+  "Subir": "Move up",
+  "Descer": "Move down",
+  "Escreva um aviso ao lado": "Write an announcement on the side",
+  "Os avisos estão passando no telão.": "The announcements are playing on the screen.",
+  "Não deu para exibir.": "Could not show.",
+  "Avisos parados.": "Announcements stopped.",
+  "Escreva pelo menos um aviso.": "Write at least one announcement."
 }

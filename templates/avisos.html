@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}{{ _('Avisos em slides') }} - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/temas.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/avisos.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>{{ _('Avisos em slides') }}</h1>
+            <div class="uc-page-sub">{{ _('Avisos que passam sozinhos no telão do público, em loop, com o visual de um tema. Para antes do culto, a oferta e os intervalos.') }}</div>
+        </div>
+        <div class="uc-btn-row">
+            <span class="uc-pill uc-pill-live" id="av-no-ar" hidden><i class="fas fa-circle"></i> {{ _('No telão') }}</span>
+            <button type="button" class="uc-btn uc-btn-primary" id="av-exibir"><i class="fas fa-play"></i> {{ _('Exibir no telão') }}</button>
+            <button type="button" class="uc-btn uc-btn-secondary" id="av-parar"><i class="fas fa-stop"></i> {{ _('Parar') }}</button>
+        </div>
+    </div>
+
+    <div class="av-grid">
+        <section class="uc-card">
+            <h2>{{ _('Avisos') }}</h2>
+            <p class="tm-dica">{{ _('Um aviso por caixa. Enter quebra a linha dentro do aviso.') }}</p>
+            <div id="av-lista" class="av-lista"></div>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="av-adicionar"><i class="fas fa-plus"></i> {{ _('Adicionar aviso') }}</button>
+        </section>
+
+        <section class="uc-card">
+            <h2>{{ _('Como passam') }}</h2>
+            <div class="tm-previa" id="av-previa" aria-label="{{ _('Prévia do telão') }}">
+                <div class="tm-previa-fundo" id="av-previa-fundo"></div>
+                <img class="tm-previa-midia" id="av-previa-img" alt="" hidden>
+                <video class="tm-previa-midia" id="av-previa-video" muted loop playsinline hidden></video>
+                <div class="tm-previa-escurecer" id="av-previa-escurecer"></div>
+                <div class="tm-previa-letra" id="av-previa-letra"><div id="av-previa-texto"></div></div>
+            </div>
+            <div class="av-config">
+                <label class="tm-controle">{{ _('Tema') }}
+                    <select class="uc-input" id="av-tema"><option value="">{{ _('Tema padrão') }}</option></select>
+                </label>
+                <label class="tm-controle">{{ _('Cada aviso fica') }} <output id="av-segundos-valor"></output>
+                    <input type="range" id="av-segundos" min="3" max="60" step="1">
+                </label>
+                <label class="tm-check"><input type="checkbox" id="av-embaralhar"> {{ _('Ordem aleatória') }}</label>
+                <p class="tm-dica">{{ _('Fundo, letra e transição vêm do tema. Crie e edite em') }} <a href="/temas">{{ _('Temas e fundos') }}</a>.</p>
+            </div>
+            <div class="tm-acoes">
+                <button type="button" class="uc-btn uc-btn-primary" id="av-salvar"><i class="fas fa-floppy-disk"></i> {{ _('Salvar') }}</button>
+                <span class="tm-status" id="av-status" role="status"></span>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/tema_render.js') }}"></script>
+<script src="{{ versioned_static('js/pages/avisos.js') }}"></script>
+{% endblock %}

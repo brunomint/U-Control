@@ -1236,6 +1236,9 @@ def handle_send_url(url):
 
 @display_bp.route('/api/current-display')
 def api_current_display():
+    # Avisos em slides rodando: quem abre/recarrega o telão continua o rodízio (blueprints/avisos.py)
+    if display_state._current_display_mode == 'avisos' and display_state._avisos_payload:
+        return jsonify({'mode': 'avisos', **display_state._avisos_payload})
     # Botão Letra/Cifra do /control manda a ROTA da letra (show_image com
     # /lyrics/display…): quem abre do zero (monitor, prévia, telão
     # recarregado) precisa da letra atual, não da própria rota — senão a

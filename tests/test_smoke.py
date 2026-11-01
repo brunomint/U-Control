@@ -4459,3 +4459,34 @@ def test_pacote_leva_temas_e_fundos(app, logged_in_client, tmp_path, monkeypatch
     with app.app_context():
         songs_store.save_songs(existentes)
     _limpar_temas(app)
+
+
+def test_avisos_em_slides(app, client, logged_in_client):
+    import display_state
+    _limpar_temas(app)
+    assert client.get("/avisos").status_code in (302, 401)
+    tema = logged_in_client.post("/api/temas", json={"nome": "Avisos", "transicao": {"tipo": "fade", "duracao": 600}}).get_json()["tema"]
+    salvo = logged_in_client.post("/api/avisos", json={
+        "itens": ["Sejam bem-vindos!", "  ", "Culto de oração\nquarta, 19h30"], "tema_id": tema["id"], "segundos": 999, "embaralhar": 1,
+    }).get_json()
+    assert salvo == {"itens": ["Sejam bem-vindos!", "Culto de oração\nquarta, 19h30"], "tema_id": tema["id"], "segundos": 120, "embaralhar": True}
+
+    tela = ucontrol_main.socketio.test_client(app)
+    tela.get_received()
+    assert logged_in_client.post("/api/avisos/exibir").get_json()["ok"]
+    recebido = [m["args"][0] for m in tela.get_received() if m["name"] == "avisos_exibir"][-1]
+    assert recebido["slides"][0] == "Sejam bem-vindos!" and recebido["tema"]["transicao"]["tipo"] == "fade"
+    atual = client.get("/api/current-display").get_json()          # telão recarregado continua os avisos
+    assert atual["mode"] == "avisos" and len(atual["slides"]) == 2
+    assert "Avisos" in logged_in_client.get("/api/telao-status").get_json()["live"]["label"]
+
+    # Editar com os avisos no ar manda de novo; parar avisa o telão
+    logged_in_client.post("/api/avisos", json={"itens": ["Só um"], "segundos": 5})
+    assert [m["args"][0]["slides"] for m in tela.get_received() if m["name"] == "avisos_exibir"][-1] == ["Só um"]
+    logged_in_client.post("/api/avisos/parar")
+    assert any(m["name"] == "avisos_parar" for m in tela.get_received())
+    assert display_state._current_display_mode == "blank"
+    logged_in_client.post("/api/avisos", json={"itens": []})
+    assert logged_in_client.post("/api/avisos/exibir").status_code == 400   # sem aviso, não exibe
+    tela.disconnect()
+    _limpar_temas(app)

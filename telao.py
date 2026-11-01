@@ -138,6 +138,8 @@ def describe(entry):
         return {'kind': kind, 'label': f'Vídeo · {_file_name(url)}'}
     if kind == 'clock':
         return {'kind': kind, 'label': 'Relógio'}
+    if kind == 'avisos':
+        return {'kind': kind, 'label': 'Avisos em slides'}
     if kind == 'countdown':
         return {'kind': kind, 'label': 'Cronômetro'}
     if kind == 'page' and url.startswith('/apresentacao?'):

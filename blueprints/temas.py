@@ -26,6 +26,8 @@ def tema_do_payload(payload):
 
 def atualizar_telao():
     """Recalcula o tema da letra que está no telão e manda pro público."""
+    from blueprints import avisos
+    avisos.atualizar_no_ar()   # avisos em slides com o tema mudado
     payload = display_state._last_lyrics_payload
     if not payload or display_state._current_display_mode != 'lyrics':
         return

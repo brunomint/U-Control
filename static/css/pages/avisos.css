@@ -1,0 +1,8 @@
+/* Página "Avisos em slides" (templates/avisos.html); prévia e controles vêm de temas.css */
+.av-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .av-grid { grid-template-columns: minmax(0, 1fr); } }
+.av-lista { display: grid; gap: 8px; margin-bottom: 10px; }
+.av-item { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: start; }
+.av-item textarea { width: 100%; resize: vertical; }
+.av-item-botoes { display: flex; flex-direction: column; gap: 2px; }
+.av-config { display: grid; gap: 10px; margin-top: 12px; }
