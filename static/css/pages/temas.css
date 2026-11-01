@@ -60,3 +60,4 @@ input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var
 .tm-video video { grid-column: 1 / -1; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: #000; }
 .tm-video-nome { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-video-convertendo { grid-template-columns: 1fr; justify-items: center; padding: 20px 6px; color: var(--uc-muted); }
+.tm-biblia { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--uc-line); }

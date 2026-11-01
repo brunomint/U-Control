@@ -139,8 +139,19 @@ Versões pequenas, de 2–3 itens cada.
         termina a anterior na hora; sem animação com texto igual, letra
         escondida ou vindo de foto/vídeo; só no telão do público. Editor:
         bloco "Transição entre slides" com "Ver a transição" na prévia.
-  - [ ] Etapa 4: fundo por slide, tema na Bíblia, avisos com tema, importar
-        temas do Holyrics.
+  - [~] Etapa 4 (2026-11-01, feitos 3 de 6):
+    - [x] Tema da Bíblia (`Setting.tema_biblia_id`, seletor em /temas): fundo,
+          fonte, cor, contorno, faixa e posição nos versículos de
+          /bible/display; sem tema, o visual de sempre; no palco
+          (host=monitor) também o de sempre. Troca na hora (`tema_biblia`).
+    - [x] Temas no exportar/importar (`blueprints/pacote.py`, formato 2):
+          temas escolhidos + os das músicas e cultos, com as imagens/vídeos de
+          fundo ("avulsos"); tema com o mesmo nome é o mesmo; ids reescritos.
+    - [x] Fundo próprio por parte da música (`Song.theme["secoes"]`, pelo
+          título do slide): "Aplicar a" no botão Tema.
+    - [ ] Avisos em rodízio com tema.
+    - [ ] Formatar uma palavra só dentro da letra.
+    - [ ] Importar temas do Holyrics.
 
 ---
 

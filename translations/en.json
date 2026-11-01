@@ -1748,5 +1748,22 @@
   "Deslizar": "Slide",
   "Zoom": "Zoom",
   "Ver a transição": "Preview transition",
-  "Em computadores fracos (como o Raspberry Pi com vídeo de fundo), prefira \"Suave\" ou \"Nenhuma\".": "On weak computers (like a Raspberry Pi with a background video), prefer \"Smooth\" or \"None\"."
+  "Em computadores fracos (como o Raspberry Pi com vídeo de fundo), prefira \"Suave\" ou \"Nenhuma\".": "On weak computers (like a Raspberry Pi with a background video), prefer \"Smooth\" or \"None\".",
+  "Tema da Bíblia": "Bible theme",
+  "O visual de sempre da Bíblia": "The usual Bible look",
+  "Os versículos já aparecem com este tema.": "Verses now appear with this theme.",
+  "A Bíblia voltou ao visual de sempre.": "The Bible is back to its usual look.",
+  "fundo próprio": "own background",
+  "Tirar o fundo próprio desta parte": "Remove this part's own background",
+  "Aplicar a": "Apply to",
+  "Escolha uma parte (como o Refrão) para dar a ela um fundo próprio, só no telão do público.": "Pick a part (like the Chorus) to give it its own background, on the audience screen only.",
+  "Temas do telão": "Screen themes",
+  "— com as imagens e vídeos de fundo": "— with background images and videos",
+  "Os temas das músicas e dos cultos escolhidos já vão junto.": "Themes of the chosen songs and services are included automatically.",
+  "Nenhum tema do telão.": "No screen themes.",
+  "{n} tema": "{n} theme",
+  "{n} temas": "{n} themes",
+  "{n} imagem ou vídeo de fundo vai junto.": "{n} background image or video is included.",
+  "{n} imagens ou vídeos de fundo vão junto.": "{n} background images or videos are included.",
+  "Escolha ao menos uma música, culto, pasta ou tema.": "Choose at least one song, service, folder or theme."
 }

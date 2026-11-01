@@ -131,9 +131,15 @@
             <button type="button" class="uc-modal-close" onclick="fecharModalTema()" aria-label="{{ _('Fechar') }}">&times;</button>
         </div>
         <div class="uc-modal-body">
-            <button type="button" class="uc-btn uc-btn-secondary" onclick="limparTema()"><i class="fas fa-rotate-left"></i> {{ _('Usar o tema do culto ou o padrão') }}</button>
+            <div class="tema-section" id="tema-alvo-linha">
+                <label class="uc-label-caps" for="tema-alvo">{{ _('Aplicar a') }}</label>
+                <select class="uc-input" id="tema-alvo"></select>
+                <div class="tema-dica">{{ _('Escolha uma parte (como o Refrão) para dar a ela um fundo próprio, só no telão do público.') }}</div>
+            </div>
 
-            <div class="tema-section">
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="limparTema()"><i class="fas fa-rotate-left"></i> <span id="tema-limpar-label">{{ _('Usar o tema do culto ou o padrão') }}</span></button>
+
+            <div class="tema-section" id="tema-salvos-secao">
                 <div class="uc-label-caps">{{ _('Temas salvos') }}</div>
                 <div class="tema-dica">{{ _('Fundo e estilo da letra juntos.') }} <a href="/temas" target="_blank" rel="noopener">{{ _('Criar e editar temas') }}</a></div>
                 <div class="tema-row" id="tema-salvos">

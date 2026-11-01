@@ -113,3 +113,71 @@ socket.on('lyrics_visibility_changed', function(data) {
     escondido = data.visible === false;
     aplicarEscondido();
 });
+
+// ── Tema da Bíblia (página /temas; temas_store.tema_da_biblia) ──────────
+// Só no telão do público: aberta como monitor (host=monitor, palco) fica
+// com o visual de sempre. Sem tema escolhido, também.
+const ehMonitorBiblia = new URLSearchParams(location.search).get('host') === 'monitor';
+
+function aplicarTemaBiblia(tema) {
+    const camada = document.getElementById('bg-layer');
+    const img = document.getElementById('bg-img');
+    const video = document.getElementById('bg-video');
+    const caixas = document.querySelectorAll('.verse-container');
+    const textos = document.querySelectorAll('.verse-text');
+    const extras = [document.getElementById('reference'), document.getElementById('verseVersion')];
+    const limpar = (el, props) => props.forEach(p => { el.style[p] = ''; });
+    if (ehMonitorBiblia || !tema) {
+        document.body.classList.remove('com-tema');
+        camada.hidden = true;
+        video.pause();
+        video.removeAttribute('src');
+        textos.forEach(el => limpar(el, ['fontFamily', 'fontWeight', 'fontStyle', 'color', 'textTransform', 'textShadow', 'lineHeight', 'textAlign']));
+        caixas.forEach(el => limpar(el, ['background', 'borderRadius']));
+        extras.forEach(el => limpar(el, ['fontFamily', 'textShadow']));
+        limpar(document.body, ['justifyContent', 'padding']);
+        caberNaTela();
+        return;
+    }
+    const f = tema.fundo || {}, t = tema.texto || {};
+    document.body.classList.add('com-tema');
+    camada.hidden = false;
+    camada.style.background = UcTema.fundoCss(f);
+    const ehImagem = f.type === 'image' && f.url, ehVideo = f.type === 'video' && f.url;
+    img.hidden = !ehImagem;
+    if (ehImagem && img.getAttribute('src') !== f.url) img.src = f.url;
+    video.hidden = !ehVideo;
+    if (ehVideo) {
+        if (video.getAttribute('src') !== f.url) video.src = f.url;
+        video.play().catch(() => {});
+    } else { video.pause(); video.removeAttribute('src'); }
+    document.getElementById('bg-escurecer').style.opacity = (ehImagem || ehVideo) ? (Number(f.escurecer) || 0) / 100 : 0;
+
+    const fonte = UcTema.FONTES[t.fonte] || UcTema.FONTES.arial;
+    const sombra = UcTema.sombras(t);
+    textos.forEach(el => {
+        el.style.fontFamily = fonte;
+        el.style.fontWeight = t.negrito ? '700' : '400';
+        el.style.fontStyle = t.italico ? 'italic' : 'normal';
+        el.style.color = t.cor;
+        el.style.textTransform = t.maiusculas ? 'uppercase' : 'none';
+        el.style.textShadow = sombra;
+        el.style.lineHeight = String(t.entrelinhas);
+        el.style.textAlign = { esquerda: 'left', centro: 'center', direita: 'right' }[t.alinhamento] || 'center';
+    });
+    caixas.forEach(el => {
+        el.style.background = t.caixa ? UcTema.rgba(t.caixa_cor, (Number(t.caixa_opacidade) || 0) / 100) : 'transparent';
+        el.style.borderRadius = t.caixa ? `${(Number(t.caixa_arredondada) || 0) * 0.12}em` : '0';
+    });
+    extras.forEach(el => { el.style.fontFamily = fonte; el.style.textShadow = sombra; });
+    document.body.style.justifyContent = { topo: 'flex-start', meio: 'center', base: 'flex-end' }[t.posicao] || 'center';
+    document.body.style.padding = `${(t.margem * 9 / 16).toFixed(2)}vw ${t.margem}vw`;
+    caberNaTela();
+}
+
+function carregarTemaBiblia() {
+    if (ehMonitorBiblia) return;
+    fetch('/api/temas/biblia').then(r => (r.ok ? r.json() : null)).then(d => { if (d) aplicarTemaBiblia(d.tema); }).catch(() => {});
+}
+socket.on('connect', carregarTemaBiblia);
+socket.on('tema_biblia', d => { if (!ehMonitorBiblia) aplicarTemaBiblia(d && d.tema); });

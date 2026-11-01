@@ -12,6 +12,12 @@
 {% endblock %}
 
 {% block content %}
+{#- Fundo do tema da Bíblia (página /temas): só no telão do público #}
+<div id="bg-layer" hidden>
+    <img id="bg-img" alt="" hidden>
+    <video id="bg-video" muted loop playsinline hidden></video>
+    <div id="bg-escurecer"></div>
+</div>
 <div class="container" id="container">
     <div class="waiting" id="waiting">
         <i class="fas fa-book-bible"></i>
@@ -36,5 +42,6 @@
 
 {% block scripts %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ versioned_static('js/tema_render.js') }}"></script>
 <script src="{{ versioned_static('js/pages/bible_display.js') }}"></script>
 {% endblock %}

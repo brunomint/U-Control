@@ -44,3 +44,4 @@
 .selo-diferente { background: var(--uc-warn); color: #1a1400; }
 .escolha { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .escolha label { display: flex; gap: 4px; align-items: center; cursor: pointer; }
+.pacote-dica { font-size: 12px; margin: 4px 0 6px; }

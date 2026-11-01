@@ -21,7 +21,7 @@ logger = logging.getLogger('ucontrol')
 
 def tema_do_payload(payload):
     """Tema resolvido para um update_lyrics (música + culto + padrão)."""
-    return temas_store.resolver(payload.get('theme'), payload.get('orderDate'))
+    return temas_store.resolver(payload.get('theme'), payload.get('orderDate'), payload.get('title'))
 
 
 def atualizar_telao():
@@ -38,6 +38,11 @@ def atualizar_telao():
     except Exception:
         logger.exception('temas: falha ao guardar o tema da letra no ar')
     socketio.emit('tema_telao', payload['tema'])
+
+
+def avisar_biblia():
+    """Manda o tema da Bíblia pras telas de /bible/display abertas."""
+    socketio.emit('tema_biblia', {'tema': temas_store.tema_da_biblia()})
 
 
 @temas_bp.app_context_processor
@@ -57,7 +62,7 @@ def temas_page():
 @temas_bp.route('/api/temas')
 @login_required
 def api_listar():
-    return jsonify({'temas': temas_store.listar(), 'padrao': temas_store.padrao_id(),
+    return jsonify({'temas': temas_store.listar(), 'padrao': temas_store.padrao_id(), 'biblia': temas_store.biblia_id(),
                     'texto_padrao': temas_store.TEXTO_PADRAO, 'fontes': temas_store.FONTES})
 
 
@@ -73,6 +78,7 @@ def api_salvar(tema_id=None):
     if tema is None:
         return jsonify({'erro': tr('Tema não encontrado.')}), 404
     atualizar_telao()
+    avisar_biblia()
     return jsonify({'tema': tema}), 200 if tema_id else 201
 
 
@@ -82,6 +88,7 @@ def api_apagar(tema_id):
     if not temas_store.apagar(tema_id):
         return jsonify({'erro': tr('Tema não encontrado.')}), 404
     atualizar_telao()
+    avisar_biblia()
     return jsonify({'ok': True})
 
 
@@ -92,3 +99,18 @@ def api_padrao():
     padrao = temas_store.definir_padrao(data.get('id'))
     atualizar_telao()
     return jsonify({'padrao': padrao})
+
+
+@temas_bp.route('/api/temas/biblia')
+def api_tema_biblia():
+    # Sem login: quem pede é a tela da Bíblia (projetor), como /api/bible/current
+    return jsonify({'tema': temas_store.tema_da_biblia()})
+
+
+@temas_bp.route('/api/temas/biblia', methods=['POST'])
+@login_required
+def api_definir_biblia():
+    data = request.get_json(silent=True) or {}
+    biblia = temas_store.definir_biblia(data.get('id'))
+    avisar_biblia()
+    return jsonify({'biblia': biblia})

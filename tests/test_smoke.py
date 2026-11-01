@@ -4372,3 +4372,90 @@ def test_transicao_do_tema(app):
         tema = temas_store.salvar("Suave", {"transicao": {"tipo": "zoom", "duracao": 800}})
         assert temas_store.resolver({"tema_id": tema["id"]})["transicao"] == {"tipo": "zoom", "duracao": 800}
     _limpar_temas(app)
+
+
+def test_tema_da_biblia(app, client, logged_in_client):
+    import temas_store
+    _limpar_temas(app)
+    assert client.get("/api/temas/biblia").get_json() == {"tema": None}       # sem tema: o visual de sempre
+    assert 'id="bg-layer"' in client.get("/bible/display").get_data(as_text=True)
+    tema = logged_in_client.post("/api/temas", json={"nome": "Versículos", "texto": {"fonte": "georgia"}}).get_json()["tema"]
+    operador = _operator_socket(app)
+    tela = ucontrol_main.socketio.test_client(app)
+    tela.get_received()
+    assert logged_in_client.post("/api/temas/biblia", json={"id": tema["id"]}).get_json()["biblia"] == tema["id"]
+    avisos = [m["args"][0] for m in tela.get_received() if m["name"] == "tema_biblia"]
+    assert avisos and avisos[-1]["tema"]["texto"]["fonte"] == "georgia"
+    assert client.get("/api/temas/biblia").get_json()["tema"]["nome"] == "Versículos"
+    assert logged_in_client.get("/api/temas").get_json()["biblia"] == tema["id"]
+    assert client.post("/api/temas/biblia", json={"id": None}).status_code in (302, 401)   # trocar exige login
+    with app.app_context():
+        temas_store.apagar(tema["id"])
+        assert temas_store.biblia_id() is None
+    operador.disconnect()
+    tela.disconnect()
+    _limpar_temas(app)
+
+
+def test_fundo_proprio_de_uma_parte_da_musica(app):
+    import temas_store
+    _limpar_temas(app)
+    with app.app_context():
+        tema = temas_store.salvar("Base", {"fundo": {"type": "color", "color": "#111111"}})
+        refrao = {"type": "video", "url": "/static/imagens/Fundos/luz.mp4", "escurecer": 20}
+        musica = {"tema_id": tema["id"], "secoes": {"Refrão": refrao, "Ponte": {"type": "javascript"}}}
+        assert temas_store.resolver(musica, None, "Verso 1")["fundo"] == {"type": "color", "color": "#111111"}
+        assert temas_store.resolver(musica, None, " refrão ")["fundo"] == refrao        # sem diferença de maiúscula/espaço
+        assert temas_store.resolver(musica, None, "Ponte")["fundo"] == {"type": "color", "color": "#111111"}  # inválido: ignora
+        # Só as partes, sem tema da música: o resto segue o padrão
+        assert temas_store.resolver({"secoes": {"Refrão": refrao}}, None, "Refrão")["fundo"] == refrao
+        assert temas_store.resolver({"secoes": {"Refrão": refrao}}, None, "Verso")["fundo"] == temas_store.FUNDO_PADRAO
+    _limpar_temas(app)
+
+
+def test_pacote_leva_temas_e_fundos(app, logged_in_client, tmp_path, monkeypatch):
+    import io
+    import songs_store
+    import temas_store
+    _limpar_temas(app)
+    (tmp_path / "static" / "imagens" / "Fundos").mkdir(parents=True)
+    (tmp_path / "static" / "imagens" / "Fundos" / "luz.mp4").write_bytes(b"video")
+    (tmp_path / "static" / "imagens" / "ceu.jpg").write_bytes(b"jpg")
+    monkeypatch.chdir(tmp_path)
+    with app.app_context():
+        tema = temas_store.salvar("Noite", {"fundo": {"type": "image", "url": "/static/imagens/ceu.jpg"}})
+        existentes = songs_store.load_songs()
+        song_id = songs_store.get_next_id(existentes)
+        songs_store.save_songs(existentes + [{"id": song_id, "title": "Luz do Mundo", "author": "Teste",
+            "sections": [{"title": "Refrão", "text": ["Luz"]}],
+            "theme": {"tema_id": tema["id"], "secoes": {"Refrão": {"type": "video", "url": "/static/imagens/Fundos/luz.mp4"}}}}])
+    r = logged_in_client.post("/api/pacote/exportar", json={"musicas": [song_id]})
+    assert r.status_code == 200
+    pacote = r.data
+
+    # Em "outro computador": sem o tema, sem a música e sem os arquivos
+    with app.app_context():
+        temas_store.apagar(tema["id"])
+        songs_store.save_songs(existentes)
+    (tmp_path / "static" / "imagens" / "Fundos" / "luz.mp4").unlink()
+    (tmp_path / "static" / "imagens" / "ceu.jpg").unlink()
+
+    d = logged_in_client.post("/api/pacote/analisar", data={"arquivo": (io.BytesIO(pacote), "p.zip")},
+                              content_type="multipart/form-data").get_json()
+    assert d["manifest"]["formato"] == 2 and d["temas"] == [{"ref": tema["id"], "nome": "Noite", "status": "novo"}]
+    assert d["avulsos"] == 2
+    feito = logged_in_client.post("/api/pacote/importar", json={"token": d["token"], "escolhas": {}}).get_json()
+    assert feito["temas"] == 1 and feito["musicas_novas"] == 1 and feito["arquivos"] == 2
+    assert (tmp_path / "static" / "imagens" / "Fundos" / "luz.mp4").read_bytes() == b"video"
+    assert (tmp_path / "static" / "imagens" / "ceu.jpg").exists()
+    with app.app_context():
+        novo = [t for t in temas_store.listar() if t["nome"] == "Noite"][0]
+        musica = [s for s in songs_store.load_songs() if s["title"] == "Luz do Mundo"][0]
+        assert musica["theme"]["tema_id"] == novo["id"] and "Refrão" in musica["theme"]["secoes"]
+        # Importar de novo: tudo igual, nada muda
+    d2 = logged_in_client.post("/api/pacote/analisar", data={"arquivo": (io.BytesIO(pacote), "p.zip")},
+                               content_type="multipart/form-data").get_json()
+    assert d2["temas"][0]["status"] == "igual" and d2["musicas"][0]["status"] == "igual"
+    with app.app_context():
+        songs_store.save_songs(existentes)
+    _limpar_temas(app)

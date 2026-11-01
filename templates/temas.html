@@ -28,6 +28,12 @@
             <h2>{{ _('Temas') }}</h2>
             <p class="tm-dica">{{ _('O tema padrão vale para toda música que não escolheu outro. No culto e na música dá para escolher um tema diferente.') }}</p>
             <div id="tm-lista" class="tm-lista"></div>
+            <label class="tm-controle tm-biblia">{{ _('Tema da Bíblia') }}
+                <select class="uc-input" id="tm-biblia">
+                    <option value="">{{ _('O visual de sempre da Bíblia') }}</option>
+                </select>
+            </label>
+            <span class="tm-status" id="tm-biblia-status" role="status"></span>
         </section>
 
         <section class="uc-card tm-editor" id="tm-editor" hidden>

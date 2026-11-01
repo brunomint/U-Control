@@ -11,12 +11,58 @@ let currentTheme = CONFIG.theme;
         }
         atualizarBotaoTema();
 
+        // "Aplicar a": a música inteira ('') ou uma parte dela (título do slide,
+        // ex. "Refrão"), que pode ter fundo próprio: currentTheme.secoes[título]
+        // (temas_store.fundo_da_secao)
+        let alvoTema = '';
+        function fundoDoAlvo() {
+            if (alvoTema) return (currentTheme && currentTheme.secoes && currentTheme.secoes[alvoTema]) || null;
+            return currentTheme && currentTheme.type ? currentTheme : null;
+        }
+        function definirFundo(fundo) {
+            const secoes = Object.assign({}, (currentTheme && currentTheme.secoes) || {});
+            let base;
+            if (alvoTema) {
+                if (fundo) secoes[alvoTema] = fundo; else delete secoes[alvoTema];
+                base = Object.assign({}, currentTheme || {});
+                delete base.secoes;
+            } else {
+                base = fundo ? Object.assign({}, fundo) : {};
+            }
+            if (Object.keys(secoes).length) base.secoes = secoes;
+            currentTheme = Object.keys(base).length ? base : null;
+            mostrarPreviaTema();
+            salvarTema(currentTheme);
+        }
+        function montarAlvos() {
+            const sel = document.getElementById('tema-alvo');
+            const titulos = [...new Set(sections.map(s => (s.title || '').trim()).filter(Boolean))];
+            const secoes = (currentTheme && currentTheme.secoes) || {};
+            sel.innerHTML = `<option value="">${_t('Música inteira')}</option>` + titulos.map(t =>
+                `<option value="${t.replace(/"/g, '&quot;')}">${t.replace(/</g, '&lt;')}${secoes[t] ? ' · ' + _t('fundo próprio') : ''}</option>`).join('');
+            sel.value = titulos.includes(alvoTema) ? alvoTema : '';
+            alvoTema = sel.value;
+            document.getElementById('tema-alvo-linha').hidden = !titulos.length;
+        }
+        function mostrarAlvo() {
+            const parte = !!alvoTema;
+            document.getElementById('tema-salvos-secao').hidden = parte;
+            document.getElementById('tema-limpar-label').textContent = parte
+                ? _t('Tirar o fundo próprio desta parte') : _t('Usar o tema do culto ou o padrão');
+            const esc = Number((fundoDoAlvo() || {}).escurecer) || 0;
+            document.getElementById('tema-escurecer').value = esc;
+            document.getElementById('tema-escurecer-valor').textContent = esc + '%';
+            mostrarPreviaTema();
+            marcarTemaSalvo();
+        }
+        document.getElementById('tema-alvo').addEventListener('change', (e) => { alvoTema = e.target.value; mostrarAlvo(); });
+
         // Prévia do tema: imagem ou vídeo (mudo, em loop), com o escurecer aplicado
         function mostrarPreviaTema() {
             const box = document.getElementById('tema-preview');
             const img = document.getElementById('tema-preview-img');
             const video = document.getElementById('tema-preview-video');
-            const t = currentTheme || {};
+            const t = fundoDoAlvo() || {};
             const ehVideo = t.type === 'video' && t.url;
             box.style.display = t.url ? 'block' : 'none';
             img.style.display = t.url && !ehVideo ? 'block' : 'none';
@@ -34,11 +80,8 @@ let currentTheme = CONFIG.theme;
 
         function abrirModalTema() {
             document.getElementById('modal-tema').style.display = 'flex';
-            const esc = (currentTheme && Number(currentTheme.escurecer)) || 0;
-            document.getElementById('tema-escurecer').value = esc;
-            document.getElementById('tema-escurecer-valor').textContent = esc + '%';
-            mostrarPreviaTema();
-            marcarTemaSalvo();
+            montarAlvos();
+            mostrarAlvo();
             carregarPastasTema();
             carregarVideosFundo();
         }
@@ -50,9 +93,7 @@ let currentTheme = CONFIG.theme;
         }
 
         function limparTema() {
-            currentTheme = null;
-            mostrarPreviaTema();
-            salvarTema(null);
+            definirFundo(null);
             fecharModalTema();
         }
 
@@ -60,17 +101,19 @@ let currentTheme = CONFIG.theme;
         const controleEscurecer = document.getElementById('tema-escurecer');
         controleEscurecer.addEventListener('input', () => {
             document.getElementById('tema-escurecer-valor').textContent = valorEscurecer() + '%';
-            if (currentTheme && currentTheme.url) {
+            if (fundoDoAlvo() && fundoDoAlvo().url) {
                 const filtro = `brightness(${1 - valorEscurecer() / 100})`;
                 document.getElementById('tema-preview-img').style.filter = filtro;
                 document.getElementById('tema-preview-video').style.filter = filtro;
             }
         });
         controleEscurecer.addEventListener('change', () => {
-            if (!currentTheme || !currentTheme.url) return;
-            currentTheme = Object.assign({}, currentTheme, { escurecer: valorEscurecer() });
-            if (!currentTheme.escurecer) delete currentTheme.escurecer;
-            salvarTema(currentTheme);
+            const atual = fundoDoAlvo();
+            if (!atual || !atual.url) return;
+            const novo = Object.assign({}, atual, { escurecer: valorEscurecer() });
+            delete novo.secoes;
+            if (!novo.escurecer) delete novo.escurecer;
+            definirFundo(novo);
         });
 
         // Vídeos de fundo (pasta "Fundos", blueprints/fundos.py): o servidor converte
@@ -127,7 +170,7 @@ let currentTheme = CONFIG.theme;
 
         // Tema salvo (página /temas): fundo + estilo da letra
         function selecionarTemaSalvo(id) {
-            currentTheme = { tema_id: id };
+            currentTheme = Object.assign({ tema_id: id }, currentTheme && currentTheme.secoes ? { secoes: currentTheme.secoes } : {});
             salvarTema(currentTheme);
             fecharModalTema();
         }
@@ -137,17 +180,15 @@ let currentTheme = CONFIG.theme;
         }
 
         function selecionarTema(url, type) {
-            currentTheme = {type: type, url: url};
-            if (valorEscurecer()) currentTheme.escurecer = valorEscurecer();
-            mostrarPreviaTema();
-            salvarTema(currentTheme);
+            const fundo = {type: type, url: url};
+            if (valorEscurecer()) fundo.escurecer = valorEscurecer();
+            definirFundo(fundo);
             fecharModalTema();
         }
 
         function aplicarCorTema() {
             const color = document.getElementById('cor-tema').value;
-            currentTheme = { type: 'color', color: color };
-            salvarTema(currentTheme);
+            definirFundo({ type: 'color', color: color });
             fecharModalTema();
             atualizarBotaoTema();
         }
@@ -157,8 +198,7 @@ let currentTheme = CONFIG.theme;
         }
 
         function aplicarGradiente(css) {
-            currentTheme = { type: 'gradient', css: css };
-            salvarTema(currentTheme);
+            definirFundo({ type: 'gradient', css: css });
             fecharModalTema();
             atualizarBotaoTema();
         }

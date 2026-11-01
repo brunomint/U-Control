@@ -129,5 +129,5 @@ window.UcTema = (function () {
         };
     }
 
-    return { FONTES, aplicarTexto, ajustar, fundoCss, trocarComTransicao };
+    return { FONTES, aplicarTexto, ajustar, fundoCss, trocarComTransicao, sombras, rgba };
 })();

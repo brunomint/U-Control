@@ -9,6 +9,7 @@
 
     let temas = [];
     let padrao = null;
+    let biblia = null;
     let atual = null;        // tema em edição: {id?, nome, fundo, texto}
     let alterado = false;
     let segundoSlide = false;   // "Ver a transição" alterna a prévia entre dois slides
@@ -186,6 +187,7 @@
                 ${miniatura(t)}
                 <span class="tm-item-nome">${esc(t.nome)}</span>
                 ${t.id === padrao ? `<span class="uc-pill uc-pill-ok">${esc(_t('Padrão'))}</span>` : ''}
+                ${t.id === biblia ? `<span class="uc-pill uc-pill-muted">${esc(_t('Bíblia'))}</span>` : ''}
             </button>`).join('')
             : `<p class="tm-dica">${esc(_t('Nenhum tema ainda. Sem tema, o telão usa fundo preto e letra branca com contorno.'))}</p>`;
         $('tm-lista').querySelectorAll('[data-id]').forEach(b => b.addEventListener('click', () => abrir(temas.find(t => t.id === Number(b.dataset.id)))));
@@ -206,7 +208,12 @@
         return fetch('/api/temas').then(r => r.json()).then(d => {
             temas = d.temas;
             padrao = d.padrao;
+            biblia = d.biblia;
             desenharLista();
+            const sel = $('tm-biblia');
+            sel.innerHTML = `<option value="">${esc(_t('O visual de sempre da Bíblia'))}</option>` +
+                temas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join('');
+            sel.value = biblia || '';
             if (abrirId) { alterado = false; abrir(temas.find(t => t.id === abrirId)); }
         });
     }
@@ -251,6 +258,16 @@
             $('tm-vazio').hidden = false;
             carregar();
         });
+    });
+
+    $('tm-biblia').addEventListener('change', () => {
+        fetch('/api/temas/biblia', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: Number($('tm-biblia').value) || null }) })
+            .then(r => r.json()).then(d => {
+                biblia = d.biblia;
+                desenharLista();
+                $('tm-biblia-status').textContent = biblia ? _t('Os versículos já aparecem com este tema.') : _t('A Bíblia voltou ao visual de sempre.');
+            });
     });
 
     window.addEventListener('beforeunload', (e) => { if (alterado) { e.preventDefault(); e.returnValue = ''; } });

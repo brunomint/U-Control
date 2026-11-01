@@ -87,6 +87,8 @@ class Setting(db.Model):
     church_name = db.Column(db.String(120), nullable=True)
     # Tema do telão usado quando a música e o culto não escolhem um (Tema.id)
     tema_padrao_id = db.Column(db.Integer, nullable=True)
+    # Tema dos versículos (/bible/display no telão do público); None = o visual de sempre da Bíblia
+    tema_biblia_id = db.Column(db.Integer, nullable=True)
 
 
 # Tema do telão do público: fundo + estilo da letra (temas_store.py)

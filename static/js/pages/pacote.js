@@ -4,8 +4,8 @@
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const plural = (n, um, varios) => (n === 1 ? um : varios).replace('{n}', n);
-    const escolhido = { musicas: new Set(), cultos: new Set(), pastas: new Set() };
-    let itens = { musicas: [], cultos: [], pastas: [] };
+    const escolhido = { musicas: new Set(), cultos: new Set(), pastas: new Set(), temas: new Set() };
+    let itens = { musicas: [], cultos: [], pastas: [], temas: [] };
 
     function dataCulto(chave) {
         const [a, m, d, n] = chave.split('-');
@@ -41,6 +41,11 @@
     function renderPastas() {
         $('lista-pastas').innerHTML = itens.pastas.map(p => linha('pastas', p.nome, p.nome, plural(p.arquivos, _t('{n} arquivo'), _t('{n} arquivos')))).join('')
             || '<p class="uc-muted">' + _t('Nenhuma foto na galeria.') + '</p>';
+    }
+
+    function renderTemas() {
+        $('lista-temas').innerHTML = (itens.temas || []).map(t => linha('temas', String(t.id), t.nome)).join('')
+            || '<p class="uc-muted">' + _t('Nenhum tema do telão.') + '</p>';
     }
 
     // Valores que a lista mostra agora — "Selecionar todas" das músicas vale
@@ -82,6 +87,8 @@
         if (escolhido.cultos.size) partes.push(plural(escolhido.cultos.size, _t('{n} culto'), _t('{n} cultos')));
         if (escolhido.musicas.size) partes.push(plural(escolhido.musicas.size, _t('{n} música'), _t('{n} músicas')));
         if (escolhido.pastas.size) partes.push(plural(escolhido.pastas.size, _t('{n} pasta'), _t('{n} pastas')));
+        if (escolhido.temas.size) partes.push(plural(escolhido.temas.size, _t('{n} tema'), _t('{n} temas')));
+        $('conta-temas').textContent = escolhido.temas.size ? _t('({n} de {total})', { n: escolhido.temas.size, total: itens.temas.length }) : '';
         $('exp-resumo').textContent = !partes.length ? _t('Nada escolhido.')
             : escolhido.cultos.size ? _t('Levar: {itens} (+ as músicas dos cultos)', { itens: partes.join(' · ') })
             : _t('Levar: {itens}', { itens: partes.join(' · ') });
@@ -109,6 +116,7 @@
         renderCultos();
         renderMusicas();
         renderPastas();
+        renderTemas();
         renderTodos();
     }).catch(() => { $('lista-cultos').textContent = _t('Não deu pra carregar.'); });
 
@@ -119,7 +127,8 @@
         try {
             const r = await fetch('/api/pacote/exportar', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ musicas: [...escolhido.musicas].map(Number), cultos: [...escolhido.cultos], pastas: [...escolhido.pastas] }),
+                body: JSON.stringify({ musicas: [...escolhido.musicas].map(Number), cultos: [...escolhido.cultos], pastas: [...escolhido.pastas],
+                    temas: [...escolhido.temas].map(Number) }),
             });
             if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || _t('erro {status}', { status: r.status }));
             const nome = (/filename="?([^";]+)/.exec(r.headers.get('Content-Disposition') || '') || [])[1] || 'U-Control-pacote.zip';
@@ -163,13 +172,21 @@
                 <span class="uc-muted">· ${esc(m.author)}</span></span>${selo(m.status)}
                 ${m.status === 'diferente' ? escolha('musicas', m.ref) : ''}</div>`).join('');
         }
+        const temas = d.temas || [];
+        if (temas.length) {
+            html += '<h3>' + _t('Temas do telão') + '</h3>' + temas.map(t => `<div class="previa-linha"><span class="titulo">${esc(t.nome)}</span>${selo(t.status)}
+                ${t.status === 'diferente' ? escolha('temas', t.ref) : ''}</div>`).join('');
+        }
+        if (d.avulsos) {
+            html += `<p class="uc-muted">${plural(d.avulsos, _t('{n} imagem ou vídeo de fundo vai junto.'), _t('{n} imagens ou vídeos de fundo vão junto.'))}</p>`;
+        }
         if (d.pastas.length) {
             html += '<h3>' + _t('Fotos e slides') + '</h3>' + d.pastas.map(p => `<div class="previa-linha"><span class="titulo">${esc(p.nome)}</span>
                 <span class="uc-muted">${plural(p.arquivos, _t('{n} arquivo'), _t('{n} arquivos'))}${p.ja_existem ? _t(' · {n} com o mesmo nome aqui serão substituídos', { n: p.ja_existem }) : ''}</span></div>`).join('');
         }
         $('imp-previa').innerHTML = html || '<p class="uc-muted">' + _t('O pacote está vazio.') + '</p>';
         $('imp-previa').hidden = false;
-        const algo = d.cultos.length || d.musicas.length || d.pastas.length;
+        const algo = d.cultos.length || d.musicas.length || d.pastas.length || temas.length;
         $('imp-importar').hidden = !algo;
         $('imp-importar').disabled = !algo;
     }
@@ -193,8 +210,9 @@
             if (!r.ok) throw new Error(d.error || (r.status === 413 ? _t('arquivo grande demais para o endereço da internet; use a rede da igreja') : _t('erro {status}', { status: r.status })));
             token = d.token;
             renderPrevia(d);
-            const dif = d.musicas.filter(m => m.status === 'diferente').length + d.cultos.filter(c => c.status === 'diferente').length;
-            const tudoIgual = !d.pastas.length && [...d.musicas, ...d.cultos].every(x => x.status === 'igual');
+            const temas = d.temas || [];
+            const dif = [...d.musicas, ...d.cultos, ...temas].filter(x => x.status === 'diferente').length;
+            const tudoIgual = !d.pastas.length && !d.avulsos && [...d.musicas, ...d.cultos, ...temas].every(x => x.status === 'igual');
             if (tudoIgual) {
                 $('imp-importar').hidden = true;
                 $('imp-msg').textContent = _t('Este computador já tem tudo o que está no pacote, igual. Nada a importar.');
@@ -208,7 +226,7 @@
     });
 
     $('imp-importar').addEventListener('click', async () => {
-        const escolhas = { musicas: {}, cultos: {} };
+        const escolhas = { musicas: {}, cultos: {}, temas: {} };
         document.querySelectorAll('#imp-previa input[type=radio]:checked').forEach(r => { escolhas[r.dataset.imp][r.dataset.chave] = r.value; });
         $('imp-importar').disabled = true;
         $('imp-msg').textContent = _t('Importando…');
@@ -222,6 +240,7 @@
             if (d.musicas_novas) partes.push(plural(d.musicas_novas, _t('{n} música nova'), _t('{n} músicas novas')));
             if (d.musicas_atualizadas) partes.push(plural(d.musicas_atualizadas, _t('{n} música atualizada'), _t('{n} músicas atualizadas')));
             if (d.cultos) partes.push(plural(d.cultos, _t('{n} culto'), _t('{n} cultos')));
+            if (d.temas) partes.push(plural(d.temas, _t('{n} tema'), _t('{n} temas')));
             if (d.arquivos) partes.push(plural(d.arquivos, _t('{n} foto/slide'), _t('{n} fotos/slides')));
             $('imp-msg').textContent = partes.length ? _t('Importado: {itens}.', { itens: partes.join(' · ') }) : _t('Importado: nada mudou (já estava tudo igual).');
             $('imp-importar').hidden = true;

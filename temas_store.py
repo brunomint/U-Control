@@ -10,6 +10,11 @@ Qual tema vale numa música, do mais forte para o mais fraco:
   2. o do culto (Order.tema_telao);
   3. o tema padrão (Setting.tema_padrao_id);
   4. o visual de sempre: fundo preto, letra branca com contorno preto.
+Uma parte da música (Refrão, Ponte...) pode ter fundo próprio:
+Song.theme["secoes"] = {"Refrão": {fundo}}, comparando o título do slide.
+
+A Bíblia tem um tema à parte (Setting.tema_biblia_id); sem ele, os
+versículos ficam com o visual de sempre de /bible/display.
 """
 import copy
 import re
@@ -178,6 +183,8 @@ def apagar(tema_id):
     config = Setting.query.first()
     if config and config.tema_padrao_id == tema.id:
         config.tema_padrao_id = None
+    if config and config.tema_biblia_id == tema.id:
+        config.tema_biblia_id = None
     from models_orders import Order
     Order.query.filter_by(tema_telao=tema.id).update({'tema_telao': None})
     db.session.commit()
@@ -199,6 +206,41 @@ def definir_padrao(tema_id):
     return config.tema_padrao_id
 
 
+def biblia_id():
+    config = Setting.query.first()
+    return config.tema_biblia_id if config else None
+
+
+def definir_biblia(tema_id):
+    config = Setting.query.first()
+    if config is None:
+        config = Setting()
+        db.session.add(config)
+    config.tema_biblia_id = int(tema_id) if tema_id and obter(tema_id) else None
+    db.session.commit()
+    return config.tema_biblia_id
+
+
+def tema_da_biblia():
+    return obter(biblia_id()) if biblia_id() else None
+
+
+def _chave_secao(titulo):
+    return re.sub(r'\s+', ' ', str(titulo or '')).strip().lower()
+
+
+def fundo_da_secao(tema_da_musica, secao):
+    """Fundo próprio da parte da música (Song.theme["secoes"]), ou None."""
+    secoes = tema_da_musica.get('secoes') if isinstance(tema_da_musica, dict) else None
+    if not isinstance(secoes, dict) or not secao:
+        return None
+    alvo = _chave_secao(secao)
+    for titulo, fundo in secoes.items():
+        if _chave_secao(titulo) == alvo:
+            return normalizar_fundo(fundo)
+    return None
+
+
 def tema_do_culto(chave_culto):
     if not chave_culto:
         return None
@@ -207,8 +249,9 @@ def tema_do_culto(chave_culto):
     return obter(order.tema_telao) if order and order.tema_telao else None
 
 
-def resolver(tema_da_musica, chave_culto=None):
-    """{'fundo', 'texto', 'nome'} que o telão do público mostra para a música."""
+def resolver(tema_da_musica, chave_culto=None, secao=None):
+    """{'fundo', 'texto', 'transicao', 'nome'} que o telão do público mostra
+    para a música (secao: título do slide, para o fundo próprio da parte)."""
     da_musica = tema_da_musica if isinstance(tema_da_musica, dict) else None
     escolhido = obter(da_musica['tema_id']) if da_musica and da_musica.get('tema_id') else None
     base = escolhido or tema_do_culto(chave_culto) or (obter(padrao_id()) if padrao_id() else None)
@@ -217,5 +260,8 @@ def resolver(tema_da_musica, chave_culto=None):
     fundo_solto = normalizar_fundo(da_musica) if da_musica and not da_musica.get('tema_id') else None
     if fundo_solto:
         resultado['fundo'] = fundo_solto
+    da_secao = fundo_da_secao(da_musica, secao)
+    if da_secao:
+        resultado['fundo'] = da_secao
     return {'fundo': resultado['fundo'], 'texto': resultado['texto'], 'transicao': resultado['transicao'],
             'nome': resultado.get('nome')}
