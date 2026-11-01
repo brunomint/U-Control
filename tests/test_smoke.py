@@ -4598,6 +4598,7 @@ def test_divisao_de_slide_so_no_publico(app, logged_in_client):
     from letra_formato import sem_divisao
     assert sem_divisao("Linha 1\n||\nLinha 2\n  ||  \nLinha 3") == "Linha 1\nLinha 2\nLinha 3"
     assert sem_divisao("a || b") == "a || b"                     # só a linha sozinha divide
+    assert sem_divisao("Linha 1\r\n||\r\nLinha 2") == "Linha 1\nLinha 2"   # letra colada do Windows (\r\n)
     with app.app_context():
         existentes = songs_store.load_songs()
         song_id = songs_store.get_next_id(existentes)

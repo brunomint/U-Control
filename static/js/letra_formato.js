@@ -48,10 +48,11 @@ window.UcFormato = (function () {
     // Linha só com "||" divide a seção em slides menores, só no telão do
     // público e no OBS (lyrics_2.js manda a parte em payload.textoPublico);
     // o retorno de palco mostra a seção inteira, sem a linha.
-    const DIVISAO = /^[ \t]*\|\|[ \t]*$/;
+    // Aceita o fim de linha do Windows (\r\n): letra colada de lá vinha com "||\r"
+    const DIVISAO = /^[ \t]*\|\|[ \t\r]*$/;
     function partes(texto) {
         const blocos = [[]];
-        String(texto || '').split('\n').forEach(linha => {
+        String(texto || '').split(/\r?\n/).forEach(linha => {
             if (DIVISAO.test(linha)) blocos.push([]);
             else blocos[blocos.length - 1].push(linha);
         });
@@ -59,7 +60,7 @@ window.UcFormato = (function () {
         return lista.length ? lista : [String(texto || '')];
     }
     function semDivisao(texto) {
-        return String(texto || '').split('\n').filter(linha => !DIVISAO.test(linha)).join('\n');
+        return String(texto || '').split(/\r?\n/).filter(linha => !DIVISAO.test(linha)).join('\n');
     }
 
     return { html, limpar, partes, semDivisao, CORES, TAMANHOS };

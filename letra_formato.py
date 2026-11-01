@@ -25,14 +25,14 @@ def limpar(texto):
     return _ITALICO.sub(r'\1', _NEGRITO.sub(r'\1', texto))
 
 
-_DIVISAO = re.compile(r'^[ \t]*\|\|[ \t]*$', re.M)
+_DIVISAO = re.compile(r'^[ \t]*\|\|[ \t\r]*$')   # \r: letra colada do Windows
 
 
 def sem_divisao(texto):
     """Tira as linhas "||" (divisão de slide só do telão do público)."""
     if not texto or not isinstance(texto, str):
         return texto
-    return '\n'.join(l for l in texto.split('\n') if not _DIVISAO.match(l))
+    return '\n'.join(l for l in re.split(r'\r?\n', texto) if not _DIVISAO.match(l))
 
 
 def musica_sem_formato(song):
