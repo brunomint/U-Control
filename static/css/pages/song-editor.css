@@ -263,3 +263,12 @@ textarea[name="texts[]"], #entrada { display: none; }
 .chord-backdrop .chord { color: var(--uc-warn); }
 .chord-backdrop .comment-line { color: var(--uc-faint); }
 
+
+/* Botões de formatação da letra (static/js/editor_formato.js) */
+.fmt-barra { display: inline-flex; gap: 2px; align-items: center; }
+.fmt-menu { position: fixed; z-index: 1000; display: flex; flex-wrap: wrap; gap: 4px; max-width: 260px; padding: 6px;
+  border-radius: var(--uc-r); background: var(--uc-surface-2); border: 1px solid var(--uc-line); box-shadow: 0 12px 30px rgba(0, 0, 0, .45); }
+.fmt-menu button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid transparent; border-radius: var(--uc-r-sm);
+  background: none; color: var(--uc-text); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.fmt-menu button:hover { background: var(--uc-surface-3); border-color: var(--uc-line); }
+.fmt-cor { display: block; width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .35); }

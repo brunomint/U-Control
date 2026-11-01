@@ -63,6 +63,15 @@
             <button type="button" id="undoBtn" class="tool-btn tool-icon-only" disabled title="{{ _('Desfazer') }}" aria-label="{{ _('Desfazer') }}"><i class="fas fa-rotate-left"></i> <span class="tool-label">{{ _('Desfazer') }}</span></button>
             <button type="button" id="redoBtn" class="tool-btn tool-icon-only" disabled title="{{ _('Refazer') }}" aria-label="{{ _('Refazer') }}"><i class="fas fa-rotate-right"></i> <span class="tool-label">{{ _('Refazer') }}</span></button>
             <span class="tool-sep" aria-hidden="true"></span>
+            {#- Formatação da letra no telão do público (static/js/editor_formato.js, letra_formato.js) #}
+            <span class="fmt-barra" id="fmtBarra" role="group" aria-label="{{ _('Destacar palavras no telão do público') }}">
+                <button type="button" id="fmtNegrito" class="tool-btn tool-icon-only" title="{{ _('Negrito no telão (Ctrl+B)') }}" aria-label="{{ _('Negrito') }}"><i class="fas fa-bold"></i></button>
+                <button type="button" id="fmtItalico" class="tool-btn tool-icon-only" title="{{ _('Itálico no telão (Ctrl+I)') }}" aria-label="{{ _('Itálico') }}"><i class="fas fa-italic"></i></button>
+                <button type="button" id="fmtCor" class="tool-btn tool-icon-only" title="{{ _('Cor no telão') }}" aria-label="{{ _('Cor') }}" aria-haspopup="menu"><i class="fas fa-palette"></i></button>
+                <button type="button" id="fmtTamanho" class="tool-btn tool-icon-only" title="{{ _('Tamanho no telão') }}" aria-label="{{ _('Tamanho') }}" aria-haspopup="menu"><i class="fas fa-text-height"></i></button>
+                <button type="button" id="fmtTirar" class="tool-btn tool-icon-only" title="{{ _('Tirar a formatação do trecho selecionado') }}" aria-label="{{ _('Tirar formatação') }}"><i class="fas fa-text-slash"></i></button>
+            </span>
+            <span class="tool-sep" aria-hidden="true"></span>
             <button type="button" id="selectModeBtn" class="tool-btn" title="{{ _('Selecionar') }}" aria-label="{{ _('Selecionar') }}"><i class="fas fa-square-check"></i> <span class="tool-label">{{ _('Selecionar') }}</span></button>
             <button type="button" id="deleteSelectedBtn" class="tool-btn danger" style="display: none;" title="{{ _('Excluir selecionados') }}" aria-label="{{ _('Excluir selecionados') }}"><i class="fas fa-trash-can"></i> <span class="tool-label">{{ _('Excluir selecionados') }}</span></button>
             <button type="button" id="clearAllBtn" class="tool-btn danger-ghost" title="{{ _('Limpar tudo') }}" aria-label="{{ _('Limpar tudo') }}"><i class="fas fa-eraser"></i> <span class="tool-label">{{ _('Limpar tudo') }}</span></button>

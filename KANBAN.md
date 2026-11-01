@@ -161,7 +161,9 @@ Versões pequenas, de 2–3 itens cada.
           `{grande}tamanho{/}` (pequeno/grande/maior), combináveis. Só no
           telão do público e nos avisos; palco, OBS, /view e impressão tiram
           as marcações (`letra_formato.py` no servidor). Um `*` sozinho
-          (marcador, 56 linhas no banco local) não é afetado. Dica no editor.
+          (marcador, 56 linhas no banco local) não é afetado. Dica no editor e
+          na Ajuda; botões na barra do editor (negrito, itálico, cor, tamanho,
+          tirar formatação; Ctrl+B/Ctrl+I), `static/js/editor_formato.js`.
     - [ ] Importar temas do Holyrics.
 
 ---
