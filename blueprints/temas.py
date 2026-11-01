@@ -116,3 +116,49 @@ def api_definir_biblia():
     biblia = temas_store.definir_biblia(data.get('id'))
     avisar_biblia()
     return jsonify({'biblia': biblia})
+
+
+# ── Importar do Holyrics (holyrics_temas.py) ────────────────────────────
+_ERROS_HOLYRICS = {
+    'endereco': 'Confira o endereço do Holyrics (ex.: 192.168.0.10:8091).',
+    'conexao': 'Não conectou no Holyrics. Confira o endereço e se o API Server está ligado (Arquivo > Configurações > API Server).',
+    'token': 'O Holyrics recusou a chave. Confira o token e se ele tem permissão para "GetThemes".',
+    'resposta': 'O Holyrics respondeu de um jeito inesperado. Ele precisa ser a versão 2.27 ou mais nova.',
+}
+
+
+@temas_bp.route('/api/temas/holyrics/buscar', methods=['POST'])
+@login_required
+def api_holyrics_buscar():
+    import holyrics_temas
+    data = request.get_json(silent=True) or {}
+    try:
+        temas = holyrics_temas.buscar(data.get('endereco'), data.get('token'))
+    except holyrics_temas.ErroHolyrics as e:
+        return jsonify({'erro': tr(_ERROS_HOLYRICS.get(str(e), _ERROS_HOLYRICS['resposta']))}), 400
+    daqui = {t['nome'].strip().lower() for t in temas_store.listar()}
+    resultado = []
+    for t in temas:
+        tema, avisos = holyrics_temas.converter(t)
+        resultado.append({**tema, 'avisos': avisos, 'existe': tema['nome'].strip().lower() in daqui})
+    return jsonify({'temas': resultado})
+
+
+@temas_bp.route('/api/temas/holyrics/importar', methods=['POST'])
+@login_required
+def api_holyrics_importar():
+    """Recebe os temas já convertidos (o token não volta pro servidor)."""
+    data = request.get_json(silent=True) or {}
+    daqui = {t['nome'].strip().lower(): t['id'] for t in temas_store.listar()}
+    feitos = 0
+    for t in (data.get('temas') or [])[:200]:
+        if not isinstance(t, dict) or not str(t.get('nome') or '').strip():
+            continue
+        existente = daqui.get(str(t['nome']).strip().lower())
+        novo = temas_store.salvar(t['nome'], t, existente)
+        daqui[novo['nome'].strip().lower()] = novo['id']
+        feitos += 1
+    if feitos:
+        atualizar_telao()
+        avisar_biblia()
+    return jsonify({'importados': feitos})

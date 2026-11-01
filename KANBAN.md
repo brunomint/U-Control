@@ -139,7 +139,7 @@ Versões pequenas, de 2–3 itens cada.
         termina a anterior na hora; sem animação com texto igual, letra
         escondida ou vindo de foto/vídeo; só no telão do público. Editor:
         bloco "Transição entre slides" com "Ver a transição" na prévia.
-  - [~] Etapa 4 (2026-11-01, feitos 5 de 6):
+  - [x] Etapa 4 (2026-11-01, os 6 extras):
     - [x] Tema da Bíblia (`Setting.tema_biblia_id`, seletor em /temas): fundo,
           fonte, cor, contorno, faixa e posição nos versículos de
           /bible/display; sem tema, o visual de sempre; no palco
@@ -164,7 +164,14 @@ Versões pequenas, de 2–3 itens cada.
           (marcador, 56 linhas no banco local) não é afetado. Dica no editor e
           na Ajuda; botões na barra do editor (negrito, itálico, cor, tamanho,
           tirar formatação; Ctrl+B/Ctrl+I), `static/js/editor_formato.js`.
-    - [ ] Importar temas do Holyrics.
+    - [x] Importar temas do Holyrics (/temas, "Importar do Holyrics";
+          `holyrics_temas.py`): pela API local do Holyrics (v2.27+, ação
+          GetThemes, que não pede Holyrics Plan; o themes.hly é
+          criptografado). Converte fonte, cor, negrito/itálico, tamanho (% da
+          altura -> vw), entrelinhas, alinhamento, margem, contorno, sombra,
+          faixa (cor RGBA) e maiúsculas; fundo de cor (com opacidade sobre a
+          base); fundo de imagem/vídeo e brilho viram aviso. Mesmo nome
+          substitui. O token não é guardado (o endereço fica no aparelho).
 
 ---
 

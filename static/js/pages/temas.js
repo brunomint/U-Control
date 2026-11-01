@@ -314,6 +314,60 @@
             .catch(() => { $('tm-video-status').textContent = _t('Não deu para enviar o vídeo.'); });
     });
 
+    // ── Importar do Holyrics (blueprints/temas.py, holyrics_temas.py) ─────
+    // O endereço fica salvo neste aparelho; o token não (vai só na busca)
+    let doHolyrics = [];
+    try { $('tm-holyrics-endereco').value = localStorage.getItem('ucHolyricsEndereco') || ''; } catch (e) { /* sem localStorage */ }
+    $('tm-holyrics-abrir').addEventListener('click', () => {
+        $('tm-holyrics').hidden = !$('tm-holyrics').hidden;
+        if (!$('tm-holyrics').hidden) $('tm-holyrics-endereco').focus();
+    });
+    const AVISOS_HOLYRICS = {
+        fundo: _t('o fundo de imagem/vídeo não vem: escolha um fundo aqui depois'),
+        brilho: _t('o brilho do texto não existe aqui'),
+    };
+    $('tm-holyrics-buscar').addEventListener('click', () => {
+        const endereco = $('tm-holyrics-endereco').value.trim();
+        try { localStorage.setItem('ucHolyricsEndereco', endereco); } catch (e) { /* sem localStorage */ }
+        $('tm-holyrics-status').textContent = _t('Buscando…');
+        $('tm-holyrics-lista').innerHTML = '';
+        $('tm-holyrics-acoes').hidden = true;
+        fetch('/api/temas/holyrics/buscar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endereco, token: $('tm-holyrics-token').value }) })
+            .then(r => r.json().then(d => ({ ok: r.ok, d })))
+            .then(({ ok, d }) => {
+                if (!ok) { $('tm-holyrics-status').textContent = d.erro || _t('Não deu para buscar.'); return; }
+                doHolyrics = d.temas;
+                $('tm-holyrics-status').textContent = doHolyrics.length
+                    ? _t('{n} temas encontrados. Marque os que quer trazer.', { n: doHolyrics.length }) : _t('O Holyrics não tem temas.');
+                $('tm-holyrics-lista').innerHTML = doHolyrics.map((t, i) => `
+                    <label class="tm-holyrics-item">
+                        <input type="checkbox" data-i="${i}" ${t.existe ? '' : 'checked'}>
+                        ${miniatura(t)}
+                        <span class="tm-holyrics-nome"><strong>${esc(t.nome)}</strong>
+                            ${t.existe ? `<span class="tm-dica">${esc(_t('já existe aqui: importar substitui'))}</span>` : ''}
+                            ${t.avisos.map(a => `<span class="tm-dica">${esc(AVISOS_HOLYRICS[a] || a)}</span>`).join('')}
+                        </span>
+                    </label>`).join('');
+                $('tm-holyrics-acoes').hidden = !doHolyrics.length;
+            })
+            .catch(() => { $('tm-holyrics-status').textContent = _t('Não deu para buscar.'); });
+    });
+    $('tm-holyrics-importar').addEventListener('click', () => {
+        const escolhidos = [...document.querySelectorAll('#tm-holyrics-lista input:checked')].map(c => doHolyrics[Number(c.dataset.i)]);
+        if (!escolhidos.length) { $('tm-holyrics-status').textContent = _t('Marque pelo menos um tema.'); return; }
+        fetch('/api/temas/holyrics/importar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ temas: escolhidos }) })
+            .then(r => r.json())
+            .then(d => {
+                $('tm-holyrics-status').textContent = _t('{n} temas importados. Ajuste o que precisar e salve.', { n: d.importados });
+                $('tm-holyrics-lista').innerHTML = '';
+                $('tm-holyrics-acoes').hidden = true;
+                $('tm-holyrics-token').value = '';
+                carregar();
+            });
+    });
+
     carregar();
     carregarVideos();
 })();

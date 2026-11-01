@@ -20,8 +20,35 @@
             <h1>{{ _('Temas e fundos do telão') }}</h1>
             <div class="uc-page-sub">{{ _('Como a letra aparece no telão do público: fundo, fonte, cor, contorno e posição. O palco não muda.') }}</div>
         </div>
-        <button type="button" class="uc-btn uc-btn-primary" id="tm-novo"><i class="fas fa-plus"></i> {{ _('Novo tema') }}</button>
+        <div class="uc-btn-row">
+            <button type="button" class="uc-btn uc-btn-secondary" id="tm-holyrics-abrir"><i class="fas fa-file-import"></i> {{ _('Importar do Holyrics') }}</button>
+            <button type="button" class="uc-btn uc-btn-primary" id="tm-novo"><i class="fas fa-plus"></i> {{ _('Novo tema') }}</button>
+        </div>
     </div>
+
+    {#- Importar temas do Holyrics pela API local dele (holyrics_temas.py) #}
+    <section class="uc-card tm-holyrics" id="tm-holyrics" hidden>
+        <h2><i class="fas fa-file-import"></i> {{ _('Importar temas do Holyrics') }}</h2>
+        <ol class="tm-dica tm-passos">
+            <li>{{ _('No Holyrics (versão 2.27 ou mais nova): Arquivo › Configurações › API Server. Ligue o servidor e anote o endereço e a porta.') }}</li>
+            <li>{{ _('Em "Gerenciar permissões", crie um token e marque a permissão GetThemes.') }}</li>
+            <li>{{ _('Preencha abaixo e toque em Buscar temas. O token não fica guardado.') }}</li>
+        </ol>
+        <div class="tm-holyrics-campos">
+            <label class="tm-controle">{{ _('Endereço do Holyrics') }}
+                <input class="uc-input" id="tm-holyrics-endereco" placeholder="127.0.0.1:8091" autocomplete="off">
+            </label>
+            <label class="tm-controle">{{ _('Token') }}
+                <input class="uc-input" id="tm-holyrics-token" type="password" autocomplete="off">
+            </label>
+            <button type="button" class="uc-btn uc-btn-primary" id="tm-holyrics-buscar"><i class="fas fa-magnifying-glass"></i> {{ _('Buscar temas') }}</button>
+        </div>
+        <span class="tm-status" id="tm-holyrics-status" role="status"></span>
+        <div id="tm-holyrics-lista" class="tm-holyrics-lista"></div>
+        <div class="tm-acoes" id="tm-holyrics-acoes" hidden>
+            <button type="button" class="uc-btn uc-btn-primary" id="tm-holyrics-importar"><i class="fas fa-file-import"></i> {{ _('Importar os marcados') }}</button>
+        </div>
+    </section>
 
     <div class="tm-grid">
         <section class="uc-card tm-lista-card">

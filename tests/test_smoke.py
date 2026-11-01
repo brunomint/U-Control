@@ -4516,3 +4516,78 @@ def test_formatacao_de_palavras_na_letra(app, logged_in_client):
     finally:
         with app.app_context():
             songs_store.save_songs(existentes)
+
+
+# Tema no formato da API do Holyrics (README do holyrics/API-Server, seção "Theme")
+_TEMA_HOLYRICS = {
+    "id": "123", "name": "Culto Domingo",
+    "background": {"type": "color", "id": "212121", "opacity": 100}, "base_color": "FFFFFF",
+    "font": {"name": "Merriweather", "bold": True, "italic": False, "size": 10.0, "color": "F5F5F5", "line_spacing": 0.3},
+    "align": {"horizontal": "left", "vertical": "bottom", "margin": {"top": 3.0, "right": 6.0, "bottom": 3.0, "left": 6.0}},
+    "effect": {"outline_color": "404040", "outline_weight": 30.0, "brightness_weight": 10.0,
+               "shadow_color": "101010", "shadow_x_weight": 0.0, "shadow_y_weight": 5.0},
+    "shape_fill": {"type": "box", "enabled": True, "color": "00000080", "corner": 20},
+    "settings": {"uppercase": True},
+}
+
+
+def test_converter_tema_do_holyrics():
+    from holyrics_temas import converter
+    tema, avisos = converter(_TEMA_HOLYRICS)
+    t = tema["texto"]
+    assert tema["nome"] == "Culto Domingo" and tema["fundo"] == {"type": "color", "color": "#212121"}
+    assert t["fonte"] == "merriweather" and t["negrito"] and t["cor"] == "#f5f5f5" and t["maiusculas"]
+    assert t["tamanho_max"] == 5.5 and t["entrelinhas"] == 1.3            # 10% da altura -> 5,6 vw (meio em meio)
+    assert (t["alinhamento"], t["posicao"], t["margem"]) == ("esquerda", "base", 6)
+    assert (t["contorno"], t["contorno_cor"], t["sombra"], t["sombra_cor"]) == (3, "#404040", True, "#101010")
+    assert (t["caixa"], t["caixa_cor"], t["caixa_opacidade"], t["caixa_arredondada"]) == (True, "#000000", 50, 2)
+    assert avisos == ["brilho"]
+    # Fundo com opacidade sobre a cor base; imagem/vídeo não vem
+    meio, _ = converter({**_TEMA_HOLYRICS, "background": {"type": "color", "id": "000000", "opacity": 50}})
+    assert meio["fundo"]["color"] == "#808080"
+    video, avisos = converter({**_TEMA_HOLYRICS, "background": {"type": "my_video", "id": "9"}})
+    assert video["fundo"] == {"type": "color", "color": "#000000"} and "fundo" in avisos
+
+
+def test_importar_temas_do_holyrics_pela_api(app, logged_in_client):
+    import json
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import temas_store
+    _limpar_temas(app)
+    pedidos = []
+
+    class HolyricsFalso(BaseHTTPRequestHandler):
+        def do_POST(self):
+            pedidos.append(self.path)
+            ok = "token=certo" in self.path and self.path.startswith("/api/GetThemes")
+            corpo = {"status": "ok", "data": [_TEMA_HOLYRICS, {**_TEMA_HOLYRICS, "name": "Natal"}]} if ok \
+                else {"status": "error", "error": "invalid token"}
+            self.send_response(200 if ok else 401)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(corpo).encode())
+
+        def log_message(self, *a):
+            pass
+
+    servidor = HTTPServer(("127.0.0.1", 0), HolyricsFalso)
+    threading.Thread(target=servidor.serve_forever, daemon=True).start()
+    endereco = f"127.0.0.1:{servidor.server_port}"
+    try:
+        r = logged_in_client.post("/api/temas/holyrics/buscar", json={"endereco": endereco, "token": "errado"})
+        assert r.status_code == 400 and "token" in r.get_json()["erro"]
+        r = logged_in_client.post("/api/temas/holyrics/buscar", json={"endereco": "127.0.0.1:1", "token": "x"})
+        assert r.status_code == 400 and "conectou" in r.get_json()["erro"]
+        with app.app_context():
+            temas_store.salvar("Natal", {})
+        achados = logged_in_client.post("/api/temas/holyrics/buscar", json={"endereco": endereco, "token": "certo"}).get_json()["temas"]
+        assert [(t["nome"], t["existe"]) for t in achados] == [("Culto Domingo", False), ("Natal", True)]
+        feito = logged_in_client.post("/api/temas/holyrics/importar", json={"temas": achados}).get_json()
+        assert feito["importados"] == 2
+        nomes = sorted(t["nome"] for t in logged_in_client.get("/api/temas").get_json()["temas"])
+        assert nomes == ["Culto Domingo", "Natal"]          # "Natal" foi substituído, não duplicado
+    finally:
+        servidor.shutdown()
+    assert logged_in_client.get("/temas").status_code == 200
+    _limpar_temas(app)
