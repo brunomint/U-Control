@@ -24,7 +24,7 @@
         // frases"); o gate de linha inteira resolve isso de raiz.
         const formatLyrics = (text) => {
             if (!text) return '';
-            const withoutChords = ChordLines.stripChordLines(text);
+            const withoutChords = ChordLines.stripChordLines(UcFormato.semDivisao(text));
             // **negrito**, *itálico*, {amarelo}cor{/}, {grande}tamanho{/} (static/js/letra_formato.js);
             // o texto também passa a ir protegido (antes ia cru pro innerHTML)
             return UcFormato.html(withoutChords.split('\n')
@@ -95,7 +95,7 @@
                         exibirAvisos(data);
                     } else if (data && data.mode === 'lyrics' && data.title) {
                         aplicarTemaCompleto(data);  // antes o fundo sumia ao recarregar o telão
-                        updateLyricsDisplay(data.title, data.text || '', data.id || null);
+                        updateLyricsDisplay(data.title, data.textoPublico || data.text || '', data.id || null);
                     } else if (data && data.mode === 'image' && data.image_url) {
                         if (data.is_static) { showImage(data.image_url, data.zoom); }
                         // Rota da letra/cifra: mostra a letra aqui mesmo (abrir
@@ -450,11 +450,12 @@
             const textoEl = document.getElementById('section-text');
             // Transição do tema só de letra para letra, com texto diferente e a letra visível
             const jaNaLetra = lyricsLayer.style.display !== 'none' && fundoVisivel && textoEl.textContent.trim() !== '';
-            const mesmoTexto = textoEl.innerHTML === formatLyrics(data.text);
+            const textoTela = data.textoPublico || data.text;   // divisão "||": só a parte (lyrics_2.js)
+            const mesmoTexto = textoEl.innerHTML === formatLyrics(textoTela);
             showLyricsView();
             const trocar = () => {
                 aplicarTemaCompleto(data);  // antes do texto: o tamanho da letra depende do estilo
-                updateLyricsDisplay(data.title, data.text, data.id);
+                updateLyricsDisplay(data.title, textoTela, data.id);
                 const creditos = document.getElementById('song-credits');
                 creditos.textContent = data.creditos || '';
                 creditos.hidden = !data.creditos;

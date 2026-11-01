@@ -25,11 +25,21 @@ def limpar(texto):
     return _ITALICO.sub(r'\1', _NEGRITO.sub(r'\1', texto))
 
 
+_DIVISAO = re.compile(r'^[ \t]*\|\|[ \t]*$', re.M)
+
+
+def sem_divisao(texto):
+    """Tira as linhas "||" (divisão de slide só do telão do público)."""
+    if not texto or not isinstance(texto, str):
+        return texto
+    return '\n'.join(l for l in texto.split('\n') if not _DIVISAO.match(l))
+
+
 def musica_sem_formato(song):
-    """Cópia da música (dict de songs_store) com a letra sem as marcações."""
+    """Cópia da música (dict de songs_store) com a letra sem as marcações e sem as linhas "||"."""
     if not song:
         return song
     song = copy.deepcopy(song)
     for secao in song.get('sections') or []:
-        secao['text'] = [limpar(t) for t in (secao.get('text') or [])]
+        secao['text'] = [sem_divisao(limpar(t)) for t in (secao.get('text') or [])]
     return song

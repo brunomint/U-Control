@@ -59,6 +59,8 @@ const HELP_SECTIONS = {
             <li><code>{amarelo}Santo{/}</code> para cor: amarelo, dourado, vermelho, laranja, verde, azul, roxo, rosa, branco, preto, cinza ou um código como <code>{#ffcc00}</code>;</li>
             <li><code>{grande}Aleluia{/}</code> para tamanho: pequeno, grande ou maior.</li>
         </ul>
+        <h3>Slides menores só no telão do público</h3>
+        <p>No editor, uma linha só com <code>||</code> divide a seção: o telão do público e o OBS mostram uma parte de cada vez, e as setas, o pedal e o Stream Deck passam parte por parte antes de ir para a próxima seção. O retorno de palco continua com a seção inteira, com um aviso pequeno ("público 1/2") ao lado do nome. Na tela da música aparece "Público: parte 1 de 2".</p>
         <p>Dá para combinar: <code>{amarelo}**Jesus**{/}</code>. No palco, no OBS, na visualização e na impressão aparece só o texto, sem as marcações.</p>
         <div class="callout">Temas, vídeos de fundo e os temas usados pelas músicas e cultos vão junto em <a href="/pacote">Sistema → Exportar e importar</a>.</div>`,
     powerpoint: `

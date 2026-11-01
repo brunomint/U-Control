@@ -325,6 +325,34 @@ let currentTheme = CONFIG.theme;
         const temOrdem = Array.isArray(CONFIG.order) && passos.length > 0;
         let passoAtual = 0;
 
+        // Divisão "||" (letra_formato.js): só o telão do público e o OBS veem a
+        // seção em partes; o retorno de palco recebe a seção inteira. Avançar
+        // (setas, pedal, Stream Deck) passa primeiro pelas partes da seção.
+        let parteAtual = 0;
+        let manterParte = false;   // a próxima loadSection não volta pra 1ª parte
+        const partesDe = index => (sections[index] && sections[index].type === 'text')
+            ? UcFormato.partes(rawSectionText(sections[index])).length : 1;
+        function avancar() {
+            const idx = passos[passoAtual];
+            if (idx === currentSectionIndex && parteAtual < partesDe(idx) - 1) {
+                parteAtual++;
+                manterParte = true;
+                loadSection(idx);
+                return true;
+            }
+            return irParaPasso(passoAtual + 1);
+        }
+        function voltar() {
+            const idx = passos[passoAtual];
+            if (idx === currentSectionIndex && parteAtual > 0) {
+                parteAtual--;
+                manterParte = true;
+                loadSection(idx);
+                return true;
+            }
+            return irParaPasso(passoAtual - 1, true);   // voltando: a última parte da seção anterior
+        }
+
         // Passo de uma seção clicada/recebida: o atual se for ela, senão a
         // próxima vez que ela aparece, senão a primeira. Seção fora da ordem
         // não move o passo (a seta continua de onde estava).
@@ -336,9 +364,11 @@ let currentTheme = CONFIG.theme;
             return p >= 0 ? p : passoAtual;
         }
 
-        function irParaPasso(p) {
+        function irParaPasso(p, ultimaParte = false) {
             if (p < 0 || p >= passos.length) return false;
             passoAtual = p;
+            parteAtual = ultimaParte ? partesDe(passos[p]) - 1 : 0;
+            manterParte = true;
             loadSection(passos[p]);
             return true;
         }
@@ -709,7 +739,7 @@ $('#clear-lyrics').click(function() {
             const proximo = passos[passo + 1];
             const nextSec = proximo != null ? sections[proximo] : null;
             const nextRaw = nextSec ? (nextSec.text ? nextSec.text[0] || '' : '') : null;
-            let nextClean = nextRaw !== null ? separarNotas(nextRaw).texto : null;
+            let nextClean = nextRaw !== null ? UcFormato.semDivisao(separarNotas(nextRaw).texto) : null;
             if (nextClean && transposeOffset !== 0) nextClean = ChordLines.transposeBlockContent(nextClean, transposeOffset);
             return {
                 ...payload,
@@ -733,6 +763,8 @@ $('#clear-lyrics').click(function() {
             }
 
             passoAtual = acharPasso(index);
+            if (!manterParte) parteAtual = 0;   // seção clicada ou por tecla: começa da 1ª parte
+            manterParte = false;
             // Usa os dados locais das seções processadas (não precisa chamar o backend)
             const section = sections[index];
 
@@ -757,7 +789,7 @@ $('#clear-lyrics').click(function() {
                 const dataToSend = {
                     title: section.title || `Seção ${index + 1}`,
                     type: 'mixed',
-                    text: sectionText,
+                    text: UcFormato.semDivisao(sectionText),
                     sheets: sheets,
                     theme: currentTheme || null,  // o telão do público mantém o fundo; o palco ignora em partitura (display.js)
                     songId: songId,
@@ -809,6 +841,11 @@ $('#clear-lyrics').click(function() {
             } else {
                 // É uma seção de texto normal
                 const sectionText = transposedSectionText(section);
+                const partesTexto = UcFormato.partes(sectionText);
+                const parte = Math.min(parteAtual, partesTexto.length - 1);
+                const divisao = partesTexto.length > 1
+                    ? { textoPublico: partesTexto[parte], parte: { i: parte, total: partesTexto.length } } : {};
+                mostrarParte(parte, partesTexto.length);
 
                 // "Preparar vs. liberar": stage_content em vez de
                 // update_lyrics direto (ver comentário acima).
@@ -819,7 +856,8 @@ $('#clear-lyrics').click(function() {
                         payload: withFooter({
                             title: textTitle,
                             type: 'text',
-                            text: sectionText,
+                            text: UcFormato.semDivisao(sectionText),   // palco: a seção inteira
+                            ...divisao,                                 // público e OBS: a parte
                             theme: currentTheme || null,
                             songId: songId,
                             sectionIndex: index
@@ -860,6 +898,7 @@ $('#clear-lyrics').click(function() {
                     songId: songId,
                     sectionIndex: currentSectionIndex,
                     passo: passoAtual,   // outras abas: mesma posição na ordem
+                    parte: parteAtual,
                     sectionTitles: rodape.sectionTitles,
                     total: rodape.total,
                     mapIndex: rodape.mapIndex,
@@ -870,6 +909,14 @@ $('#clear-lyrics').click(function() {
             }
         }
     
+        // Aviso pro operador: qual parte (divisão "||") está no telão do público
+        function mostrarParte(parte, total) {
+            const el = document.getElementById('parte-publico');
+            if (!el) return;
+            el.hidden = total < 2;
+            el.textContent = _t('Público: parte {n} de {total}', { n: parte + 1, total });
+        }
+
         function highlightActiveSection(index) {
             $('.section-link').removeClass('active');
             const activeSection = $(`#section-${index}`);
@@ -935,11 +982,11 @@ $('#clear-lyrics').click(function() {
             loadLyricsState(); // Carrega estado salvo (música + seção)
     
             $('#next').click(function() {
-                if (!irParaPasso(passoAtual + 1)) alert(_t('Você já está na última seção.'));
+                if (!avancar()) alert(_t('Você já está na última seção.'));
             });
     
             $('#prev').click(function() {
-                if (!irParaPasso(passoAtual - 1)) alert(_t('Você já está na primeira seção.'));
+                if (!voltar()) alert(_t('Você já está na primeira seção.'));
             });
             
             $('#toggle-lyrics').click(toggleLyricsVisibility);
@@ -956,7 +1003,7 @@ $('#clear-lyrics').click(function() {
                 // ArrowUp, PageUp, ArrowLeft
                 if (event.key === "ArrowUp" || event.key === "PageUp" || event.key === "ArrowLeft") {
                     event.preventDefault();
-                    irParaPasso(passoAtual - 1);
+                    voltar();
                 } 
                 // Teclas para AVANÇAR seção (pedal direito)
                 // ArrowDown, PageDown, ArrowRight, Space, Enter
@@ -966,7 +1013,7 @@ $('#clear-lyrics').click(function() {
                         return;
                     }
                     event.preventDefault();
-                    irParaPasso(passoAtual + 1);
+                    avancar();
                 }
             });
     
@@ -978,6 +1025,7 @@ $('#clear-lyrics').click(function() {
                     // de loadSection) — isto é só ressincronização visual,
                     // não uma ação real do operador desta aba.
                     if (Number.isInteger(data.passo) && passos[data.passo] === data.sectionIndex) passoAtual = data.passo;
+                    if (Number.isInteger(data.parte)) { parteAtual = data.parte; manterParte = true; }
                     loadSection(data.sectionIndex, true, false, true);
                 }
             });

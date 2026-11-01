@@ -108,7 +108,14 @@ Versões pequenas, de 2–3 itens cada.
       (o capo do violonista mudaria os acordes do tecladista), e ninguém
       toca nela. Tela pública não tem acordes. Reaproveitar o `capo.js`
       (localStorage `ucCapo`, por aparelho).
-- [ ] **Quebra de slide com `||`** dentro da seção (ideia do OpenSong).
+- [x] **Quebra de slide com `||`** (2026-11-01): linha só com `||` divide a
+      seção em partes só no telão do público e no OBS (`payload.textoPublico`,
+      `UcFormato.partes`); setas/pedal/Stream Deck passam parte por parte
+      (voltar cai na última parte da seção anterior); o retorno de palco
+      recebe a seção inteira, com aviso "público 1/2" ao lado do nome; a tela
+      da música mostra "Público: parte 1 de 2". /view e impressão tiram as
+      linhas `||`.
+  - [ ] Ideia: "no máximo N linhas por slide no público" no tema (divide sozinho).
 - [ ] **Temas e fundos animados no telão do público** (plano de 2026-11-01,
       a partir da documentação do Holyrics). Só o telão do público; o palco
       (monitor e cifra) fica sem vídeo de fundo.

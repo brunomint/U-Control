@@ -45,5 +45,22 @@ window.UcFormato = (function () {
         return blocos(String(texto), (nome, dentro) => dentro).replace(NEGRITO, '$1').replace(ITALICO, '$1');
     }
 
-    return { html, limpar, CORES, TAMANHOS };
+    // Linha só com "||" divide a seção em slides menores, só no telão do
+    // público e no OBS (lyrics_2.js manda a parte em payload.textoPublico);
+    // o retorno de palco mostra a seção inteira, sem a linha.
+    const DIVISAO = /^[ \t]*\|\|[ \t]*$/;
+    function partes(texto) {
+        const blocos = [[]];
+        String(texto || '').split('\n').forEach(linha => {
+            if (DIVISAO.test(linha)) blocos.push([]);
+            else blocos[blocos.length - 1].push(linha);
+        });
+        const lista = blocos.map(b => b.join('\n').replace(/^\n+|\n+$/g, '')).filter(t => t.trim());
+        return lista.length ? lista : [String(texto || '')];
+    }
+    function semDivisao(texto) {
+        return String(texto || '').split('\n').filter(linha => !DIVISAO.test(linha)).join('\n');
+    }
+
+    return { html, limpar, partes, semDivisao, CORES, TAMANHOS };
 })();

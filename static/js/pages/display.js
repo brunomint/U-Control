@@ -382,7 +382,8 @@ const fitSheetsToScreen = () => {
     // uma TV vista pela banda toda. Agora fica na cifra de cada músico,
     // /view/<id>, ao lado do Tom.)
     function applyChordColors(el, text) {
-        text = UcFormato.limpar(text);   // formatação (**negrito**, {amarelo}…{/}) é só do telão do público
+        // Formatação (**negrito**, {amarelo}…{/}) e divisão "||" são só do telão do público: aqui, a seção inteira
+        text = UcFormato.semDivisao(UcFormato.limpar(text));
         el.textContent = '';
         if (!text) return;
         const lines = text.split('\n');
@@ -598,6 +599,13 @@ const fitSheetsToScreen = () => {
             // É texto normal
             console.log('📝 Detectado tipo: text, chamando updateLyricsDisplay()');
             updateLyricsDisplay(data.title, data.text, data.id);
+            // Divisão "||": o público está vendo só uma parte desta seção — aviso discreto, a letra continua inteira
+            if (data.parte && data.parte.total > 1) {
+                const aviso = document.createElement('span');
+                aviso.className = 'parte-publico';
+                aviso.textContent = _t('público {n}/{total}', { n: data.parte.i + 1, total: data.parte.total });
+                document.getElementById('section-title').appendChild(aviso);
+            }
         }
     };
     

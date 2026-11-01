@@ -61,6 +61,8 @@ window.HELP_SECTIONS_I18N = {
             <li><code>{amarelo}Holy{/}</code> for color (Portuguese names): amarelo (yellow), dourado (gold), vermelho (red), laranja (orange), verde (green), azul (blue), roxo (purple), rosa (pink), branco (white), preto (black), cinza (gray) or a code like <code>{#ffcc00}</code>;</li>
             <li><code>{grande}Hallelujah{/}</code> for size: pequeno (small), grande (large) or maior (larger).</li>
         </ul>
+        <h3>Smaller slides on the audience screen only</h3>
+        <p>In the editor, a line with only <code>||</code> splits the section: the audience screen and OBS show one part at a time, and the arrows, pedal and Stream Deck go part by part before moving to the next section. The stage monitor keeps the whole section, with a small note ("audience 1/2") next to its name. The song's live page shows "Audience: part 1 of 2".</p>
         <p>They can be combined: <code>{amarelo}**Jesus**{/}</code>. The stage, OBS, song view and printouts show plain text, without the marks.</p>
         <div class="callout">Themes, background videos and the themes used by songs and services travel along in <a href="/pacote">System → Export and import</a>.</div>`,
     powerpoint: `

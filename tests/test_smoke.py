@@ -4591,3 +4591,22 @@ def test_importar_temas_do_holyrics_pela_api(app, logged_in_client):
         servidor.shutdown()
     assert logged_in_client.get("/temas").status_code == 200
     _limpar_temas(app)
+
+
+def test_divisao_de_slide_so_no_publico(app, logged_in_client):
+    import songs_store
+    from letra_formato import sem_divisao
+    assert sem_divisao("Linha 1\n||\nLinha 2\n  ||  \nLinha 3") == "Linha 1\nLinha 2\nLinha 3"
+    assert sem_divisao("a || b") == "a || b"                     # só a linha sozinha divide
+    with app.app_context():
+        existentes = songs_store.load_songs()
+        song_id = songs_store.get_next_id(existentes)
+        songs_store.save_songs(existentes + [{"id": song_id, "title": "Divisão", "author": "",
+                                              "sections": [{"title": "Verso", "text": ["Parte um\n||\nParte dois"]}]}])
+    try:
+        html = logged_in_client.get(f"/view/{song_id}").get_data(as_text=True)   # visualização: seção inteira, sem "||"
+        assert "Parte um" in html and "Parte dois" in html and "||" not in html.split("Parte um")[1].split("Parte dois")[0]
+        assert "letra_formato.js" in logged_in_client.get(f"/lyrics/{song_id}").get_data(as_text=True)
+    finally:
+        with app.app_context():
+            songs_store.save_songs(existentes)

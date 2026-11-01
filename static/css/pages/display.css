@@ -176,3 +176,7 @@
 /* Ficha da música no monitor (display.js renderFicha) */
 #song-ficha { font: 700 clamp(12px, 1.6vw, 20px)/1.2 Roboto, sans-serif; color: var(--chord-color, #fbbf24); opacity: .85; margin-bottom: 4px; letter-spacing: .02em; }
 #song-ficha[hidden] { display: none; }
+
+/* Divisão "||" (display.js): o público vê só uma parte da seção; aqui, só um aviso pequeno ao lado do nome */
+#section-title .parte-publico { margin-left: .6em; padding: .1em .5em; border: 1px solid currentColor; border-radius: 999px;
+  font-size: .85em; font-weight: 600; opacity: .6; vertical-align: middle; text-transform: none; letter-spacing: 0; }

@@ -61,7 +61,7 @@ window.addEventListener('resize', adjustFontSize);
 // ── Remoção de acordes (igual ao display_public.html) ────────────
 function formatLyrics(text) {
     // Marcações de formatação (static/js/letra_formato.js) saem: a limpeza de cifra abaixo tira "/" e "#"
-    const lines = UcFormato.limpar(text).split('\n');
+    const lines = UcFormato.semDivisao(UcFormato.limpar(text)).split('\n');
     return lines.map(line => {
         // Remove notas privadas de palco
         if (line.trim().startsWith('//')) return '';
@@ -115,7 +115,7 @@ function setBibleLabels(reference, version) {
 
 socket.on('update_lyrics', (data) => {
     setBibleLabels(null, null); // referência/versão são só de Bíblia
-    setContent(formatLyrics(data.text || ''));
+    setContent(formatLyrics(data.textoPublico || data.text || ''));   // divisão "||": só a parte
 });
 
 socket.on('update_bible', (data) => {

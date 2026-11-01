@@ -103,6 +103,9 @@ a.tool-btn { text-decoration: none; }
   gap: 10px;
 }
 .nav-buttons { display: grid; gap: 8px; }
+/* Divisão "||": qual parte está no telão do público (lyrics_2.js, mostrarParte) */
+.parte-publico { align-self: center; padding: 6px 10px; border-radius: 999px; background: var(--uc-surface-3);
+  border: 1px solid var(--uc-line); color: var(--uc-text); font-size: 12px; font-weight: 700; white-space: nowrap; }
 button#prev, button#next {
   width: 56px;
   height: 56px;
