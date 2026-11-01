@@ -166,6 +166,23 @@ def set_theme(song_id, theme):
 _MARCA_PARTITURA = '🎼 PARTITURA_INTEGRADA_'
 
 
+def musica_na_ordem(song):
+    """Cópia da música com as seções na Ordem no culto (Song.order, posições
+    das seções salvas, com repetição: Verso 1, Coro, Verso 2, Coro, Coro).
+    Sem ordem válida, como foram escritas. Para a página de cifras (/view) e a
+    impressão. Guarda os títulos da ordem em song['ordem_titulos']."""
+    import copy
+    if not song:
+        return song
+    song = copy.deepcopy(song)
+    secoes = song.get('sections') or []
+    ordem = [i for i in (song.get('order') or []) if isinstance(i, int) and 0 <= i < len(secoes)]
+    song['ordem_titulos'] = [(secoes[i].get('title') or f'Seção {i + 1}').replace('[', '').replace(']', '').strip() for i in ordem]
+    if ordem:
+        song['sections'] = [copy.deepcopy(secoes[i]) for i in ordem]
+    return song
+
+
 def secoes_apresentadas(sections):
     """Seções como são apresentadas — a mesma regra de
     static/js/song_sections.js (process), pra o servidor achar a seção pelo

@@ -4610,3 +4610,26 @@ def test_divisao_de_slide_so_no_publico(app, logged_in_client):
     finally:
         with app.app_context():
             songs_store.save_songs(existentes)
+
+
+def test_cifras_seguem_a_ordem_no_culto(app, logged_in_client):
+    import songs_store
+    musica = {"id": 1, "title": "T", "author": "", "order": [0, 1, 2, 1, 1, 99],
+              "sections": [{"title": "Verso 1", "text": ["AAA"]}, {"title": "Coro", "text": ["CCC"]}, {"title": "Verso 2", "text": ["BBB"]}]}
+    na_ordem = songs_store.musica_na_ordem(musica)
+    assert [s["title"] for s in na_ordem["sections"]] == ["Verso 1", "Coro", "Verso 2", "Coro", "Coro"]   # 99 não existe: ignora
+    assert na_ordem["ordem_titulos"] == ["Verso 1", "Coro", "Verso 2", "Coro", "Coro"]
+    assert [s["title"] for s in musica["sections"]] == ["Verso 1", "Coro", "Verso 2"]                     # não mexe na original
+    assert songs_store.musica_na_ordem({**musica, "order": None})["sections"] == musica["sections"]
+    with app.app_context():
+        existentes = songs_store.load_songs()
+        song_id = songs_store.get_next_id(existentes)
+        songs_store.save_songs(existentes + [{**musica, "id": song_id, "title": "Ordem", "order": [0, 1, 2, 1, 1]}])
+    try:
+        html = logged_in_client.get(f"/view/{song_id}").get_data(as_text=True)
+        corpo = html.split("Verso 1 → Coro")[1]                     # depois da linha "Ordem:"
+        posicoes = [corpo.find(t) for t in ("AAA", "CCC", "BBB")]
+        assert posicoes == sorted(posicoes) and corpo.count("CCC") == 3
+    finally:
+        with app.app_context():
+            songs_store.save_songs(existentes)

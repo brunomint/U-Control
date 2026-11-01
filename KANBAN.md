@@ -116,6 +116,11 @@ Versões pequenas, de 2–3 itens cada.
       da música mostra "Público: parte 1 de 2". /view e impressão tiram as
       linhas `||`.
   - [ ] Ideia: "no máximo N linhas por slide no público" no tema (divide sozinho).
+- [x] **Letra na Ordem no culto** (2026-11-01): com ordem, a página de cifras
+      (/view), a impressão e a lista de seções da tela de controle (/lyrics)
+      mostram a letra na sequência da ordem, com cada repetição completa
+      (`songs_store.musica_na_ordem`; cartões com `data-passo`). Sem ordem,
+      como foi escrita.
 - [ ] **Temas e fundos animados no telão do público** (plano de 2026-11-01,
       a partir da documentação do Holyrics). Só o telão do público; o palco
       (monitor e cifra) fica sem vídeo de fundo.

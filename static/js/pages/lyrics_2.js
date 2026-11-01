@@ -591,8 +591,13 @@ let currentTheme = CONFIG.theme;
         let _fitTimer = null;
         window.addEventListener('resize', () => { clearTimeout(_fitTimer); _fitTimer = setTimeout(fitSectionPreviews, 150); });
 
+        // Com Ordem no culto, a lista segue a ordem (o Coro aparece em cada
+        // vez que entra); clicar num cartão vai exatamente para aquele passo.
+        // Sem ordem, as seções como foram escritas.
         function createSectionLinks() {
-            for (let i = 0; i < sections.length; i++) {
+            const lista = temOrdem ? passos : sections.map((_, i) => i);
+            for (let p = 0; p < lista.length; p++) {
+                const i = lista[p];
                 const section = sections[i];
                 
                 // Comentário de palco (//) em itálico; acordes coloridos com a
@@ -608,12 +613,12 @@ let currentTheme = CONFIG.theme;
                     // Seção mista: renderiza partitura + texto
                     const sectionText = styleComment(transposedSectionText(section));
                     content = `
-                        <div id="sheet-render-${i}" style="padding:5px; background:#fff; margin:5px 0;"></div>
+                        <div id="sheet-render-${p}" style="padding:5px; background:#fff; margin:5px 0;"></div>
                         <pre class="section-preview" style="display:block; white-space:pre; overflow-x:auto; font-size:12px; margin:5px 0; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;">${sectionText}</pre>
                     `;
                 } else if (section.type === 'sheet') {
                     // É uma partitura - container para renderização
-                    content = `<div id="sheet-render-${i}" style="padding:10px; background:#fff;"></div>`;
+                    content = `<div id="sheet-render-${p}" style="padding:10px; background:#fff;"></div>`;
                 } else {
                     // É texto normal
                     const sectionText = styleComment(transposedSectionText(section));
@@ -621,22 +626,22 @@ let currentTheme = CONFIG.theme;
                 }
                 
                 const link = $(`
-                    <div id="section-${i}" class="section-link">
+                    <div class="section-link" data-index="${i}" data-passo="${p}">
                         <span class="section-title">${section.title || _t('Seção {n}', { n: i + 1 })}${teclaDaSecao(i) ? `<kbd class="tecla-secao" title="${_t('Atalho: tecla {tecla}', { tecla: teclaDaSecao(i) })}">${teclaDaSecao(i)}</kbd>` : ''}</span>
                         ${content}
                     </div>
                 `);
                 link.click(function() {
-                    loadSection(i);
+                    if (temOrdem) irParaPasso(p); else loadSection(i);
                 });
                 $('#sections-list').append(link);
                 
                 // Se for partitura ou mista, renderiza automaticamente
                 if (section.type === 'sheet') {
-                    renderSheetInSection(i, section);
+                    renderSheetInSection(p, section);
                 } else if (section.type === 'mixed' && section.sheetIds && section.sheetIds.length > 0) {
                     // Renderiza a primeira partitura da seção mista
-                    renderSheetInSection(i, { sheetId: section.sheetIds[0] });
+                    renderSheetInSection(p, { sheetId: section.sheetIds[0] });
                 }
             }
             requestAnimationFrame(fitSectionPreviews);
@@ -649,6 +654,7 @@ let currentTheme = CONFIG.theme;
         // reimplementava o layout/quebra de compasso à mão numa versão
         // mais antiga do VexFlow (4.2.2), sempre assumindo 4/4 fixo,
         // causando divergência visual em relação ao editor.
+        // index: posição do cartão na lista (com Ordem no culto, o passo)
         async function renderSheetInSection(index, section) {
             const renderDiv = $(`#sheet-render-${index}`);
 
@@ -919,7 +925,8 @@ $('#clear-lyrics').click(function() {
 
         function highlightActiveSection(index) {
             $('.section-link').removeClass('active');
-            const activeSection = $(`#section-${index}`);
+            // Com ordem: o cartão do passo atual (o mesmo Coro aparece várias vezes)
+            const activeSection = temOrdem ? $(`.section-link[data-passo="${passoAtual}"]`) : $(`.section-link[data-index="${index}"]`);
             activeSection.addClass('active');
             
             // Scroll automático para manter a seção ativa visível na tela
