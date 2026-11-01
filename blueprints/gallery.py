@@ -106,7 +106,7 @@ def list_images():
         prefix = f'/static/imagens/{folder}'
     if not target or not os.path.exists(target):
         return jsonify([])
-    images = [f for f in os.listdir(target) if f.endswith(('.png', '.jpg', '.jpeg', '.gif')) and os.path.isfile(os.path.join(target, f))]
+    images = [f for f in os.listdir(target) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) and os.path.isfile(os.path.join(target, f))]
     image_urls = [f'{prefix}/{image}' for image in images]
     return jsonify(image_urls)
 

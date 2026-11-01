@@ -7,33 +7,50 @@ html, body {
   background-color: black;
 }
 
-/* CAMADA DE IMAGEM/VÍDEO — fica atrás das letras */
+/* FUNDO DO TEMA DA LETRA (display_public.js, aplicarTema) — atrás de tudo */
+#bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+}
+#bg-layer img, #bg-layer video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+/* Escurece a imagem ou o vídeo para a letra aparecer bem (tema.escurecer, 0 a 80%) */
+#bg-escurecer {
+  position: absolute; inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* CAMADA DE IMAGEM/VÍDEO DA GALERIA — fica atrás das letras */
 #media-layer {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: black;
 }
+/* Foto da galeria inteira (contain), como no monitor e no /img — com "cover"
+   a tela pública cortava a foto e o zoom do /presenter caía em lugar diferente */
 #media-layer img {
   width: 100%; height: 100%;
-  /* cover = fundo de tema da letra; foto da galeria usa .photo (abaixo) */
-  object-fit: cover;
+  object-fit: contain;
   display: none;
   transition: transform .12s ease-out; /* zoom do /presenter */
-}
-/* Foto da galeria inteira, como no monitor e no /img — com "cover" a tela
-   pública cortava a foto e o zoom do /presenter caía em lugar diferente */
-#media-layer img.photo { object-fit: contain; }
-#media-layer video {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;   /* vídeo de fundo do tema da letra */
-  display: none;
 }
 /* Vídeo da galeria inteiro, como no monitor. Com "cover" o app Android
    (WebView) desenhava o vídeo no tamanho original, no canto de cima à
    esquerda, em vez de tela cheia. */
-#media-layer video.photo { object-fit: contain; }
+#media-layer video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: none;
+}
 
 /* LETRAS ficam na frente */
 #lyrics {

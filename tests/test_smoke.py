@@ -4168,3 +4168,79 @@ def test_one_operator_public_only_stage_still_follows_the_song(app):
         op.emit("stop_live_follow", {})
         op.disconnect()
         palco.disconnect()
+
+
+def _video_teste(caminho, largura, altura, segundos=2):
+    import subprocess
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", f"testsrc=size={largura}x{altura}:rate=25:duration={segundos}",
+                    "-f", "lavfi", "-i", f"sine=duration={segundos}", "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(caminho)], check=True)
+    return caminho
+
+
+def _info_video(caminho):
+    import json as _json
+    import subprocess
+    saida = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,codec_name,width,height",
+                            "-of", "json", str(caminho)], capture_output=True, text=True, check=True).stdout
+    return _json.loads(saida)["streams"]
+
+
+def test_video_de_fundo_e_convertido_sem_som_e_no_maximo_full_hd(logged_in_client, tmp_path, monkeypatch):
+    """Vídeo de fundo do tema (blueprints/fundos.py): vai pra pasta Fundos já leve pra tocar em loop."""
+    import shutil
+    import time
+    if not shutil.which("ffmpeg"):
+        pytest.skip("precisa do ffmpeg")
+    from blueprints import fundos
+    monkeypatch.setattr(fundos, "_no_pi", lambda: False)
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    origem = _video_teste(tmp_path / "grande.mov", 2560, 1440)
+
+    with open(origem, "rb") as f:
+        r = logged_in_client.post("/api/fundos", data={"video": (f, "Céu estrelado.mov")}, content_type="multipart/form-data")
+    assert r.status_code == 202
+    nome = r.get_json()["nome"]
+    for _ in range(120):
+        lista = logged_in_client.get("/api/fundos").get_json()
+        if not lista["convertendo"]:
+            break
+        time.sleep(0.5)
+    assert lista["videos"] == [{"url": f"/static/imagens/Fundos/{nome}.mp4", "nome": nome}]
+    streams = _info_video(tmp_path / "static" / "imagens" / "Fundos" / f"{nome}.mp4")
+    assert [s["codec_type"] for s in streams] == ["video"]          # sem som
+    assert streams[0]["codec_name"] == "h264"
+    assert (streams[0]["width"], streams[0]["height"]) == (1920, 1080)
+
+
+def test_video_de_fundo_no_pi_fica_em_720p(tmp_path):
+    from blueprints import fundos
+    comando = fundos.comando_ffmpeg("ffmpeg", "a.mp4", "b.mp4", no_pi=True)
+    assert "min(1280,iw)" in " ".join(comando) and "-an" in comando
+
+
+def test_video_de_fundo_recusa_outro_arquivo_e_exige_login(client, logged_in_client, tmp_path, monkeypatch):
+    import io
+    (tmp_path / "static" / "imagens").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    r = logged_in_client.post("/api/fundos", data={"video": (io.BytesIO(b"oi"), "foto.png")}, content_type="multipart/form-data")
+    assert r.status_code == 400 and "vídeo" in r.get_json()["erro"]
+    logged_in_client.get("/logout")
+    assert client.get("/api/fundos").status_code in (302, 401)
+
+
+def test_telao_publico_tem_camada_de_fundo_separada_da_galeria(app, client, logged_in_client):
+    import songs_store
+    html = client.get("/lyrics/display/public").get_data(as_text=True)
+    assert 'id="bg-video"' in html and 'id="bg-escurecer"' in html and 'id="media-video"' in html
+    with app.app_context():
+        existentes = songs_store.load_songs()
+        song_id = songs_store.get_next_id(existentes)
+        songs_store.save_songs(existentes + [{"id": song_id, "title": "Fundo", "author": "",
+                                              "sections": [{"title": "Verso", "text": ["la la"]}]}])
+    try:
+        tela = logged_in_client.get(f"/lyrics/{song_id}").get_data(as_text=True)
+        assert 'id="tema-videos"' in tela and 'id="tema-escurecer"' in tela
+    finally:
+        with app.app_context():
+            songs_store.save_songs(existentes)

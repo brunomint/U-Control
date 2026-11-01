@@ -11,24 +11,108 @@ let currentTheme = CONFIG.theme;
         }
         atualizarBotaoTema();
 
+        // Prévia do tema: imagem ou vídeo (mudo, em loop), com o escurecer aplicado
+        function mostrarPreviaTema() {
+            const box = document.getElementById('tema-preview');
+            const img = document.getElementById('tema-preview-img');
+            const video = document.getElementById('tema-preview-video');
+            const t = currentTheme || {};
+            const ehVideo = t.type === 'video' && t.url;
+            box.style.display = t.url ? 'block' : 'none';
+            img.style.display = t.url && !ehVideo ? 'block' : 'none';
+            video.style.display = ehVideo ? 'block' : 'none';
+            if (ehVideo) { if (video.getAttribute('src') !== t.url) video.src = t.url; video.play().catch(() => {}); }
+            else { video.pause(); video.removeAttribute('src'); if (t.url) img.src = t.url; }
+            const filtro = `brightness(${1 - (Number(t.escurecer) || 0) / 100})`;
+            img.style.filter = filtro;
+            video.style.filter = filtro;
+        }
+
+        function valorEscurecer() {
+            return Number(document.getElementById('tema-escurecer').value) || 0;
+        }
+
         function abrirModalTema() {
             document.getElementById('modal-tema').style.display = 'flex';
-            if (currentTheme && currentTheme.url) {
-                document.getElementById('tema-preview-img').src = currentTheme.url;
-                document.getElementById('tema-preview').style.display = 'block';
-            }
+            const esc = (currentTheme && Number(currentTheme.escurecer)) || 0;
+            document.getElementById('tema-escurecer').value = esc;
+            document.getElementById('tema-escurecer-valor').textContent = esc + '%';
+            mostrarPreviaTema();
             carregarPastasTema();
+            carregarVideosFundo();
         }
 
         function fecharModalTema() {
             document.getElementById('modal-tema').style.display = 'none';
+            document.getElementById('tema-preview-video').pause();
+            clearTimeout(esperaConversao);
         }
 
         function limparTema() {
             currentTheme = null;
-            document.getElementById('tema-preview').style.display = 'none';
+            mostrarPreviaTema();
             salvarTema(null);
             fecharModalTema();
+        }
+
+        // Escurecer: vale pra imagem e vídeo; salva ao soltar o controle
+        const controleEscurecer = document.getElementById('tema-escurecer');
+        controleEscurecer.addEventListener('input', () => {
+            document.getElementById('tema-escurecer-valor').textContent = valorEscurecer() + '%';
+            if (currentTheme && currentTheme.url) {
+                const filtro = `brightness(${1 - valorEscurecer() / 100})`;
+                document.getElementById('tema-preview-img').style.filter = filtro;
+                document.getElementById('tema-preview-video').style.filter = filtro;
+            }
+        });
+        controleEscurecer.addEventListener('change', () => {
+            if (!currentTheme || !currentTheme.url) return;
+            currentTheme = Object.assign({}, currentTheme, { escurecer: valorEscurecer() });
+            if (!currentTheme.escurecer) delete currentTheme.escurecer;
+            salvarTema(currentTheme);
+        });
+
+        // Vídeos de fundo (pasta "Fundos", blueprints/fundos.py): o servidor converte
+        // pra tocar leve em loop; enquanto converte, a lista atualiza sozinha
+        let esperaConversao = null;
+        const escHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        function carregarVideosFundo() {
+            clearTimeout(esperaConversao);
+            fetch('/api/fundos').then(r => r.json()).then(d => {
+                const grid = document.getElementById('tema-videos');
+                const itens = d.videos.map(v => {
+                    const active = currentTheme && currentTheme.url === v.url;
+                    return `<button type="button" class="tema-thumb${active ? ' active' : ''}" data-url="${escHtml(v.url)}" title="${escHtml(v.nome)}">
+                        <video src="${escHtml(v.url)}#t=1" muted preload="metadata"></video><i class="fas fa-play tema-thumb-video"></i>
+                    </button>`;
+                });
+                d.convertendo.forEach(nome => itens.push(
+                    `<div class="tema-thumb tema-convertendo" title="${escHtml(nome)}"><i class="fas fa-spinner fa-spin"></i><span>${escHtml(_t('Preparando…'))}</span></div>`));
+                grid.innerHTML = itens.length ? itens.join('') : `<p class="tema-empty">${escHtml(_t('Nenhum vídeo de fundo ainda.'))}</p>`;
+                grid.querySelectorAll('button[data-url]').forEach(b => b.addEventListener('click', () => selecionarTema(b.dataset.url, 'video')));
+                if (d.convertendo.length && document.getElementById('modal-tema').style.display !== 'none') {
+                    esperaConversao = setTimeout(carregarVideosFundo, 4000);
+                }
+            }).catch(() => {
+                document.getElementById('tema-videos').innerHTML = `<p class="tema-empty">${escHtml(_t('Erro ao carregar os vídeos.'))}</p>`;
+            });
+        }
+
+        function enviarVideoFundo(input) {
+            const arquivo = input.files[0];
+            input.value = '';
+            if (!arquivo) return;
+            const status = document.getElementById('tema-video-status');
+            status.textContent = _t('Enviando…');
+            const dados = new FormData();
+            dados.append('video', arquivo);
+            fetch('/api/fundos', { method: 'POST', body: dados })
+                .then(r => r.json().then(d => ({ ok: r.ok, d })))
+                .then(({ ok, d }) => {
+                    status.textContent = ok ? _t('Recebido. O vídeo fica pronto em alguns minutos.') : (d.erro || _t('Não deu para enviar o vídeo.'));
+                    carregarVideosFundo();
+                })
+                .catch(() => { status.textContent = _t('Não deu para enviar o vídeo.'); });
         }
 
         function salvarTema(theme) {
@@ -42,8 +126,8 @@ let currentTheme = CONFIG.theme;
 
         function selecionarTema(url, type) {
             currentTheme = {type: type, url: url};
-            document.getElementById('tema-preview-img').src = url;
-            document.getElementById('tema-preview').style.display = 'block';
+            if (valorEscurecer()) currentTheme.escurecer = valorEscurecer();
+            mostrarPreviaTema();
             salvarTema(currentTheme);
             fecharModalTema();
         }
@@ -622,7 +706,7 @@ $('#clear-lyrics').click(function() {
                     type: 'mixed',
                     text: sectionText,
                     sheets: sheets,
-                    theme: null,
+                    theme: currentTheme || null,  // o telão do público mantém o fundo; o palco ignora em partitura (display.js)
                     songId: songId,
                     sectionIndex: index
                 };
@@ -658,7 +742,7 @@ $('#clear-lyrics').click(function() {
                                 title: sheetTitle,
                                 type: 'sheet',
                                 sheetData: sheet,
-                                theme: null,
+                                theme: currentTheme || null,
                                 songId: songId,
                                 sectionIndex: index
                             }, index),

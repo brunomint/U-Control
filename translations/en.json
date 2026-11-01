@@ -1658,5 +1658,18 @@
   "Preg": "Preacher",
   "calendário clássico": "classic calendar",
   "Calendário clássico": "Classic calendar",
-  "como a planilha do WhatsApp, letra grande e colorida": "like the WhatsApp spreadsheet, big colorful letters"
+  "como a planilha do WhatsApp, letra grande e colorida": "like the WhatsApp spreadsheet, big colorful letters",
+  "Escurecer a imagem ou o vídeo": "Darken the image or video",
+  "Deixa a letra mais fácil de ler sobre fundos claros.": "Makes the lyrics easier to read over bright backgrounds.",
+  "Vídeo (fundo animado)": "Video (animated background)",
+  "Toca em loop atrás da letra, só no telão do público.": "Loops behind the lyrics, on the audience screen only.",
+  "Enviar vídeo de fundo": "Upload background video",
+  "Preparando…": "Preparing…",
+  "Nenhum vídeo de fundo ainda.": "No background videos yet.",
+  "Erro ao carregar os vídeos.": "Could not load the videos.",
+  "Enviando…": "Uploading…",
+  "Recebido. O vídeo fica pronto em alguns minutos.": "Received. The video will be ready in a few minutes.",
+  "Não deu para enviar o vídeo.": "Could not upload the video.",
+  "Envie um vídeo (MP4, MOV, WEBM, MKV ou AVI).": "Upload a video (MP4, MOV, WEBM, MKV or AVI).",
+  "Falta o ffmpeg neste computador para preparar o vídeo de fundo.": "ffmpeg is missing on this computer, needed to prepare the background video."
 }

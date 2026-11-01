@@ -19,6 +19,14 @@
         style="display:none; position:fixed; inset:0; width:100%; height:100%;
                object-fit:contain; background:#000; z-index:50;"
         autoplay playsinline></video>
+    <!-- Fundo do tema da letra (cor, degradê, imagem ou vídeo em loop): só com a letra no ar.
+         Separado da camada de mídia: o vídeo da galeria não briga com o vídeo de fundo -->
+    <div id="bg-layer">
+        <img id="bg-img" alt="">
+        <video id="bg-video" muted loop playsinline preload="auto"></video>
+        <div id="bg-escurecer"></div>
+    </div>
+
     <!-- Camada de mídia (imagem / vídeo) -->
     <div id="media-layer">
         <img id="media-img" src="" alt="">

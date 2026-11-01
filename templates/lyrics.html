@@ -134,6 +134,13 @@
             <button type="button" class="uc-btn uc-btn-danger" onclick="limparTema()"><i class="fas fa-ban"></i> {{ _('Sem tema (fundo preto)') }}</button>
             <div id="tema-preview" class="tema-preview" style="display:none;">
                 <img id="tema-preview-img" src="" alt="{{ _('Tema atual') }}">
+                <video id="tema-preview-video" muted loop playsinline style="display:none;"></video>
+            </div>
+
+            <div class="tema-section">
+                <label class="uc-label-caps" for="tema-escurecer">{{ _('Escurecer a imagem ou o vídeo') }} <span id="tema-escurecer-valor">0%</span></label>
+                <input type="range" id="tema-escurecer" min="0" max="80" step="5" value="0" class="tema-escurecer">
+                <div class="tema-dica">{{ _('Deixa a letra mais fácil de ler sobre fundos claros.') }}</div>
             </div>
 
             <div class="tema-section">
@@ -171,6 +178,17 @@
                     <button type="button" class="swatch wide" title="{{ title }}" aria-label="{{ title }}" style="background:{{ g }}" onclick="aplicarGradiente('{{ g }}')"></button>
                     {% endfor %}
                 </div>
+            </div>
+
+            <div class="tema-section">
+                <div class="uc-label-caps">{{ _('Vídeo (fundo animado)') }}</div>
+                <div class="tema-dica">{{ _('Toca em loop atrás da letra, só no telão do público.') }}</div>
+                <div class="tema-row">
+                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" onclick="document.getElementById('tema-video-arquivo').click()"><i class="fas fa-upload"></i> {{ _('Enviar vídeo de fundo') }}</button>
+                    <input type="file" id="tema-video-arquivo" accept="video/*" hidden onchange="enviarVideoFundo(this)">
+                    <span id="tema-video-status" class="tema-dica" role="status"></span>
+                </div>
+                <div id="tema-videos" class="tema-grid"></div>
             </div>
 
             <div class="tema-section">

@@ -109,6 +109,23 @@ Versões pequenas, de 2–3 itens cada.
       toca nela. Tela pública não tem acordes. Reaproveitar o `capo.js`
       (localStorage `ucCapo`, por aparelho).
 - [ ] **Quebra de slide com `||`** dentro da seção (ideia do OpenSong).
+- [ ] **Temas e fundos animados no telão do público** (plano de 2026-11-01,
+      a partir da documentação do Holyrics). Só o telão do público; o palco
+      (monitor e cifra) fica sem vídeo de fundo.
+  - [x] Etapa 1 (2026-11-01): camada de fundo própria em `display_public`
+        (`#bg-layer`, separada do vídeo da galeria); vídeo de fundo no seletor
+        do Tema, com envio convertido pelo ffmpeg (`blueprints/fundos.py`:
+        H.264 sem som, 30 fps, até 1080p, 720p no Pi, pasta "Fundos");
+        "Escurecer" (0–80%, `theme.escurecer`); o fundo volta ao recarregar o
+        telão; o mesmo vídeo não recomeça a cada slide; slides de partitura
+        mantêm o fundo; corrigido o `'resize '` que nunca disparava; `/imagens`
+        lista .webp.
+  - [ ] Etapa 2: biblioteca de temas (fundo + estilo da letra: fonte, cor,
+        contorno, sombra, caixa, margens), tema padrão e por culto, editor com
+        prévia.
+  - [ ] Etapa 3: transições (fade, deslizar, zoom) entre slides da letra.
+  - [ ] Etapa 4: fundo por slide, tema na Bíblia, avisos com tema, importar
+        temas do Holyrics.
 
 ---
 

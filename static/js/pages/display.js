@@ -549,8 +549,10 @@ const fitSheetsToScreen = () => {
     const onUpdateLyrics = (data) => {
         console.log('📨 Display recebeu update_lyrics:', data);
         renderFooter(data);
-        // Suprime tema no monitor interno se a seção tem linhas de acorde
-        const theme = (data.type === 'text' && data.text && temCifra(data.text)) ? null : data.theme;
+        // Palco: sem tema em seção com cifra ou partitura, e sem vídeo de fundo
+        // (animação é só do telão do público, display_public.js)
+        const semTema = data.type !== 'text' || (data.text && temCifra(data.text)) || (data.theme && data.theme.type === 'video');
+        const theme = semTema ? null : data.theme;
         const mediaImg   = document.getElementById('media-img');
         const mediaVideo = document.getElementById('media-video');
         if (theme && theme.type === 'image' && theme.url) {

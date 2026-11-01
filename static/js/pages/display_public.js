@@ -86,6 +86,7 @@
                 .then(data => {
                     if (data && data.mode === 'lyrics' && data.title) {
                         updateLyricsDisplay(data.title, data.text || '', data.id || null);
+                        aplicarTema(data.theme);  // antes o fundo sumia ao recarregar o telão
                     } else if (data && data.mode === 'image' && data.image_url) {
                         if (data.is_static) { showImage(data.image_url, data.zoom); }
                         // Rota da letra/cifra: mostra a letra aqui mesmo (abrir
@@ -143,6 +144,54 @@
         const lyricsLayer = document.getElementById('lyrics');
         const routeLayer  = document.getElementById('route-layer');
 
+        // ── Fundo do tema da letra ──────────────────────────────────
+        // Cor, degradê, imagem ou vídeo em loop (Song.theme, botão "Tema" em
+        // /lyrics/<id>). Só no telão do público: aberta dentro do monitor
+        // (host=monitor, palco) a letra fica no fundo preto, sem animação.
+        // O mesmo vídeo ou imagem não recomeça a cada slide da música.
+        const ehMonitor = new URLSearchParams(location.search).get('host') === 'monitor';
+        const bgLayer = document.getElementById('bg-layer');
+        const bgImg = document.getElementById('bg-img');
+        const bgVideo = document.getElementById('bg-video');
+        const bgEscurecer = document.getElementById('bg-escurecer');
+        let temaAtual = null;
+        let fundoVisivel = true;
+
+        function aplicarTema(theme) {
+            temaAtual = ehMonitor ? null : (theme || null);
+            const t = temaAtual || {};
+            const imagem = t.type === 'image' && t.url;
+            const video = t.type === 'video' && t.url;
+            bgLayer.style.background = (t.type === 'color' && t.color) || (t.type === 'gradient' && t.css) || '#000';
+            if (imagem) {
+                if (bgImg.getAttribute('src') !== t.url) bgImg.src = t.url;
+                bgImg.style.display = 'block';
+            } else {
+                bgImg.style.display = 'none';
+                bgImg.removeAttribute('src');
+            }
+            if (video) {
+                if (bgVideo.getAttribute('src') !== t.url) bgVideo.src = t.url;
+                bgVideo.style.display = 'block';
+                if (fundoVisivel) bgVideo.play().catch(() => {});
+            } else if (bgVideo.getAttribute('src')) {
+                bgVideo.pause();
+                bgVideo.removeAttribute('src');
+                bgVideo.load();
+                bgVideo.style.display = 'none';
+            }
+            const escurecer = Math.max(0, Math.min(80, Number(t.escurecer) || 0));
+            bgEscurecer.style.opacity = (imagem || video) ? escurecer / 100 : 0;
+        }
+
+        // Foto, vídeo da galeria, Bíblia ou outra rota no ar: o fundo some (e o vídeo pausa)
+        function mostrarFundo(sim) {
+            fundoVisivel = sim;
+            bgLayer.style.display = sim ? 'block' : 'none';
+            if (sim && bgVideo.getAttribute('src')) bgVideo.play().catch(() => {});
+            else bgVideo.pause();
+        }
+
         // Estado do botão "Esconder" (toggle-lyrics em /lyrics/<id>) — sem
         // isso, showLyricsView() (chamado por update_lyrics/update_bible
         // toda vez que chega letra/versículo novo) forçava a tela de volta
@@ -164,6 +213,7 @@
         socket.on('connect', sincronizarEscondido);
 
         function showImage(url, zoom) {
+            mostrarFundo(false);
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
             mediaVideo.load();
@@ -173,12 +223,12 @@
             lyricsLayer.style.display = 'none';
             mediaImg.src = url;
             mediaImg.style.transform = '';
-            mediaImg.classList.add('photo');
             mediaImg.style.display = 'block';
             if (window.ucZoomOnShow) window.ucZoomOnShow(mediaImg, zoom);
         }
 
         function showLyricsView() {
+            mostrarFundo(true);
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
             mediaVideo.load();
@@ -195,11 +245,10 @@
         // perguntou (soma o tempo de carregar)
         function showVideo(url, opts) {
             opts = opts || {};
+            mostrarFundo(false);
             routeLayer.src = 'about:blank';
             routeLayer.style.display = 'none';
             mediaImg.style.display = 'none';
-            mediaVideo.classList.add('photo');
-            mediaVideo.loop = false;   // o vídeo de fundo do tema deixa loop ligado
             mediaVideo.src = url;
             mediaVideo.style.display = 'block';
             lyricsLayer.style.display = 'none';
@@ -230,6 +279,7 @@
         }
 
         function showRoute(url) {
+            mostrarFundo(false);
             mediaVideo.pause();
             mediaVideo.removeAttribute('src');
             mediaVideo.load();
@@ -316,41 +366,7 @@
             const creditos = document.getElementById('song-credits');
             creditos.textContent = data.creditos || '';
             creditos.hidden = !data.creditos;
-            // Aplica tema visual da música
-            const theme = data.theme;
-            const mediaImg   = document.getElementById('media-img');
-            const mediaVideo = document.getElementById('media-video');
-            if (theme && theme.type === 'image' && theme.url) {
-                mediaVideo.pause();
-                mediaVideo.style.display = 'none';
-                mediaImg.src = theme.url;
-                mediaImg.classList.remove('photo');
-                mediaImg.style.display = 'block';
-                document.getElementById('media-layer').style.background = '';
-            } else if (theme && theme.type === 'video' && theme.url) {
-                mediaImg.style.display = 'none';
-                mediaVideo.classList.remove('photo');
-                mediaVideo.src = theme.url;
-                mediaVideo.style.display = 'block';
-                mediaVideo.loop = true;
-                mediaVideo.play().catch(() => {});
-                document.getElementById('media-layer').style.background = '';
-            } else if (theme && theme.type === 'color' && theme.color) {
-                mediaImg.style.display = 'none';
-                mediaVideo.pause();
-                mediaVideo.style.display = 'none';
-                document.getElementById('media-layer').style.background = theme.color;
-            } else if (theme && theme.type === 'gradient' && theme.css) {
-                mediaImg.style.display = 'none';
-                mediaVideo.pause();
-                mediaVideo.style.display = 'none';
-                document.getElementById('media-layer').style.background = theme.css;
-            } else if (theme === null || theme === undefined) {
-                mediaImg.style.display = 'none';
-                mediaVideo.pause();
-                mediaVideo.style.display = 'none';
-                document.getElementById('media-layer').style.background = '#000';
-            }
+            aplicarTema(data.theme);
         });
         
         // Escuta eventos de versículos da Bíblia
@@ -386,8 +402,8 @@
             if (visible) adjustFontSize();
         });
     
-        window.addEventListener('load', adjustFontSize); // Corrigido: Removido espaço
-        window.addEventListener('resize ', adjustFontSize);
+        window.addEventListener('load', adjustFontSize);
+        window.addEventListener('resize', adjustFontSize);  // antes 'resize ' (com espaço): nunca disparava
 
         $(document).ready(initializeApp);
 
