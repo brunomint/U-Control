@@ -84,7 +84,7 @@ def listar_fundos():
     if os.path.isdir(pasta):
         for f in sorted(os.listdir(pasta), key=str.lower):
             if f.lower().endswith(('.mp4', '.webm', '.mov', '.m4v')) and os.path.isfile(os.path.join(pasta, f)):
-                videos.append({'url': f'/static/imagens/{PASTA}/{f}', 'nome': os.path.splitext(f)[0]})
+                videos.append({'url': f'/static/imagens/{PASTA}/{f}', 'nome': os.path.splitext(f)[0], 'arquivo': f})
     with _lock:
         convertendo = sorted(_convertendo)
     return jsonify({'videos': videos, 'convertendo': convertendo, 'ffmpeg': bool(_ffmpeg())})
@@ -113,3 +113,14 @@ def enviar_fundo():
     arquivo.save(origem)
     threading.Thread(target=_converter, args=(origem, tmp_dir, nome), daemon=True).start()
     return jsonify({'ok': True, 'nome': nome}), 202
+
+
+@fundos_bp.route('/api/fundos/<nome>', methods=['DELETE'])
+@login_required
+def apagar_fundo(nome):
+    arquivo = secure_filename(nome)
+    caminho = os.path.join(_pasta(), arquivo)
+    if not arquivo or not arquivo.lower().endswith(('.mp4', '.webm', '.mov', '.m4v')) or not os.path.isfile(caminho):
+        return jsonify({'ok': False, 'erro': tr('Vídeo não encontrado.')}), 404
+    os.remove(caminho)
+    return jsonify({'ok': True})

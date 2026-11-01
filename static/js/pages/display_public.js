@@ -49,6 +49,11 @@
     requestAnimationFrame(() => {
         const container = document.getElementById('lyrics');
         const content = document.getElementById('section-text');
+        // Com tema (estilo da letra): começa no tamanho máximo dele e desconta a margem (static/js/tema_render.js)
+        if (estiloAtual) {
+            UcTema.ajustar(container, content, estiloAtual.tamanho_max, 'vw', 0.1);
+            return;
+        }
         let fontSize = 15;
         content.style.fontSize = `${fontSize}vw`;
         const containerHeight = container.clientHeight;
@@ -85,8 +90,8 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data && data.mode === 'lyrics' && data.title) {
+                        aplicarTemaCompleto(data);  // antes o fundo sumia ao recarregar o telão
                         updateLyricsDisplay(data.title, data.text || '', data.id || null);
-                        aplicarTema(data.theme);  // antes o fundo sumia ao recarregar o telão
                     } else if (data && data.mode === 'image' && data.image_url) {
                         if (data.is_static) { showImage(data.image_url, data.zoom); }
                         // Rota da letra/cifra: mostra a letra aqui mesmo (abrir
@@ -156,6 +161,26 @@
         const bgEscurecer = document.getElementById('bg-escurecer');
         let temaAtual = null;
         let fundoVisivel = true;
+        let estiloAtual = null;
+
+        // Tema resolvido no servidor (música, culto ou padrão; temas_store.resolver):
+        // fundo + estilo da letra. Payload antigo, sem "tema": só o fundo da música.
+        function aplicarTemaCompleto(data) {
+            if (ehMonitor) return;
+            if (data && data.tema) {
+                aplicarTema(data.tema.fundo);
+                estiloAtual = data.tema.texto || null;
+                if (estiloAtual) UcTema.aplicarTexto(lyricsLayer, document.getElementById('section-text'), estiloAtual);
+            } else {
+                aplicarTema(data && data.theme);
+            }
+        }
+        // Tema editado (ou padrão trocado) com a letra no ar: muda na hora
+        socket.on('tema_telao', (tema) => {
+            if (ehMonitor || !tema) return;
+            aplicarTemaCompleto({ tema });
+            adjustFontSize();
+        });
 
         function aplicarTema(theme) {
             temaAtual = ehMonitor ? null : (theme || null);
@@ -362,11 +387,11 @@
 
         socket.on('update_lyrics', (data) => {
             showLyricsView();
+            aplicarTemaCompleto(data);  // antes do texto: o tamanho da letra depende do estilo
             updateLyricsDisplay(data.title, data.text, data.id);
             const creditos = document.getElementById('song-credits');
             creditos.textContent = data.creditos || '';
             creditos.hidden = !data.creditos;
-            aplicarTema(data.theme);
         });
         
         // Escuta eventos de versículos da Bíblia

@@ -65,7 +65,9 @@ def lyrics(song_id):
     lyrics_state = LyricsState.query.first()
     lyrics_visible = lyrics_state.visible if lyrics_state else True
 
-    return render_template('lyrics.html', song=song, order_date=order_date, lyrics_visible=lyrics_visible)
+    import temas_store
+    return render_template('lyrics.html', song=song, order_date=order_date, lyrics_visible=lyrics_visible,
+                           gradientes=temas_store.GRADIENTES, temas=temas_store.listar())
 
 @lyrics_bp.route('/api/lyrics/visible')
 def api_lyrics_visible():
@@ -91,6 +93,12 @@ def set_song_theme(song_id):
     data = request.get_json()
     if not set_theme(song_id, data.get('theme')):  # None limpa o tema
         return jsonify({'error': 'not found'}), 404
+    # Esta música no telão agora: o tema novo aparece na hora, sem esperar o próximo slide
+    payload = display_state._last_lyrics_payload
+    if payload and str(payload.get('songId')) == str(song_id):
+        payload['theme'] = data.get('theme')
+        from blueprints.temas import atualizar_telao
+        atualizar_telao()
     return jsonify({'ok': True})
 
 @lyrics_bp.route('/lyrics_data/<int:song_id>')
@@ -173,6 +181,12 @@ def handle_update_lyrics(data):
     # em "Só monitor" ia como troca de seção pra uma cifra que não existia
     if data.get('exclude_monitor'):
         telao.diverge_monitor_from_public()
+    # Tema do telão do público já resolvido (música, culto ou padrão): temas_store.resolver
+    from blueprints.temas import tema_do_payload
+    try:
+        data['tema'] = tema_do_payload(data)
+    except Exception:
+        logger.exception('Falha ao resolver o tema do telão')
     display_state._last_lyrics_payload = data
     display_state._current_display_mode = 'lyrics'
     # Persiste o payload exato (não só em memória) — display_state

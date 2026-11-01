@@ -85,6 +85,15 @@ class Setting(db.Model):
     language = db.Column(db.String(5), nullable=True)
     # Nome da igreja no calendário da Agenda (vazio = só "Calendário")
     church_name = db.Column(db.String(120), nullable=True)
+    # Tema do telão usado quando a música e o culto não escolhem um (Tema.id)
+    tema_padrao_id = db.Column(db.Integer, nullable=True)
+
+
+# Tema do telão do público: fundo + estilo da letra (temas_store.py)
+class Tema(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(80), nullable=False)
+    dados = db.Column(db.JSON, nullable=False)
 
 
 # Rótulo salvo da última contagem regressiva — substitui countdown_config.json.

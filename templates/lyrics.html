@@ -131,7 +131,20 @@
             <button type="button" class="uc-modal-close" onclick="fecharModalTema()" aria-label="{{ _('Fechar') }}">&times;</button>
         </div>
         <div class="uc-modal-body">
-            <button type="button" class="uc-btn uc-btn-danger" onclick="limparTema()"><i class="fas fa-ban"></i> {{ _('Sem tema (fundo preto)') }}</button>
+            <button type="button" class="uc-btn uc-btn-secondary" onclick="limparTema()"><i class="fas fa-rotate-left"></i> {{ _('Usar o tema do culto ou o padrão') }}</button>
+
+            <div class="tema-section">
+                <div class="uc-label-caps">{{ _('Temas salvos') }}</div>
+                <div class="tema-dica">{{ _('Fundo e estilo da letra juntos.') }} <a href="/temas" target="_blank" rel="noopener">{{ _('Criar e editar temas') }}</a></div>
+                <div class="tema-row" id="tema-salvos">
+                    {% for t in temas %}
+                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm tema-salvo" data-tema-id="{{ t.id }}" onclick="selecionarTemaSalvo({{ t.id }})">{{ t.nome }}</button>
+                    {% else %}
+                    <span class="tema-dica">{{ _('Nenhum tema salvo ainda.') }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="tema-dica">{{ _('Ou troque só o fundo desta música (a letra fica com o estilo do tema do culto ou do padrão):') }}</div>
             <div id="tema-preview" class="tema-preview" style="display:none;">
                 <img id="tema-preview-img" src="" alt="{{ _('Tema atual') }}">
                 <video id="tema-preview-video" muted loop playsinline style="display:none;"></video>
@@ -157,24 +170,7 @@
             <div class="tema-section">
                 <div class="uc-label-caps">{{ _('Gradiente') }}</div>
                 <div class="tema-row">
-                    {% for title, g in [
-                        (_('Noite estrelada'),'linear-gradient(160deg,#0f0c29,#302b63,#24243e)'),
-                        (_('Oceano profundo'),'linear-gradient(160deg,#0f2027,#203a43,#2c5364)'),
-                        (_('Aurora'),'linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)'),
-                        (_('Crepúsculo roxo'),'linear-gradient(160deg,#1e1b4b,#312e81,#4338ca)'),
-                        (_('Vinho e âmbar'),'linear-gradient(160deg,#4c0519,#7f1d1d,#92400e)'),
-                        (_('Floresta'),'linear-gradient(160deg,#052e16,#14532d,#166534)'),
-                        (_('Bruma dourada'),'linear-gradient(160deg,#1c1917,#44403c,#78350f)'),
-                        (_('Éter'),'linear-gradient(160deg,#0c4a6e,#075985,#0369a1)'),
-                        (_('Café escuro'),'linear-gradient(160deg,#0d0500,#3b1a08,#6b3a1f)'),
-                        (_('Mogno'),'linear-gradient(160deg,#1a0800,#5c2206,#8b4513)'),
-                        (_('Âmbar profundo'),'linear-gradient(160deg,#1a0900,#4a1c00,#92400e)'),
-                        (_('Terra queimada'),'linear-gradient(160deg,#0d0500,#431407,#7c2d12)'),
-                        (_('Canela'),'linear-gradient(160deg,#1c0800,#6b3a1f,#a16207)'),
-                        (_('Ouro velho'),'linear-gradient(160deg,#1c1004,#4a3000,#854d0e)'),
-                        (_('Cobre e noite'),'linear-gradient(160deg,#0d0500,#292524,#7c3a00)'),
-                        (_('Chocolate'),'linear-gradient(160deg,#030000,#1c0a00,#5c2a0a)')
-                    ] %}
+                    {% for nome, g in gradientes %}{% set title = _(nome) %}
                     <button type="button" class="swatch wide" title="{{ title }}" aria-label="{{ title }}" style="background:{{ g }}" onclick="aplicarGradiente('{{ g }}')"></button>
                     {% endfor %}
                 </div>

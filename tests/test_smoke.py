@@ -749,7 +749,9 @@ def test_update_lyrics_broadcasts_and_updates_display_state(app):
     events = [msg["name"] for msg in received]
     assert "update_lyrics" in events
     assert display_state._current_display_mode == "lyrics"
-    assert display_state._last_lyrics_payload == {"title": "Seção 1", "text": "Letra de teste"}
+    payload = dict(display_state._last_lyrics_payload)
+    assert set(payload.pop("tema")) == {"fundo", "texto", "nome"}   # tema do telão resolvido (temas_store.resolver)
+    assert payload == {"title": "Seção 1", "text": "Letra de teste"}
     socket_client.disconnect()
 
 
@@ -4206,7 +4208,7 @@ def test_video_de_fundo_e_convertido_sem_som_e_no_maximo_full_hd(logged_in_clien
         if not lista["convertendo"]:
             break
         time.sleep(0.5)
-    assert lista["videos"] == [{"url": f"/static/imagens/Fundos/{nome}.mp4", "nome": nome}]
+    assert lista["videos"] == [{"url": f"/static/imagens/Fundos/{nome}.mp4", "nome": nome, "arquivo": f"{nome}.mp4"}]
     streams = _info_video(tmp_path / "static" / "imagens" / "Fundos" / f"{nome}.mp4")
     assert [s["codec_type"] for s in streams] == ["video"]          # sem som
     assert streams[0]["codec_name"] == "h264"
@@ -4244,3 +4246,117 @@ def test_telao_publico_tem_camada_de_fundo_separada_da_galeria(app, client, logg
     finally:
         with app.app_context():
             songs_store.save_songs(existentes)
+
+
+# ── Temas do telão (temas_store.py, blueprints/temas.py) ──────────────────
+
+def _limpar_temas(app):
+    import temas_store
+    from models import Tema
+    with app.app_context():
+        for t in Tema.query.all():
+            temas_store.apagar(t.id)
+        temas_store.definir_padrao(None)
+
+
+def test_tema_normaliza_valores_estranhos():
+    import temas_store
+    dados = temas_store.normalizar({
+        "fundo": {"type": "gradient", "css": "linear-gradient(red, blue); background: url(x)"},
+        "texto": {"fonte": "comic", "cor": "vermelho", "tamanho_max": 99, "alinhamento": "torto", "negrito": 0, "margem": "7"},
+    })
+    assert dados["fundo"] == temas_store.FUNDO_PADRAO              # degradê com CSS injetado não passa
+    t = dados["texto"]
+    assert t["fonte"] == "arial" and t["cor"] == "#ffffff" and t["alinhamento"] == "centro"
+    assert t["tamanho_max"] == 20 and t["negrito"] is False and t["margem"] == 7
+    assert temas_store.normalizar_fundo({"type": "video", "url": "javascript:alert(1)"}) is None
+    assert temas_store.normalizar_fundo({"type": "image", "url": "/static/imagens/a.jpg", "escurecer": 200}) == \
+        {"type": "image", "url": "/static/imagens/a.jpg", "escurecer": 80}
+
+
+def test_tema_prioridade_musica_culto_padrao(app):
+    import orders_store
+    import temas_store
+    _limpar_temas(app)
+    with app.app_context():
+        padrao = temas_store.salvar("Padrão azul", {"fundo": {"type": "color", "color": "#000033"}, "texto": {"cor": "#ffff00"}})
+        culto = temas_store.salvar("Culto", {"fundo": {"type": "color", "color": "#330000"}, "texto": {"fonte": "georgia"}})
+        musica = temas_store.salvar("Música", {"fundo": {"type": "color", "color": "#003300"}, "texto": {"maiusculas": True}})
+        assert temas_store.resolver(None)["fundo"] == temas_store.FUNDO_PADRAO   # sem nada: o visual de sempre
+        temas_store.definir_padrao(padrao["id"])
+        assert temas_store.resolver(None)["texto"]["cor"] == "#ffff00"
+        orders_store.save_order("2031-05-04", {"tipo": "Culto", "tema_telao": culto["id"]})
+        assert temas_store.resolver(None, "2031-05-04")["texto"]["fonte"] == "georgia"
+        assert temas_store.resolver({"tema_id": musica["id"]}, "2031-05-04")["texto"]["maiusculas"] is True
+        # Fundo solto na música (formato antigo): troca só o fundo, a letra fica com o tema do culto
+        solto = temas_store.resolver({"type": "color", "color": "#123456"}, "2031-05-04")
+        assert solto["fundo"] == {"type": "color", "color": "#123456"} and solto["texto"]["fonte"] == "georgia"
+        # Apagar o tema do culto: o culto volta pro padrão
+        temas_store.apagar(culto["id"])
+        assert temas_store.resolver(None, "2031-05-04")["texto"]["cor"] == "#ffff00"
+        assert "tema_telao" not in orders_store.get_order("2031-05-04")
+        orders_store.save_order("2031-05-04", {})
+    _limpar_temas(app)
+
+
+def test_salvar_ordem_sem_o_campo_nao_apaga_o_tema_do_culto(app):
+    import orders_store
+    import temas_store
+    _limpar_temas(app)
+    with app.app_context():
+        tema = temas_store.salvar("Culto", {})
+        orders_store.save_order("2031-06-01", {"tipo": "Culto", "tema_telao": tema["id"]})
+        orders_store.save_order("2031-06-01", {"tipo": "Culto", "dirigente": "Ana"})   # tela que não conhece o campo
+        assert orders_store.get_order("2031-06-01")["tema_telao"] == tema["id"]
+        orders_store.save_order("2031-06-01", {"tipo": "Culto", "tema_telao": None})   # o seletor em "Tema padrão"
+        assert "tema_telao" not in orders_store.get_order("2031-06-01")
+        orders_store.save_order("2031-06-01", {})
+    _limpar_temas(app)
+
+
+def test_api_de_temas_e_tema_no_telao(app, logged_in_client):
+    import display_state
+    _limpar_temas(app)
+    r = logged_in_client.post("/api/temas", json={"nome": "Noite", "fundo": {"type": "color", "color": "#101010"},
+                                                  "texto": {"cor": "#00ff00", "posicao": "base"}})
+    assert r.status_code == 201
+    tema = r.get_json()["tema"]
+    assert logged_in_client.post("/api/temas", json={"nome": "  "}).status_code == 400
+    assert logged_in_client.post("/api/temas/padrao", json={"id": tema["id"]}).get_json()["padrao"] == tema["id"]
+    lista = logged_in_client.get("/api/temas").get_json()
+    assert lista["padrao"] == tema["id"] and [t["nome"] for t in lista["temas"]] == ["Noite"]
+
+    # A letra vai pro telão já com o tema resolvido; editar o tema avisa o telão na hora
+    operador = _operator_socket(app)
+    tela = ucontrol_main.socketio.test_client(app)
+    operador.emit("update_lyrics", {"title": "Verso", "text": "la la", "type": "text", "songId": 1, "theme": None})
+    assert display_state._last_lyrics_payload["tema"]["texto"]["posicao"] == "base"
+    tela.get_received()
+    r = logged_in_client.put(f"/api/temas/{tema['id']}", json={"nome": "Noite", "fundo": {"type": "color", "color": "#101010"},
+                                                              "texto": {"cor": "#ff0000"}})
+    assert r.status_code == 200
+    avisos = [m["args"][0] for m in tela.get_received() if m["name"] == "tema_telao"]
+    assert avisos and avisos[-1]["texto"]["cor"] == "#ff0000"
+    assert logged_in_client.get("/temas").status_code == 200
+    operador.disconnect()
+    tela.disconnect()
+    assert logged_in_client.delete(f"/api/temas/{tema['id']}").get_json()["ok"]
+    assert logged_in_client.get("/api/temas").get_json()["padrao"] is None
+    _limpar_temas(app)
+
+
+def test_fontes_do_tema_iguais_no_python_e_no_js():
+    import re
+    import temas_store
+    js = open("static/js/tema_render.js", encoding="utf-8").read()
+    for chave, css in temas_store.FONTES.items():
+        assert re.search(rf'{chave}: "{re.escape(css)}"', js), chave
+
+
+def test_apagar_video_de_fundo(logged_in_client, tmp_path, monkeypatch):
+    (tmp_path / "static" / "imagens" / "Fundos").mkdir(parents=True)
+    (tmp_path / "static" / "imagens" / "Fundos" / "ceu.mp4").write_bytes(b"x")
+    monkeypatch.chdir(tmp_path)
+    assert logged_in_client.delete("/api/fundos/..%2F..%2Fmain.py").status_code == 404
+    assert logged_in_client.delete("/api/fundos/ceu.mp4").get_json()["ok"]
+    assert not (tmp_path / "static" / "imagens" / "Fundos" / "ceu.mp4").exists()

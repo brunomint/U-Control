@@ -245,6 +245,7 @@ async function saveOrder() {
         dirigente: document.getElementById("orderDirigente").value,
         pregador: document.getElementById("orderPregador").value,
         tema: document.getElementById("orderTema").value,
+        tema_telao: document.getElementById("orderTemaTelao").value || null,
         itens: itens
     };
 

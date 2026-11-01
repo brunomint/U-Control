@@ -59,6 +59,15 @@
                     <label for="orderTema">{{ _('Tema') }}</label>
                     <input class="uc-input" type="text" id="orderTema" placeholder="{{ _('Opcional') }}" value="{{ order.tema if order else '' }}">
                 </div>
+                <div class="uc-field">
+                    <label for="orderTemaTelao">{{ _('Tema do telão') }}</label>
+                    <select class="uc-input" id="orderTemaTelao">
+                        <option value="">{{ _('Tema padrão') }}</option>
+                        {% for t in temas_do_telao() %}
+                        <option value="{{ t.id }}" {% if order and order.tema_telao == t.id %}selected{% endif %}>{{ t.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
             {% if not is_new %}
             <div class="danger-zone">

@@ -92,6 +92,8 @@ def _order_to_dict(order):
         d['horario_culto'] = order.horario_culto
     if order.tema is not None:
         d['tema'] = order.tema
+    if order.tema_telao is not None:
+        d['tema_telao'] = order.tema_telao
     if order.louvor is not None:
         d['louvor'] = order.louvor
     if order.midia is not None:
@@ -149,7 +151,7 @@ def get_next_order(from_date, now=None):
 
 KEY_RE = re.compile(r'^\d{4}-\d{2}-\d{2}(?:-\d{1,2})?$')
 CULTO_FIELDS = ('tipo', 'dirigente', 'pregador', 'horario', 'horario_culto',
-                'tema', 'louvor', 'midia', 'itens')
+                'tema', 'tema_telao', 'louvor', 'midia', 'itens')
 
 
 def key_date(key):
@@ -259,6 +261,12 @@ def _apply_order_fields(order, data, is_new):
     order.horario = data.get('horario')
     order.horario_culto = data.get('horario_culto')
     order.tema = data.get('tema')
+    # Só muda quando vem no pedido: telas que salvam a ordem sem esse campo não apagam o tema escolhido
+    if 'tema_telao' in data:
+        try:
+            order.tema_telao = int(data['tema_telao']) if data['tema_telao'] else None
+        except (TypeError, ValueError):
+            order.tema_telao = None
     order.louvor = data.get('louvor')
     order.midia = data.get('midia')
 

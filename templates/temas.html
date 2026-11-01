@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}{{ _('Temas e fundos do telão') }} - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/temas.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>{{ _('Temas e fundos do telão') }}</h1>
+            <div class="uc-page-sub">{{ _('Como a letra aparece no telão do público: fundo, fonte, cor, contorno e posição. O palco não muda.') }}</div>
+        </div>
+        <button type="button" class="uc-btn uc-btn-primary" id="tm-novo"><i class="fas fa-plus"></i> {{ _('Novo tema') }}</button>
+    </div>
+
+    <div class="tm-grid">
+        <section class="uc-card tm-lista-card">
+            <h2>{{ _('Temas') }}</h2>
+            <p class="tm-dica">{{ _('O tema padrão vale para toda música que não escolheu outro. No culto e na música dá para escolher um tema diferente.') }}</p>
+            <div id="tm-lista" class="tm-lista"></div>
+        </section>
+
+        <section class="uc-card tm-editor" id="tm-editor" hidden>
+            <div class="tm-editor-topo">
+                <input class="uc-input tm-nome" id="tm-nome" maxlength="80" placeholder="{{ _('Nome do tema') }}" aria-label="{{ _('Nome do tema') }}">
+                <span class="uc-pill uc-pill-ok" id="tm-selo-padrao" hidden>{{ _('Padrão') }}</span>
+            </div>
+
+            <div class="tm-previa" id="tm-previa" aria-label="{{ _('Prévia do telão') }}">
+                <div class="tm-previa-fundo" id="tm-previa-fundo"></div>
+                <img class="tm-previa-midia" id="tm-previa-img" alt="" hidden>
+                <video class="tm-previa-midia" id="tm-previa-video" muted loop playsinline hidden></video>
+                <div class="tm-previa-escurecer" id="tm-previa-escurecer"></div>
+                <div class="tm-previa-letra" id="tm-previa-letra"><div id="tm-previa-texto"></div></div>
+            </div>
+            <label class="tm-exemplo-rotulo" for="tm-exemplo">{{ _('Texto de exemplo') }}</label>
+            <textarea class="uc-input tm-exemplo" id="tm-exemplo" rows="2">Grande é o Senhor e mui digno de louvor
+Na cidade do nosso Deus</textarea>
+
+            <div class="tm-blocos">
+                <fieldset class="tm-bloco">
+                    <legend>{{ _('Fundo') }}</legend>
+                    <div class="tm-abas" role="tablist">
+                        <button type="button" data-fundo="color" role="tab">{{ _('Cor') }}</button>
+                        <button type="button" data-fundo="gradient" role="tab">{{ _('Degradê') }}</button>
+                        <button type="button" data-fundo="image" role="tab">{{ _('Imagem') }}</button>
+                        <button type="button" data-fundo="video" role="tab">{{ _('Vídeo') }}</button>
+                    </div>
+                    <div class="tm-fundo-painel" data-painel="color">
+                        <input type="color" id="tm-fundo-cor" value="#000000" aria-label="{{ _('Cor do fundo') }}">
+                    </div>
+                    <div class="tm-fundo-painel tm-swatches" data-painel="gradient">
+                        {% for nome, g in gradientes %}
+                        <button type="button" class="tm-swatch" title="{{ _(nome) }}" aria-label="{{ _(nome) }}" style="background:{{ g }}" data-css="{{ g }}"></button>
+                        {% endfor %}
+                    </div>
+                    <div class="tm-fundo-painel" data-painel="image">
+                        <div id="tm-pastas" class="tm-pastas"></div>
+                        <div id="tm-imagens" class="tm-midias"></div>
+                    </div>
+                    <div class="tm-fundo-painel" data-painel="video">
+                        <div id="tm-videos-escolha" class="tm-midias"></div>
+                        <p class="tm-dica">{{ _('Envie vídeos em "Vídeos de fundo", mais abaixo.') }}</p>
+                    </div>
+                    <label class="tm-controle" id="tm-escurecer-linha">{{ _('Escurecer a imagem ou o vídeo') }} <output id="tm-escurecer-valor">0%</output>
+                        <input type="range" id="tm-escurecer" min="0" max="80" step="5" value="0">
+                    </label>
+                </fieldset>
+
+                <fieldset class="tm-bloco">
+                    <legend>{{ _('Letra') }}</legend>
+                    <label class="tm-controle">{{ _('Fonte') }}
+                        <select class="uc-input" id="tm-fonte">
+                            {% for chave in fontes %}<option value="{{ chave }}" style="font-family:{{ fontes_css[chave] }}">{{ chave|capitalize }}</option>{% endfor %}
+                        </select>
+                    </label>
+                    <div class="tm-linha">
+                        <label class="tm-check"><input type="checkbox" id="tm-negrito"> {{ _('Negrito') }}</label>
+                        <label class="tm-check"><input type="checkbox" id="tm-italico"> {{ _('Itálico') }}</label>
+                        <label class="tm-check"><input type="checkbox" id="tm-maiusculas"> {{ _('Maiúsculas') }}</label>
+                    </div>
+                    <label class="tm-controle tm-cor">{{ _('Cor da letra') }} <input type="color" id="tm-cor"></label>
+                    <label class="tm-controle">{{ _('Tamanho máximo') }} <output id="tm-tamanho-valor"></output>
+                        <input type="range" id="tm-tamanho" min="4" max="20" step="0.5">
+                    </label>
+                    <label class="tm-controle">{{ _('Espaço entre as linhas') }} <output id="tm-entrelinhas-valor"></output>
+                        <input type="range" id="tm-entrelinhas" min="0.9" max="2" step="0.05">
+                    </label>
+                </fieldset>
+
+                <fieldset class="tm-bloco">
+                    <legend>{{ _('Posição') }}</legend>
+                    <div class="tm-controle">{{ _('Alinhamento') }}
+                        <div class="tm-segmentos" id="tm-alinhamento">
+                            <button type="button" data-valor="esquerda" aria-label="{{ _('Esquerda') }}"><i class="fas fa-align-left"></i></button>
+                            <button type="button" data-valor="centro" aria-label="{{ _('Centro') }}"><i class="fas fa-align-center"></i></button>
+                            <button type="button" data-valor="direita" aria-label="{{ _('Direita') }}"><i class="fas fa-align-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="tm-controle">{{ _('Na tela') }}
+                        <div class="tm-segmentos" id="tm-posicao">
+                            <button type="button" data-valor="topo">{{ _('Em cima') }}</button>
+                            <button type="button" data-valor="meio">{{ _('No meio') }}</button>
+                            <button type="button" data-valor="base">{{ _('Embaixo') }}</button>
+                        </div>
+                    </div>
+                    <label class="tm-controle">{{ _('Margem') }} <output id="tm-margem-valor"></output>
+                        <input type="range" id="tm-margem" min="0" max="25" step="1">
+                    </label>
+                </fieldset>
+
+                <fieldset class="tm-bloco">
+                    <legend>{{ _('Contorno e sombra') }}</legend>
+                    <label class="tm-controle">{{ _('Contorno') }} <output id="tm-contorno-valor"></output>
+                        <input type="range" id="tm-contorno" min="0" max="10" step="1">
+                    </label>
+                    <label class="tm-controle tm-cor">{{ _('Cor do contorno') }} <input type="color" id="tm-contorno-cor"></label>
+                    <div class="tm-linha">
+                        <label class="tm-check"><input type="checkbox" id="tm-sombra"> {{ _('Sombra') }}</label>
+                        <input type="color" id="tm-sombra-cor" aria-label="{{ _('Cor da sombra') }}">
+                    </div>
+                </fieldset>
+
+                <fieldset class="tm-bloco">
+                    <legend>{{ _('Faixa atrás da letra') }}</legend>
+                    <label class="tm-check"><input type="checkbox" id="tm-caixa"> {{ _('Mostrar a faixa') }}</label>
+                    <label class="tm-controle tm-cor">{{ _('Cor da faixa') }} <input type="color" id="tm-caixa-cor"></label>
+                    <label class="tm-controle">{{ _('Intensidade da faixa') }} <output id="tm-caixa-opacidade-valor"></output>
+                        <input type="range" id="tm-caixa-opacidade" min="0" max="100" step="5">
+                    </label>
+                    <label class="tm-controle">{{ _('Cantos arredondados') }} <output id="tm-caixa-arredondada-valor"></output>
+                        <input type="range" id="tm-caixa-arredondada" min="0" max="10" step="1">
+                    </label>
+                </fieldset>
+            </div>
+
+            <div class="tm-acoes">
+                <button type="button" class="uc-btn uc-btn-primary" id="tm-salvar"><i class="fas fa-floppy-disk"></i> {{ _('Salvar') }}</button>
+                <button type="button" class="uc-btn uc-btn-secondary" id="tm-padrao"><i class="fas fa-star"></i> {{ _('Usar como padrão') }}</button>
+                <button type="button" class="uc-btn uc-btn-ghost" id="tm-duplicar"><i class="fas fa-copy"></i> {{ _('Duplicar') }}</button>
+                <button type="button" class="uc-btn uc-btn-danger" id="tm-apagar"><i class="fas fa-trash"></i> {{ _('Apagar') }}</button>
+                <span class="tm-status" id="tm-status" role="status"></span>
+            </div>
+        </section>
+
+        <section class="uc-card tm-vazio" id="tm-vazio">
+            <i class="fas fa-palette"></i>
+            <p>{{ _('Escolha um tema na lista ou crie um novo.') }}</p>
+        </section>
+    </div>
+
+    <section class="uc-card tm-videos-card">
+        <div class="tm-videos-topo">
+            <div>
+                <h2>{{ _('Vídeos de fundo') }}</h2>
+                <p class="tm-dica">{{ _('Tocam em loop atrás da letra, só no telão do público. O U-Control deixa o vídeo leve (sem som, até 1080p; 720p no Raspberry Pi).') }}</p>
+            </div>
+            <button type="button" class="uc-btn uc-btn-secondary" id="tm-enviar-video"><i class="fas fa-upload"></i> {{ _('Enviar vídeo de fundo') }}</button>
+            <input type="file" id="tm-video-arquivo" accept="video/*" hidden>
+        </div>
+        <span class="tm-status" id="tm-video-status" role="status"></span>
+        <div id="tm-videos" class="tm-videos"></div>
+    </section>
+</main>
+<script id="tm-config" type="application/json">{{ {"textoPadrao": texto_padrao} | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/tema_render.js') }}"></script>
+<script src="{{ versioned_static('js/pages/temas.js') }}"></script>
+{% endblock %}

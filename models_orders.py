@@ -26,6 +26,8 @@ class Order(db.Model):
     horario = db.Column(db.String(50), nullable=True)
     horario_culto = db.Column(db.String(50), nullable=True)
     tema = db.Column(db.String(500), nullable=True)
+    # Tema do telão para as músicas deste culto (Tema.id; None = o padrão)
+    tema_telao = db.Column(db.Integer, nullable=True)
     louvor = db.Column(db.JSON, nullable=True)
     midia = db.Column(db.JSON, nullable=True)
     # Itens da ordem já feitos no culto (view/order): lista de ids de item

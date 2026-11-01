@@ -120,9 +120,18 @@ Versões pequenas, de 2–3 itens cada.
         telão; o mesmo vídeo não recomeça a cada slide; slides de partitura
         mantêm o fundo; corrigido o `'resize '` que nunca disparava; `/imagens`
         lista .webp.
-  - [ ] Etapa 2: biblioteca de temas (fundo + estilo da letra: fonte, cor,
-        contorno, sombra, caixa, margens), tema padrão e por culto, editor com
-        prévia.
+  - [x] Etapa 2 (2026-11-01): página "Temas e fundos" (/temas, menu Criar):
+        biblioteca de temas (tabela `tema`, `temas_store.py`) com fundo +
+        estilo da letra (fonte, negrito, itálico, maiúsculas, cor, tamanho
+        máximo, entrelinhas, alinhamento, posição, margem, contorno, sombra,
+        faixa atrás da letra); editor com prévia 16:9 usando o mesmo código do
+        telão (`static/js/tema_render.js`); tema padrão (`Setting.tema_padrao_id`)
+        e por culto (`Order.tema_telao`, seletor em order_edit); na música,
+        "Temas salvos" no botão Tema (`{"tema_id": N}`; fundo solto antigo
+        troca só o fundo). O servidor resolve o tema no update_lyrics
+        (payload["tema"]); salvar tema, trocar padrão ou o tema da música no ar
+        atualiza o telão na hora (evento `tema_telao`). Vídeos de fundo: lista,
+        enviar e apagar na mesma página.
   - [ ] Etapa 3: transições (fade, deslizar, zoom) entre slides da letra.
   - [ ] Etapa 4: fundo por slide, tema na Bíblia, avisos com tema, importar
         temas do Holyrics.

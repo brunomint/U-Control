@@ -38,6 +38,7 @@ let currentTheme = CONFIG.theme;
             document.getElementById('tema-escurecer').value = esc;
             document.getElementById('tema-escurecer-valor').textContent = esc + '%';
             mostrarPreviaTema();
+            marcarTemaSalvo();
             carregarPastasTema();
             carregarVideosFundo();
         }
@@ -122,6 +123,17 @@ let currentTheme = CONFIG.theme;
                 body: JSON.stringify({theme: theme})
             }).then(() => { atualizarBotaoTema(); })
               .catch(err => console.error('Erro ao salvar tema:', err));
+        }
+
+        // Tema salvo (página /temas): fundo + estilo da letra
+        function selecionarTemaSalvo(id) {
+            currentTheme = { tema_id: id };
+            salvarTema(currentTheme);
+            fecharModalTema();
+        }
+        function marcarTemaSalvo() {
+            document.querySelectorAll('.tema-salvo').forEach(b => b.classList.toggle('uc-btn-primary',
+                !!(currentTheme && currentTheme.tema_id === Number(b.dataset.temaId))));
         }
 
         function selecionarTema(url, type) {
@@ -669,6 +681,7 @@ $('#clear-lyrics').click(function() {
                 nextTitle: nextSec ? nextSec.title : null,
                 nextText: nextClean,
                 ficha: FICHA,
+                orderDate: CONFIG.orderDate || null,  // tema do culto (temas_store.resolver)
                 creditos: CREDITOS && (passo <= 0 || passo === passos.length - 1) ? CREDITOS : null,
             };
         }
