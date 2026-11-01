@@ -87,5 +87,47 @@ window.UcTema = (function () {
         return '#000';
     }
 
-    return { FONTES, aplicarTexto, ajustar, fundoCss };
+    // Transição entre slides (tema.transicao): a letra sai, troca e entra.
+    // Metade da duração pra cada lado; o texto novo entra já no tamanho certo.
+    const EFEITOS = {
+        fade: { sai: [{ opacity: 1 }, { opacity: 0 }], entra: [{ opacity: 0 }, { opacity: 1 }] },
+        deslizar: {
+            sai: [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-8%)' }],
+            entra: [{ opacity: 0, transform: 'translateX(8%)' }, { opacity: 1, transform: 'translateX(0)' }],
+        },
+        zoom: {
+            sai: [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.9)' }],
+            entra: [{ opacity: 0, transform: 'scale(1.1)' }, { opacity: 1, transform: 'scale(1)' }],
+        },
+    };
+
+    // trocar(): a função que põe o texto novo. Se chegar outra troca no meio
+    // (o operador passou rápido), a anterior termina na hora, sem atropelar.
+    function trocarComTransicao(el, transicao, trocar) {
+        if (el._ucTroca) { const anterior = el._ucTroca; el._ucTroca = null; anterior.cancelar(); }
+        const efeito = transicao && EFEITOS[transicao.tipo];
+        if (!efeito || !el.animate) { trocar(); return; }
+        const metade = Math.max(100, (Number(transicao.duracao) || 500) / 2);
+        let trocou = false;
+        let entra = null;
+        const sai = el.animate(efeito.sai, { duration: metade, easing: 'ease-in', fill: 'forwards' });
+        const estado = {
+            cancelar() {
+                sai.cancel();
+                if (entra) entra.cancel();
+                if (!trocou) { trocou = true; trocar(); }
+            },
+        };
+        el._ucTroca = estado;
+        sai.onfinish = () => {
+            if (el._ucTroca !== estado) return;
+            trocou = true;
+            trocar();
+            entra = el.animate(efeito.entra, { duration: metade, easing: 'ease-out' });
+            sai.cancel();   // a entrada já começa invisível: tirar o "fill" da saída não pisca
+            entra.onfinish = () => { if (el._ucTroca === estado) el._ucTroca = null; };
+        };
+    }
+
+    return { FONTES, aplicarTexto, ajustar, fundoCss, trocarComTransicao };
 })();

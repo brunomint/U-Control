@@ -132,6 +132,23 @@ Na cidade do nosso Deus</textarea>
                 </fieldset>
 
                 <fieldset class="tm-bloco">
+                    <legend>{{ _('Transição entre slides') }}</legend>
+                    <label class="tm-controle">{{ _('Efeito') }}
+                        <select class="uc-input" id="tm-transicao">
+                            <option value="nenhuma">{{ _('Nenhuma (troca na hora)') }}</option>
+                            <option value="fade">{{ _('Suave (esmaecer)') }}</option>
+                            <option value="deslizar">{{ _('Deslizar') }}</option>
+                            <option value="zoom">{{ _('Zoom') }}</option>
+                        </select>
+                    </label>
+                    <label class="tm-controle">{{ _('Duração') }} <output id="tm-duracao-valor"></output>
+                        <input type="range" id="tm-duracao" min="200" max="2000" step="100">
+                    </label>
+                    <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="tm-ver-transicao"><i class="fas fa-play"></i> {{ _('Ver a transição') }}</button>
+                    <p class="tm-dica">{{ _('Em computadores fracos (como o Raspberry Pi com vídeo de fundo), prefira "Suave" ou "Nenhuma".') }}</p>
+                </fieldset>
+
+                <fieldset class="tm-bloco">
                     <legend>{{ _('Faixa atrás da letra') }}</legend>
                     <label class="tm-check"><input type="checkbox" id="tm-caixa"> {{ _('Mostrar a faixa') }}</label>
                     <label class="tm-controle tm-cor">{{ _('Cor da faixa') }} <input type="color" id="tm-caixa-cor"></label>
@@ -172,7 +189,7 @@ Na cidade do nosso Deus</textarea>
         <div id="tm-videos" class="tm-videos"></div>
     </section>
 </main>
-<script id="tm-config" type="application/json">{{ {"textoPadrao": texto_padrao} | tojson }}</script>
+<script id="tm-config" type="application/json">{{ {"textoPadrao": texto_padrao, "transicaoPadrao": transicao_padrao} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}

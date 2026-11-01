@@ -11,6 +11,7 @@
     let padrao = null;
     let atual = null;        // tema em edição: {id?, nome, fundo, texto}
     let alterado = false;
+    let segundoSlide = false;   // "Ver a transição" alterna a prévia entre dois slides
 
     // ── Prévia ──────────────────────────────────────────────────────
     function desenharPrevia() {
@@ -30,7 +31,8 @@
         $('tm-escurecer-linha').hidden = !midia;
 
         const letra = $('tm-previa-letra'), texto = $('tm-previa-texto');
-        texto.innerHTML = esc($('tm-exemplo').value).replace(/\n/g, '<br>');
+        const exemplo = segundoSlide ? 'Santo, santo, santo\nÉ o Senhor' : $('tm-exemplo').value;
+        texto.innerHTML = esc(exemplo).replace(/\n/g, '<br>');
         UcTema.aplicarTexto(letra, texto, atual.texto);
         // vw do telão -> px da prévia (a prévia tem a proporção de uma tela 16:9)
         const largura = $('tm-previa').clientWidth;
@@ -56,6 +58,12 @@
         for (const [id, [chave, fmt]] of Object.entries(DESLIZANTES)) { $(id).value = t[chave]; $(id + '-valor').textContent = fmt(t[chave]); }
         for (const [id, chave] of Object.entries(CHECKS)) $(id).checked = !!t[chave];
         for (const [id, chave] of Object.entries(CORES)) $(id).value = t[chave];
+        const tr = atual.transicao || CONFIG.transicaoPadrao;
+        atual.transicao = Object.assign({}, tr);
+        $('tm-transicao').value = tr.tipo;
+        $('tm-duracao').value = tr.duracao;
+        $('tm-duracao-valor').textContent = (tr.duracao / 1000).toFixed(1) + ' s';
+        segundoSlide = false;
         marcarSegmento('tm-alinhamento', t.alinhamento);
         marcarSegmento('tm-posicao', t.posicao);
         const f = atual.fundo || {};
@@ -89,6 +97,16 @@
     for (const [id, chave] of Object.entries(CHECKS)) $(id).addEventListener('change', () => { atual.texto[chave] = $(id).checked; mudou(); });
     for (const [id, chave] of Object.entries(CORES)) $(id).addEventListener('input', () => { atual.texto[chave] = $(id).value; mudou(); });
     $('tm-fonte').addEventListener('change', () => { atual.texto.fonte = $('tm-fonte').value; mudou(); });
+    $('tm-transicao').addEventListener('change', () => { atual.transicao.tipo = $('tm-transicao').value; mudou(); verTransicao(); });
+    $('tm-duracao').addEventListener('input', () => {
+        atual.transicao.duracao = Number($('tm-duracao').value);
+        $('tm-duracao-valor').textContent = (atual.transicao.duracao / 1000).toFixed(1) + ' s';
+        mudou();
+    });
+    function verTransicao() {
+        UcTema.trocarComTransicao($('tm-previa-texto'), atual.transicao, () => { segundoSlide = !segundoSlide; desenharPrevia(); });
+    }
+    $('tm-ver-transicao').addEventListener('click', verTransicao);
     $('tm-nome').addEventListener('input', () => { atual.nome = $('tm-nome').value; alterado = true; $('tm-status').textContent = _t('Alterações não salvas'); });
     $('tm-exemplo').addEventListener('input', desenharPrevia);
     window.addEventListener('resize', desenharPrevia);
@@ -195,6 +213,7 @@
 
     $('tm-novo').addEventListener('click', () => abrir({
         nome: _t('Novo tema'), fundo: { type: 'color', color: '#000000' }, texto: Object.assign({}, CONFIG.textoPadrao),
+        transicao: Object.assign({}, CONFIG.transicaoPadrao),
     }));
     $('tm-duplicar').addEventListener('click', () => {
         const copia = JSON.parse(JSON.stringify(atual));
@@ -207,7 +226,7 @@
     });
 
     $('tm-salvar').addEventListener('click', () => {
-        const corpo = { nome: $('tm-nome').value, fundo: atual.fundo, texto: atual.texto };
+        const corpo = { nome: $('tm-nome').value, fundo: atual.fundo, texto: atual.texto, transicao: atual.transicao };
         fetch(atual.id ? `/api/temas/${atual.id}` : '/api/temas', {
             method: atual.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
         }).then(r => r.json().then(d => ({ ok: r.ok, d }))).then(({ ok, d }) => {

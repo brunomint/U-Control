@@ -132,7 +132,13 @@ Versões pequenas, de 2–3 itens cada.
         (payload["tema"]); salvar tema, trocar padrão ou o tema da música no ar
         atualiza o telão na hora (evento `tema_telao`). Vídeos de fundo: lista,
         enviar e apagar na mesma página.
-  - [ ] Etapa 3: transições (fade, deslizar, zoom) entre slides da letra.
+  - [x] Etapa 3 (2026-11-01): transição entre slides da letra no tema
+        (`tema.transicao`: nenhuma / suave / deslizar / zoom, 0,2 a 2 s;
+        padrão "nenhuma", como sempre foi). A letra sai, troca invisível e
+        entra (`UcTema.trocarComTransicao`, Web Animations); troca rápida
+        termina a anterior na hora; sem animação com texto igual, letra
+        escondida ou vindo de foto/vídeo; só no telão do público. Editor:
+        bloco "Transição entre slides" com "Ver a transição" na prévia.
   - [ ] Etapa 4: fundo por slide, tema na Bíblia, avisos com tema, importar
         temas do Holyrics.
 

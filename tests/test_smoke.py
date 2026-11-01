@@ -750,7 +750,7 @@ def test_update_lyrics_broadcasts_and_updates_display_state(app):
     assert "update_lyrics" in events
     assert display_state._current_display_mode == "lyrics"
     payload = dict(display_state._last_lyrics_payload)
-    assert set(payload.pop("tema")) == {"fundo", "texto", "nome"}   # tema do telão resolvido (temas_store.resolver)
+    assert set(payload.pop("tema")) == {"fundo", "texto", "transicao", "nome"}   # tema do telão resolvido (temas_store.resolver)
     assert payload == {"title": "Seção 1", "text": "Letra de teste"}
     socket_client.disconnect()
 
@@ -4360,3 +4360,15 @@ def test_apagar_video_de_fundo(logged_in_client, tmp_path, monkeypatch):
     assert logged_in_client.delete("/api/fundos/..%2F..%2Fmain.py").status_code == 404
     assert logged_in_client.delete("/api/fundos/ceu.mp4").get_json()["ok"]
     assert not (tmp_path / "static" / "imagens" / "Fundos" / "ceu.mp4").exists()
+
+
+def test_transicao_do_tema(app):
+    import temas_store
+    assert temas_store.normalizar_transicao({"tipo": "explosao", "duracao": 99999}) == {"tipo": "nenhuma", "duracao": 2000}
+    assert temas_store.normalizar_transicao({"tipo": "fade", "duracao": "700"}) == {"tipo": "fade", "duracao": 700}
+    _limpar_temas(app)
+    with app.app_context():
+        assert temas_store.resolver(None)["transicao"] == temas_store.TRANSICAO_PADRAO   # sem tema: troca na hora, como sempre
+        tema = temas_store.salvar("Suave", {"transicao": {"tipo": "zoom", "duracao": 800}})
+        assert temas_store.resolver({"tema_id": tema["id"]})["transicao"] == {"tipo": "zoom", "duracao": 800}
+    _limpar_temas(app)

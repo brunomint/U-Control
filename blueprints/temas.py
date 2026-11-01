@@ -50,7 +50,8 @@ def _temas_nas_telas():
 @login_required
 def temas_page():
     return render_template('temas.html', fontes=list(temas_store.FONTES), fontes_css=temas_store.FONTES,
-                           texto_padrao=temas_store.TEXTO_PADRAO, gradientes=temas_store.GRADIENTES)
+                           texto_padrao=temas_store.TEXTO_PADRAO, gradientes=temas_store.GRADIENTES,
+                           transicao_padrao=temas_store.TRANSICAO_PADRAO)
 
 
 @temas_bp.route('/api/temas')

@@ -386,12 +386,20 @@
         // ────────────────────────────────────────────────────────────
 
         socket.on('update_lyrics', (data) => {
+            const textoEl = document.getElementById('section-text');
+            // Transição do tema só de letra para letra, com texto diferente e a letra visível
+            const jaNaLetra = lyricsLayer.style.display !== 'none' && fundoVisivel && textoEl.textContent.trim() !== '';
+            const mesmoTexto = textoEl.innerHTML === formatLyrics(data.text);
             showLyricsView();
-            aplicarTemaCompleto(data);  // antes do texto: o tamanho da letra depende do estilo
-            updateLyricsDisplay(data.title, data.text, data.id);
-            const creditos = document.getElementById('song-credits');
-            creditos.textContent = data.creditos || '';
-            creditos.hidden = !data.creditos;
+            const trocar = () => {
+                aplicarTemaCompleto(data);  // antes do texto: o tamanho da letra depende do estilo
+                updateLyricsDisplay(data.title, data.text, data.id);
+                const creditos = document.getElementById('song-credits');
+                creditos.textContent = data.creditos || '';
+                creditos.hidden = !data.creditos;
+            };
+            const transicao = !ehMonitor && jaNaLetra && !mesmoTexto && data.tema ? data.tema.transicao : null;
+            UcTema.trocarComTransicao(textoEl, transicao, trocar);
         });
         
         // Escuta eventos de versículos da Bíblia

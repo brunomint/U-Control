@@ -50,6 +50,11 @@ TEXTO_PADRAO = {
 
 FUNDO_PADRAO = {'type': 'color', 'color': '#000000'}
 
+# Troca de um slide da letra para o próximo (só no telão do público).
+# "nenhuma" é o que o telão sempre fez: troca na hora.
+TRANSICOES = ('nenhuma', 'fade', 'deslizar', 'zoom')
+TRANSICAO_PADRAO = {'tipo': 'nenhuma', 'duracao': 500}   # duracao em ms (200 a 2000)
+
 # Degradês prontos (botão Tema da música e editor de temas); o nome passa por _() na tela
 GRADIENTES = [
     ('Noite estrelada', 'linear-gradient(160deg,#0f0c29,#302b63,#24243e)'),
@@ -125,9 +130,17 @@ def normalizar_texto(texto):
     return limpo
 
 
+def normalizar_transicao(transicao):
+    transicao = transicao if isinstance(transicao, dict) else {}
+    tipo = transicao.get('tipo')
+    return {'tipo': tipo if tipo in TRANSICOES else TRANSICAO_PADRAO['tipo'],
+            'duracao': int(_numero(transicao.get('duracao'), 200, 2000, TRANSICAO_PADRAO['duracao']))}
+
+
 def normalizar(dados):
     dados = dados if isinstance(dados, dict) else {}
-    return {'fundo': normalizar_fundo(dados.get('fundo')) or dict(FUNDO_PADRAO), 'texto': normalizar_texto(dados.get('texto'))}
+    return {'fundo': normalizar_fundo(dados.get('fundo')) or dict(FUNDO_PADRAO), 'texto': normalizar_texto(dados.get('texto')),
+            'transicao': normalizar_transicao(dados.get('transicao'))}
 
 
 def listar():
@@ -199,8 +212,10 @@ def resolver(tema_da_musica, chave_culto=None):
     da_musica = tema_da_musica if isinstance(tema_da_musica, dict) else None
     escolhido = obter(da_musica['tema_id']) if da_musica and da_musica.get('tema_id') else None
     base = escolhido or tema_do_culto(chave_culto) or (obter(padrao_id()) if padrao_id() else None)
-    resultado = copy.deepcopy(base) if base else {'fundo': dict(FUNDO_PADRAO), 'texto': dict(TEXTO_PADRAO), 'nome': None}
+    resultado = copy.deepcopy(base) if base else {'fundo': dict(FUNDO_PADRAO), 'texto': dict(TEXTO_PADRAO),
+                                                  'transicao': dict(TRANSICAO_PADRAO), 'nome': None}
     fundo_solto = normalizar_fundo(da_musica) if da_musica and not da_musica.get('tema_id') else None
     if fundo_solto:
         resultado['fundo'] = fundo_solto
-    return {'fundo': resultado['fundo'], 'texto': resultado['texto'], 'nome': resultado.get('nome')}
+    return {'fundo': resultado['fundo'], 'texto': resultado['texto'], 'transicao': resultado['transicao'],
+            'nome': resultado.get('nome')}

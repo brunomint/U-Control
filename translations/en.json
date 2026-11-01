@@ -1740,5 +1740,13 @@
   "Tocam em loop atrás da letra, só no telão do público. O U-Control deixa o vídeo leve (sem som, até 1080p; 720p no Raspberry Pi).": "They loop behind the lyrics, on the audience screen only. U-Control makes the video light (no sound, up to 1080p; 720p on Raspberry Pi).",
   "Usar como padrão": "Make default",
   "Vídeos de fundo": "Background videos",
-  "Intensidade da faixa": "Band intensity"
+  "Intensidade da faixa": "Band intensity",
+  "Transição entre slides": "Slide transition",
+  "Efeito": "Effect",
+  "Nenhuma (troca na hora)": "None (instant change)",
+  "Suave (esmaecer)": "Smooth (fade)",
+  "Deslizar": "Slide",
+  "Zoom": "Zoom",
+  "Ver a transição": "Preview transition",
+  "Em computadores fracos (como o Raspberry Pi com vídeo de fundo), prefira \"Suave\" ou \"Nenhuma\".": "On weak computers (like a Raspberry Pi with a background video), prefer \"Smooth\" or \"None\"."
 }
