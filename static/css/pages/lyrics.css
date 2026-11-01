@@ -89,6 +89,15 @@ a.tool-btn { text-decoration: none; }
 .section-link pre, .section-preview { margin: 0; color: var(--uc-text); line-height: 1.5; font-size: 13px !important; } /* o JS fixa 12px inline */
 .section-link .chord { color: var(--uc-warn); font-weight: 800; }
 .section-link .stage-note { color: var(--uc-faint); font-style: italic; font-size: .9em; }
+/* Divisão "||": cada parte da seção num bloco; a que está no telão do público em destaque */
+.parte-bloco { position: relative; box-sizing: border-box; max-width: 100%; min-width: 0; padding: 4px 34px 4px 6px; border-radius: var(--uc-r-sm); }
+.parte-bloco pre { max-width: 100%; }
+.parte-bloco + .parte-bloco { margin-top: 6px; border-top: 1px dashed var(--uc-line); padding-top: 8px; }
+.parte-bloco:hover { background: var(--uc-surface-3); }
+.parte-num { position: absolute; right: 6px; top: 4px; font-size: 11px; font-weight: 800; color: var(--uc-faint); }
+.parte-bloco + .parte-bloco .parte-num { top: 8px; }
+.section-link.active .parte-bloco.no-ar { background: rgba(255, 255, 255, .06); box-shadow: inset 3px 0 0 var(--uc-live); }
+.section-link.active .parte-bloco.no-ar .parte-num { color: var(--uc-live); }
 .section-link [id^="sheet-render-"] { border-radius: var(--uc-r-sm); overflow: hidden; }
 .section-link [id^="sheet-render-"] svg { max-width: 100%; height: auto; }
 

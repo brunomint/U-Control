@@ -1831,5 +1831,6 @@
   "O Holyrics respondeu de um jeito inesperado. Ele precisa ser a versão 2.27 ou mais nova.": "Holyrics replied unexpectedly. It needs to be version 2.27 or newer.",
   "Público: parte {n} de {total}": "Audience: part {n} of {total}",
   "público {n}/{total}": "audience {n}/{total}",
-  "Uma linha só com <code>||</code> divide a seção em slides menores <strong>só no telão do público e no OBS</strong>: as setas e o pedal passam parte por parte. O retorno de palco continua mostrando a seção inteira.": "A line with only <code>||</code> splits the section into smaller slides <strong>only on the audience screen and OBS</strong>: the arrows and pedal go part by part. The stage monitor keeps showing the whole section."
+  "Uma linha só com <code>||</code> divide a seção em slides menores <strong>só no telão do público e no OBS</strong>: as setas e o pedal passam parte por parte. O retorno de palco continua mostrando a seção inteira.": "A line with only <code>||</code> splits the section into smaller slides <strong>only on the audience screen and OBS</strong>: the arrows and pedal go part by part. The stage monitor keeps showing the whole section.",
+  "Mandar esta parte para o telão do público": "Send this part to the audience screen"
 }

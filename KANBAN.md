@@ -115,7 +115,13 @@ Versões pequenas, de 2–3 itens cada.
       recebe a seção inteira, com aviso "público 1/2" ao lado do nome; a tela
       da música mostra "Público: parte 1 de 2". /view e impressão tiram as
       linhas `||`.
+  - [x] Na tela de controle, cada parte num bloco clicável (manda aquela parte); a parte no ar em destaque.
   - [ ] Ideia: "no máximo N linhas por slide no público" no tema (divide sozinho).
+- [ ] **Deploy no Pi: worker travou na partida** (2026-11-01, duas vezes seguidas
+      depois do `systemctl restart`; `import main` rodava normal em 7 s; só
+      `stop` (systemd matou o processo depois de 90 s) + `start` resolveu).
+      Investigar; enquanto isso, o deploy.py deve fazer stop/start e só dizer
+      "concluído" depois de /login responder 200.
 - [x] **Letra na Ordem no culto** (2026-11-01): com ordem, a página de cifras
       (/view), a impressão e a lista de seções da tela de controle (/lyrics)
       mostram a letra na sequência da ordem, com cada repetição completa

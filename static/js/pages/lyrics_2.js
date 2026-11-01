@@ -620,9 +620,14 @@ let currentTheme = CONFIG.theme;
                     // É uma partitura - container para renderização
                     content = `<div id="sheet-render-${p}" style="padding:10px; background:#fff;"></div>`;
                 } else {
-                    // É texto normal
-                    const sectionText = styleComment(transposedSectionText(section));
-                    content = `<pre class="section-preview" style="white-space:pre; overflow-x:auto; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:12px;">${sectionText}</pre>`;
+                    // É texto normal. Com divisão "||", cada parte num bloco
+                    // clicável (a que está no telão do público fica em destaque)
+                    const pre = t => `<pre class="section-preview" style="white-space:pre; overflow-x:auto; font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:12px;">${styleComment(t)}</pre>`;
+                    const partesSec = UcFormato.partes(transposedSectionText(section));
+                    content = partesSec.length > 1
+                        ? partesSec.map((t, k) => `<div class="parte-bloco" data-parte="${k}" title="${_t('Mandar esta parte para o telão do público')}">
+                            <span class="parte-num">${k + 1}/${partesSec.length}</span>${pre(t)}</div>`).join('')
+                        : pre(transposedSectionText(section));
                 }
                 
                 const link = $(`
@@ -631,8 +636,13 @@ let currentTheme = CONFIG.theme;
                         ${content}
                     </div>
                 `);
-                link.click(function() {
-                    if (temOrdem) irParaPasso(p); else loadSection(i);
+                link.click(function(e) {
+                    // Clique numa parte (divisão "||"): exatamente aquela parte
+                    const bloco = $(e.target).closest('.parte-bloco');
+                    if (temOrdem) passoAtual = p;
+                    parteAtual = bloco.length ? Number(bloco.data('parte')) : 0;
+                    manterParte = true;
+                    loadSection(i);
                 });
                 $('#sections-list').append(link);
                 
@@ -928,6 +938,8 @@ $('#clear-lyrics').click(function() {
             // Com ordem: o cartão do passo atual (o mesmo Coro aparece várias vezes)
             const activeSection = temOrdem ? $(`.section-link[data-passo="${passoAtual}"]`) : $(`.section-link[data-index="${index}"]`);
             activeSection.addClass('active');
+            $('.parte-bloco').removeClass('no-ar');
+            activeSection.find(`.parte-bloco[data-parte="${parteAtual}"]`).addClass('no-ar');
             
             // Scroll automático para manter a seção ativa visível na tela
             if (activeSection.length) {
