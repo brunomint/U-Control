@@ -139,7 +139,7 @@ Versões pequenas, de 2–3 itens cada.
         termina a anterior na hora; sem animação com texto igual, letra
         escondida ou vindo de foto/vídeo; só no telão do público. Editor:
         bloco "Transição entre slides" com "Ver a transição" na prévia.
-  - [~] Etapa 4 (2026-11-01, feitos 4 de 6):
+  - [~] Etapa 4 (2026-11-01, feitos 5 de 6):
     - [x] Tema da Bíblia (`Setting.tema_biblia_id`, seletor em /temas): fundo,
           fonte, cor, contorno, faixa e posição nos versículos de
           /bible/display; sem tema, o visual de sempre; no palco
@@ -156,7 +156,12 @@ Versões pequenas, de 2–3 itens cada.
           `avisos_exibir`); recarregar continua (/api/current-display, modo
           "avisos"); letra/foto/vídeo/Bíblia ou "Parar" encerram; editar com
           os avisos no ar atualiza; barra "No ar" mostra "Avisos em slides".
-    - [ ] Formatar uma palavra só dentro da letra.
+    - [x] Formatar palavras na letra (`static/js/letra_formato.js`):
+          `**negrito**`, `*itálico*`, `{amarelo}cor{/}` (lista ou #rrggbb),
+          `{grande}tamanho{/}` (pequeno/grande/maior), combináveis. Só no
+          telão do público e nos avisos; palco, OBS, /view e impressão tiram
+          as marcações (`letra_formato.py` no servidor). Um `*` sozinho
+          (marcador, 56 linhas no banco local) não é afetado. Dica no editor.
     - [ ] Importar temas do Holyrics.
 
 ---

@@ -31,7 +31,7 @@
     <div class="av-grid">
         <section class="uc-card">
             <h2>{{ _('Avisos') }}</h2>
-            <p class="tm-dica">{{ _('Um aviso por caixa. Enter quebra a linha dentro do aviso.') }}</p>
+            <p class="tm-dica">{{ _('Um aviso por caixa. Enter quebra a linha dentro do aviso.') }} {{ _('Formatação: **negrito**, *itálico*, {amarelo}cor{/}, {grande}tamanho{/}.') }}</p>
             <div id="av-lista" class="av-lista"></div>
             <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="av-adicionar"><i class="fas fa-plus"></i> {{ _('Adicionar aviso') }}</button>
         </section>
@@ -66,5 +66,6 @@
 
 {% block scripts %}
 <script src="{{ versioned_static('js/tema_render.js') }}"></script>
+<script src="{{ versioned_static('js/letra_formato.js') }}"></script>
 <script src="{{ versioned_static('js/pages/avisos.js') }}"></script>
 {% endblock %}

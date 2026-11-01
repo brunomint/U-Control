@@ -4490,3 +4490,29 @@ def test_avisos_em_slides(app, client, logged_in_client):
     assert logged_in_client.post("/api/avisos/exibir").status_code == 400   # sem aviso, não exibe
     tela.disconnect()
     _limpar_temas(app)
+
+
+def test_formatacao_de_palavras_na_letra(app, logged_in_client):
+    import re
+    import songs_store
+    from letra_formato import limpar
+    assert limpar("Santo é o **Senhor** e a *graça*") == "Santo é o Senhor e a graça"
+    assert limpar("{amarelo}**Jesus**{/} e {grande}{#ffcc00}Aleluia{/}{/}") == "Jesus e Aleluia"
+    assert limpar("*") == "*" and limpar("  *     C") == "  *     C"          # marcador sozinho fica
+    assert limpar("{desconhecida}x{/}") == "{desconhecida}x{/}"               # só nomes da lista
+    # As mesmas cores/tamanhos no JS e no Python
+    import letra_formato
+    js = open("static/js/letra_formato.js", encoding="utf-8").read()
+    assert set(re.findall(r"(\w+): '#[0-9a-f]{6}'", js)) == set(letra_formato.CORES)
+    # Visualização da música: sem as marcações
+    with app.app_context():
+        existentes = songs_store.load_songs()
+        song_id = songs_store.get_next_id(existentes)
+        songs_store.save_songs(existentes + [{"id": song_id, "title": "Formato", "author": "",
+                                              "sections": [{"title": "Verso", "text": ["Grande é o **Senhor**\n{amarelo}Santo{/}"]}]}])
+    try:
+        html = logged_in_client.get(f"/view/{song_id}").get_data(as_text=True)
+        assert "Senhor" in html and "**Senhor**" not in html and "{amarelo}" not in html
+    finally:
+        with app.app_context():
+            songs_store.save_songs(existentes)

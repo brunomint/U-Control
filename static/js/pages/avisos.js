@@ -53,7 +53,7 @@
         const lista = avisos().filter(a => a.trim());
         const texto = lista.length ? (avisos()[foco] || lista[0]) : _t('Escreva um aviso ao lado');
         const letra = $('av-previa-letra'), el = $('av-previa-texto');
-        el.innerHTML = esc(texto).replace(/\n/g, '<br>');
+        el.innerHTML = UcFormato.html(texto);
         if (t.texto) {
             UcTema.aplicarTexto(letra, el, t.texto);
             UcTema.ajustar(letra, el, t.texto.tamanho_max * $('av-previa').clientWidth / 100, 'px', 0.5);

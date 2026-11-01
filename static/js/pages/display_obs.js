@@ -60,7 +60,8 @@ window.addEventListener('resize', adjustFontSize);
 
 // ── Remoção de acordes (igual ao display_public.html) ────────────
 function formatLyrics(text) {
-    const lines = text.split('\n');
+    // Marcações de formatação (static/js/letra_formato.js) saem: a limpeza de cifra abaixo tira "/" e "#"
+    const lines = UcFormato.limpar(text).split('\n');
     return lines.map(line => {
         // Remove notas privadas de palco
         if (line.trim().startsWith('//')) return '';

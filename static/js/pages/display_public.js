@@ -25,7 +25,9 @@
         const formatLyrics = (text) => {
             if (!text) return '';
             const withoutChords = ChordLines.stripChordLines(text);
-            return withoutChords.split('\n')
+            // **negrito**, *itálico*, {amarelo}cor{/}, {grande}tamanho{/} (static/js/letra_formato.js);
+            // o texto também passa a ir protegido (antes ia cru pro innerHTML)
+            return UcFormato.html(withoutChords.split('\n')
                 .filter(line => !line.trim().startsWith('//')) // remove notas privadas de palco
                 // Remove "____" usado pra alinhar a letra embaixo do acorde
                 // (ex: "____Junto ao poço estava eu") — só faz sentido com a
@@ -34,7 +36,7 @@
                 // fix que display_obs.js já tinha, faltava aqui).
                 .map(line => line.replace(/_+/g, ''))
                 .filter(line => line.trim() !== '')
-                .join('<br>');
+                .join('\n'));
         };
 
         const saveToLocalStorage = (title, text, songId) => {
@@ -241,7 +243,7 @@
             const trocar = () => {
                 if (avisos !== a) return;
                 aplicarTemaCompleto({ tema: a.tema });
-                textoEl.innerHTML = $('<div>').text(texto).html().replace(/\n/g, '<br>');
+                textoEl.innerHTML = UcFormato.html(texto);   // aceita **negrito**, {amarelo}…{/} (letra_formato.js)
                 document.getElementById('song-credits').hidden = true;
                 document.getElementById('bible-reference').style.display = 'none';
                 document.getElementById('bible-version').style.display = 'none';

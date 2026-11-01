@@ -440,7 +440,9 @@ def view_song(song_id):
         for sec in song.get('sections', [])
     )
 
-    return render_template('view_song.html', song=song, bible_items=bible_items, order_date=order_date, tem_partitura=tem_partitura)
+    # Marcações de formatação (**negrito**, {amarelo}…{/}) são só do telão do público
+    from letra_formato import musica_sem_formato
+    return render_template('view_song.html', song=musica_sem_formato(song), bible_items=bible_items, order_date=order_date, tem_partitura=tem_partitura)
 
 
 @app.route('/view/<int:song_id>/print')
@@ -460,7 +462,8 @@ def view_song_print(song_id):
     from weasyprint import HTML as WeasyHTML
     import re as _re
 
-    song = get_song(song_id)
+    from letra_formato import musica_sem_formato
+    song = musica_sem_formato(get_song(song_id))   # marcações de formatação: só no telão do público
     if not song:
         return i18n.gettext("Música não encontrada!"), 404
 

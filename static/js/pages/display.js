@@ -382,6 +382,7 @@ const fitSheetsToScreen = () => {
     // uma TV vista pela banda toda. Agora fica na cifra de cada músico,
     // /view/<id>, ao lado do Tom.)
     function applyChordColors(el, text) {
+        text = UcFormato.limpar(text);   // formatação (**negrito**, {amarelo}…{/}) é só do telão do público
         el.textContent = '';
         if (!text) return;
         const lines = text.split('\n');
@@ -522,7 +523,7 @@ const fitSheetsToScreen = () => {
             // divergente de _reAcorde (agora ChordLines.isChordLine) que
             // colore a exibição principal, risco de uma reconhecer uma
             // linha como cifra e a outra não pra o mesmo texto.
-            const previewLines = (data.nextText || '')
+            const previewLines = UcFormato.limpar(data.nextText || '')
                 .split('\n')
                 .map(l => l.trim())
                 .filter(l => l && !l.startsWith('//') && !ChordLines.isChordLine(l))
