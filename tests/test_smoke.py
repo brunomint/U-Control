@@ -3798,7 +3798,7 @@ def test_neutral_screen_buttons_dont_catch_other_data_tela_buttons(logged_in_cli
     # parecidos e a tela branca ia pro palco achando que ia pro público)
     assert "data-neutra-alvo" not in html and "usar_modo" in js
     assert 'data-tela="preta"' not in html and 'data-tela="monitor"' in html   # o do aviso continua
-    for pagina in ("/monitor", "/lyrics/display/public", "/img"):
+    for pagina in ("/monitor", "/lyrics/display/public"):   # /img é rota livre
         assert "camada_neutra.js" in logged_in_client.get(pagina).get_data(as_text=True), pagina
 
 

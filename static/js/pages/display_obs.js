@@ -27,12 +27,11 @@ if (shadow) {
 }
 
 // ── Estado de visibilidade ───────────────────────────────────────
-let blackoutActive  = false;
 let lyricsHidden    = false;
 let hasContent      = false;
 
 function refreshVisibility() {
-    const show = hasContent && !blackoutActive && !lyricsHidden;
+    const show = hasContent && !lyricsHidden;
     overlay.classList.toggle('visible', show);
 }
 
@@ -131,11 +130,6 @@ socket.on('update_bible', (data) => {
     if (duas) text += `<br><span style="opacity:.8">${versos(data.verses2)}</span>`;
     setBibleLabels(data.reference, duas ? [data.version_abbrev || data.version, data.version2_abbrev].filter(Boolean).join(' · ') : data.version);
     setContent(text);
-});
-
-socket.on('blackout', (data) => {
-    blackoutActive = !!data.active;
-    refreshVisibility();
 });
 
 socket.on('lyrics_visibility_changed', (data) => {

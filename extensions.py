@@ -13,6 +13,8 @@ from flask_wtf import CSRFProtect
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
+import registro_acoes
+
 db = SQLAlchemy()
 migrate = Migrate()
 
@@ -58,6 +60,7 @@ class OperatorSocketIO(SocketIO):
                     logging.getLogger('ucontrol').warning(
                         'Socket: evento %r recusado (sem login)', message)
                     return None
+                registro_acoes.registrar_evento(message, args)
                 return handler(*args, **kwargs)
             return register(guarded)
         return decorator

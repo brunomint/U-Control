@@ -225,22 +225,8 @@ const CONFIG = JSON.parse(document.getElementById('edit-song-data').textContent)
                 const SESSAO_EXPIROU = _t('Não salvou: sua sessão expirou. Entre de novo em outra aba e clique em Salvar aqui outra vez — nada do que você editou se perdeu.');
 
                 // Sessão vencida (ou novo login em outra aba) invalida o token
-                // CSRF guardado nesta página. Busca a página de novo só pra
-                // pegar um token novo; se cair no login, ainda está deslogado.
-                async function renovarToken() {
-                    try {
-                        const r = await fetch(location.href, { credentials: 'same-origin' });
-                        if (!r.ok || new URL(r.url).pathname.startsWith('/login')) return false;
-                        const novo = new DOMParser().parseFromString(await r.text(), 'text/html')
-                            .querySelector('meta[name="csrf-token"]');
-                        const meta = document.querySelector('meta[name="csrf-token"]');
-                        if (!novo || !meta) return false;
-                        meta.content = novo.content;
-                        return true;
-                    } catch (e) {
-                        return false;
-                    }
-                }
+                // CSRF guardado nesta página (static/js/csrf.js)
+                const renovarToken = window.ucRenovarToken;
 
                 function enviar(tentativa) {
                     $.ajax({

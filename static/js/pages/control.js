@@ -523,18 +523,26 @@ function setupModeChoice() {
     });
 }
 
-function syncMonitor() {
-    fetch('/api/monitor/sync', { method: 'POST' })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(d => {
-            if (!window.ucToast) return;
-            if (d.monitors === 0) window.ucToast(_t('Nenhum monitor de palco conectado agora.'), 'error');
-            else window.ucToast(_t('Monitor de palco sincronizado com o público.'));
-        })
-        .catch(e => {
-            console.error('Erro ao sincronizar monitor:', e);
-            if (window.ucToast) window.ucToast(_t('Não deu pra sincronizar o monitor.'), 'error');
-        });
+async function syncMonitor() {
+    const enviar = () => fetch('/api/monitor/sync', { method: 'POST' });
+    try {
+        let r = await enviar();
+        // /control aberto há mais de 1 h: token vencido dá 400, e só este
+        // tipo de envio sente (foto e Bíblia vão pelo socket)
+        if (r.status === 400 && await window.ucRenovarToken()) r = await enviar();
+        if (r.status === 409) {
+            if (window.ucToast) window.ucToast(_t('O palco está sendo controlado por outro aparelho em Só monitor.'), 'error');
+            return;
+        }
+        if (!r.ok) throw r.status;
+        const d = await r.json();
+        if (!window.ucToast) return;
+        if (d.monitors === 0) window.ucToast(_t('Nenhum monitor de palco conectado agora.'), 'error');
+        else window.ucToast(_t('Monitor de palco sincronizado com o público.'));
+    } catch (e) {
+        console.error('Erro ao sincronizar monitor:', e);
+        if (window.ucToast) window.ucToast(_t('Não deu pra sincronizar o monitor.'), 'error');
+    }
 }
 
 // ── Prévia "Telão agora" = tela pública ─────────────────────────────────

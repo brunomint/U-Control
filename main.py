@@ -24,6 +24,7 @@ from logging.handlers import RotatingFileHandler
 
 import paths
 from extensions import db, migrate, login_manager, socketio, csrf
+import registro_acoes
 import seguranca
 import i18n
 import models_songs  # noqa: F401 — importado só pra registrar as tabelas em db.metadata
@@ -243,6 +244,11 @@ def create_app(config=None):
         if 'uc_device' not in request.cookies:
             response.set_cookie('uc_device', secrets.token_urlsafe(12),
                                 max_age=10 * 365 * 24 * 3600, samesite='Lax')
+        return response
+
+    @app.after_request
+    def registrar_acao_http(response):
+        registro_acoes.registrar_http(response)
         return response
 
     @app.context_processor

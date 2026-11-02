@@ -1,5 +1,6 @@
 // Camada das telas neutras (preta, branca, logo da igreja) nas telas que
-// vão pro datashow ou pro palco: telão público, /monitor e /img. Cobre
+// vão pro datashow ou pro palco: telão público e /monitor (/img e OBS são
+// livres). Cobre
 // tudo — letra, Bíblia, foto, vídeo, site, tela do PC, aviso. O estado
 // vem do evento 'blackout' (blueprints/display.py handle_blackout), um por
 // tela: `tela` é 'public' ou 'monitor'. Os botões ficam em

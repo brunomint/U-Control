@@ -25,6 +25,22 @@
         return originalFetch.call(this, input, init);
     };
 
+    // Token vencido (dura 1 h) ou novo login em outra aba: busca a página de
+    // novo só pra pegar um token novo. Falso se caiu no login (deslogado).
+    window.ucRenovarToken = async function () {
+        try {
+            const r = await fetch(location.href, { credentials: 'same-origin' });
+            if (!r.ok || new URL(r.url).pathname.startsWith('/login')) return false;
+            const novo = new DOMParser().parseFromString(await r.text(), 'text/html')
+                .querySelector('meta[name="csrf-token"]');
+            if (!novo) return false;
+            meta.content = novo.content;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
     // Várias páginas ainda usam $.ajax()/$.post() do jQuery pra POST em vez
     // de fetch() (ex: edit_song.js, new_song.js, list_songs.js) — o patch
     // acima não pega isso, jQuery usa XMLHttpRequest por baixo, não

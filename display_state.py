@@ -42,7 +42,7 @@ BLACKOUT_TIPOS = ('preta', 'branca', 'logo')
 BLACKOUT_TELAS = ('public', 'monitor')
 _telas_neutras = {'public': None, 'monitor': None}
 # Atalhos pro telão público (o que existia antes de ter uma por tela) —
-# handle_blackout mantém em dia; OBS, /img e Stream Deck leem estes
+# handle_blackout mantém em dia; o Stream Deck lê estes
 _blackout_active = False
 _blackout_tipo = 'preta'
 

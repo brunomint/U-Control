@@ -240,11 +240,9 @@ socket.on('display_two_urls', function() {
     }
 });
 
-// Tela preta/branca/logo (static/js/camada_neutra.js) — só aberta direto
-// no datashow. Dentro de outra tela (iframe do telão ou do /monitor), a
-// camada é a dela; antes o /img apagava sozinho e o /monitor ficava preto
-// junto com o público.
-if (!isInsideIframe) ucCamadaNeutra(socket, new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public');
+// Tela preta/branca/logo não valem aqui: /img aberto direto é rota livre
+// (fonte de outro programa, ex.: Holyrics, que cuida da própria tela).
+// Dentro do telão ou do /monitor, quem cobre é a camada deles.
 
 // Zoom do /presenter: translate(pan%) scale(zoom), origem no centro —
 // a mesma transformação que o modal de zoom aplica na prévia. Só vale

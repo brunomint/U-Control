@@ -744,6 +744,7 @@
   "Nenhum monitor de palco conectado agora.": "No stage monitor connected right now.",
   "Monitor de palco sincronizado com o público.": "Stage monitor synced with the public screen.",
   "Não deu pra sincronizar o monitor.": "Couldn't sync the monitor.",
+  "O palco está sendo controlado por outro aparelho em Só monitor.": "The stage is being controlled by another device in Monitor only.",
   "Público:": "Public:",
   "Monitor de palco:": "Stage monitor:",
   "Foto": "Photo",

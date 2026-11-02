@@ -236,11 +236,15 @@ def build_status():
         staged = [{'kind': s.kind, 'label': s.label} for s in StagedContent.query.all()]
     except Exception:
         staged = []
+    # Cópia local: describe() consulta o banco, e nessa pausa outra ação
+    # pode zerar _monitor (set_monitor(None)) — o status se perdia com
+    # AttributeError
+    monitor = _monitor
     return {
         'live': {**describe(_public_entry()), 'url': public_url()},
         # url/url1/url2: a prévia do /control mostra o monitor quando pedem
-        'monitor': {**describe(_monitor), 'url': _monitor.get('url', ''),
-                    'url1': _monitor.get('url1', ''), 'url2': _monitor.get('url2', '')} if _monitor else None,
+        'monitor': {**describe(monitor), 'url': monitor.get('url', ''),
+                    'url1': monitor.get('url1', ''), 'url2': monitor.get('url2', '')} if monitor else None,
         'staged': staged,
         # Modo de cada máquina (cookie uc_device): a barra e o /control de
         # cada PC mostram o seu — ver display_state._device_modes

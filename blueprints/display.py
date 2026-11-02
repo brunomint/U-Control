@@ -529,7 +529,11 @@ def handle_show_monitor_two_urls(data):
 @display_bp.route('/api/monitor/sync', methods=['POST'])
 @login_required
 def api_monitor_sync():
-    """Sincroniza o /monitor com o estado público atual (vídeo ou display)."""
+    """Sincroniza o /monitor com o estado público atual (vídeo ou display).
+    Outro aparelho conectado em "Só monitor" cuida do palco: não mexe nele
+    (quem está em Só monitor sincroniza normalmente)."""
+    if display_state.palco_de_outro_pc():
+        return jsonify({'status': 'palco_ocupado'}), 409
     sids = _get_monitor_sids()
     telao.set_monitor(None)
     telao.broadcast_status()
