@@ -55,6 +55,8 @@ class LyricsState(db.Model):
 # (2026-08-16) onde clicar em /lyrics/<id> ou /bible/control mudava a
 # tela pública sem passar pelo /control.
 class StagedContent(db.Model):
+    # Aparelho que preparou (cookie uc_device) — ver preparado.py
+    device = db.Column(db.String(64), primary_key=True, default='')
     kind = db.Column(db.String(20), primary_key=True)  # 'lyrics' | 'bible' | 'image'
     payload = db.Column(db.JSON, nullable=False)  # mesmo formato que update_lyrics/update_bible/show_image já esperam
     label = db.Column(db.String(300), nullable=True)  # preview curto pro painel do /control

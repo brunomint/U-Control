@@ -229,13 +229,33 @@ def _extras():
     }
 
 
-def build_status():
-    from models import StagedContent
-    follow = display_state._live_follow_kind
+def _status_do_aparelho(device):
+    """A parte do status que é de cada aparelho (ver preparado.py e
+    display_state._follows)."""
+    import preparado
+    from connections import socketio_clients_by_sid
     try:
-        staged = [{'kind': s.kind, 'label': s.label} for s in StagedContent.query.all()]
+        staged = [{'kind': s.kind, 'label': s.label} for s in preparado.do_aparelho(device)]
     except Exception:
         staged = []
+    follow = display_state.follow_kind(device)
+    dono = display_state.dono_do_palco(device)
+    return {
+        'staged': staged,
+        'follow': follow,
+        'follow_label': (display_state.follow_label(device) or _FOLLOW_LABELS.get(follow)) if follow else None,
+        # Outro aparelho conectado cuida do palco: o /control mostra quem é
+        'palco_com': next((i.get('usuario') for i in list(socketio_clients_by_sid.values())
+                           if i.get('device') == dono and i.get('usuario')), '') if dono else None,
+    }
+
+
+def build_status(device=None):
+    return {**_status_comum(),
+            **_status_do_aparelho(display_state.current_device() if device is None else device)}
+
+
+def _status_comum():
     # Cópia local: describe() consulta o banco, e nessa pausa outra ação
     # pode zerar _monitor (set_monitor(None)) — o status se perdia com
     # AttributeError
@@ -245,13 +265,9 @@ def build_status():
         # url/url1/url2: a prévia do /control mostra o monitor quando pedem
         'monitor': {**describe(monitor), 'url': monitor.get('url', ''),
                     'url1': monitor.get('url1', ''), 'url2': monitor.get('url2', '')} if monitor else None,
-        'staged': staged,
         # Modo de cada máquina (cookie uc_device): a barra e o /control de
         # cada PC mostram o seu — ver display_state._device_modes
         'modes': dict(display_state._device_modes),
-        'follow': follow,
-        'follow_label': ('Letra e Bíblia' if follow and display_state._live_follow_texto == display_state.TEXTO
-                         else _FOLLOW_LABELS.get(follow)) if follow else None,
         'blackout': bool(display_state._blackout_active),
         'blackout_tipo': display_state._blackout_tipo,
         'telas_neutras': dict(display_state._telas_neutras),
@@ -260,10 +276,14 @@ def build_status():
 
 
 def broadcast_status():
-    """Manda o resumo pra todas as barras abertas. Funciona tanto dentro
-    de um handler de socket quanto numa rota HTTP."""
+    """Manda o resumo pra todas as barras abertas, cada aparelho com o
+    seu. Funciona tanto dentro de um handler de socket quanto numa rota HTTP."""
     try:
-        socketio.emit('telao_status', build_status())
+        from connections import sala_do_aparelho, socketio_clients_by_sid
+        comum = _status_comum()
+        for device in {i.get('device', '') for i in list(socketio_clients_by_sid.values())}:
+            socketio.emit('telao_status', {**comum, **_status_do_aparelho(device)},
+                          to=sala_do_aparelho(device))
     except Exception:
         import logging
         logging.getLogger('ucontrol').exception('Falha ao transmitir telao_status')

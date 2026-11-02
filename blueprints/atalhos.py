@@ -120,7 +120,7 @@ def _navegar(direcao):
 # --- comandos --------------------------------------------------------------
 
 def _liberar():
-    from blueprints.display import handle_release_staged_content
+    from blueprints.display import liberar_preparado
     from extensions import db
     from models import StagedContent
     preparado = db.session.query(StagedContent).order_by(StagedContent.updated_at.desc()).first()
@@ -128,8 +128,8 @@ def _liberar():
         return {'ok': False, 'erro': tr('Nada preparado pra liberar.')}
     # Lê antes de liberar: liberar apaga o preparado do banco, e ler depois
     # dava DetachedInstanceError (o atalho respondia erro com a liberação feita)
-    kind, rotulo = preparado.kind, preparado.label or preparado.kind
-    _handler(handle_release_staged_content)({'kind': kind})
+    kind, dono, rotulo = preparado.kind, preparado.device, preparado.label or preparado.kind
+    liberar_preparado(kind, dono)
     return {'ok': True, 'liberado': rotulo}
 
 

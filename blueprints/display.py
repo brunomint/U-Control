@@ -16,7 +16,7 @@ import threading
 import time
 
 from flask import Blueprint, current_app, jsonify, make_response, render_template, request
-from flask_login import login_required
+from flask_login import current_user, login_required
 from flask_socketio import emit
 
 import display_state
@@ -25,11 +25,12 @@ from blueprints import apresentacao
 from blueprints.bible import handle_update_bible, parse_reference
 from blueprints.gallery import get_current_image_path
 from blueprints.lyrics import handle_update_lyrics
-from connections import _get_monitor_sids, _skip_sids
+from connections import _get_monitor_sids, _skip_sids, sala_do_aparelho
 from display_log import append_display_log
 from i18n import gettext as tr
 from extensions import db, socketio
-from models import DisplayState, ImagePath, LyricsState, SavedUrls, StagedContent
+from models import DisplayState, ImagePath, LyricsState, SavedUrls
+import preparado
 from settings_store import load_settings, save_settings
 from songs_store import get_song, secoes_apresentadas
 from orders_store import current_key, mark_first_matching
@@ -469,7 +470,7 @@ def video_state():
 def handle_show_monitor_content(data):
     """Exibe URL/imagem apenas no /monitor, sem afetar o público."""
     url = data.get('url', '')
-    _end_live_follow_unless(url)
+    _end_live_follow_unless(url, publico=False)
     if _is_media_file(url) and telao.monitor_split_pane(url):
         # Monitor dividido com lado de galeria: só esse lado troca
         evento, chave = ('display_video', 'video_url') if telao.kind_of_url(url) == 'video' \
@@ -686,14 +687,20 @@ def _kind_of_url(url):
     return None
 
 
-def _end_live_follow_unless(*urls):
+def _end_live_follow_unless(*urls, publico=True):
     """Ação direta no telão (fonte do /control, galeria, tela dividida):
     se ela leva o telão pra fora do tipo em live-follow, o próximo
     preparar desse tipo volta a pedir Liberar. _release_kind chama os
-    mesmos handlers, mas regrava o live-follow logo depois."""
-    kind = display_state._live_follow_kind
-    if kind and any(_kind_of_url(u) != kind for u in urls):
-        display_state._live_follow_kind = None
+    mesmos handlers, mas regrava o live-follow logo depois. Vale pra quem
+    fez e, se mudou a tela pública, pra quem a acompanhava."""
+    def fora_do_tipo(device):
+        kind = display_state.follow_kind(device)
+        return kind and any(_kind_of_url(u) != kind for u in urls)
+
+    if fora_do_tipo(None):
+        display_state.follow_encerra()
+    if publico:
+        display_state.follow_encerra_quem_ve_o_publico(fora_do_tipo)
 
 
 # (culto, item) marcado sozinho por último (ver _marcar_feito_no_ar): cada
@@ -744,7 +751,7 @@ def _marcar_feito_no_ar(kind, payload):
 
 def _release_kind(kind, payload):
     """Faz o kind ir ao ar de verdade (chamando o handler real) e marca
-    esse kind como o "live-follow" atual — ver display_state._live_follow_kind.
+    esse kind como o "live-follow" atual — ver display_state._follows.
     Compartilhada entre o release explícito (clique em Liberar, seja pelo
     card do /control ou pelo banner nas próprias páginas — ver
     release_banner.js) e o auto-release do live-follow em
@@ -829,7 +836,7 @@ def _release_kind(kind, payload):
 
     _marcar_feito_no_ar(kind, payload)
     display_state.follow_confirma(kind)
-    emit('content_released', {'kind': kind}, broadcast=True)
+    emit('content_released', {'kind': kind}, to=sala_do_aparelho())
     telao.broadcast_status()
 
 
@@ -866,7 +873,7 @@ def _secao_onde_a_letra_esta(payload):
     Letra em lugar nenhum: devolve False e segue o preparar/liberar
     normal (aí o modo decide onde ela entra). Depois do "parar" da
     barrinha também pede Liberar."""
-    if display_state._follow_parado:
+    if display_state.follow_parado():
         return False
     # Público na Bíblia: a letra entra no lugar dela direto só depois que
     # letra e Bíblia já foram liberadas (andam juntas — follow_inclui)
@@ -883,10 +890,7 @@ def _secao_onde_a_letra_esta(payload):
         return False
 
     with current_app.app_context():
-        staged = db.session.get(StagedContent, 'lyrics')
-        if staged:
-            db.session.delete(staged)
-            db.session.commit()
+        preparado.apagar('lyrics')
 
     # Monitor na Bíblia (liberada pra ele no meio da música): voltando pra
     # música no público, o palco volta pra cifra — senão os músicos
@@ -923,7 +927,7 @@ def _secao_onde_a_letra_esta(payload):
     # público ("letra e Bíblia andam juntas")
     if no_publico:
         display_state.follow_confirma('lyrics')
-    emit('content_released', {'kind': 'lyrics'}, broadcast=True)
+    emit('content_released', {'kind': 'lyrics'}, to=sala_do_aparelho())
     telao.broadcast_status()
     return True
 
@@ -933,7 +937,7 @@ def _versiculo_onde_a_biblia_esta(payload):
     texto do público (letra ou Bíblia) e o monitor SÓ se ele já mostra a
     Bíblia (liberada pra ele) — a cifra dos músicos não vira versículo.
     Nada disso na tela: False, pede Liberar."""
-    if display_state._follow_parado:
+    if display_state.follow_parado():
         return False
     # Público na letra: a Bíblia entra no lugar dela direto só depois que
     # as duas já foram liberadas (a 1ª troca música → leitura pede Liberar)
@@ -945,16 +949,13 @@ def _versiculo_onde_a_biblia_esta(payload):
     if not (no_publico or no_monitor):
         return False
     with current_app.app_context():
-        staged = db.session.get(StagedContent, 'bible')
-        if staged:
-            db.session.delete(staged)
-            db.session.commit()
+        preparado.apagar('bible')
     from blueprints.bible import enviar_biblia
     enviar_biblia(payload, publico=no_publico, monitor=no_monitor)
     _marcar_feito_no_ar('bible', payload)
     if no_publico:   # idem: versículo só no palco não muda o acompanhar do público
         display_state.follow_confirma('bible')
-    emit('content_released', {'kind': 'bible'}, broadcast=True)
+    emit('content_released', {'kind': 'bible'}, to=sala_do_aparelho())
     telao.broadcast_status()
     return True
 
@@ -968,7 +969,7 @@ def _foto_onde_a_foto_esta(payload):
     fotos (dá pra deixar uma imagem fixa no palco). Foto em lugar nenhum:
     devolve False e pede Liberar (o modo decide onde entra)."""
     url = payload.get('image_url', '')
-    if display_state._follow_parado or not _is_media_file(url):
+    if display_state.follow_parado() or not _is_media_file(url):
         return False
     no_publico = telao.publico_mostra_foto()
     if display_state.device_mode() == 'public':
@@ -983,10 +984,7 @@ def _foto_onde_a_foto_esta(payload):
         return False
 
     with current_app.app_context():
-        staged = db.session.get(StagedContent, 'image')
-        if staged:
-            db.session.delete(staged)
-            db.session.commit()
+        preparado.apagar('image')
 
     if no_publico and no_monitor:
         handle_show_image(dict(payload))
@@ -996,7 +994,7 @@ def _foto_onde_a_foto_esta(payload):
         handle_show_monitor_content({'url': url})   # só o monitor tem foto
 
     display_state.follow_confirma('image')
-    emit('content_released', {'kind': 'image'}, broadcast=True)
+    emit('content_released', {'kind': 'image'}, to=sala_do_aparelho())
     telao.broadcast_status()
     return True
 
@@ -1009,7 +1007,7 @@ def _ja_no_monitor_dividido(kind, payload):
     que ele vê. Bíblia fica de fora: não tem modo só-monitor (ver
     _release_kind) e iria pro público também. Depois do "parar" da
     barrinha, pede Liberar."""
-    if display_state._follow_parado or display_state.device_mode() != 'monitor':
+    if display_state.follow_parado() or display_state.device_mode() != 'monitor':
         return False
     if kind == 'lyrics':
         url = '/lyrics/display'
@@ -1051,22 +1049,13 @@ def handle_stage_content(data):
     # versículo só aparece onde foi liberado (no palco, a cifra fica)
     if kind != 'bible' and (display_state.follow_inclui(kind) or _ja_no_monitor_dividido(kind, payload)):
         with current_app.app_context():
-            staged = db.session.get(StagedContent, kind)
-            if staged:
-                db.session.delete(staged)
-                db.session.commit()
+            preparado.apagar(kind)
         _release_kind(kind, payload)
         return
 
     with current_app.app_context():
-        staged = db.session.get(StagedContent, kind)
-        if staged is None:
-            staged = StagedContent(kind=kind)
-            db.session.add(staged)
-        staged.payload = payload
-        staged.label = label
-        db.session.commit()
-    emit('content_staged', {'kind': kind, 'label': label}, broadcast=True)
+        preparado.salvar(kind, payload, label)
+    emit('content_staged', {'kind': kind, 'label': label}, to=sala_do_aparelho())
     telao.broadcast_status()
 
 
@@ -1074,8 +1063,15 @@ def handle_stage_content(data):
 def handle_release_staged_content(data):
     kind = data.get('kind')
     current_app.logger.debug(f'🚀 Recebido release_staged_content: kind={kind}')
+    liberar_preparado(kind)
+
+
+def liberar_preparado(kind, device=None):
+    """Libera o preparado de `device` (padrão: quem pediu). O Stream Deck
+    não tem aparelho e libera o mais recente de qualquer um, então o
+    aviso de liberado vai também pro dono (ver blueprints/atalhos.py)."""
     with current_app.app_context():
-        staged = db.session.get(StagedContent, kind)
+        staged = preparado.pegar(kind, device)
         if not staged:
             return
         payload = staged.payload
@@ -1083,6 +1079,8 @@ def handle_release_staged_content(data):
         db.session.commit()
 
     _release_kind(kind, payload)
+    if device is not None and device != display_state.current_device():
+        socketio.emit('content_released', {'kind': kind}, to=sala_do_aparelho(device))
 
 
 @socketio.on('set_display_mode')
@@ -1099,7 +1097,7 @@ def handle_set_display_mode(data):
     indo pra tela antiga até a próxima liberação explícita."""
     display_state.set_device_mode('monitor' if data.get('monitor_only')
                                   else 'public' if data.get('exclude_monitor') else 'all')
-    display_state._live_follow_kind = None
+    display_state.follow_encerra()
     telao.broadcast_status()
 
 
@@ -1128,12 +1126,19 @@ def handle_telao_ping(data=None):
     return {'ok': True}
 
 
+@socketio.on('assumir_palco')
+def handle_assumir_palco(data=None):
+    """Botão "Assumir o palco" do /control (static/js/palco.js)."""
+    for device in display_state.assumir_palco():
+        emit('palco_assumido', {'por': current_user.username}, to=sala_do_aparelho(device))
+    telao.broadcast_status()
+
+
 @socketio.on('stop_live_follow')
 def handle_stop_live_follow(data=None):
     """Botão "parar" da barrinha do telão: o próximo preparar volta a
     pedir Liberar, mesmo do tipo que estava acompanhando ao vivo."""
-    display_state._live_follow_kind = None
-    display_state._follow_parado = True
+    display_state.follow_para()
     telao.broadcast_status()
 
 
@@ -1148,11 +1153,8 @@ def api_telao_status():
 def handle_discard_staged_content(data):
     kind = data.get('kind')
     with current_app.app_context():
-        staged = db.session.get(StagedContent, kind)
-        if staged:
-            db.session.delete(staged)
-            db.session.commit()
-    emit('content_discarded', {'kind': kind}, broadcast=True)
+        preparado.apagar(kind)
+    emit('content_discarded', {'kind': kind}, to=sala_do_aparelho())
     telao.broadcast_status()
 
 
@@ -1162,7 +1164,7 @@ def handle_discard_staged_content(data):
 # real: operador prepara antes de ir até o notebook do /control).
 @display_bp.route('/api/staged-content')
 def api_staged_content():
-    items = StagedContent.query.all()
+    items = preparado.do_aparelho()
     return jsonify({
         s.kind: {'label': s.label, 'updated_at': s.updated_at.isoformat() if s.updated_at else None}
         for s in items

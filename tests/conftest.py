@@ -16,6 +16,20 @@ def app():
     return ucontrol_main.app
 
 
+@pytest.fixture(autouse=True)
+def sem_preparado_nem_follow():
+    """Cada teste tem seu aparelho: sem isto, o preparado de um sobrava pro
+    seguinte (antes um único por tipo era sobrescrito)."""
+    import display_state
+    from models import StagedContent
+
+    with ucontrol_main.app.app_context():
+        StagedContent.query.delete()
+        ucontrol_main.db.session.commit()
+    display_state._follows.clear()
+    yield
+
+
 @pytest.fixture
 def client(app):
     return app.test_client()

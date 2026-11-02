@@ -11,6 +11,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/control.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/telas_neutras.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/palco.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/site_telao.css') }}">
 {% endblock %}
 
@@ -77,6 +78,10 @@
                 <button type="button" data-mode="all" aria-pressed="true" title="{{ _('Público e monitor de palco') }}">{{ _('Os dois') }}</button>
                 <button type="button" data-mode="public" aria-pressed="false" title="{{ _('Só a tela do público muda; o monitor de palco fica como está') }}">{{ _('Só público') }}</button>
                 <button type="button" data-mode="monitor" aria-pressed="false" title="{{ _('Só o monitor de palco muda; o público fica como está') }}">{{ _('Só monitor') }}</button>
+            </div>
+            <div class="palco-com" id="palco-com" hidden>
+                <span><i class="fas fa-user" aria-hidden="true"></i> <span id="palco-com-texto"></span></span>
+                <button type="button" class="uc-btn uc-btn-secondary" id="assumir-palco">{{ _('Assumir o palco') }}</button>
             </div>
         </div>
     </section>
@@ -269,6 +274,7 @@
 {% block scripts %}
 <script src="{{ versioned_static('js/telas_neutras.js') }}"></script>
 <script src="{{ versioned_static('js/pages/control.js') }}"></script>
+<script src="{{ versioned_static('js/palco.js') }}"></script>
 <script src="{{ versioned_static('js/screen_picker.js') }}"></script>
 <script src="{{ versioned_static('js/site_telao.js') }}"></script>
 {% endblock %}

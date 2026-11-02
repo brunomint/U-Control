@@ -5,6 +5,7 @@ quem excluir de um broadcast)."""
 import logging
 
 from flask import request
+from flask_login import current_user
 from flask_socketio import emit, join_room
 
 import display_state
@@ -16,6 +17,12 @@ socketio_clients_connected = 0
 socketio_clients_by_sid = {}
 
 
+def sala_do_aparelho(device=None):
+    """Sala Socket.IO com todas as abas de um aparelho (cookie uc_device):
+    o que é só dele — preparado, acompanhar ao vivo — vai pra ela."""
+    return f'aparelho:{display_state.current_device() if device is None else device}'
+
+
 # Evento para quando o cliente se conectar
 @socketio.on('connect')
 def handle_connect():
@@ -24,7 +31,10 @@ def handle_connect():
     socketio_clients_by_sid[sid] = socketio_clients_by_sid.get(sid) or {'role': 'unknown'}
     # Máquina desta conexão (cookie uc_device): pra saber se OUTRO PC
     # conectado cuida do palco (display_state.palco_de_outro_pc)
-    socketio_clients_by_sid[sid]['device'] = request.cookies.get('uc_device') or ''
+    device = request.cookies.get('uc_device') or ''
+    socketio_clients_by_sid[sid]['device'] = device
+    socketio_clients_by_sid[sid]['usuario'] = current_user.username if current_user.is_authenticated else ''
+    join_room(sala_do_aparelho(device))
     socketio_clients_connected = len(socketio_clients_by_sid)
     logger.info('Cliente conectado')
 

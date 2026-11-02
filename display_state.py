@@ -76,40 +76,85 @@ _last_image_url = None
 # blueprints/display.py): antes, depois de liberar uma foto do
 # /presenter, colocar o relógio ou a letra no telão não bastava — a
 # próxima foto clicada no presenter entrava por cima na hora.
-_live_follow_kind = None
+#
+# Por aparelho (_follows, ver _device_modes abaixo): o Liberar de um não
+# deixa o outro acompanhando ao vivo, e "parar" ou trocar de modo só vale
+# pra quem fez. Uma ação de outro aparelho só encerra o seu quando muda a
+# tela pública, porque aí ela deixa de mostrar o que você acompanhava.
 
 # Letra e Bíblia andam juntas: alternar entre música e leitura no mesmo
 # culto (ex.: leitura clicada na ordem do culto em /lyrics, e de volta pra
 # música) pedia Liberar a cada troca — e quem não via o "Liberar" achava
 # que a página tinha travado. Depois que as duas foram confirmadas, as
 # duas vão direto. Imagem nunca entra aqui (proteção do relógio acima).
-# Só vale enquanto _live_follow_kind não for None (os resets acima zeram
-# só ele — o conjunto fica velho, mas é ignorado e refeito no próximo
-# follow_confirma).
+# Só vale enquanto 'kind' não for None (os resets acima zeram só ele — o
+# conjunto fica velho, mas é ignorado e refeito no próximo follow_confirma).
 TEXTO = {'lyrics', 'bible'}
-_live_follow_texto = set()
+
+# device -> {'kind', 'texto', 'parado'}. 'parado' é o botão "parar" da
+# barrinha do telão: até a próxima liberação confirmada, tudo pede Liberar —
+# inclusive a troca de seção da letra que já está na tela (ver
+# _secao_onde_a_letra_esta em blueprints/display.py).
+_follows = {}
 
 
-# Botão "parar" da barrinha do telão: até a próxima liberação confirmada,
-# tudo pede Liberar — inclusive a troca de seção da letra que já está na
-# tela (ver _secao_onde_a_letra_esta em blueprints/display.py).
-_follow_parado = False
+def _follow(device=None):
+    device = current_device() if device is None else device
+    return _follows.setdefault(device, {'kind': None, 'texto': set(), 'parado': False})
+
+
+def follow_kind(device=None):
+    return _follow(device)['kind']
+
+
+def follow_parado():
+    return _follow()['parado']
+
+
+def follow_label(device=None):
+    f = _follow(device)
+    return 'Letra e Bíblia' if f['kind'] and f['texto'] == TEXTO else None
 
 
 def follow_confirma(kind):
-    """Liberação confirmada (_release_kind): passa a acompanhar `kind`."""
-    global _live_follow_kind, _live_follow_texto, _follow_parado
-    _follow_parado = False
-    if kind in TEXTO and _live_follow_kind in TEXTO:
-        _live_follow_texto = _live_follow_texto | {kind, _live_follow_kind}
+    """Liberação confirmada (_release_kind): este aparelho passa a acompanhar
+    `kind`. Mudou a tela pública? Quem acompanhava outra coisa nela para."""
+    f = _follow()
+    f['parado'] = False
+    if kind in TEXTO and f['kind'] in TEXTO:
+        f['texto'] = f['texto'] | {kind, f['kind']}
     else:
-        _live_follow_texto = {kind} & TEXTO
-    _live_follow_kind = kind
+        f['texto'] = {kind} & TEXTO
+    f['kind'] = kind
+    if device_mode() != 'monitor':
+        follow_encerra_quem_ve_o_publico(lambda outro: not follow_inclui(kind, outro))
 
 
-def follow_inclui(kind):
+def follow_inclui(kind, device=None):
     """Esse kind vai direto ao ar (sem pedir Liberar)?"""
-    return _live_follow_kind is not None and (kind == _live_follow_kind or kind in _live_follow_texto)
+    f = _follow(device)
+    return f['kind'] is not None and (kind == f['kind'] or kind in f['texto'])
+
+
+def follow_encerra(device=None):
+    _follow(device)['kind'] = None
+
+
+def follow_para():
+    """Botão "parar" da barrinha do telão."""
+    f = _follow()
+    f['kind'] = None
+    f['parado'] = True
+
+
+def follow_encerra_quem_ve_o_publico(deve_encerrar):
+    """Os OUTROS aparelhos acompanhando a tela pública (Só monitor cuida do
+    palco e fica de fora) para os quais `deve_encerrar(device)` vale."""
+    eu = current_device()
+    for device, f in _follows.items():
+        if device != eu and f['kind'] and device_mode(device) != 'monitor' and deve_encerrar(device):
+            f['kind'] = None
+
 
 # Modo Público/Monitor de cada máquina (control.js: publicOnlyMode/
 # monitorOnlyMode) — guardado no SERVIDOR, não só no JS do /control.
@@ -143,15 +188,33 @@ def device_mode(device=None):
     return _device_modes.get(device if device is not None else current_device(), 'all')
 
 
-def palco_de_outro_pc():
-    """Outro PC conectado agora está em "Só monitor" — duas pessoas, uma
-    no telão e outra no palco. Aí o "Só público" deste PC não arrasta o
-    palco junto (o palco é do outro). Só conta quem está conectado: um PC
-    que ficou em "Só monitor" e foi embora não prende ninguém."""
+def dono_do_palco(eu=None):
+    """Outro aparelho conectado agora em "Só monitor" (o id dele) — duas
+    pessoas, uma no telão e outra no palco. Só conta quem está conectado:
+    um PC que ficou em "Só monitor" e foi embora não prende ninguém."""
     from connections import socketio_clients_by_sid
-    eu = current_device()
+    eu = current_device() if eu is None else eu
     conectados = {info.get('device') for info in list(socketio_clients_by_sid.values())}
-    return any(d and d != eu and _device_modes.get(d) == 'monitor' for d in conectados)
+    return next((d for d in conectados if d and d != eu and _device_modes.get(d) == 'monitor'), None)
+
+
+def palco_de_outro_pc():
+    """O palco é de outro aparelho: o "Só público" deste não o arrasta junto."""
+    return dono_do_palco() is not None
+
+
+def assumir_palco():
+    """Este aparelho fica com o palco. Quem estava nele vai pra Só público
+    (não "Os dois": seguiria mexendo no palco sem querer) e para de
+    acompanhar ao vivo. Devolve os aparelhos que perderam o palco."""
+    eu = current_device()
+    tirados = [d for d, modo in _device_modes.items() if modo == 'monitor' and d != eu]
+    for device in tirados:
+        set_device_mode('public', device)
+        follow_encerra(device)
+    set_device_mode('monitor', eu)
+    follow_encerra(eu)
+    return tirados
 
 
 def set_device_mode(mode, device=None):

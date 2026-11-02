@@ -5,6 +5,18 @@ import main as ucontrol_main
 from models import DisplayState, User
 
 
+def _preparado(kind):
+    """Preparado de um tipo, de qualquer aparelho (cada teste tem o seu)."""
+    from models import StagedContent
+    return StagedContent.query.filter_by(kind=kind).first()
+
+
+def _follow_kind():
+    """O que está sendo acompanhado ao vivo, em qualquer aparelho."""
+    import display_state
+    return next((f["kind"] for f in display_state._follows.values() if f["kind"]), None)
+
+
 def _operator_socket(app):
     """Cliente Socket.IO de um operador logado — os eventos de controle
     do telão exigem login (extensions.OperatorSocketIO)."""
@@ -793,7 +805,7 @@ def test_stage_content_persists_and_broadcasts(app):
     assert "content_staged" in events
 
     with app.app_context():
-        staged = db.session.get(StagedContent, "image")
+        staged = _preparado("image")
         assert staged is not None
         assert staged.payload == {"image_url": "/static/imagens/preparada.jpg"}
         assert staged.label == "foto de teste"
@@ -826,7 +838,7 @@ def test_release_staged_content_dispatches_to_real_handler_and_clears_staging(ap
     assert display_state._current_display_mode == "image"
 
     with app.app_context():
-        assert db.session.get(StagedContent, "image") is None
+        assert _preparado("image") is None
 
     socket_client.disconnect()
 
@@ -852,7 +864,7 @@ def test_discard_staged_content_clears_without_going_live(app):
     assert display_state._current_display_mode != "lyrics"
 
     with app.app_context():
-        assert db.session.get(StagedContent, "lyrics") is None
+        assert _preparado("lyrics") is None
 
     socket_client.disconnect()
 
@@ -868,7 +880,7 @@ def test_staged_content_kinds_do_not_clobber_each_other(app):
     # direto ao ar em vez de só preparar, quebrando a premissa deste teste
     # (que é justamente checar que PREPARAR dois kinds ao mesmo tempo não
     # atropela um ao outro).
-    display_state._live_follow_kind = None
+    display_state._follows.clear()
     import telao
     telao.set_public('clock', '/clock')   # nem foto nem letra na tela
     telao.set_monitor(None)
@@ -879,19 +891,21 @@ def test_staged_content_kinds_do_not_clobber_each_other(app):
     socket_client.get_received()
 
     with app.app_context():
-        assert db.session.get(StagedContent, "image") is not None
-        assert db.session.get(StagedContent, "lyrics") is not None
+        assert _preparado("image") is not None
+        assert _preparado("lyrics") is not None
 
     socket_client.disconnect()
 
 
 def test_api_staged_content_reflects_current_state(app, client):
+    import connections
     socket_client = _operator_socket(app)
     socket_client.emit("stage_content", {
         "kind": "bible",
         "payload": {"reference": "João 3:16", "text": "..."},
         "label": "João 3:16",
     })
+    client.set_cookie("uc_device", list(connections.socketio_clients_by_sid.values())[-1]["device"])
     socket_client.disconnect()
 
     response = client.get("/api/staged-content")
@@ -1107,10 +1121,10 @@ def test_control_switching_to_other_source_ends_photo_live_follow(app):
 
     op = _operator_socket(app)
     _release_photo(op, "/static/imagens/a.jpg")
-    assert display_state._live_follow_kind == "image"
+    assert _follow_kind() == "image"
 
     op.emit("show_image", {"image_url": "/clock"})
-    assert display_state._live_follow_kind is None
+    assert _follow_kind() is None
 
     op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/b.jpg"}, "label": "b"})
     events = [m["name"] for m in op.get_received()]
@@ -1127,13 +1141,13 @@ def test_control_staying_on_photos_keeps_live_follow(app):
     _release_photo(op, "/static/imagens/a.jpg")
     op.emit("show_image", {"image_url": "/static/imagens/galeria.jpg"})
     op.emit("show_image", {"image_url": "/img"})
-    assert display_state._live_follow_kind == "image"
+    assert _follow_kind() == "image"
 
     op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/c.jpg"}, "label": "c"})
     assert display_state._last_image_url == "/static/imagens/c.jpg"
 
     op.emit("show_two_urls", {"url1": "/lyrics/display", "url2": "/clock"})
-    assert display_state._live_follow_kind is None
+    assert _follow_kind() is None
     op.disconnect()
 
 
@@ -1164,7 +1178,7 @@ def test_telao_status_describes_live_staged_and_follow(app):
     op.emit("stop_live_follow", {})
     status = _telao_status_events(op)[-1]
     assert status["follow"] is None
-    assert display_state._live_follow_kind is None
+    assert _follow_kind() is None
     op.disconnect()
 
 
@@ -1204,10 +1218,10 @@ def test_anonymous_cannot_stop_live_follow(app):
     op = _operator_socket(app)
     op.emit("stage_content", {"kind": "image", "payload": {"image_url": "/static/imagens/x.jpg"}, "label": "x"})
     op.emit("release_staged_content", {"kind": "image"})
-    assert display_state._live_follow_kind == "image"
+    assert _follow_kind() == "image"
     intruder = ucontrol_main.socketio.test_client(app)
     intruder.emit("stop_live_follow", {})
-    assert display_state._live_follow_kind == "image"
+    assert _follow_kind() == "image"
     op.emit("stop_live_follow", {})
     intruder.disconnect()
     op.disconnect()
@@ -1554,7 +1568,7 @@ def test_items_going_on_screen_are_marked_done(app):
     with app.app_context():
         antes = orders_store.get_order(today)
         orders_store.save_order(today, {"tipo": "Culto Dominical", "itens": itens})
-    display_state._live_follow_kind = None
+    display_state._follows.clear()
     display._ultimo_feito_auto = None
     sock = _operator_socket(app)
 
@@ -1577,7 +1591,7 @@ def test_items_going_on_screen_are_marked_done(app):
         assert len(no_ar("lyrics", {"songId": 999, "sectionIndex": 0, "title": "X"})) == 3
     finally:
         sock.disconnect()
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
         with app.app_context():
             orders_store.save_order(today, {})
             if antes:
@@ -1655,7 +1669,7 @@ def test_hide_button_reaches_bible_screen_and_survives_reload(app, client):
 def test_new_content_on_screen_shows_hidden_text_again(app, client):
     import display_state
 
-    display_state._live_follow_kind = None
+    display_state._follows.clear()
     sock = _operator_socket(app)
     try:
         sock.emit("toggle_lyrics_visibility", {"visible": False})
@@ -1669,7 +1683,7 @@ def test_new_content_on_screen_shows_hidden_text_again(app, client):
     finally:
         sock.emit("toggle_lyrics_visibility", {"visible": True})
         sock.disconnect()
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
 
 
 def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
@@ -1677,7 +1691,7 @@ def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
     from extensions import db
     from models import StagedContent
 
-    display_state._live_follow_kind = None
+    display_state._follows.clear()
     import telao
     telao.set_public('clock', '/clock')   # letra em lugar nenhum (testes anteriores)
     telao.set_monitor(None)
@@ -1687,7 +1701,7 @@ def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
         sock.emit("stage_content", {"kind": kind, "payload": payload, "label": "x"})
         sock.get_received()
         with app.app_context():
-            return db.session.get(StagedContent, kind) is not None   # True = ficou esperando Liberar
+            return _preparado(kind) is not None   # True = ficou esperando Liberar
 
     try:
         assert preparar("lyrics", {"songId": 1, "sectionIndex": 0, "title": "V1"})
@@ -1700,7 +1714,8 @@ def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
         assert not preparar("lyrics", {"songId": 1, "sectionIndex": 1, "title": "Refrão"})
         assert not preparar("bible", {"reference": "João 3:17", "text": "..."})
         import telao
-        assert telao.build_status()["follow_label"] == "Letra e Bíblia"
+        aparelho = next(d for d, f in display_state._follows.items() if f["kind"])
+        assert telao.build_status(aparelho)["follow_label"] == "Letra e Bíblia"
         # Foto continua pedindo Liberar
         assert preparar("image", {"image_url": "/static/x.jpg"})
         # "parar" volta a pedir pra tudo
@@ -1710,7 +1725,7 @@ def test_lyrics_and_bible_follow_together_after_both_confirmed(app):
         for kind in ("image", "lyrics", "bible"):
             sock.emit("discard_staged_content", {"kind": kind})
         sock.disconnect()
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
 
 
 def test_view_song_edit_button_only_for_logged_operator(app, client, logged_in_client):
@@ -2133,7 +2148,7 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
     try:
         op.emit("stop_live_follow", {})
         import display_state
-        display_state._follow_parado = False   # só limpa; o "parar" é testado à parte
+        display_state._follows.clear()   # só limpa; o "parar" é testado à parte
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
         op.emit("show_monitor_two_urls", {"url1": "/img", "url2": "/lyrics/display"})
         monitor.get_received()
@@ -2141,11 +2156,11 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
             op.emit("stage_content", item)
             assert evento in [m["name"] for m in monitor.get_received()]
             with app.app_context():
-                assert ucontrol_main.db.session.get(StagedContent, item["kind"]) is None
+                assert _preparado(item["kind"]) is None
         # Bíblia não tem lado aqui (e iria pro público): continua pedindo
         op.emit("stage_content", {"kind": "bible", "label": "João 3:16", "payload": {"reference": "João 3:16", "text": "x"}})
         with app.app_context():
-            assert ucontrol_main.db.session.get(StagedContent, "bible") is not None
+            assert _preparado("bible") is not None
 
         # "Os dois": a foto já está no lado da galeria — vai direto pra lá
         # (regra "onde a foto já está", _foto_onde_a_foto_esta)
@@ -2153,7 +2168,7 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
         monitor.get_received()
         op.emit("stage_content", {**foto, "payload": {"image_url": "/static/imagens/outra.jpg"}})
         with app.app_context():
-            assert ucontrol_main.db.session.get(StagedContent, "image") is None
+            assert _preparado("image") is None
         assert telao._monitor["kind"] == "split"
     finally:
         op.emit("discard_staged_content", {"kind": "image"})
@@ -2222,7 +2237,7 @@ def test_section_change_goes_where_lyrics_are_shown(app):
         return [m["args"][0]["title"] for m in cli.get_received() if m["name"] == "update_lyrics"]
     def pendente():
         with app.app_context():
-            return ucontrol_main.db.session.get(StagedContent, "lyrics") is not None
+            return _preparado("lyrics") is not None
     try:
         op.emit("stop_live_follow", {})
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
@@ -2260,7 +2275,7 @@ def test_section_change_goes_where_lyrics_are_shown(app):
         op.emit("discard_staged_content", {"kind": "lyrics"})
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
         op.emit("stop_live_follow", {})
-        display_state._follow_parado = False
+        display_state._follows.clear()
         telao.set_monitor(None)
         for c in (op, monitor, publico):
             c.disconnect()
@@ -2285,12 +2300,12 @@ def test_photo_goes_where_photos_are_shown(app):
                 if m["name"] in ("display_image", "display_monitor_content")]
     def pendente():
         with app.app_context():
-            return ucontrol_main.db.session.get(StagedContent, "image") is not None
+            return _preparado("image") is not None
     def modo(m):
         op.emit("set_display_mode", {"exclude_monitor": m == "public", "monitor_only": m == "monitor"})
     try:
-        display_state._follow_parado = False
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
+        display_state._follows.clear()
         modo("all")
         telao.set_public('clock', '/clock')
         telao.set_monitor(None)
@@ -2301,7 +2316,7 @@ def test_photo_goes_where_photos_are_shown(app):
         # Público com foto, monitor com a letra (só monitor)
         telao.set_public('photo', '/static/imagens/a.jpg')
         telao.set_monitor('cifra', '/lyrics/display?song_id=1&section=0&host=monitor')
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
         monitor.get_received(); publico.get_received()
         for m in ("all", "public"):
             modo(m)
@@ -2334,7 +2349,7 @@ def test_photo_goes_where_photos_are_shown(app):
     finally:
         op.emit("discard_staged_content", {"kind": "image"})
         modo("all")
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
         telao.set_monitor(None)
         for c in (op, monitor, publico):
             c.disconnect()
@@ -2357,12 +2372,12 @@ def test_bible_goes_only_where_released(app):
     abriu = lambda cli: [m["args"][0]["url"] for m in cli.get_received() if m["name"] == "display_monitor_content"]
     def pendente():
         with app.app_context():
-            return ucontrol_main.db.session.get(StagedContent, "bible") is not None
+            return _preparado("bible") is not None
     def modo(m):
         op.emit("set_display_mode", {"exclude_monitor": m == "public", "monitor_only": m == "monitor"})
     try:
-        display_state._follow_parado = False
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
+        display_state._follows.clear()
         display_state._last_bible_payload_monitor = None
         modo("all")
         # Público na letra, monitor com a cifra própria
@@ -2383,7 +2398,7 @@ def test_bible_goes_only_where_released(app):
 
         # Liberar com o monitor incluído ("Os dois"): o monitor abre a Bíblia
         telao.set_public('photo', '/static/imagens/a.jpg')
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
         op.emit("stage_content", ver(18))
         assert pendente()                       # Bíblia em lugar nenhum
         monitor.get_received(); publico.get_received()
@@ -2404,7 +2419,6 @@ def test_bible_goes_only_where_released(app):
         # Volta pra música no público ("Os dois"): o monitor sai da Bíblia
         # e volta pra cifra
         telao.set_public('lyrics', '/lyrics/display/public')
-        display_state._live_follow_kind = 'lyrics'
         monitor.get_received()
         op.emit("stage_content", {"kind": "lyrics", "label": "Coro", "payload": {
             "songId": 1, "sectionIndex": 3, "title": "Coro", "text": "x", "type": "text"}})
@@ -2414,7 +2428,7 @@ def test_bible_goes_only_where_released(app):
     finally:
         op.emit("discard_staged_content", {"kind": "bible"})
         modo("all")
-        display_state._live_follow_kind = None
+        display_state._follows.clear()
         telao.set_monitor(None)
         for c in (op, monitor, publico):
             c.disconnect()
