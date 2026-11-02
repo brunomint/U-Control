@@ -23,6 +23,13 @@ timeout maior que o ping_timeout do socketio (60s, main.py) evita que o
 gunicorn mate o worker achando que travou enquanto só tem conexões
 WebSocket ociosas em aberto — problema conhecido do Flask-SocketIO com
 gunicorn quando o timeout fica curto demais.
+
+control_socket_disable: o socket de controle (novo no gunicorn 25) roda numa
+thread do processo mestre, que escreve no log bem na hora do fork do worker.
+Se o fork pega essa escrita no meio, o worker nasce com a trava do log presa
+e para pra sempre em "Booting worker": serviço active, porta aberta, site
+fora do ar. Travou 4 de 7 subidas no Pi em nov/2026; num teste isolado, 6 de
+45 com o socket ligado e 0 de 45 desligado. Nada aqui usa esse socket.
 """
 
 bind = "0.0.0.0:8585"
@@ -32,3 +39,4 @@ workers = 1
 timeout = 120
 accesslog = "-"
 errorlog = "-"
+control_socket_disable = True

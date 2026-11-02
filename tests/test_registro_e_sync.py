@@ -110,3 +110,11 @@ def test_telas_neutras_so_no_telao_e_no_monitor(client):
     assert 'camada_neutra' not in client.get('/img').get_data(as_text=True)
     assert 'camada_neutra' in client.get('/lyrics/display/public').get_data(as_text=True)
     assert 'camada_neutra' in client.get('/monitor').get_data(as_text=True)
+
+
+def test_gunicorn_sem_socket_de_controle():
+    """A thread desse socket travava o worker ao subir (ver gunicorn.conf.py)."""
+    import pathlib
+    conf = {}
+    exec(pathlib.Path('gunicorn.conf.py').read_text(encoding='utf-8'), conf)
+    assert conf['control_socket_disable'] is True
