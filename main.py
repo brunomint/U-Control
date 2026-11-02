@@ -50,6 +50,7 @@ from blueprints.importar import importar_bp
 from blueprints.atalhos import atalhos_bp
 from blueprints.site import site_bp
 from blueprints.idioma import idioma_bp
+from blueprints.registro_tela import registro_tela_bp
 from orders_store import current_key, get_feitos, get_order, item_ids, load_orders
 from blueprints.orders import orders_bp
 from blueprints.agenda import agenda_bp
@@ -209,6 +210,7 @@ def create_app(config=None):
     app.register_blueprint(lyrics_bp)
     app.register_blueprint(display_bp)
     app.register_blueprint(idioma_bp)
+    app.register_blueprint(registro_tela_bp)
 
     def _versioned_static(filename):
         # ?v=<mtime> força o navegador a buscar a versão nova sempre que o

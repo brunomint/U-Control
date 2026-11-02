@@ -236,3 +236,5 @@ def handle_toggle_lyrics_visibility(data):
     except Exception:
         logger.exception('Falha ao persistir visible de toggle_lyrics_visibility')
     emit('lyrics_visibility_changed', {'visible': visible}, broadcast=True)
+    import registro_tela
+    registro_tela.texto_visivel(visible)

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}{{ _('Registro da tela') }} - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/registro_tela.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page rt-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>{{ _('Registro da tela') }}</h1>
+            <div class="uc-page-sub">{{ _('Compare o que passou no telão com o áudio gravado do culto') }}</div>
+        </div>
+    </div>
+
+    <section class="uc-card rt-fontes">
+        <div class="uc-field">
+            <label for="rt-dia">{{ _('Dia do culto') }}</label>
+            <input type="date" id="rt-dia" class="uc-input">
+        </div>
+        <div class="uc-field">
+            <label for="rt-arquivo">{{ _('Áudio do culto (MP3 no seu computador)') }}</label>
+            <input type="file" id="rt-arquivo" class="uc-input" accept="audio/*">
+        </div>
+        <div class="uc-field">
+            <label for="rt-inicio">{{ _('Início da gravação') }}</label>
+            <input type="datetime-local" id="rt-inicio" class="uc-input" step="1">
+        </div>
+        <p class="rt-aviso" id="rt-aviso" hidden></p>
+    </section>
+
+    <section class="uc-card rt-player">
+        <div class="rt-tela" id="rt-tela">
+            <p class="rt-tela-titulo" id="rt-tela-titulo"></p>
+            <p class="rt-tela-texto" id="rt-tela-texto"></p>
+        </div>
+        <audio id="rt-audio" controls preload="metadata"></audio>
+        <div class="rt-ajuste">
+            <label for="rt-atraso">{{ _('Atraso do áudio') }}: <strong id="rt-atraso-valor"></strong></label>
+            <input type="range" id="rt-atraso" min="-30" max="60" step="0.5" value="0">
+            <button type="button" class="uc-btn uc-btn-primary" id="rt-medir" disabled>
+                <i class="fas fa-flag"></i> {{ _('Está alinhado aqui') }}
+            </button>
+        </div>
+        <p class="rt-dica">{{ _('Ouça uma troca de tela e mova o ajuste até a tela mudar junto com o áudio. Repita no começo, no meio e no fim do culto.') }}</p>
+        <div id="rt-medicoes" hidden>
+            <p class="rt-resumo" id="rt-resumo"></p>
+            <ul class="rt-lista-medicoes" id="rt-lista-medicoes"></ul>
+            <button type="button" class="uc-btn uc-btn-ghost" id="rt-limpar-medicoes">{{ _('Limpar medições') }}</button>
+        </div>
+    </section>
+
+    <section class="uc-card">
+        <div class="uc-card-head"><h2>{{ _('Trocas de tela') }} <span id="rt-total"></span></h2></div>
+        <ol class="rt-eventos" id="rt-eventos"></ol>
+        <div class="uc-empty" id="rt-vazio">{{ _('Nenhuma troca registrada neste dia.') }}</div>
+    </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/pages/registro_tela.js') }}"></script>
+{% endblock %}

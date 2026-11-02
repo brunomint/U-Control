@@ -67,6 +67,8 @@ def set_public(kind, url=''):
     _tirar_tela_do_pc('public')
     if _monitor is None:   # o monitor espelha o público: mostra o mesmo
         _tirar_tela_do_pc('monitor')
+    import registro_tela
+    registro_tela.tela_mudou(kind, url)
 
 
 def set_public_url(url):

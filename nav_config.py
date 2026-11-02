@@ -99,6 +99,10 @@ NAV_ITEMS = [
         "group": "sistema", "login_required": True, "contexts": ["nav"],
     },
     {
+        "endpoint": "registro_tela.pagina", "label": "Registro da tela", "icon": "fa-film",
+        "group": "sistema", "login_required": True, "contexts": ["nav"],
+    },
+    {
         "endpoint": "auth.visualizar_usuarios", "label": "Usuários", "icon": "fa-users",
         "group": "sistema", "login_required": True, "contexts": ["nav", "launcher"],
     },

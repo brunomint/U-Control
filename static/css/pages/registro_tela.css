@@ -1,0 +1,74 @@
+/* Registro da tela (registro_tela.html) — base, card e botões vêm do app.css. */
+
+.rt-page { max-width: 900px; display: grid; gap: 14px; }
+
+.rt-fontes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.rt-aviso {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--uc-danger, #e5534b);
+  font-size: 13.5px;
+}
+
+.rt-player { display: grid; gap: 14px; }
+.rt-player audio { width: 100%; }
+
+.rt-tela {
+  min-height: 220px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 18px;
+  border-radius: var(--uc-r-lg);
+  background: #000;
+  color: #fff;
+  text-align: center;
+}
+.rt-tela-titulo { margin: 0 0 10px; font-size: 13px; opacity: .65; }
+.rt-tela-texto {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.45;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.rt-ajuste {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.rt-ajuste input { width: 100%; }
+.rt-dica, .rt-resumo { margin: 0; font-size: 13px; color: var(--uc-muted); }
+.rt-resumo { color: var(--uc-text); font-weight: 700; margin-bottom: 6px; }
+.rt-lista-medicoes { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; }
+
+.rt-eventos { list-style: none; margin: 0; padding: 0; max-height: 480px; overflow-y: auto; }
+.rt-evento {
+  display: grid;
+  grid-template-columns: 74px 66px 1fr;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 6px;
+  border: none;
+  border-bottom: 1px solid var(--uc-line);
+  background: none;
+  color: var(--uc-text);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.rt-evento:hover { background: var(--uc-surface-3); }
+.rt-evento.atual { background: var(--uc-surface-3); font-weight: 700; }
+.rt-hora, .rt-no-audio { color: var(--uc-muted); font-variant-numeric: tabular-nums; }
+.rt-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .rt-ajuste { grid-template-columns: 1fr; }
+  .rt-evento { grid-template-columns: 66px 56px 1fr; }
+}

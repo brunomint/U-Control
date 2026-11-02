@@ -140,3 +140,15 @@ class SavedUrls(db.Model):
     name1 = db.Column(db.String(80), nullable=True)
     name2 = db.Column(db.String(80), nullable=True)
     name3 = db.Column(db.String(80), nullable=True)
+
+
+# Cada troca do que o público viu, com o texto exibido (registro_tela.py).
+# ts_ms = milissegundos desde 1970: sem fuso, pra casar com o áudio gravado
+# no site, que roda em outra máquina.
+class TelaEvento(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ts_ms = db.Column(db.BigInteger, nullable=False, index=True)
+    tipo = db.Column(db.String(20), nullable=False)  # letra | biblia | video | foto | avisos | neutra | oculto | vazio | outro
+    titulo = db.Column(db.String(300), nullable=True)
+    texto = db.Column(db.Text, nullable=True)
+    tema = db.Column(db.Text, nullable=True)  # JSON do tema no momento da troca

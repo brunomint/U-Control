@@ -590,6 +590,8 @@ def handle_blackout(data):
     if publico:
         display_state._blackout_tipo = publico
     emit('blackout', display_state.blackout_payload(), broadcast=True)
+    import registro_tela
+    registro_tela.tela_neutra()
     telao.broadcast_status()
 
 @socketio.on('show_image_zoom')
