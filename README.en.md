@@ -151,7 +151,11 @@ The Windows installer is built by GitHub Actions
 
 Found a problem or have an idea? Open an
 [issue](https://github.com/brunomint/U-Control/issues), in English or
-Portuguese. Fixes and improvements via pull request are welcome. The
+Portuguese. Fixes and improvements via pull request are welcome: the
+[contributing guide](CONTRIBUTING.md) (in Portuguese) shows how to run the
+project and the tests, and issues labeled
+[`good first issue`](https://github.com/brunomint/U-Control/labels/good%20first%20issue)
+are a good place to start. The
 interface text lives in [`translations/en.json`](translations/en.json)
 (Portuguese → English): better wording, or a new language, is a good
 first contribution.

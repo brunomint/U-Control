@@ -140,7 +140,11 @@ arquivo `VERSION`, publica uma Release.
 
 Achou um problema ou tem uma ideia? Abra uma
 [issue](https://github.com/brunomint/U-Control/issues). Correções e
-melhorias por pull request são bem-vindas.
+melhorias por pull request são bem-vindas: o
+[guia de contribuição](CONTRIBUTING.md) explica como rodar o projeto e os
+testes, e as issues marcadas com
+[`good first issue`](https://github.com/brunomint/U-Control/labels/good%20first%20issue)
+são um bom começo.
 
 Gostou? Curta o U-Control no [AlternativeTo](https://alternativeto.net/software/u-control/about/): é assim que ele aparece
 para outras igrejas que procuram uma alternativa ao Holyrics ou ao OpenLP.
