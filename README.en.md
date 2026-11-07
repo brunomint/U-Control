@@ -122,6 +122,68 @@ Data is kept in `docker-data/`. To update: `docker compose pull` and
 `docker compose up -d`. If you cloned the repository and want to run your
 own code, use `docker compose up -d --build`.
 
+### CasaOS
+
+In the CasaOS dashboard: **App Store → "+" (Custom Install) → Import** and
+paste this address (or the file's contents):
+
+```
+https://brunomint.github.io/U-Control/casaos/docker-compose.yml
+```
+
+Data is kept in `/DATA/AppData/u-control`.
+
+### Portainer (and Umbrel)
+
+In Portainer: **Stacks → Add stack**, name it `u-control` and paste into
+the editor:
+
+```yaml
+services:
+  u-control:
+    image: ghcr.io/brunomint/u-control:latest
+    network_mode: host
+    environment:
+      TZ: America/Sao_Paulo
+    volumes:
+      - u-control-instance:/app/instance
+      - u-control-imagens:/app/static/imagens
+      - u-control-audio:/app/static/audio
+    restart: unless-stopped
+volumes:
+  u-control-instance:
+  u-control-imagens:
+  u-control-audio:
+```
+
+On Umbrel, install Portainer from the app store and follow the same steps.
+Change `TZ` to your time zone.
+
+In every case U-Control uses the server's own network
+(`network_mode: host`): open `http://<server-ip>:8585`. Port 8585 must be
+free.
+
+### Raspberry Pi from scratch
+
+1. On your computer, open [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+   and write **Raspberry Pi OS (64-bit)** to the card. Use the desktop
+   version if the Pi will also drive the big screen, or **Lite** if it is
+   only the server.
+2. Before writing, in **Edit settings**: pick the device name (e.g.
+   `ucontrol-pi`), user and password, Wi-Fi (if not using a cable) and
+   enable **SSH**.
+3. Connect the Pi to the network, wait about 2 minutes and log in from
+   your computer's terminal: `ssh <user>@ucontrol-pi.local`.
+4. Run the installer. If the Pi will also open the big screen in full
+   screen, end it with `| bash -s -- --telao` instead:
+
+   ```sh
+   curl -fsSL https://brunomint.github.io/U-Control/instalar.sh | bash
+   ```
+
+5. On any phone or PC on the same network, open
+   `http://ucontrol-pi.local:8585` (or the Pi's IP) and create the first user.
+
 ### First login
 
 On a new installation, the login screen asks you to create the first
