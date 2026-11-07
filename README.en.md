@@ -15,6 +15,8 @@ device on the same network opens the Control panel or the screens at
 
 **[⬇ Download for Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Project website](https://brunomint.github.io/U-Control/en/) · [On AlternativeTo](https://alternativeto.net/software/u-control/about/)
 
+![One tap on the phone changes the verse on the big screen and on the stage monitor at the same time](docs/imagens/demo.gif)
+
 ![Control panel: the song in the panel and what is on the big screen next to it](docs/imagens/en/controle.png)
 
 | Big screen | Stage monitor (musicians) |

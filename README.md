@@ -12,6 +12,8 @@ qualquer aparelho na mesma rede abre o Controle ou as telas pelo endereço
 
 **[⬇ Baixar para Windows](https://github.com/brunomint/U-Control/releases/latest)** · [Site do projeto](https://brunomint.github.io/U-Control/) · [No AlternativeTo](https://alternativeto.net/software/u-control/about/)
 
+![Um toque no celular troca a estrofe no telão e no retorno de palco ao mesmo tempo](docs/imagens/demo.gif)
+
 ![Controle: a música no painel e o que está no telão ao lado](docs/imagens/controle.png)
 
 | Telão | Monitor de palco (músicos) |
