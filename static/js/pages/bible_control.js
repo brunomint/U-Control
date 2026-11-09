@@ -33,7 +33,7 @@ function selectVerse(verseNum, silent = false) {
     const verseEl = document.getElementById(`verse-${verseNum}`);
     if (verseEl) {
         verseEl.classList.add('active');
-        verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.ucRolarAte(verseEl);
     }
 
     if (!silent) sendToDisplay();

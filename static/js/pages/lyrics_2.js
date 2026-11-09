@@ -943,10 +943,7 @@ $('#clear-lyrics').click(function() {
             
             // Scroll automático para manter a seção ativa visível na tela
             if (activeSection.length) {
-                activeSection[0].scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'  // Centraliza a seção na tela
-                });
+                window.ucRolarAte(activeSection[0]);   // só esta página, não o Controle (rolar.js)
             }
         }
     

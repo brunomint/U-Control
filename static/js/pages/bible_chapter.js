@@ -178,7 +178,7 @@ window.addEventListener('load', function() {
     if (hash && hash.startsWith('#verse-')) {
         const element = document.querySelector(hash);
         if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            window.ucRolarAte(element);
             element.style.animation = 'highlight 2s';
         }
     }
@@ -200,7 +200,7 @@ function marcarAtual(n) {
     const el = document.getElementById(`verse-${n}`);
     if (el) {
         el.classList.add('atual');
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.ucRolarAte(el);
     }
 }
 
