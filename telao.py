@@ -281,6 +281,7 @@ def _status_comum():
         'donos': destinos.donos(),
         # Cada tela segue a passagem (música, slides, Bíblia, vídeo)?
         'seguindo': dict(destinos._seguindo),
+        'palco_na_biblia': destinos._palco_na_biblia,
         **_extras(),
     }
 

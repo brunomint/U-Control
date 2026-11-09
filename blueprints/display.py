@@ -1185,7 +1185,7 @@ def _mostrar_passagem_em(tela):
     posição em que está tocando)."""
     from flask import g
     p = destinos._passagem
-    if not p or (p['kind'] == 'bible' and tela == 'monitor'):
+    if not p or ((p['kind'] == 'bible') != destinos._palco_na_biblia and tela == 'monitor'):
         return
     kind, payload = p['kind'], p['payload']
     g.uc_modo_passagem = tela

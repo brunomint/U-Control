@@ -34,8 +34,9 @@
         // A tela acompanha quem conduz enquanto o dono deixa letra/Bíblia/foto
         // nela; com relógio, tela preta etc. ela fica parada (destinos.py)
         const segue = !!(st.seguindo || {})[tela];
-        const seguir = `<span class="destino-segue">${esc(segue
-            ? _t('acompanha a letra') : _t('parada no que o responsável pôs'))}</span>`;
+        const naBiblia = tela === 'monitor' && st.palco_na_biblia;
+        const seguir = `<span class="destino-segue">${esc(!segue ? _t('parada no que o responsável pôs')
+            : naBiblia ? _t('acompanha a Bíblia') : _t('acompanha a letra'))}</span>`;
         return `<div class="destino${meu ? ' meu' : ''}"><span><i class="fas ${ICONES[tela]}" aria-hidden="true"></i> ` +
             `<b>${esc(NOMES[tela])}:</b> ${esc(texto)}</span><span class="destino-acoes">${seguir}${botao}</span></div>`;
     }

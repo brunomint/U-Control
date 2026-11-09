@@ -249,14 +249,44 @@ def test_foto_de_quem_esta_sem_tela_nao_vai_pro_palco_que_nao_segue(app, bruno_e
 
 def test_biblia_posta_no_palco_nao_e_atropelada_pela_musica(bruno_e_vitor):
     """Teste de 09/11: o Vitor pôs a Bíblia no palco e a música do Bruno
-    tirou ela de lá — o palco continuava seguindo a passagem."""
+    tirou ela de lá. Agora o palco na Bíblia acompanha só os versículos."""
     bruno, vitor, _, _ = bruno_e_vitor
     bruno.emit('set_display_mode', {'mode': 'public'})
     vitor.emit('set_display_mode', {'mode': 'monitor'})
     vitor.emit('show_monitor_content', {'url': '/bible/display'})
-    assert destinos._seguindo['monitor'] is False
+    assert destinos._palco_na_biblia
     bruno.emit('update_lyrics', {'songId': 1, 'sectionIndex': 0})
     assert telao._monitor and telao._monitor.get('url', '').startswith('/bible/display')
+
+
+def test_palco_na_biblia_acompanha_os_versiculos_e_a_tela_pega_o_ultimo_clicado(app, bruno_e_vitor):
+    """Teste de 09/11 (passo 5): o celular clicou o versículo antes de as
+    telas estarem na Bíblia (ficou preparado); o Bruno e o Vitor puseram a
+    Bíblia e ela apareceu vazia, e no palco os versículos nunca mudavam."""
+    from blueprints import bible as bible_bp
+    bruno, vitor, _, _ = bruno_e_vitor
+    cel = _operator_socket(app, 'ana')
+    palco = __import__('extensions').socketio.test_client(app)
+    palco.emit('identify', {'role': 'monitor'})
+    bib = lambda v: {'kind': 'bible', 'payload': {'reference': f'Gênesis 1:{v}', 'text': f'{v} texto', 'verses': [v]}}
+    try:
+        bruno.emit('set_display_mode', {'mode': 'public'})
+        vitor.emit('set_display_mode', {'mode': 'monitor'})
+        cel.emit('stage_content', {'kind': 'lyrics', 'payload': {'songId': 1, 'sectionIndex': 0, 'title': 'S', 'text': 't', 'type': 'text'}})
+        cel.emit('release_staged_content', {'kind': 'lyrics'})
+        cel.emit('stage_content', bib(1))                 # fica preparado (as telas estão na letra)
+        palco.get_received()
+        vitor.emit('show_monitor_content', {'url': '/bible/display'})
+        bruno.emit('show_image', {'image_url': '/bible/display', 'exclude_monitor': True})
+        recebido = [m for m in palco.get_received() if m['name'] == 'update_bible']
+        assert recebido and '1:1' in str(recebido[-1]['args'])   # já mostra o versículo clicado
+        cel.emit('stage_content', bib(2))
+        recebido = [m for m in palco.get_received() if m['name'] == 'update_bible']
+        assert recebido and '1:2' in str(recebido[-1]['args'])   # o palco acompanha os versículos
+        assert telao.publico_mostra('bible')
+    finally:
+        cel.disconnect()
+        palco.disconnect()
 
 
 def test_dono_pondo_a_letra_de_volta_a_tela_acompanha_quem_conduz(app, bruno_e_vitor):
@@ -271,14 +301,14 @@ def test_dono_pondo_a_letra_de_volta_a_tela_acompanha_quem_conduz(app, bruno_e_v
         cel.emit('update_lyrics', {'songId': 1, 'sectionIndex': 0})
         bruno.emit('blackout', {'tipo': 'logo', 'active': True, 'usar_modo': True})
         vitor.emit('show_monitor_content', {'url': '/bible/display'})
-        assert destinos._seguindo == {'public': False, 'monitor': False}
+        assert destinos._seguindo['public'] is False and destinos._palco_na_biblia   # palco só nos versículos
         cel.get_received()
         cel.emit('update_lyrics', {'songId': 1, 'sectionIndex': 1})
         assert any('Nenhuma tela' in m for m in _recusas(cel))
         # O dono tira a tela preta / põe a letra: volta a acompanhar sem botão
         bruno.emit('blackout', {'tipo': 'logo', 'active': False, 'usar_modo': True})
         vitor.emit('show_monitor_content', {'url': '/lyrics/display'})
-        assert destinos._seguindo == {'public': True, 'monitor': True}
+        assert destinos._seguindo == {'public': True, 'monitor': True} and not destinos._palco_na_biblia
         cel.get_received()
         cel.emit('update_lyrics', {'songId': 1, 'sectionIndex': 2})
         assert not _recusas(cel)

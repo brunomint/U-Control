@@ -49,6 +49,12 @@ _donos = {'public': None, 'monitor': None}
 _seguindo = {'public': True, 'monitor': True}
 # Último conteúdo da passagem que foi ao ar: {'kind', 'payload'}
 _passagem = None
+# Palco com a Bíblia posta pelo dono: acompanha só os versículos (a música
+# não tira a Bíblia de lá; a cifra volta quando o dono põe a letra)
+_palco_na_biblia = False
+# Último item clicado de cada tipo, mesmo que tenha ficado só preparado:
+# é o que a tela mostra quando o dono põe aquele tipo nela
+_ultimo_clicado = {}
 
 # Eventos da passagem: qualquer pessoa logada manda (ver _telas_da_passagem)
 EVENTOS_DA_PASSAGEM = {'stage_content', 'release_staged_content', 'update_lyrics',
@@ -203,8 +209,8 @@ def _telas_da_passagem(kind, usuario):
     por seguir (os músicos ficam na cifra)."""
     minhas = {t for t in telas_do_modo(display_state.device_mode()) if dono(t) in (None, usuario)}
     seguem = {t for t in TELAS if _seguindo.get(t)}
-    if kind == 'bible':
-        seguem.discard('monitor')
+    if (kind == 'bible') != _palco_na_biblia:
+        seguem.discard('monitor')   # palco na cifra não vira versículo, e vice-versa
     return minhas, minhas | seguem
 
 
@@ -253,11 +259,17 @@ def _voltar_a_seguir(telas, kinds=None):
     novo quem conduz e já pega o passo atual (se é do mesmo tipo — letra
     no palco não vira vídeo). O guarda (extensions.py) chama
     retomar_passagem depois da ação."""
+    global _passagem
     from flask import g
     for t in telas:
         _seguindo[t] = True
-    if _passagem and (kinds is None or _passagem['kind'] in kinds):
-        g.uc_retomar = set(g.get('uc_retomar') or ()) | set(telas)
+    if not (_passagem and (kinds is None or _passagem['kind'] in kinds)):
+        # O passo atual é de outro tipo: mostra o último clicado deste tipo
+        clicado = next((_ultimo_clicado[k] for k in sorted(kinds or ()) if k in _ultimo_clicado), None)
+        if not clicado:
+            return
+        _passagem = clicado
+    g.uc_retomar = set(g.get('uc_retomar') or ()) | set(telas)
 
 
 def retomar_passagem():
@@ -296,6 +308,8 @@ def autorizar(evento, args):
     if kind:
         if kind == 'slide':
             return None   # zoom e apresentação: só seguem o que já está nas telas
+        if evento == 'stage_content' and dados.get('payload'):
+            _ultimo_clicado[kind] = {'kind': kind, 'payload': dados['payload']}
         usuario = _usuario()
         minhas, telas = _telas_da_passagem(kind, usuario)
         if not telas:
@@ -342,8 +356,14 @@ def autorizar(evento, args):
     # Tela dividida com letra/foto/Bíblia num lado: a passagem segue nesse lado
     dividida_com_passagem = (evento in ('show_two_urls', 'show_monitor_two_urls')
                              and (da_passagem(dados.get('url1')) or da_passagem(dados.get('url2'))))
-    biblia_no_palco = (evento == 'show_monitor_content'
-                       and url.split('?')[0].startswith('/bible/display'))
+    global _palco_na_biblia
+    if evento == 'show_image' and dados.get('exclude_monitor'):
+        telas = telas - {'monitor'}   # "Só público": o palco não muda
+    if 'monitor' in telas and (evento in EVENTOS_QUE_DESLIGAM_SEGUIR
+                               or evento in ('show_monitor_content', 'show_image')):
+        # Bíblia no palco: ele passa a acompanhar só os versículos
+        _palco_na_biblia = (evento in ('show_monitor_content', 'show_image')
+                            and url.split('?')[0].startswith('/bible/display'))
     if evento == 'blackout':
         if dados.get('active', True):
             for t in telas:
@@ -358,17 +378,9 @@ def autorizar(evento, args):
             if voltam:
                 _voltar_a_seguir(voltam)
     elif ((evento in EVENTOS_QUE_DESLIGAM_SEGUIR and not dividida_com_passagem)
-            or (evento in ('show_monitor_content', 'show_image') and url and not da_passagem(url))
-            # A Bíblia nunca vai ao palco pela passagem: pô-la lá é escolha do dono
-            or biblia_no_palco):
+            or (evento in ('show_monitor_content', 'show_image') and url and not da_passagem(url))):
         _desligar_seguir_das(telas)
     elif evento in ('show_monitor_content', 'show_image') and da_passagem(url):
         # O dono pôs letra/Bíblia/foto na tela dele: ela acompanha quem conduz
-        kinds = _rota_kinds(url)
-        if kinds == {'bible'} and 'monitor' in telas:
-            # Bíblia no palco é escolha do dono (a passagem não a leva lá)
-            _desligar_seguir_das({'monitor'})
-            telas = telas - {'monitor'}
-        if telas:
-            _voltar_a_seguir(telas, kinds)
+        _voltar_a_seguir(telas, _rota_kinds(url))
     return None
