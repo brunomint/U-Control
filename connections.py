@@ -36,6 +36,10 @@ def handle_connect():
     socketio_clients_by_sid[sid]['usuario'] = current_user.username if current_user.is_authenticated else ''
     join_room(sala_do_aparelho(device))
     socketio_clients_connected = len(socketio_clients_by_sid)
+    # Voltou (outra aba, Wi-Fi caiu) com um modo guardado de tela que
+    # outra pessoa pegou nesse meio-tempo: larga essa tela (destinos.py)
+    import destinos
+    destinos.ajustar_ao_conectar(device, socketio_clients_by_sid[sid]['usuario'])
     logger.info('Cliente conectado')
 
 

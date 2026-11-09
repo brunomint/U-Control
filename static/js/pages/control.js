@@ -465,14 +465,20 @@ function showBibleDisplay() {
 // ── Modo Monitor de Palco ─────────────────────────────────────────────────
 let monitorOnlyMode = false;
 let publicOnlyMode = false;
+// Nenhuma tela escolhida (destinos.py): aparelho novo começa assim
+let semTela = true;
 
 // Mostra os modos nos interruptores, nas faixas da prévia e no selo.
 // O servidor é a fonte da verdade (telao_status): assim o /control
 // recarregado ou aberto em outro PC mostra o modo que está valendo — antes
 // voltava "desligado" enquanto o servidor seguia em Só monitor, e o
 // próximo clique saía como se não houvesse modo.
+function modoAtual() {
+    return semTela ? 'none' : monitorOnlyMode ? 'monitor' : publicOnlyMode ? 'public' : 'all';
+}
+
 function renderModes() {
-    const mode = monitorOnlyMode ? 'monitor' : publicOnlyMode ? 'public' : 'all';
+    const mode = modoAtual();
     document.querySelectorAll('.mode-seg [data-mode]').forEach(btn => {
         btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
     });
@@ -487,34 +493,31 @@ function renderModes() {
 function myMode(st) {
     if (st.mode) return st.mode;  // GET /api/telao-status já vem com o desta máquina
     const m = document.cookie.match(/(?:^|;\s*)uc_device=([^;]*)/);
-    return (st.modes || {})[m ? decodeURIComponent(m[1]) : null] || 'all';
+    return (st.modes || {})[m ? decodeURIComponent(m[1]) : null] || 'none';
 }
 
 function applyServerMode(mode) {
-    const was = monitorOnlyMode ? 'monitor' : publicOnlyMode ? 'public' : 'all';
+    const was = modoAtual();
     monitorOnlyMode = mode === 'monitor';
     publicOnlyMode = mode === 'public';
+    semTela = mode === 'none';
     // Entrou ou saiu do Só monitor: a prévia acompanha a tela que está mudando
     if (mode !== was) previewView = monitorOnlyMode ? 'monitor' : 'public';
     renderModes();
 }
 
-// "O que as ações mudam": Os dois | Só público | Só monitor — uma escolha
-// só (antes eram dois interruptores que se desligavam um ao outro).
-// Só público: o monitor de palco fica congelado no que já mostrava.
+// "Quais telas você controla": Público | Palco | Os dois | Nenhuma.
+// O servidor decide (destinos.py): tela com outra pessoa não muda aqui e
+// o destinos.js oferece Assumir. Só muda a tela deste aparelho quando o
+// servidor confirma (telao_status traz o modo novo).
 function setModeChoice(mode) {
-    monitorOnlyMode = mode === 'monitor';
-    publicOnlyMode = mode === 'public';
-    // A prévia passa a mostrar a tela que vai mudar
-    previewView = monitorOnlyMode ? 'monitor' : 'public';
-    renderModes();
-    renderPreview();
-    // Manda o modo pro servidor — fonte única de verdade que _release_kind
-    // usa pra QUALQUER liberação (card do /control ou banner nas próprias
-    // páginas, ver display_state._device_modes). Também reseta o
-    // live-follow, senão um live-follow em andamento continuaria usando o
-    // modo ANTIGO até a próxima liberação explícita.
-    socket.emit('set_display_mode', { exclude_monitor: publicOnlyMode, monitor_only: monitorOnlyMode });
+    socket.emit('set_display_mode', { mode }, (r) => {
+        if (r && !r.ok && window.ucDestinos) window.ucDestinos.pedirAssumir(r.ocupadas || {}, mode);
+        if (r && r.ok) {
+            previewView = mode === 'monitor' ? 'monitor' : 'public';
+            renderPreview();
+        }
+    });
 }
 
 function setupModeChoice() {
@@ -878,7 +881,8 @@ function setupPreviewScaling() {
 function updateModePill() {
     const pill = document.getElementById('mode-pill');
     if (!pill) return;
-    if (monitorOnlyMode) pill.innerHTML = '<span class="dot"></span>' + _t('Só monitor');
+    if (semTela) pill.innerHTML = '<span class="dot"></span>' + _t('Nenhuma tela');
+    else if (monitorOnlyMode) pill.innerHTML = '<span class="dot"></span>' + _t('Só monitor');
     else if (publicOnlyMode) pill.innerHTML = '<span class="dot"></span>' + _t('Só público');
     else pill.innerHTML = '<span class="dot"></span>' + _t('Público e monitor');
 }

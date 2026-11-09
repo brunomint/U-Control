@@ -11,7 +11,7 @@
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/control.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/telas_neutras.css') }}">
-<link rel="stylesheet" href="{{ versioned_static('css/palco.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/destinos.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/site_telao.css') }}">
 {% endblock %}
 
@@ -30,6 +30,7 @@
         </div>
         <!-- Qual tela a prévia mostra. Troca sozinho pra Monitor no modo
              "Só monitor" (o que se muda vai pro palco) — control.js -->
+        <div class="preview-view-label">{{ _('Prévia (só para ver):') }}</div>
         <div class="uc-seg preview-view-seg" role="group" aria-label="{{ _('Tela mostrada na prévia') }}">
             <button type="button" data-preview="public" aria-pressed="true"><i class="fas fa-users"></i> {{ _('Público') }}</button>
             <button type="button" data-preview="monitor" aria-pressed="false"><i class="fas fa-tv"></i> {{ _('Monitor de palco') }}</button>
@@ -73,16 +74,15 @@
         </div>
 
         <div class="mode-choice">
-            <div class="mode-choice-label">{{ _('O que as ações mudam') }}</div>
-            <div class="uc-seg mode-seg" role="group" aria-label="{{ _('O que as ações mudam') }}">
-                <button type="button" data-mode="all" aria-pressed="true" title="{{ _('Público e monitor de palco') }}">{{ _('Os dois') }}</button>
-                <button type="button" data-mode="public" aria-pressed="false" title="{{ _('Só a tela do público muda; o monitor de palco fica como está') }}">{{ _('Só público') }}</button>
-                <button type="button" data-mode="monitor" aria-pressed="false" title="{{ _('Só o monitor de palco muda; o público fica como está') }}">{{ _('Só monitor') }}</button>
+            <div class="mode-choice-label">{{ _('Quais telas você controla') }}</div>
+            <div class="uc-seg mode-seg" role="group" aria-label="{{ _('Quais telas você controla') }}">
+                <button type="button" data-mode="public" aria-pressed="false" title="{{ _('Telão e site da igreja; o monitor de palco fica como está') }}">{{ _('Só público') }}</button>
+                <button type="button" data-mode="monitor" aria-pressed="false" title="{{ _('Só o monitor de palco; o público fica como está') }}">{{ _('Só monitor') }}</button>
+                <button type="button" data-mode="all" aria-pressed="false" title="{{ _('Público e monitor de palco') }}">{{ _('Os dois') }}</button>
+                <button type="button" data-mode="none" aria-pressed="true" title="{{ _('Não mexe em nenhuma tela') }}">{{ _('Nenhuma') }}</button>
             </div>
-            <div class="palco-com" id="palco-com" hidden>
-                <span><i class="fas fa-user" aria-hidden="true"></i> <span id="palco-com-texto"></span></span>
-                <button type="button" class="uc-btn uc-btn-secondary" id="assumir-palco">{{ _('Assumir o palco') }}</button>
-            </div>
+            <!-- Quem cuida de cada tela e Assumir (static/js/destinos.js) -->
+            <div class="destinos" id="destinos"></div>
         </div>
     </section>
 
@@ -274,7 +274,7 @@
 {% block scripts %}
 <script src="{{ versioned_static('js/telas_neutras.js') }}"></script>
 <script src="{{ versioned_static('js/pages/control.js') }}"></script>
-<script src="{{ versioned_static('js/palco.js') }}"></script>
+<script src="{{ versioned_static('js/destinos.js') }}"></script>
 <script src="{{ versioned_static('js/screen_picker.js') }}"></script>
 <script src="{{ versioned_static('js/site_telao.js') }}"></script>
 {% endblock %}

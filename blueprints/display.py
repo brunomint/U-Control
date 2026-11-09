@@ -19,6 +19,7 @@ from flask import Blueprint, current_app, jsonify, make_response, render_templat
 from flask_login import current_user, login_required
 from flask_socketio import emit
 
+import destinos
 import display_state
 import telao
 from blueprints import apresentacao
@@ -1087,20 +1088,25 @@ def liberar_preparado(kind, device=None):
 
 @socketio.on('set_display_mode')
 def handle_set_display_mode(data):
-    """Emitido pelo /control ao escolher Os dois / Só público / Só monitor
-    (setModeChoice em control.js) — grava o modo DESTA máquina em
-    display_state._device_modes, que _release_kind lê pra QUALQUER
-    liberação feita daqui, não importa se veio do card do /control ou do
-    banner nas próprias páginas (release_banner.js não tem acesso às
-    variáveis JS do /control, que fica numa aba/página diferente).
+    """Emitido pelo /control ao escolher quais telas este aparelho controla
+    (Público / Palco / Os dois / Nenhuma — setModeChoice em control.js).
+    Grava o modo DESTA máquina em display_state._device_modes, que
+    _release_kind lê pra QUALQUER liberação feita daqui.
 
-    Também reseta o live-follow — trocar de modo é uma troca de contexto
-    igual trocar de tipo: sem isto, um live-follow em andamento continuaria
-    indo pra tela antiga até a próxima liberação explícita."""
-    display_state.set_device_mode('monitor' if data.get('monitor_only')
-                                  else 'public' if data.get('exclude_monitor') else 'all')
-    display_state.follow_encerra()
+    Quem cuida de cada tela (destinos.py): tela com outra pessoa só com
+    assumir=True; sem ele, nada muda e a resposta diz quem está com ela.
+    Também reseta o live-follow — trocar de modo é uma troca de contexto."""
+    data = data or {}
+    modo = data.get('mode')
+    if modo not in ('all', 'public', 'monitor', 'none'):
+        # Formato antigo (Stream Deck, abas abertas antes da atualização)
+        modo = ('monitor' if data.get('monitor_only')
+                else 'public' if data.get('exclude_monitor') else 'all')
+    resultado = destinos.escolher_modo(modo, assumir=bool(data.get('assumir')))
+    for device in resultado.get('tirados', []):
+        emit('tela_assumida', {'por': current_user.username}, to=sala_do_aparelho(device))
     telao.broadcast_status()
+    return resultado
 
 
 @socketio.on('slideshow_state')
@@ -1130,10 +1136,20 @@ def handle_telao_ping(data=None):
 
 @socketio.on('assumir_palco')
 def handle_assumir_palco(data=None):
-    """Botão "Assumir o palco" do /control (static/js/palco.js)."""
-    for device in display_state.assumir_palco():
-        emit('palco_assumido', {'por': current_user.username}, to=sala_do_aparelho(device))
-    telao.broadcast_status()
+    """Assumir o palco (versão antiga do botão): o mesmo que assumir_tela."""
+    return handle_assumir_tela({'tela': 'monitor'})
+
+
+@socketio.on('assumir_tela')
+def handle_assumir_tela(data=None):
+    """Botão "Assumir" do /control (static/js/destinos.js): este aparelho
+    passa a controlar também essa tela, tirando-a de quem estava com ela."""
+    tela = (data or {}).get('tela')
+    if tela not in destinos.TELAS:
+        return {'ok': False}
+    atual = destinos.telas_do_modo(display_state.device_mode()) | {tela}
+    modo = 'all' if atual == {'public', 'monitor'} else tela
+    return handle_set_display_mode({'mode': modo, 'assumir': True})
 
 
 @socketio.on('stop_live_follow')

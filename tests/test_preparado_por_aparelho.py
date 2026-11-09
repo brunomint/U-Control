@@ -14,7 +14,7 @@ LETRA = {"kind": "lyrics", "payload": {"songId": 1, "sectionIndex": 0, "title": 
 
 @pytest.fixture
 def dois(app):
-    ipad, vitor = _operator_socket(app), _operator_socket(app)
+    ipad, vitor = _operator_socket(app), _operator_socket(app, "vitor")
     ds = list(connections.socketio_clients_by_sid.values())
     yield ipad, vitor, ds[-2]["device"], ds[-1]["device"]
     for s in (ipad, vitor):
@@ -38,6 +38,8 @@ def _do(app, kind, device):
 
 def test_cada_aparelho_tem_seu_preparado(app, dois):
     ipad, vitor, d_ipad, d_vitor = dois
+    ipad.emit("set_display_mode", {"mode": "public"})
+    vitor.emit("set_display_mode", {"mode": "monitor"})
     ipad.emit("stage_content", {**FOTO, "label": "do iPad"})
     vitor.emit("stage_content", {**FOTO, "label": "do Vitor"})
     assert _do(app, "image", d_ipad) and _do(app, "image", d_vitor)
@@ -90,6 +92,7 @@ def test_mudar_o_publico_encerra_o_acompanhar_do_outro(dois):
     ipad, vitor, d_ipad, d_vitor = dois
     ipad.emit("stage_content", LETRA)
     ipad.emit("release_staged_content", {"kind": "lyrics"})
+    vitor.emit("assumir_tela", {"tela": "public"})   # Vitor assume o público
     vitor.emit("show_image", {"image_url": "/static/imagens/a.jpg"})
     assert display_state.follow_kind(d_ipad) is None
 
@@ -117,7 +120,7 @@ def test_palco_com_mostra_o_nome_e_some_quando_ele_sai(dois):
     vitor.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": True})
     ipad.get_received(); vitor.get_received()
     telao.broadcast_status()
-    assert _status(ipad)["palco_com"] == "tester"
+    assert _status(ipad)["palco_com"] == "vitor"
     assert _status(vitor)["palco_com"] is None
     for sid, info in list(connections.socketio_clients_by_sid.items()):
         if info["device"] == d_vitor:
@@ -132,12 +135,14 @@ def test_assumir_o_palco(dois):
     vitor.emit("stage_content", LETRA)
     vitor.emit("release_staged_content", {"kind": "lyrics"})
     vitor.get_received()
+    ipad.emit("set_display_mode", {"mode": "public"})
     ipad.emit("assumir_palco", {})
-    assert display_state.device_mode(d_ipad) == "monitor"
-    assert display_state.device_mode(d_vitor) == "public"
+    assert display_state.device_mode(d_ipad) == "all"   # público + palco assumido
+    # Vitor só tinha o palco: fica sem tela (antes caía em "Só público")
+    assert display_state.device_mode(d_vitor) == "none"
     assert display_state.follow_kind(d_vitor) is None
     recebidos = vitor.get_received()
-    assert any(m["name"] == "palco_assumido" and m["args"][0]["por"] == "tester" for m in recebidos)
+    assert any(m["name"] == "tela_assumida" and m["args"][0]["por"] == "tester" for m in recebidos)
 
 
 def test_assumir_exige_login(app, dois):

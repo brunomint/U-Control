@@ -17,8 +17,10 @@ SID_VITOR = 'sid-teste-vitor'
 
 @pytest.fixture
 def vitor_em_so_monitor():
-    connections.socketio_clients_by_sid[SID_VITOR] = {'role': 'control', 'device': 'pc-vitor'}
+    import destinos
+    connections.socketio_clients_by_sid[SID_VITOR] = {'role': 'control', 'device': 'pc-vitor', 'usuario': 'vitor'}
     display_state._device_modes['pc-vitor'] = 'monitor'
+    destinos._donos['monitor'] = 'vitor'
     yield
     connections.socketio_clients_by_sid.pop(SID_VITOR, None)
     display_state._device_modes.pop('pc-vitor', None)
@@ -39,7 +41,10 @@ def test_sync_nao_mexe_no_palco_de_outro_aparelho(logged_in_client, vitor_em_so_
         telao.set_monitor(None)
 
 
-def test_quem_esta_em_so_monitor_sincroniza(logged_in_client, vitor_em_so_monitor):
+def test_quem_cuida_do_palco_sincroniza(logged_in_client, vitor_em_so_monitor):
+    import destinos
+    connections.socketio_clients_by_sid[SID_VITOR]['usuario'] = 'tester'
+    destinos._donos['monitor'] = 'tester'
     assert _sync(logged_in_client, 'pc-vitor').status_code == 200
 
 

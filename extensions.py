@@ -56,11 +56,23 @@ class OperatorSocketIO(SocketIO):
         def decorator(handler):
             @functools.wraps(handler)
             def guarded(*args, **kwargs):
-                if not current_user.is_authenticated and not _screen_video_reset(message, args):
+                reset_da_tela = _screen_video_reset(message, args)
+                if not current_user.is_authenticated and not reset_da_tela:
                     logging.getLogger('ucontrol').warning(
                         'Socket: evento %r recusado (sem login)', message)
                     return None
                 registro_acoes.registrar_evento(message, args)
+                # Quem cuida de cada tela (destinos.py): ação numa tela de
+                # outra pessoa, ou sem tela escolhida, não passa
+                if not reset_da_tela:
+                    import destinos
+                    motivo = destinos.autorizar(message, args)
+                    if motivo:
+                        registro_acoes.registrar_recusa(message, motivo)
+                        from connections import sala_do_aparelho
+                        self.emit('acao_recusada', {'motivo': motivo, 'evento': message},
+                                  to=sala_do_aparelho())
+                        return None
                 return handler(*args, **kwargs)
             return register(guarded)
         return decorator

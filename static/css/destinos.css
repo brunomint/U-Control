@@ -1,0 +1,33 @@
+/* Quem cuida de cada tela e Assumir, no /control (static/js/destinos.js) */
+.destinos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+}
+.destino,
+.destino-pedido {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--uc-line);
+    border-radius: var(--uc-r-sm);
+    font-size: 14px;
+}
+.destino i { margin-right: 4px; opacity: 0.8; }
+.destino.meu { border-color: var(--uc-accent); }
+.destino-pedido {
+    border-color: var(--uc-danger);
+    background: var(--uc-danger-soft);
+}
+.destino-pedido span { flex: 1 1 100%; }
+
+/* "Prévia (só para ver):" acima do seletor Público | Monitor de palco */
+.preview-view-label {
+    font-size: 12px;
+    opacity: 0.7;
+    margin: 4px 0 2px;
+}

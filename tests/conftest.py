@@ -27,7 +27,15 @@ def sem_preparado_nem_follow():
         StagedContent.query.delete()
         ucontrol_main.db.session.commit()
     display_state._follows.clear()
+    # Quem cuida de cada tela (destinos.py): cada teste começa sem dono.
+    # Os testes escritos antes de existir o dono contam com "Os dois" de
+    # padrão; os de tests/test_destinos.py voltam pro padrão de verdade.
+    import destinos
+    display_state._device_modes.clear()
+    destinos._donos.update({'public': None, 'monitor': None})
+    display_state.MODO_INICIAL = 'all'
     yield
+    display_state.MODO_INICIAL = 'none'
 
 
 @pytest.fixture

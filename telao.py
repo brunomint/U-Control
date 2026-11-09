@@ -15,6 +15,7 @@ que ela tenha mudado depois."""
 import re
 from urllib.parse import parse_qs, urlsplit
 
+import destinos
 import display_state
 from extensions import socketio
 
@@ -241,14 +242,17 @@ def _status_do_aparelho(device):
     except Exception:
         staged = []
     follow = display_state.follow_kind(device)
-    dono = display_state.dono_do_palco(device)
+    eu = next((i.get('usuario') for i in list(socketio_clients_by_sid.values())
+               if i.get('device') == device and i.get('usuario')), None)
+    dono_palco = destinos.dono('monitor')
     return {
         'staged': staged,
         'follow': follow,
         'follow_label': (display_state.follow_label(device) or _FOLLOW_LABELS.get(follow)) if follow else None,
-        # Outro aparelho conectado cuida do palco: o /control mostra quem é
-        'palco_com': next((i.get('usuario') for i in list(socketio_clients_by_sid.values())
-                           if i.get('device') == dono and i.get('usuario')), '') if dono else None,
+        # Palco com outra pessoa (destinos.py): o /control mostra quem é
+        'palco_com': dono_palco if dono_palco and dono_palco != eu else None,
+        # Quem é este aparelho, pra a barra dizer "você" em vez do nome
+        'eu': eu,
     }
 
 
@@ -273,6 +277,8 @@ def _status_comum():
         'blackout': bool(display_state._blackout_active),
         'blackout_tipo': display_state._blackout_tipo,
         'telas_neutras': dict(display_state._telas_neutras),
+        # Quem cuida de cada tela (destinos.py): {'public': 'bruno', 'monitor': None}
+        'donos': destinos.donos(),
         **_extras(),
     }
 

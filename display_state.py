@@ -168,8 +168,10 @@ def follow_encerra_quem_ve_o_publico(deve_encerrar):
 # Com um modo único, trocar num PC trocava no outro, e a letra mandada
 # pelo PC do público ia parar no monitor. A máquina é o cookie uc_device
 # (ver main.py), que todas as abas do mesmo navegador mandam — inclusive
-# no socket. Máquina sem modo guardado = 'all' (Os dois).
+# no socket. Máquina sem modo guardado = 'none' (nenhuma tela; ver destinos.py).
 _device_modes = {}
+# Modo de quem ainda não escolheu (os testes antigos usam 'all')
+MODO_INICIAL = 'none'
 
 
 def current_device():
@@ -184,45 +186,23 @@ def current_device():
 
 
 def device_mode(device=None):
-    """'all' | 'public' | 'monitor' da máquina (padrão: quem pediu)."""
-    return _device_modes.get(device if device is not None else current_device(), 'all')
-
-
-def dono_do_palco(eu=None):
-    """Outro aparelho conectado agora em "Só monitor" (o id dele) — duas
-    pessoas, uma no telão e outra no palco. Só conta quem está conectado:
-    um PC que ficou em "Só monitor" e foi embora não prende ninguém."""
-    from connections import socketio_clients_by_sid
-    eu = current_device() if eu is None else eu
-    conectados = {info.get('device') for info in list(socketio_clients_by_sid.values())}
-    return next((d for d in conectados if d and d != eu and _device_modes.get(d) == 'monitor'), None)
+    """'all' | 'public' | 'monitor' | 'none' da máquina (padrão: quem
+    pediu). Máquina que ainda não escolheu = 'none': não mexe em tela
+    nenhuma (destinos.py) — antes era 'all' e passava por cima de todos."""
+    return _device_modes.get(device if device is not None else current_device(), MODO_INICIAL)
 
 
 def palco_de_outro_pc():
-    """O palco é de outro aparelho: o "Só público" deste não o arrasta junto."""
-    return dono_do_palco() is not None
-
-
-def assumir_palco():
-    """Este aparelho fica com o palco. Quem estava nele vai pra Só público
-    (não "Os dois": seguiria mexendo no palco sem querer) e para de
-    acompanhar ao vivo. Devolve os aparelhos que perderam o palco."""
-    eu = current_device()
-    tirados = [d for d, modo in _device_modes.items() if modo == 'monitor' and d != eu]
-    for device in tirados:
-        set_device_mode('public', device)
-        follow_encerra(device)
-    set_device_mode('monitor', eu)
-    follow_encerra(eu)
-    return tirados
+    """O palco está com outra pessoa (destinos.py): o "Só público" deste
+    aparelho não o arrasta junto."""
+    import destinos
+    dono = destinos.dono('monitor')
+    return bool(dono) and dono != destinos._usuario()
 
 
 def set_device_mode(mode, device=None):
     device = device if device is not None else current_device()
-    if mode in ('public', 'monitor'):
-        _device_modes[device] = mode
-    else:
-        _device_modes.pop(device, None)
+    _device_modes[device] = mode if mode in ('all', 'public', 'monitor') else 'none'
 
 # Estado de reprodução de vídeo para sincronização entre clientes /img.
 # Quando uma nova janela /img conecta, ela consulta este estado para começar

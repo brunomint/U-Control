@@ -62,6 +62,14 @@ def registrar_evento(evento, args):
         logger.debug('Registro de ação falhou', exc_info=True)
 
 
+def registrar_recusa(evento, motivo):
+    """Ação barrada por destinos.py (tela de outra pessoa ou nenhuma escolhida)."""
+    try:
+        logger.info('ACAO %s evento=%s recusado=%s', _quem(), evento, _limpo(motivo))
+    except Exception:
+        logger.debug('Registro de ação falhou', exc_info=True)
+
+
 def registrar_http(response):
     if request.method not in METODOS_DE_ACAO or request.path in ROTAS_IGNORADAS:
         return

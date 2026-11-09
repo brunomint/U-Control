@@ -101,8 +101,11 @@
         // Modo desta máquina (o servidor guarda um por PC — ver
         // display_state._device_modes); o GET já vem com st.mode
         const dev = document.cookie.match(/(?:^|;\s*)uc_device=([^;]*)/);
-        const mode = st.mode || (st.modes || {})[dev ? decodeURIComponent(dev[1]) : null] || 'all';
-        if (mode === 'public') {
+        const mode = st.mode || (st.modes || {})[dev ? decodeURIComponent(dev[1]) : null] || 'none';
+        if (mode === 'none') {
+            // Aparelho sem tela escolhida (destinos.py): nada que tocar muda as telas
+            parts.push(`<a class="tb-chip tb-mode tb-sem-tela" href="/control" title="${esc(_t('Escolha no Controle quais telas você controla'))}"><i class="fas fa-hand"></i> ${esc(_t('Nenhuma tela — escolher'))}</a>`);
+        } else if (mode === 'public') {
             parts.push(`<span class="tb-chip tb-mode" title="${esc(_t('Ações mudam só a tela do público'))}"><i class="fas fa-users"></i> ${esc(_t('Só público'))}</span>`);
         } else if (mode === 'monitor') {
             parts.push(`<span class="tb-chip tb-mode" title="${esc(_t('Ações mudam só o monitor de palco'))}"><i class="fas fa-tv"></i> ${esc(_t('Só monitor'))}</span>`);
@@ -236,6 +239,8 @@
         socket = window.io();
         socket.on('connect', () => { setOffline(false); refresh(); });
         socket.on('telao_status', render);
+        // Ação barrada pelo servidor (destinos.py): tela de outra pessoa ou nenhuma escolhida
+        socket.on('acao_recusada', d => { if (window.ucToast) window.ucToast(d.motivo, 'error'); });
         socket.on('disconnect', () => setOffline(true));
         window.addEventListener('offline', () => setOffline(true));
         window.addEventListener('online', ping);

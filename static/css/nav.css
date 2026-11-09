@@ -284,3 +284,4 @@ html.uc-embed .site-nav-spacer,
 html.uc-embed .telao-bar { display: none !important; }
 html.uc-embed body,
 html.uc-embed body.has-telao-bar { --uc-nav-h: 0px; }
+.tb-sem-tela { background: var(--uc-warn-soft); color: var(--uc-warn); }

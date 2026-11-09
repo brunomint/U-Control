@@ -17,18 +17,19 @@ def _follow_kind():
     return next((f["kind"] for f in display_state._follows.values() if f["kind"]), None)
 
 
-def _operator_socket(app):
+def _operator_socket(app, usuario="tester"):
     """Cliente Socket.IO de um operador logado — os eventos de controle
-    do telão exigem login (extensions.OperatorSocketIO)."""
+    do telão exigem login (extensions.OperatorSocketIO). Outro `usuario`
+    = outra pessoa (quem cuida de cada tela é por pessoa, destinos.py)."""
     with app.app_context():
-        if not User.query.filter_by(username="tester").first():
+        if not User.query.filter_by(username=usuario).first():
             ucontrol_main.db.session.add(User(
-                username="tester",
+                username=usuario,
                 password=generate_password_hash("senha123", method="pbkdf2:sha256"),
             ))
             ucontrol_main.db.session.commit()
     http = app.test_client()
-    http.post("/login", data={"username": "tester", "password": "senha123"})
+    http.post("/login", data={"username": usuario, "password": "senha123"})
     return ucontrol_main.socketio.test_client(app, flask_test_client=http)
 
 
@@ -1374,7 +1375,8 @@ def test_each_machine_has_its_own_display_mode(app):
     for op in (pc_publico, pc_palco):
         op.emit("set_display_mode", {"exclude_monitor": False, "monitor_only": False})
         op.disconnect()
-    assert display_state._device_modes == {}
+    # "Os dois" agora fica guardado (aparelho que não escolheu é 'none')
+    assert set(display_state._device_modes.values()) == {"all"}
     monitor.disconnect()
 
 
@@ -4124,7 +4126,7 @@ def test_two_computers_one_on_public_one_on_stage_dont_step_on_each_other(app):
     ficava vazio (congelado como "mostrando a letra" sem estar)."""
     import telao
     lyr = lambda i: {"kind": "lyrics", "payload": {"songId": 1, "sectionIndex": i, "title": f"S{i}", "text": f"t{i}", "type": "text"}}
-    A, Bm = _operator_socket(app), _operator_socket(app)
+    A, Bm = _operator_socket(app), _operator_socket(app, "vitor")
     palco = ucontrol_main.socketio.test_client(app)
     palco.emit("identify", {"role": "monitor"})
     try:
