@@ -4656,3 +4656,11 @@ def test_cifras_seguem_a_ordem_no_culto(app, logged_in_client):
     finally:
         with app.app_context():
             songs_store.save_songs(existentes)
+
+
+def test_token_csrf_nao_vence_por_tempo():
+    """08/11: o celular com a página das fotos aberta havia mais de 1 h teve
+    todo envio recusado (400, token vencido) — "Erro no envio"."""
+    import main
+    app = main.create_app({'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:', 'TESTING': True})
+    assert app.config['WTF_CSRF_TIME_LIMIT'] is None

@@ -144,6 +144,11 @@ def create_app(config=None):
     app.config['SESSION_COOKIE_NAME'] = 'session'
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['SESSION_PERMANENT'] = False
+    # Token CSRF vale enquanto a sessão (login) valer. Com o padrão de 1 h,
+    # páginas abertas desde antes do culto (fotos, letra) passavam a ter
+    # todo envio recusado com 400 — o "Erro no envio" das fotos de 08/11.
+    # O token continua preso à sessão de quem logou.
+    app.config['WTF_CSRF_TIME_LIMIT'] = None
 
     if config is None and os.getenv('UCONTROL_TESTING') == '1':
         # WTF_CSRF_ENABLED=False só nos testes: o test client do Flask não é
@@ -172,6 +177,9 @@ def create_app(config=None):
         allow_upgrades=True,
         transports=['polling', 'websocket'],
     )
+    # Quem cuida de cada tela volta depois de um reinício (instance/telas.json)
+    import estado_telas
+    estado_telas.init_app(app)
 
     with app.app_context():
         if app.config.get('TESTING'):

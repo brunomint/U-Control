@@ -25,7 +25,7 @@
         return originalFetch.call(this, input, init);
     };
 
-    // Token vencido (dura 1 h) ou novo login em outra aba: busca a página de
+    // Token de outra sessão (novo login em outra aba; não vence mais por tempo — main.py): busca a página de
     // novo só pra pegar um token novo. Falso se caiu no login (deslogado).
     window.ucRenovarToken = async function () {
         try {
