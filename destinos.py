@@ -100,6 +100,9 @@ def dono(tela):
     ainda = any(u == usuario and tela in telas_do_modo(display_state.device_mode(d))
                 for d, u in _aparelhos_conectados().items())
     if not ainda:
+        import estado_telas
+        if estado_telas.em_carencia():
+            return usuario   # servidor acabou de reiniciar: os aparelhos ainda estão voltando
         _donos[tela] = None
         return None
     return usuario

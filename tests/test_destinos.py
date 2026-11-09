@@ -386,3 +386,29 @@ def test_quem_fecha_o_controle_libera_a_tela_e_os_outros_veem(app, bruno_e_vitor
     ana.disconnect()
     st = [m['args'][0] for m in vitor.get_received() if m['name'] == 'telao_status']
     assert st and st[-1]['donos']['monitor'] is None
+
+
+def test_escolhas_das_telas_sobrevivem_a_um_reinicio(app, bruno_e_vitor, tmp_path):
+    """Teste de 09/11: cada publicação reiniciava o servidor e todo mundo
+    voltava para "Nenhuma"; o palco esquecia que estava na Bíblia."""
+    import estado_telas
+    bruno, vitor, d_bruno, d_vitor = bruno_e_vitor
+    estado_telas._caminho = str(tmp_path / 'telas.json')
+    bruno.emit('set_display_mode', {'mode': 'public'})
+    vitor.emit('set_display_mode', {'mode': 'monitor'})
+    vitor.emit('show_monitor_content', {'url': '/bible/display'})
+    assert (tmp_path / 'telas.json').exists()
+    # "Reinício": a memória zera e os aparelhos ainda não voltaram
+    display_state._device_modes.clear()
+    destinos._donos.update({'public': None, 'monitor': None})
+    destinos._palco_na_biblia = False
+    telao._monitor = None
+    for s in (bruno, vitor):
+        s.disconnect()
+    estado_telas.carregar()
+    assert display_state.device_mode(d_bruno) == 'public'
+    assert display_state.device_mode(d_vitor) == 'monitor'
+    assert destinos.donos() == {'public': 'bruno', 'monitor': 'vitor'}   # carência: ninguém conectado ainda
+    assert destinos._palco_na_biblia
+    assert telao._monitor and telao._monitor['url'] == '/bible/display'
+    bruno.connect(); vitor.connect()   # o fixture desconecta no fim

@@ -40,6 +40,10 @@ def sem_preparado_nem_follow():
     destinos._passagem = None
     destinos._palco_na_biblia = False
     destinos._palco_sem_cifra = False
+    import estado_telas
+    estado_telas._caminho = None
+    estado_telas._ligou_em = None
+    estado_telas._ultimo = None
     destinos._ultimo_clicado.clear()
     display_state.MODO_INICIAL = 'all'
     yield

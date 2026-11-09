@@ -86,6 +86,9 @@ class OperatorSocketIO(SocketIO):
                         destinos.retomar_passagem()
                         return resultado
                     finally:
+                        # Escolhas de tela sobrevivem a um reinício (estado_telas.py)
+                        import estado_telas
+                        estado_telas.salvar()
                         # Nada disto vaza pra próxima ação (o mesmo contexto
                         # pode servir mais de um evento)
                         for chave in ('uc_autorizado', 'uc_modo_passagem', 'uc_evento_de_fora', 'uc_retomar'):

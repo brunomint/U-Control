@@ -60,6 +60,8 @@ def handle_disconnect():
     # até a próxima ação — teste de 09/11)
     if destinos.donos() != donos_antes:
         telao.broadcast_status()
+        import estado_telas
+        estado_telas.salvar()
     from blueprints import screen_share
     screen_share.forget(sid)
     from blueprints import atalhos
