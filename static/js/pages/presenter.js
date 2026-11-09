@@ -451,6 +451,17 @@
             markGallery();
             onLivePhotoChanged();
         });
+        // O que está no palco (telao_status): foto só no palco também tem zoom
+        function lerPalco(st) {
+            const m = st && st.monitor;
+            const url = m && isStaticMedia(m.url || '') ? m.url : null;
+            if (url === palcoImageUrl) return;
+            palcoImageUrl = url;
+            onLivePhotoChanged();
+        }
+        socket.on('telao_status', lerPalco);
+        fetch('/api/telao-status').then(r => (r.ok ? r.json() : null)).then(lerPalco).catch(() => {});
+
         socket.on('content_discarded', function(data) {
             if (data && data.kind === 'image') {
                 stagedImageUrl = null;
@@ -536,6 +547,9 @@
         // com %20) com a URL relativa — nunca marcava nada.
         let liveImageUrl = null;
         let stagedImageUrl = null;
+        // Foto no palco (pode ser outra, com o telão no relógio): o zoom
+        // vale nela também (telao_status.monitor)
+        let palcoImageUrl = null;
 
         function markGallery() {
             document.querySelectorAll('#imageGallery img').forEach(img => {
@@ -809,16 +823,22 @@
             queueZoomEmit();
         }
 
+        // A foto está no ar no telão ou no palco? O zoom vai pra onde ela está
+        function fotoNoAr(url) {
+            return !!url && (url === liveImageUrl || url === palcoImageUrl);
+        }
+
         function zoomIsLive() {
-            return !!zoomCurrentImageUrl && zoomCurrentImageUrl === liveImageUrl;
+            return fotoNoAr(zoomCurrentImageUrl);
         }
 
         function updateZoomStatus() {
             if (!zoomStatus) return;
             const live = zoomIsLive();
             zoomStatus.className = 'zoom-status ' + (live ? 'live' : 'off');
+            const soNoPalco = live && zoomCurrentImageUrl !== liveImageUrl;
             zoomStatus.innerHTML = live
-                ? '<span class="dot"></span> ' + _t('No ar · o telão acompanha')
+                ? '<span class="dot"></span> ' + (soNoPalco ? _t('No ar no palco · o palco acompanha') : _t('No ar · o telão acompanha'))
                 : '<i class="fas fa-circle-info"></i> ' + _t('Não está no ar · o zoom vai ao telão quando ela for liberada');
         }
 
@@ -842,7 +862,7 @@
 
         // Chamado quando a foto no ar muda (display_image)
         function onLivePhotoChanged() {
-            if (telaoZoom.url !== liveImageUrl) telaoZoom = { url: null, zoom: 1, pan: { x: 0, y: 0 } };
+            if (!fotoNoAr(telaoZoom.url)) telaoZoom = { url: null, zoom: 1, pan: { x: 0, y: 0 } };
             if (!zoomModal || !zoomModal.classList.contains('open')) return;
             updateZoomStatus();
             // A foto do modal acabou de entrar no ar: leva o zoom atual
@@ -853,7 +873,7 @@
             ensureZoomElements();
             zoomCurrentImageUrl = imageUrl;
             zoomImage.src = imageUrl;
-            const resume = telaoZoom.url === imageUrl && imageUrl === liveImageUrl;
+            const resume = telaoZoom.url === imageUrl && fotoNoAr(imageUrl);
             zoomLevel = resume ? telaoZoom.zoom : 1;
             zoomPan = resume ? { ...telaoZoom.pan } : { x: 0, y: 0 };
             zoomModal.classList.add('open');
