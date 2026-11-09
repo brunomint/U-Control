@@ -52,6 +52,9 @@ _passagem = None
 # Palco com a Bíblia posta pelo dono: acompanha só os versículos (a música
 # não tira a Bíblia de lá; a cifra volta quando o dono põe a letra)
 _palco_na_biblia = False
+# Palco na "Letra" (só o texto) escolhida pelo dono: as partes da música
+# chegam sem acordes, em vez de virar cifra
+_palco_sem_cifra = False
 # Último item clicado de cada tipo, mesmo que tenha ficado só preparado:
 # é o que a tela mostra quando o dono põe aquele tipo nela
 _ultimo_clicado = {}
@@ -293,6 +296,13 @@ def de_fora_na_passagem(handler):
             and g.get('uc_evento_de_fora') is getattr(handler, '__wrapped__', handler))
 
 
+def de_fora(handler):
+    """`handler` é a ação que chegou do navegador (não uma chamada por
+    dentro de outro handler)?"""
+    from flask import g
+    return g.get('uc_evento_de_fora') is getattr(handler, '__wrapped__', handler)
+
+
 def _modo_passagem(modo):
     """Modo efetivo deste pedido (display_state.device_mode lê daqui)."""
     from flask import g
@@ -356,7 +366,7 @@ def autorizar(evento, args):
     # Tela dividida com letra/foto/Bíblia num lado: a passagem segue nesse lado
     dividida_com_passagem = (evento in ('show_two_urls', 'show_monitor_two_urls')
                              and (da_passagem(dados.get('url1')) or da_passagem(dados.get('url2'))))
-    global _palco_na_biblia
+    global _palco_na_biblia, _palco_sem_cifra
     if evento == 'show_image' and dados.get('exclude_monitor'):
         telas = telas - {'monitor'}   # "Só público": o palco não muda
     if 'monitor' in telas and (evento in EVENTOS_QUE_DESLIGAM_SEGUIR
@@ -364,6 +374,8 @@ def autorizar(evento, args):
         # Bíblia no palco: ele passa a acompanhar só os versículos
         _palco_na_biblia = (evento in ('show_monitor_content', 'show_image')
                             and url.split('?')[0].startswith('/bible/display'))
+        _palco_sem_cifra = (evento in ('show_monitor_content', 'show_image')
+                            and url.split('?')[0] == '/lyrics/display/public')
     if evento == 'blackout':
         if dados.get('active', True):
             for t in telas:

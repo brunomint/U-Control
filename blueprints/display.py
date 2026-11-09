@@ -264,7 +264,11 @@ def handle_show_image(data):
     # use_active_mode: quem manda não sabe o modo (slideshow do /presenter)
     # — aplica o modo atual do servidor, como o Liberar já faz. Foto da
     # passagem (destinos.py): idem, com as telas que seguem a passagem
-    if data.get('use_active_mode') or destinos.de_fora_na_passagem(handle_show_image):
+    # Relógio, cronômetro, site… mandados do navegador: valem só nas telas
+    # deste aparelho. Antes o "Exibir no telão" do cronômetro, num PC em
+    # "Só monitor", punha o cronômetro também no público (teste de 09/11)
+    if (data.get('use_active_mode') or destinos.de_fora_na_passagem(handle_show_image)
+            or destinos.de_fora(handle_show_image)):
         mode = display_state.device_mode()
         if mode == 'monitor':
             handle_show_monitor_content({'url': image_url})
@@ -815,6 +819,11 @@ def _release_kind(kind, payload):
             # pras páginas dentro do monitor (update_lyrics; o /monitor em si
             # não escuta esse evento) e a divisão continua. Antes o
             # show_monitor_content trocava o monitor inteiro pela cifra.
+            for sid in _get_monitor_sids():
+                emit('update_lyrics', payload, to=sid)
+        elif monitor_only and destinos._palco_sem_cifra:
+            # Palco na "Letra" (só o texto, sem acordes): a seção nova vai
+            # pra página que ele já mostra, sem virar cifra
             for sid in _get_monitor_sids():
                 emit('update_lyrics', payload, to=sid)
         elif monitor_only:

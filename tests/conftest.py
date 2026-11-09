@@ -39,6 +39,7 @@ def sem_preparado_nem_follow():
     destinos._seguia_antes_do_preto.update({'public': False, 'monitor': False})
     destinos._passagem = None
     destinos._palco_na_biblia = False
+    destinos._palco_sem_cifra = False
     destinos._ultimo_clicado.clear()
     display_state.MODO_INICIAL = 'all'
     yield

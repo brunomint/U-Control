@@ -334,3 +334,42 @@ def test_letra_no_palco_pega_a_parte_atual(app, bruno_e_vitor):
     vitor.emit('show_monitor_content', {'url': '/lyrics/display'})
     assert destinos._seguindo['monitor'] is True
     assert telao._monitor and telao._monitor.get('url', '').startswith('/lyrics/display')
+
+
+def test_palco_na_letra_sem_cifra_continua_sem_cifra(app, bruno_e_vitor):
+    """Teste de 09/11: o Vitor pôs "Letra" (sem acordes) no palco e, na
+    mesma hora, a passagem trocou para a cifra."""
+    from extensions import socketio
+    bruno, vitor, _, _ = bruno_e_vitor
+    palco = socketio.test_client(app)
+    palco.emit('identify', {'role': 'monitor'})
+    lyr = lambda i: {'kind': 'lyrics', 'payload': {'songId': 1, 'sectionIndex': i, 'title': 'S', 'text': 't', 'type': 'text'}}
+    try:
+        vitor.emit('set_display_mode', {'mode': 'monitor'})
+        bruno.emit('stage_content', lyr(0)); bruno.emit('release_staged_content', {'kind': 'lyrics'})
+        vitor.emit('show_monitor_content', {'url': '/clock'})
+        bruno.emit('stage_content', lyr(1))
+        palco.get_received()
+        vitor.emit('show_monitor_content', {'url': '/lyrics/display/public'})
+        bruno.emit('stage_content', lyr(2))
+        recebido = palco.get_received()
+        urls = [m['args'][0].get('url') for m in recebido if m['name'] == 'display_monitor_content']
+        assert urls == ['/lyrics/display/public']                       # nada de cifra
+        assert telao._monitor['kind'] == 'lyrics'
+        secoes = [m['args'][0].get('sectionIndex') for m in recebido if m['name'] == 'update_lyrics']
+        assert secoes and secoes[-1] == 2                               # e acompanha as partes
+    finally:
+        palco.disconnect()
+
+
+def test_cronometro_do_palco_nao_vai_pro_publico(app, bruno_e_vitor):
+    """Teste de 09/11: o Vitor ("Só monitor") tocou em "Exibir no telão" do
+    cronômetro e ele apareceu também no público; depois a tela preta do
+    Bruno, ao sair, trocou esse cronômetro pela foto."""
+    bruno, vitor, _, _ = bruno_e_vitor
+    bruno.emit('set_display_mode', {'mode': 'public'})
+    vitor.emit('set_display_mode', {'mode': 'monitor'})
+    bruno.emit('show_image', {'image_url': '/img', 'exclude_monitor': True})
+    vitor.emit('show_image', {'image_url': '/countdown'})
+    assert telao._public_entry().get('url') != '/countdown'
+    assert telao._monitor and telao._monitor.get('url') == '/countdown'
