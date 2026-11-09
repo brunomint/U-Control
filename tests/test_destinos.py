@@ -245,3 +245,15 @@ def test_foto_de_quem_esta_sem_tela_nao_vai_pro_palco_que_nao_segue(app, bruno_e
         assert telao._monitor and 'da-ana.jpg' in telao._monitor.get('url', '')
     finally:
         ana.disconnect()
+
+
+def test_biblia_posta_no_palco_nao_e_atropelada_pela_musica(bruno_e_vitor):
+    """Teste de 09/11: o Vitor pôs a Bíblia no palco e a música do Bruno
+    tirou ela de lá — o palco continuava seguindo a passagem."""
+    bruno, vitor, _, _ = bruno_e_vitor
+    bruno.emit('set_display_mode', {'mode': 'public'})
+    vitor.emit('set_display_mode', {'mode': 'monitor'})
+    vitor.emit('show_monitor_content', {'url': '/bible/display'})
+    assert destinos._seguindo['monitor'] is False
+    bruno.emit('update_lyrics', {'songId': 1, 'sectionIndex': 0})
+    assert telao._monitor and telao._monitor.get('url', '').startswith('/bible/display')

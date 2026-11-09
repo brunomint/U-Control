@@ -304,6 +304,8 @@ def autorizar(evento, args):
                              and (da_passagem(dados.get('url1')) or da_passagem(dados.get('url2'))))
     if ((evento in EVENTOS_QUE_DESLIGAM_SEGUIR and not dividida_com_passagem)
             or (evento == 'blackout' and dados.get('active', True))
-            or (evento in ('show_monitor_content', 'show_image') and url and not da_passagem(url))):
+            or (evento in ('show_monitor_content', 'show_image') and url and not da_passagem(url))
+            # A Bíblia nunca vai ao palco pela passagem: pô-la lá é escolha do dono
+            or (evento == 'show_monitor_content' and url.split('?')[0].startswith('/bible/display'))):
         _desligar_seguir_das(telas)
     return None
