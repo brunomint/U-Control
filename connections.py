@@ -47,12 +47,19 @@ def handle_connect():
 def handle_disconnect():
     global socketio_clients_connected
     sid = request.sid
+    import destinos
+    import telao
+    donos_antes = destinos.donos()
     if sid in socketio_clients_by_sid:
         del socketio_clients_by_sid[sid]
     socketio_clients_connected = len(socketio_clients_by_sid)
     logger.info('Cliente desconectado')
-    import telao
     telao.forget_client(sid)
+    # Fechou o último Controle de quem cuidava de uma tela: ela fica livre,
+    # e os outros aparelhos precisam ver isso já (antes ficava "com Bruno"
+    # até a próxima ação — teste de 09/11)
+    if destinos.donos() != donos_antes:
+        telao.broadcast_status()
     from blueprints import screen_share
     screen_share.forget(sid)
     from blueprints import atalhos

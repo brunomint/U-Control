@@ -373,3 +373,16 @@ def test_cronometro_do_palco_nao_vai_pro_publico(app, bruno_e_vitor):
     vitor.emit('show_image', {'image_url': '/countdown'})
     assert telao._public_entry().get('url') != '/countdown'
     assert telao._monitor and telao._monitor.get('url') == '/countdown'
+
+
+def test_quem_fecha_o_controle_libera_a_tela_e_os_outros_veem(app, bruno_e_vitor):
+    """Teste de 09/11 (passo 17): o Bruno fechou o Controle e o Vitor
+    continuou vendo "Palco: com Bruno"."""
+    _, vitor, _, _ = bruno_e_vitor
+    ana = _operator_socket(app, 'ana')
+    ana.emit('set_display_mode', {'mode': 'monitor'})
+    assert destinos.donos()['monitor'] == 'ana'
+    vitor.get_received()
+    ana.disconnect()
+    st = [m['args'][0] for m in vitor.get_received() if m['name'] == 'telao_status']
+    assert st and st[-1]['donos']['monitor'] is None
