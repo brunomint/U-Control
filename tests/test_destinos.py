@@ -257,3 +257,50 @@ def test_biblia_posta_no_palco_nao_e_atropelada_pela_musica(bruno_e_vitor):
     assert destinos._seguindo['monitor'] is False
     bruno.emit('update_lyrics', {'songId': 1, 'sectionIndex': 0})
     assert telao._monitor and telao._monitor.get('url', '').startswith('/bible/display')
+
+
+def test_dono_pondo_a_letra_de_volta_a_tela_acompanha_quem_conduz(app, bruno_e_vitor):
+    """Teste de 09/11: tela preta no público e Bíblia no palco; depois o
+    Bruno tirou a tela preta e o Vitor pôs a letra de volta, mas o celular
+    de quem conduzia ouvia "Nenhuma tela…" — faltava tocar num botão."""
+    bruno, vitor, _, _ = bruno_e_vitor
+    cel = _operator_socket(app, 'ana')
+    try:
+        bruno.emit('set_display_mode', {'mode': 'public'})
+        vitor.emit('set_display_mode', {'mode': 'monitor'})
+        cel.emit('update_lyrics', {'songId': 1, 'sectionIndex': 0})
+        bruno.emit('blackout', {'tipo': 'logo', 'active': True, 'usar_modo': True})
+        vitor.emit('show_monitor_content', {'url': '/bible/display'})
+        assert destinos._seguindo == {'public': False, 'monitor': False}
+        cel.get_received()
+        cel.emit('update_lyrics', {'songId': 1, 'sectionIndex': 1})
+        assert any('Nenhuma tela' in m for m in _recusas(cel))
+        # O dono tira a tela preta / põe a letra: volta a acompanhar sem botão
+        bruno.emit('blackout', {'tipo': 'logo', 'active': False, 'usar_modo': True})
+        vitor.emit('show_monitor_content', {'url': '/lyrics/display'})
+        assert destinos._seguindo == {'public': True, 'monitor': True}
+        cel.get_received()
+        cel.emit('update_lyrics', {'songId': 1, 'sectionIndex': 2})
+        assert not _recusas(cel)
+    finally:
+        cel.disconnect()
+
+
+def test_tela_preta_sobre_o_relogio_nao_volta_pra_letra(bruno_e_vitor):
+    """Tirar a tela preta só religa quem estava acompanhando antes dela."""
+    bruno, vitor, _, _ = bruno_e_vitor
+    vitor.emit('set_display_mode', {'mode': 'monitor'})
+    vitor.emit('show_monitor_content', {'url': '/clock'})
+    vitor.emit('blackout', {'tipo': 'preta', 'active': True, 'usar_modo': True})
+    vitor.emit('blackout', {'tipo': 'preta', 'active': False, 'usar_modo': True})
+    assert destinos._seguindo['monitor'] is False
+
+
+def test_letra_no_palco_pega_a_parte_atual(app, bruno_e_vitor):
+    bruno, vitor, _, _ = bruno_e_vitor
+    vitor.emit('set_display_mode', {'mode': 'monitor'})
+    vitor.emit('show_monitor_content', {'url': '/clock'})
+    bruno.emit('update_lyrics', {'songId': 7, 'sectionIndex': 3})   # Bruno sem tela: só o público segue
+    vitor.emit('show_monitor_content', {'url': '/lyrics/display'})
+    assert destinos._seguindo['monitor'] is True
+    assert telao._monitor and telao._monitor.get('url', '').startswith('/lyrics/display')

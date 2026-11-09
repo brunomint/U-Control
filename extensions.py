@@ -81,11 +81,14 @@ class OperatorSocketIO(SocketIO):
                     # dentro não são ela — ver evento_de_fora)
                     g.uc_evento_de_fora = handler
                     try:
-                        return handler(*args, **kwargs)
+                        resultado = handler(*args, **kwargs)
+                        # Tela que voltou a seguir a passagem pega o passo atual
+                        destinos.retomar_passagem()
+                        return resultado
                     finally:
                         # Nada disto vaza pra próxima ação (o mesmo contexto
                         # pode servir mais de um evento)
-                        for chave in ('uc_autorizado', 'uc_modo_passagem', 'uc_evento_de_fora'):
+                        for chave in ('uc_autorizado', 'uc_modo_passagem', 'uc_evento_de_fora', 'uc_retomar'):
                             g.pop(chave, None)
                 if g.get('uc_evento_de_fora') is handler:
                     g.uc_evento_de_fora = None   # chamado de novo por dentro: já não é "de fora"

@@ -232,6 +232,46 @@ def _desligar_seguir_das(telas):
         _seguindo[t] = False
 
 
+# Tela que a tela preta tirou da passagem: volta a seguir quando ela sai
+_seguia_antes_do_preto = {'public': False, 'monitor': False}
+
+
+def _rota_kinds(url):
+    """Que conteúdos da passagem esta tela mostra (letra, Bíblia, foto/vídeo)."""
+    u = (url or '').split('?')[0]
+    if u.startswith('/lyrics/display'):
+        return {'lyrics'}
+    if u.startswith('/bible/display'):
+        return {'bible'}
+    if u.startswith('/img'):
+        return {'image', 'video'}
+    return set()
+
+
+def _voltar_a_seguir(telas, kinds=None):
+    """O dono pôs de volta na tela dele algo da passagem: ela acompanha de
+    novo quem conduz e já pega o passo atual (se é do mesmo tipo — letra
+    no palco não vira vídeo). O guarda (extensions.py) chama
+    retomar_passagem depois da ação."""
+    from flask import g
+    for t in telas:
+        _seguindo[t] = True
+    if _passagem and (kinds is None or _passagem['kind'] in kinds):
+        g.uc_retomar = set(g.get('uc_retomar') or ()) | set(telas)
+
+
+def retomar_passagem():
+    """Depois da ação do dono: as telas que voltaram a seguir mostram o
+    passo atual da passagem (blueprints/display.py)."""
+    from flask import g
+    telas = g.pop('uc_retomar', None)
+    if not telas:
+        return
+    from blueprints.display import _mostrar_passagem_em
+    for t in sorted(telas):
+        _mostrar_passagem_em(t)
+
+
 def de_fora_na_passagem(handler):
     """`handler` é a própria ação da passagem que chegou do navegador
     (não uma chamada por dentro, que já vem com as telas certas)? Aí ele
@@ -259,7 +299,7 @@ def autorizar(evento, args):
         usuario = _usuario()
         minhas, telas = _telas_da_passagem(kind, usuario)
         if not telas:
-            return _('Nenhuma tela está seguindo a passagem agora.')
+            return _('Nenhuma tela está mostrando a letra agora: quem cuida das telas pôs outra coisa nelas.')
         for t in minhas:
             if not _donos.get(t):
                 _donos[t] = usuario
@@ -302,10 +342,33 @@ def autorizar(evento, args):
     # Tela dividida com letra/foto/Bíblia num lado: a passagem segue nesse lado
     dividida_com_passagem = (evento in ('show_two_urls', 'show_monitor_two_urls')
                              and (da_passagem(dados.get('url1')) or da_passagem(dados.get('url2'))))
-    if ((evento in EVENTOS_QUE_DESLIGAM_SEGUIR and not dividida_com_passagem)
-            or (evento == 'blackout' and dados.get('active', True))
+    biblia_no_palco = (evento == 'show_monitor_content'
+                       and url.split('?')[0].startswith('/bible/display'))
+    if evento == 'blackout':
+        if dados.get('active', True):
+            for t in telas:
+                if _seguindo.get(t):
+                    _seguia_antes_do_preto[t] = True
+            _desligar_seguir_das(telas)
+        else:
+            # Saiu a tela preta: a tela volta a seguir se seguia antes dela
+            voltam = {t for t in telas if _seguia_antes_do_preto.get(t)}
+            for t in telas:
+                _seguia_antes_do_preto[t] = False
+            if voltam:
+                _voltar_a_seguir(voltam)
+    elif ((evento in EVENTOS_QUE_DESLIGAM_SEGUIR and not dividida_com_passagem)
             or (evento in ('show_monitor_content', 'show_image') and url and not da_passagem(url))
             # A Bíblia nunca vai ao palco pela passagem: pô-la lá é escolha do dono
-            or (evento == 'show_monitor_content' and url.split('?')[0].startswith('/bible/display'))):
+            or biblia_no_palco):
         _desligar_seguir_das(telas)
+    elif evento in ('show_monitor_content', 'show_image') and da_passagem(url):
+        # O dono pôs letra/Bíblia/foto na tela dele: ela acompanha quem conduz
+        kinds = _rota_kinds(url)
+        if kinds == {'bible'} and 'monitor' in telas:
+            # Bíblia no palco é escolha do dono (a passagem não a leva lá)
+            _desligar_seguir_das({'monitor'})
+            telas = telas - {'monitor'}
+        if telas:
+            _voltar_a_seguir(telas, kinds)
     return None

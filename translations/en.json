@@ -1881,10 +1881,12 @@
   "Telão e site da igreja; o monitor de palco fica como está": "Main screen and church website; the stage monitor stays as it is",
   "Seguindo a passagem": "Following the flow",
   "Seguir a passagem": "Follow the flow",
+  "acompanha a letra": "follows the lyrics",
+  "parada no que o responsável pôs": "holding what its owner put on it",
   "segue a passagem": "follows the flow",
   "não segue a passagem": "doesn't follow the flow",
   "Só {nome} pode mudar isso nesta tela.": "Only {nome} can change this on this screen.",
-  "Nenhuma tela está seguindo a passagem agora.": "No screen is following the flow right now.",
+  "Nenhuma tela está mostrando a letra agora: quem cuida das telas pôs outra coisa nelas.": "No screen is showing the lyrics right now: whoever runs the screens put something else on them.",
   "Você conduz a passagem. Para cuidar de uma tela, escolha no Controle.": "You are driving the flow. To take care of a screen, choose it in the Control panel.",
   "Sem tela — conduzindo a passagem": "No screen — driving the flow"
 }
