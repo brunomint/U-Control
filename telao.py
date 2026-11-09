@@ -279,6 +279,8 @@ def _status_comum():
         'telas_neutras': dict(display_state._telas_neutras),
         # Quem cuida de cada tela (destinos.py): {'public': 'bruno', 'monitor': None}
         'donos': destinos.donos(),
+        # Cada tela segue a passagem (música, slides, Bíblia, vídeo)?
+        'seguindo': dict(destinos._seguindo),
         **_extras(),
     }
 

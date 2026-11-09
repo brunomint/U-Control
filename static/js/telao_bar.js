@@ -104,7 +104,8 @@
         const mode = st.mode || (st.modes || {})[dev ? decodeURIComponent(dev[1]) : null] || 'none';
         if (mode === 'none') {
             // Aparelho sem tela escolhida (destinos.py): nada que tocar muda as telas
-            parts.push(`<a class="tb-chip tb-mode tb-sem-tela" href="/control" title="${esc(_t('Escolha no Controle quais telas você controla'))}"><i class="fas fa-hand"></i> ${esc(_t('Nenhuma tela — escolher'))}</a>`);
+            // Sem tela: conduz a passagem (música, slides, Bíblia, vídeo), mas não põe outra coisa nas telas
+            parts.push(`<a class="tb-chip tb-mode tb-sem-tela" href="/control" title="${esc(_t('Você conduz a passagem. Para cuidar de uma tela, escolha no Controle.'))}"><i class="fas fa-hand"></i> ${esc(_t('Sem tela — conduzindo a passagem'))}</a>`);
         } else if (mode === 'public') {
             parts.push(`<span class="tb-chip tb-mode" title="${esc(_t('Ações mudam só a tela do público'))}"><i class="fas fa-users"></i> ${esc(_t('Só público'))}</span>`);
         } else if (mode === 'monitor') {

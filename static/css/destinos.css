@@ -31,3 +31,6 @@
     opacity: 0.7;
     margin: 4px 0 2px;
 }
+
+.destino-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.destino-segue { font-size: 12px; color: var(--uc-muted); }

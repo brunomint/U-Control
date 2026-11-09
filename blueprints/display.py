@@ -262,13 +262,16 @@ def load_urls_route():
 def handle_show_image(data):
     image_url = data['image_url']
     # use_active_mode: quem manda não sabe o modo (slideshow do /presenter)
-    # — aplica o modo atual do servidor, como o Liberar já faz
-    if data.get('use_active_mode'):
+    # — aplica o modo atual do servidor, como o Liberar já faz. Foto da
+    # passagem (destinos.py): idem, com as telas que seguem a passagem
+    if data.get('use_active_mode') or destinos.de_fora_na_passagem(handle_show_image):
         mode = display_state.device_mode()
         if mode == 'monitor':
             handle_show_monitor_content({'url': image_url})
             return
-        data = {**data, 'exclude_monitor': mode == 'public'}
+        # O navegador pode tirar o palco (exclude_monitor), nunca pôr além do modo
+        data = {**data, 'exclude_monitor': mode == 'public' or bool(
+            data.get('exclude_monitor') and not data.get('use_active_mode'))}
     _end_live_follow_unless(image_url)
     _esquece_zoom_se_outra_foto(image_url)
     real_app = current_app._get_current_object()
@@ -360,6 +363,12 @@ def handle_preload_image(data):
 
 @socketio.on('show_video')
 def handle_show_video(data):
+    if destinos.de_fora_na_passagem(handle_show_video):
+        # Vídeo é passagem (destinos.py): vai pras telas que seguem
+        modo = display_state.device_mode()
+        if modo == 'monitor':
+            return handle_show_monitor_video({'video_url': data.get('video_url', '')})
+        data = {**data, 'exclude_monitor': modo == 'public' or bool(data.get('exclude_monitor'))}
     video_url = data.get('video_url')
     _end_live_follow_unless(video_url)
     real_app = current_app._get_current_object()
@@ -421,6 +430,11 @@ def handle_toggle_video_pause(data):
             display_state._video_state['started_at'] = time.time()
             display_state._video_state['paused'] = False
 
+    if destinos.de_fora_na_passagem(handle_toggle_video_pause):
+        modo = display_state.device_mode()
+        if modo == 'monitor':
+            return handle_show_monitor_pause({'paused': paused})
+        data = {**data, 'exclude_monitor': modo == 'public' or bool(data.get('exclude_monitor'))}
     emit('video_pause', {'paused': paused}, broadcast=True, skip_sid=_skip_sids(data))
 
 
@@ -771,6 +785,7 @@ def _release_kind(kind, payload):
     tem esse suporte — o monitor nunca teve nenhum jeito de mostrar
     bíblia, nem antes da existência de preparar/liberar, então
     precisaria ser construído do zero antes de sequer cogitar os modos."""
+    destinos.lembrar_passagem(kind, payload)
     mode = display_state.device_mode()
     exclude_monitor = mode == 'public'
     monitor_only = mode == 'monitor'
@@ -779,7 +794,9 @@ def _release_kind(kind, payload):
         # "Só público" congela o monitor — mas se ele já mostra a letra/
         # cifra, a seção nova vai pra ele também (só acompanha a música)
         # (a não ser que outro PC conectado cuide do palco — "Só monitor")
-        if exclude_monitor and telao.monitor_mostra_letra() and not display_state.palco_de_outro_pc():
+        # Num passo da passagem quem decide é o "Seguir a passagem" do palco
+        if (exclude_monitor and telao.monitor_mostra_letra() and not display_state.palco_de_outro_pc()
+                and not _na_passagem()):
             exclude_monitor = False
         song_id = payload.get('songId')
         section_index = payload.get('sectionIndex')
@@ -852,9 +869,16 @@ def _pelo_modo_deste_pc(no_publico, no_monitor):
     modo = display_state.device_mode()
     if modo == 'monitor':
         no_publico = False
-    elif modo == 'public' and display_state.palco_de_outro_pc():
+    elif modo == 'public' and (display_state.palco_de_outro_pc() or _na_passagem()):
+        # Passagem: o palco só muda se segue a passagem (destinos.py)
         no_monitor = False
     return no_publico, no_monitor
+
+
+def _na_passagem():
+    """Este pedido é um passo da passagem (destinos.autorizar)?"""
+    from flask import g
+    return bool(g.get('uc_modo_passagem'))
 
 
 def _sem_tela_do_pc(no_publico, no_monitor):
@@ -894,6 +918,7 @@ def _secao_onde_a_letra_esta(payload):
 
     with current_app.app_context():
         preparado.apagar('lyrics')
+    destinos.lembrar_passagem('lyrics', payload)
 
     # Monitor na Bíblia (liberada pra ele no meio da música): voltando pra
     # música no público, o palco volta pra cifra — senão os músicos
@@ -953,6 +978,7 @@ def _versiculo_onde_a_biblia_esta(payload):
         return False
     with current_app.app_context():
         preparado.apagar('bible')
+    destinos.lembrar_passagem('bible', payload)
     from blueprints.bible import enviar_biblia
     enviar_biblia(payload, publico=no_publico, monitor=no_monitor)
     _marcar_feito_no_ar('bible', payload)
@@ -988,6 +1014,7 @@ def _foto_onde_a_foto_esta(payload):
 
     with current_app.app_context():
         preparado.apagar('image')
+    destinos.lembrar_passagem('image', payload)
 
     if no_publico and no_monitor:
         handle_show_image(dict(payload))
@@ -1132,6 +1159,55 @@ def handle_telao_ping(data=None):
     """Batimento da barrinha do telão (telao_bar.js): responder em até 4s
     = servidor alcançável. Sem resposta, a página avisa "Sem conexão"."""
     return {'ok': True}
+
+
+@socketio.on('seguir_passagem')
+def handle_seguir_passagem(data=None):
+    """Botão "Seguir a passagem" de cada tela (static/js/destinos.js): só o
+    responsável da tela liga/desliga. Ligando, a tela já pega o que está
+    na passagem."""
+    data = data or {}
+    tela = data.get('tela')
+    if tela not in destinos.TELAS:
+        return {'ok': False}
+    impediu = destinos.seguir(tela, data.get('ligado'))
+    if impediu:
+        return {'ok': False, 'dono': impediu}
+    if data.get('ligado'):
+        _mostrar_passagem_em(tela)
+    telao.broadcast_status()
+    return {'ok': True}
+
+
+def _mostrar_passagem_em(tela):
+    """A tela que voltou a seguir pega o conteúdo atual da passagem (no
+    palco a letra vira cifra; Bíblia não vai pro palco; vídeo entra na
+    posição em que está tocando)."""
+    from flask import g
+    p = destinos._passagem
+    if not p or (p['kind'] == 'bible' and tela == 'monitor'):
+        return
+    kind, payload = p['kind'], p['payload']
+    g.uc_modo_passagem = tela
+    try:
+        if kind == 'video':
+            url = payload.get('video_url', '')
+            if display_state._video_state['url'] != url:
+                return   # o vídeo já acabou ou trocou
+            pos = display_state._video_current_position()
+            if tela == 'monitor':
+                for sid in _get_monitor_sids():
+                    emit('display_monitor_video', {'video_url': url}, to=sid)
+                    emit('video_seek', {'time': pos}, to=sid)
+                telao.set_monitor('video', url)
+            else:
+                socketio.emit('display_video', {'video_url': url}, to='public')
+                socketio.emit('video_seek', {'time': pos}, to='public')
+                telao.set_public('video', url)
+        else:
+            _release_kind(kind, payload)
+    finally:
+        g.pop('uc_modo_passagem', None)
 
 
 @socketio.on('assumir_palco')

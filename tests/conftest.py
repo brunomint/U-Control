@@ -33,6 +33,10 @@ def sem_preparado_nem_follow():
     import destinos
     display_state._device_modes.clear()
     destinos._donos.update({'public': None, 'monitor': None})
+    # Sem seguir a passagem, cada tela só muda pelo modo de quem mexe (a regra
+    # que os testes antigos descrevem); tests/test_destinos.py liga de volta
+    destinos._seguindo.update({'public': False, 'monitor': False})
+    destinos._passagem = None
     display_state.MODO_INICIAL = 'all'
     yield
     display_state.MODO_INICIAL = 'none'

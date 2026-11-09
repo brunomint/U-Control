@@ -172,6 +172,17 @@ def mostrar_se_escondido():
 @socketio.on('update_lyrics')
 def handle_update_lyrics(data):
     logger.debug(f'📨 Recebido update_lyrics: {data.get("title", "Sem título")}')
+    # Passo da passagem (destinos.py): só as telas que seguem a passagem
+    from flask import g
+    import destinos
+    efetivo = g.get('uc_modo_passagem') if destinos.de_fora_na_passagem(handle_update_lyrics) else None
+    if efetivo == 'monitor':
+        from connections import _get_monitor_sids
+        for sid in _get_monitor_sids():
+            emit('update_lyrics', data, to=sid)
+        return
+    if efetivo == 'public':
+        data = {**data, 'exclude_monitor': True}
     mostrar_se_escondido()
     import telao
     # "Só público": congela o palco no que o público mostrava ANTES desta

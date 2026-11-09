@@ -740,7 +740,11 @@ def api_bible_verse():
 # Evento WebSocket para transmitir versículos da Bíblia
 @socketio.on('update_bible')
 def handle_update_bible(data):
-    enviar_biblia(data, publico=True, monitor=True)
+    # Passo da passagem (destinos.py): só as telas que a passagem alcança
+    from flask import g
+    import destinos
+    efetivo = (g.get('uc_modo_passagem') if destinos.de_fora_na_passagem(handle_update_bible) else None) or 'all'
+    enviar_biblia(data, publico=efetivo != 'monitor', monitor=efetivo != 'public')
 
 
 def enviar_biblia(data, publico, monitor, abrir_no_monitor=False):

@@ -188,7 +188,18 @@ def current_device():
 def device_mode(device=None):
     """'all' | 'public' | 'monitor' | 'none' da máquina (padrão: quem
     pediu). Máquina que ainda não escolheu = 'none': não mexe em tela
-    nenhuma (destinos.py) — antes era 'all' e passava por cima de todos."""
+    nenhuma (destinos.py) — antes era 'all' e passava por cima de todos.
+
+    Num passo da passagem (música, slides, Bíblia), destinos.autorizar
+    troca o modo DESTE pedido pelas telas que vão mostrá-lo."""
+    if device is None:
+        try:
+            from flask import g
+            efetivo = g.get('uc_modo_passagem')
+        except RuntimeError:
+            efetivo = None
+        if efetivo:
+            return efetivo
     return _device_modes.get(device if device is not None else current_device(), MODO_INICIAL)
 
 

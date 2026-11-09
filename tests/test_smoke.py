@@ -2185,6 +2185,8 @@ def test_split_monitor_only_mode_skips_release_for_visible_kinds(app):
 def test_public_only_mode_still_moves_lyrics_already_on_monitor(app):
     """Só público: se o monitor já mostra a cifra, a seção nova vai pra ele
     também; se mostra outra coisa (foto), continua congelado."""
+    import destinos
+    destinos._seguindo['monitor'] = True   # palco segue a passagem (o padrão)
     import telao
     monitor = ucontrol_main.socketio.test_client(app)
     monitor.emit("identify", {"role": "monitor"})
@@ -2225,6 +2227,8 @@ def test_section_change_goes_where_lyrics_are_shown(app):
     """Seção nova vai direto pra onde a letra já está, não importa o modo:
     público com foto + monitor com a letra = muda só no monitor, a foto
     fica no público. Letra em lugar nenhum = pede Liberar."""
+    import destinos
+    destinos._seguindo['monitor'] = True   # palco segue a passagem (o padrão)
     import display_state
     import telao
     from models import StagedContent
@@ -4166,6 +4170,8 @@ def test_one_operator_public_only_stage_still_follows_the_song(app):
     """Um PC só, em "Só público", com o palco já na música: a seção nova vai
     pro palco também (só acompanha a música) — o que muda com outro PC em
     "Só monitor" não pode tirar isso de quem opera sozinho."""
+    import destinos
+    destinos._seguindo['monitor'] = True   # palco segue a passagem (o padrão)
     import telao
     lyr = lambda i: {"kind": "lyrics", "payload": {"songId": 1, "sectionIndex": i, "title": f"S{i}", "text": "x", "type": "text"}}
     op = _operator_socket(app)

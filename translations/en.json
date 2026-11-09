@@ -1873,12 +1873,18 @@
   "{nome} assumiu uma das suas telas.": "{nome} took over one of your screens.",
   "{tela} está com {nome}": "{tela} is with {nome}",
   "Nenhuma tela": "No screen",
-  "Escolha no Controle quais telas você controla": "Choose in the Control panel which screens you control",
-  "Nenhuma tela — escolher": "No screen — choose",
   "Nenhuma": "None",
   "Não mexe em nenhuma tela": "Doesn't change any screen",
   "Prévia (só para ver):": "Preview (view only):",
   "Quais telas você controla": "Which screens you control",
   "Só o monitor de palco; o público fica como está": "Only the stage monitor; the congregation screen stays as it is",
-  "Telão e site da igreja; o monitor de palco fica como está": "Main screen and church website; the stage monitor stays as it is"
+  "Telão e site da igreja; o monitor de palco fica como está": "Main screen and church website; the stage monitor stays as it is",
+  "Seguindo a passagem": "Following the flow",
+  "Seguir a passagem": "Follow the flow",
+  "segue a passagem": "follows the flow",
+  "não segue a passagem": "doesn't follow the flow",
+  "Só {nome} pode mudar isso nesta tela.": "Only {nome} can change this on this screen.",
+  "Nenhuma tela está seguindo a passagem agora.": "No screen is following the flow right now.",
+  "Você conduz a passagem. Para cuidar de uma tela, escolha no Controle.": "You are driving the flow. To take care of a screen, choose it in the Control panel.",
+  "Sem tela — conduzindo a passagem": "No screen — driving the flow"
 }

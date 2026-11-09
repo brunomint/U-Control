@@ -63,8 +63,11 @@ class OperatorSocketIO(SocketIO):
                     return None
                 registro_acoes.registrar_evento(message, args)
                 # Quem cuida de cada tela (destinos.py): ação numa tela de
-                # outra pessoa, ou sem tela escolhida, não passa
-                if not reset_da_tela:
+                # outra pessoa, ou sem tela escolhida, não passa. Confere só
+                # a ação que chegou: os handlers que ela chama por dentro
+                # (ex.: passagem → cifra no palco) já foram autorizados.
+                from flask import g
+                if not reset_da_tela and not g.get('uc_autorizado'):
                     import destinos
                     motivo = destinos.autorizar(message, args)
                     if motivo:
@@ -73,6 +76,19 @@ class OperatorSocketIO(SocketIO):
                         self.emit('acao_recusada', {'motivo': motivo, 'evento': message},
                                   to=sala_do_aparelho())
                         return None
+                    g.uc_autorizado = True
+                    # A ação que chegou do navegador (os handlers chamados por
+                    # dentro não são ela — ver evento_de_fora)
+                    g.uc_evento_de_fora = handler
+                    try:
+                        return handler(*args, **kwargs)
+                    finally:
+                        # Nada disto vaza pra próxima ação (o mesmo contexto
+                        # pode servir mais de um evento)
+                        for chave in ('uc_autorizado', 'uc_modo_passagem', 'uc_evento_de_fora'):
+                            g.pop(chave, None)
+                if g.get('uc_evento_de_fora') is handler:
+                    g.uc_evento_de_fora = None   # chamado de novo por dentro: já não é "de fora"
                 return handler(*args, **kwargs)
             return register(guarded)
         return decorator
