@@ -229,6 +229,74 @@ def test_download_audio_without_url_returns_400(logged_in_client):
     assert "error" in response.get_json()
 
 
+def test_download_audio_acha_o_ffmpeg_e_explica_video_indisponivel(app, logged_in_client, monkeypatch):
+    """No Pi o serviço roda com PATH só do venv: o yt-dlp não achava o
+    ffmpeg (/usr/bin). E o alerta trazia o aviso inteiro do yt-dlp."""
+    import subprocess
+    vistos = {}
+
+    class Falhou:
+        returncode = 1
+        stderr = ("WARNING: [youtube] No supported JavaScript runtime could be found.\n"
+                  "ERROR: [youtube] hEgMTG3Ap1o: Video unavailable")
+
+    monkeypatch.setenv("PATH", "/opt/venv/bin")
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: vistos.update(kw) or Falhou())
+    resp = logged_in_client.post("/download_audio", json={"url": "https://youtu.be/hEgMTG3Ap1o"})
+    assert resp.status_code == 500
+    assert "/usr/bin" in vistos["env"]["PATH"].split(os.pathsep)
+    erro = resp.get_json()["error"]
+    assert "não está disponível" in erro and "JavaScript" not in erro
+
+
+def test_upload_audio_guarda_mp3_e_recusa_formato_estranho(app, logged_in_client, tmp_path, monkeypatch):
+    import io
+    import paths
+    monkeypatch.setattr(paths, "AUDIO_DIR", str(tmp_path / "audio"))
+
+    def enviar(dados, nome, **extra):
+        return logged_in_client.post("/upload_audio", data={"audio": (io.BytesIO(dados), nome), **extra},
+                                     content_type="multipart/form-data")
+
+    resp = enviar(b"ID3 mp3 de teste", "louvor.mp3", song_id="12")
+    data = resp.get_json()
+    assert resp.status_code == 200 and data["success"]
+    assert data["audio_url"].startswith("/static/audio/12_arquivo_") and data["audio_url"].endswith(".mp3")
+    salvo = tmp_path / "audio" / os.path.basename(data["audio_url"])
+    assert salvo.read_bytes() == b"ID3 mp3 de teste"
+
+    # Trocar por outro arquivo apaga o anterior
+    resp2 = enviar(b"outro", "b.mp3", song_id="12", old_audio_url=data["audio_url"])
+    assert resp2.status_code == 200 and not salvo.exists()
+
+    assert enviar(b"x", "script.sh").status_code == 400
+    assert logged_in_client.post("/upload_audio", data={}, content_type="multipart/form-data").status_code == 400
+    # Nenhum temporário sobrando na pasta
+    assert [p.suffix for p in (tmp_path / "audio").iterdir()] == [".mp3"]
+
+
+def test_upload_audio_converte_outros_formatos_para_mp3(app, logged_in_client, tmp_path, monkeypatch):
+    import io
+    import shutil
+    import subprocess
+    import paths
+    import pytest
+    if not shutil.which("ffmpeg"):
+        pytest.skip("sem ffmpeg")
+    monkeypatch.setattr(paths, "AUDIO_DIR", str(tmp_path / "audio"))
+    wav = tmp_path / "t.wav"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "sine=duration=1", str(wav)], check=True)
+    resp = logged_in_client.post("/upload_audio", data={"audio": (io.BytesIO(wav.read_bytes()), "ensaio.wav")},
+                                 content_type="multipart/form-data")
+    assert resp.status_code == 200
+    saida = tmp_path / "audio" / os.path.basename(resp.get_json()["audio_url"])
+    assert saida.stat().st_size > 0 and saida.suffix == ".mp3"
+
+    ruim = logged_in_client.post("/upload_audio", data={"audio": (io.BytesIO(b"nao e audio"), "x.m4a")},
+                                 content_type="multipart/form-data")
+    assert ruim.status_code == 400 and list((tmp_path / "audio").glob("*.mp3")) == [saida]
+
+
 def test_delete_audio_requires_login(client):
     response = client.delete("/delete_audio/nao-existe.mp3")
     assert response.status_code == 302
@@ -1752,7 +1820,7 @@ def test_write_routes_require_login(client):
     """Rotas que alteram músicas, a ordem de hoje e o estado das telas
     pediam nada: qualquer um na rede editava ou apagava música."""
     for method, url in [("get", "/edit_song/1"), ("post", "/edit_song/1"), ("post", "/add_song"),
-                        ("post", "/delete_song/1"), ("post", "/save"), ("post", "/download_audio"),
+                        ("post", "/delete_song/1"), ("post", "/save"), ("post", "/download_audio"), ("post", "/upload_audio"),
                         ("post", "/save_image_path"), ("post", "/save_display_state"),
                         ("post", "/save_lyrics_state")]:
         resp = getattr(client, method)(url)

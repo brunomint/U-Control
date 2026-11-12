@@ -43,6 +43,7 @@ class YouTubeFloatingPlayer {
                     <i class="fab fa-youtube yt-empty-icon"></i>
                     <p>${_t('Nenhum vídeo ainda')}</p>
                     <button type="button" class="yt-btn-add-video"><i class="fas fa-plus"></i> ${_t('Adicionar vídeo do YouTube')}</button>
+                    <button type="button" class="yt-btn-add-video yt-btn-upload-empty"><i class="fas fa-file-audio"></i> ${_t('Enviar arquivo de áudio')}</button>
                 </div>
                 <div id="yt-player-frame" style="display: none;"></div>
             </div>
@@ -60,9 +61,11 @@ class YouTubeFloatingPlayer {
                 <div class="yt-footer-actions">
                     <a class="yt-action yt-btn-external" href="#" target="_blank" rel="noopener" title="${_t('Abrir no YouTube')}" style="display:none;"><i class="fas fa-arrow-up-right-from-square"></i> <span class="yt-label">YouTube</span></a>
                     ${this.readOnly ? '' : `<button type="button" class="yt-action yt-btn-download" title="${_t('Baixar o áudio e guardar no U-Control')}" style="display:none;"><i class="fas fa-download"></i> <span class="yt-label">${_t('Baixar áudio')}</span></button>`}
+                    ${this.readOnly ? '' : `<button type="button" class="yt-action yt-btn-upload" title="${_t('Enviar um arquivo de áudio do computador ou celular')}" style="display:none;"><i class="fas fa-file-audio"></i> <span class="yt-label">${_t('Arquivo')}</span></button>`}
                     ${this.readOnly ? '' : `<button type="button" class="yt-action yt-btn-change" title="${_t('Trocar por outro vídeo do YouTube')}" style="display:none;"><i class="fas fa-arrow-right-arrow-left"></i> <span class="yt-label">${_t('Trocar')}</span></button>`}
                 </div>
             </div>
+            ${this.readOnly ? '' : '<input type="file" class="yt-audio-file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.opus,.wav,.flac,.wma" hidden>'}
         `;
 
         if (!document.getElementById('yt-player-styles')) {
@@ -151,6 +154,7 @@ class YouTubeFloatingPlayer {
                 text-decoration: none;
                 cursor: pointer;
             }
+            .yt-player-empty .yt-btn-add-video + .yt-btn-add-video { margin-top: 8px; }
             .yt-btn-add-video:hover { background: var(--uc-accent-strong, #7350ea); }
             .yt-empty-tip { margin: 14px 0 0 !important; font-size: 12.5px !important; line-height: 1.45; }
             .yt-empty-tip b { color: var(--uc-text, #e9ebf4); }
@@ -301,6 +305,20 @@ class YouTubeFloatingPlayer {
         if (changeBtn) changeBtn.addEventListener('click', () => this.promptForVideo());
         if (downloadBtn) downloadBtn.addEventListener('click', () => this.downloadAudio());
 
+        // Enviar arquivo: delegação, porque showExternalLink reescreve o
+        // estado vazio
+        const fileInput = this.container.querySelector('.yt-audio-file');
+        if (fileInput) {
+            this.container.addEventListener('click', (e) => {
+                if (e.target.closest('.yt-btn-upload, .yt-btn-upload-empty')) fileInput.click();
+            });
+            fileInput.addEventListener('change', () => {
+                const arquivo = fileInput.files[0];
+                fileInput.value = '';
+                if (arquivo) this.uploadAudio(arquivo);
+            });
+        }
+
         speedSelect.addEventListener('change', (e) => this.setPlaybackRate(parseFloat(e.target.value)));
     }
 
@@ -375,7 +393,7 @@ class YouTubeFloatingPlayer {
         this.container.querySelector('.yt-player-title').textContent = title;
     }
 
-    setFooterActions({ external = false, download = false, change = false } = {}) {
+    setFooterActions({ external = false, download = false, change = false, upload = change } = {}) {
         const show = (sel, on) => {
             const el = this.container.querySelector(sel);
             if (el) el.style.display = on ? 'inline-flex' : 'none';
@@ -383,6 +401,7 @@ class YouTubeFloatingPlayer {
         show('.yt-btn-external', external);
         show('.yt-btn-download', download);
         show('.yt-btn-change', change);
+        show('.yt-btn-upload', upload);
     }
 
     // Velocidade só faz sentido com algo tocando aqui (vídeo ou áudio)
@@ -478,7 +497,6 @@ class YouTubeFloatingPlayer {
 
             const songIdField = document.getElementById('song_id') || document.querySelector('input[name="song_id"]');
             const audioField = document.getElementById('audio_url');
-
             const response = await fetch('/download_audio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -489,20 +507,7 @@ class YouTubeFloatingPlayer {
                 })
             });
 
-            // Sessão expirada: o login_required redireciona pra página de
-            // login (HTML), e o .json() dava um erro sem sentido
-            const isJson = (response.headers.get('content-type') || '').includes('application/json');
-            if (!isJson) {
-                throw new Error(response.redirected || response.status === 401
-                    ? _t('Sua sessão expirou. Entre de novo e tente outra vez.')
-                    : _t('O servidor respondeu {status}.', { status: response.status }));
-            }
-            const data = await response.json();
-
-            if (!data.success) throw new Error(data.error || _t('Erro desconhecido'));
-
-            if (audioField) audioField.value = data.audio_url;
-            this.loadLocalAudio(data.audio_url);
+            await this.receiveAudio(response);
             alert(_t('Áudio baixado.') + '\n\n' + _t('Clique em Salvar para guardar na música.'));
         } catch (error) {
             console.error('Erro ao baixar áudio:', error);
@@ -510,6 +515,53 @@ class YouTubeFloatingPlayer {
         } finally {
             downloadBtn.innerHTML = originalHtml;
             downloadBtn.disabled = false;
+        }
+    }
+
+    // Resposta de /download_audio e /upload_audio: põe o áudio no campo do
+    // formulário e toca aqui
+    async receiveAudio(response) {
+        // Sessão expirada: o login_required redireciona pra página de
+        // login (HTML), e o .json() dava um erro sem sentido
+        const isJson = (response.headers.get('content-type') || '').includes('application/json');
+        if (!isJson) {
+            throw new Error(response.redirected || response.status === 401
+                ? _t('Sua sessão expirou. Entre de novo e tente outra vez.')
+                : response.status === 413 ? _t('Arquivo grande demais.')
+                : _t('O servidor respondeu {status}.', { status: response.status }));
+        }
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || _t('Erro desconhecido'));
+
+        const audioField = document.getElementById('audio_url');
+        if (audioField) audioField.value = data.audio_url;
+        this.loadLocalAudio(data.audio_url);
+    }
+
+    // Áudio do computador/celular, sem passar pelo YouTube
+    async uploadAudio(arquivo) {
+        const botoes = [...this.container.querySelectorAll('.yt-btn-upload, .yt-btn-upload-empty')];
+        const originais = botoes.map((b) => b.innerHTML);
+        try {
+            botoes.forEach((b) => {
+                b.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="yt-label">' + _t('Enviando…') + '</span>';
+                b.disabled = true;
+            });
+            const songIdField = document.getElementById('song_id') || document.querySelector('input[name="song_id"]');
+            const audioField = document.getElementById('audio_url');
+            const form = new FormData();
+            form.append('audio', arquivo);
+            if (songIdField && songIdField.value) form.append('song_id', songIdField.value);
+            if (audioField && audioField.value) form.append('old_audio_url', audioField.value);
+
+            const response = await fetch('/upload_audio', { method: 'POST', body: form });
+            await this.receiveAudio(response);
+            alert(_t('Áudio enviado.') + '\n\n' + _t('Clique em Salvar para guardar na música.'));
+        } catch (error) {
+            console.error('Erro ao enviar áudio:', error);
+            alert(_t('Não deu pra enviar o áudio:') + '\n' + error.message);
+        } finally {
+            botoes.forEach((b, i) => { b.innerHTML = originais[i]; b.disabled = false; });
         }
     }
 
@@ -546,7 +598,8 @@ class YouTubeFloatingPlayer {
 
         this.videoId = null;
         this.setHeader('audio', _t('Áudio de referência'));
-        // Já baixado: sem "Baixar"; "Trocar" põe outro vídeo do YouTube
+        // Já baixado: sem "Baixar"; "Trocar" põe outro vídeo do YouTube,
+        // "Arquivo" troca por outro arquivo
         this.setFooterActions({ external: false, download: false, change: true });
         this.setSpeedVisible(true);
         this.show();

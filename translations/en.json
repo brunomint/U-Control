@@ -1890,5 +1890,19 @@
   "Só {nome} pode mudar isso nesta tela.": "Only {nome} can change this on this screen.",
   "Nenhuma tela está mostrando a letra agora: quem cuida das telas pôs outra coisa nelas.": "No screen is showing the lyrics right now: whoever runs the screens put something else on them.",
   "Você conduz a passagem. Para cuidar de uma tela, escolha no Controle.": "You are driving the flow. To take care of a screen, choose it in the Control panel.",
-  "Sem tela — conduzindo a passagem": "No screen — driving the flow"
+  "Sem tela — conduzindo a passagem": "No screen — driving the flow",
+  "O YouTube diz que este vídeo não está disponível (removido, privado ou bloqueado). Tente outro link ou envie um arquivo de áudio.": "YouTube says this video is unavailable (removed, private or blocked). Try another link or upload an audio file.",
+  "O YouTube bloqueou o download pelo servidor. Envie um arquivo de áudio no lugar.": "YouTube blocked the download from the server. Upload an audio file instead.",
+  "O ffmpeg não está instalado no servidor.": "ffmpeg is not installed on the server.",
+  "O ffmpeg não está instalado no servidor. Envie o áudio em MP3.": "ffmpeg is not installed on the server. Upload the audio as MP3.",
+  "Arquivo grande demais (máximo {mb} MB).": "File too large (maximum {mb} MB).",
+  "Formato não aceito. Use MP3, M4A, WAV, OGG, FLAC ou AAC.": "Format not supported. Use MP3, M4A, WAV, OGG, FLAC or AAC.",
+  "A conversão do áudio demorou demais.": "Audio conversion took too long.",
+  "Não consegui ler esse arquivo de áudio.": "Couldn't read this audio file.",
+  "Enviar arquivo de áudio": "Upload audio file",
+  "Enviar um arquivo de áudio do computador ou celular": "Upload an audio file from your computer or phone",
+  "Arquivo": "File",
+  "Arquivo grande demais.": "File too large.",
+  "Áudio enviado.": "Audio uploaded.",
+  "Não deu pra enviar o áudio:": "Couldn't upload the audio:"
 }

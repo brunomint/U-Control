@@ -6,7 +6,11 @@ import json
 import logging
 import os
 import re
+import secrets
+import shutil
+import subprocess
 import sys
+import tempfile
 
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
@@ -272,12 +276,61 @@ def _yt_dlp_python():
     return sys.executable if importlib.util.find_spec('yt_dlp') else 'python3'
 
 
+def _ambiente_com_sistema():
+    """O serviço no Pi roda com PATH só do venv: o yt-dlp e a conversão
+    não achavam o ffmpeg (/usr/bin) e todo download falhava no fim com
+    "ffprobe and ffmpeg not found" (log de 31/10)."""
+    env = dict(os.environ)
+    partes = [p for p in env.get('PATH', '').split(os.pathsep) if p]
+    for extra in ('/usr/local/bin', '/usr/bin', '/bin'):
+        if extra not in partes:
+            partes.append(extra)
+    env['PATH'] = os.pathsep.join(partes)
+    return env
+
+
+def _ffmpeg():
+    return shutil.which('ffmpeg', path=_ambiente_com_sistema()['PATH'])
+
+
+def _erro_yt_dlp(stderr):
+    """Só a linha de ERROR, em português quando é um caso conhecido (antes
+    o alerta trazia o aviso inteiro do yt-dlp sobre JavaScript)."""
+    erros = [l for l in (stderr or '').splitlines() if l.startswith('ERROR')]
+    texto = erros[-1] if erros else (stderr or '').strip()[-300:]
+    baixo = texto.lower()
+    if 'video unavailable' in baixo or 'private video' in baixo or 'has been removed' in baixo:
+        return tr('O YouTube diz que este vídeo não está disponível (removido, privado ou bloqueado). Tente outro link ou envie um arquivo de áudio.')
+    if 'sign in to confirm' in baixo or 'not a bot' in baixo:
+        return tr('O YouTube bloqueou o download pelo servidor. Envie um arquivo de áudio no lugar.')
+    if 'ffmpeg' in baixo or 'ffprobe' in baixo:
+        return tr('O ffmpeg não está instalado no servidor.')
+    return tr('Erro ao baixar: {erro}', erro=texto)
+
+
+def _apagar_audio_antigo(old_audio_url, novo_path):
+    """Só um .mp3 de dentro da pasta de áudio (antes "../../instance/users.db"
+    apagava o banco)."""
+    if not old_audio_url or not old_audio_url.strip():
+        return
+    audio_dir = paths.AUDIO_DIR
+    old_filename = os.path.basename(old_audio_url.split('?')[0])
+    old_path = os.path.join(audio_dir, old_filename)
+    dentro = os.path.realpath(old_path).startswith(os.path.realpath(audio_dir) + os.sep)
+    if dentro and old_filename.endswith('.mp3') and os.path.exists(old_path) and old_path != novo_path:
+        os.remove(old_path)
+        logger.info(f"🗑️ Áudio antigo deletado: {old_path}")
+
+
+def _song_id_seguro(song_id):
+    """song_id entra no nome do arquivo: só número."""
+    return str(song_id) if song_id is not None and str(song_id).isdigit() else None
+
+
 # Download de áudio do YouTube via yt-dlp
 @cifras_bp.route("/download_audio", methods=["POST"])
 @login_required
 def download_audio():
-    import subprocess
-
     data = request.get_json()
     video_url = data.get("url")
     song_id = data.get("song_id")  # ID da música para nomear o arquivo
@@ -296,24 +349,14 @@ def download_audio():
         # yt-dlp recebe só a URL remontada a partir do ID: o texto recebido
         # podia começar com "--exec=..." e virar opção (comando no servidor)
         video_url = f"https://www.youtube.com/watch?v={video_id}"
-        # song_id entra no nome do arquivo: só número
-        song_id = str(song_id) if song_id is not None and str(song_id).isdigit() else None
+        song_id = _song_id_seguro(song_id)
 
         # Define nome do arquivo (usa song_id se fornecido, senão video_id)
         filename = f"{song_id}_{video_id}" if song_id else video_id
         audio_dir = paths.AUDIO_DIR
         output_path = os.path.join(audio_dir, f"{filename}.mp3")
 
-        # Deleta áudio antigo se fornecido e diferente do novo — só um .mp3
-        # de dentro da pasta de áudio (antes "../../instance/users.db"
-        # apagava o banco)
-        if old_audio_url and old_audio_url.strip():
-            old_filename = os.path.basename(old_audio_url.split('?')[0])
-            old_path = os.path.join(audio_dir, old_filename)
-            dentro = os.path.realpath(old_path).startswith(os.path.realpath(audio_dir) + os.sep)
-            if dentro and old_filename.endswith('.mp3') and os.path.exists(old_path) and old_path != output_path:
-                os.remove(old_path)
-                logger.info(f"🗑️ Áudio antigo deletado: {old_path}")
+        _apagar_audio_antigo(old_audio_url, output_path)
 
         # Verifica se já existe
         if os.path.exists(output_path):
@@ -340,11 +383,12 @@ def download_audio():
         ]
 
         logger.info(f"🎵 Baixando áudio: {video_url}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+                                env=_ambiente_com_sistema())
 
         if result.returncode != 0:
             logger.error(f"❌ Erro yt-dlp: {result.stderr}")
-            return jsonify({"error": tr("Erro ao baixar: {erro}", erro=result.stderr)}), 500
+            return jsonify({"error": _erro_yt_dlp(result.stderr)}), 500
 
         # Verifica se o arquivo foi criado
         if os.path.exists(output_path):
@@ -361,6 +405,57 @@ def download_audio():
     except Exception as e:
         logger.exception(f"❌ Erro: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+AUDIO_ENVIO_MAX_MB = 60
+AUDIO_EXTENSOES = {'.mp3', '.m4a', '.aac', '.ogg', '.oga', '.opus', '.wav', '.flac', '.wma', '.webm', '.mp4'}
+
+
+# Enviar um arquivo de áudio do computador/celular, sem passar pelo
+# YouTube. Tudo vira .mp3 (o player e o /list_audio só tratam .mp3).
+@cifras_bp.route("/upload_audio", methods=["POST"])
+@login_required
+def upload_audio():
+    if request.content_length and request.content_length > AUDIO_ENVIO_MAX_MB * 1024 * 1024:
+        return jsonify({"error": tr("Arquivo grande demais (máximo {mb} MB).", mb=AUDIO_ENVIO_MAX_MB)}), 413
+    arquivo = request.files.get('audio')
+    if not arquivo or not arquivo.filename:
+        return jsonify({"error": tr("Nenhum arquivo enviado")}), 400
+    ext = os.path.splitext(arquivo.filename)[1].lower()
+    if ext not in AUDIO_EXTENSOES:
+        return jsonify({"error": tr("Formato não aceito. Use MP3, M4A, WAV, OGG, FLAC ou AAC.")}), 400
+
+    song_id = _song_id_seguro(request.form.get('song_id'))
+    nome = f"{song_id}_arquivo_{secrets.token_hex(4)}" if song_id else f"arquivo_{secrets.token_hex(4)}"
+    audio_dir = paths.AUDIO_DIR
+    os.makedirs(audio_dir, exist_ok=True)
+    output_path = os.path.join(audio_dir, f"{nome}.mp3")
+
+    with tempfile.TemporaryDirectory(dir=audio_dir) as tmp:
+        entrada = os.path.join(tmp, 'entrada' + ext)
+        arquivo.save(entrada)
+        if ext == '.mp3':
+            os.replace(entrada, output_path)
+        else:
+            ffmpeg = _ffmpeg()
+            if not ffmpeg:
+                return jsonify({"error": tr("O ffmpeg não está instalado no servidor. Envie o áudio em MP3.")}), 500
+            try:
+                result = subprocess.run(
+                    [ffmpeg, '-y', '-loglevel', 'error', '-i', entrada, '-vn',
+                     '-codec:a', 'libmp3lame', '-b:a', '192k', output_path],
+                    capture_output=True, text=True, timeout=180)
+            except subprocess.TimeoutExpired:
+                return jsonify({"error": tr("A conversão do áudio demorou demais.")}), 500
+            if result.returncode != 0 or not os.path.exists(output_path):
+                logger.error(f"❌ Erro ffmpeg: {result.stderr}")
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                return jsonify({"error": tr("Não consegui ler esse arquivo de áudio.")}), 400
+
+    _apagar_audio_antigo(request.form.get('old_audio_url'), output_path)
+    logger.info(f"✅ Áudio enviado: {output_path}")
+    return jsonify({"success": True, "audio_url": f"/static/audio/{nome}.mp3"})
 
 
 # Listar áudios disponíveis
