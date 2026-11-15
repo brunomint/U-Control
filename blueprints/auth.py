@@ -9,6 +9,7 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import seguranca_log
 from display_log import load_display_log
 from extensions import db, login_manager
 from i18n import gettext as _
@@ -31,10 +32,22 @@ LOGIN_JANELA = timedelta(minutes=10)
 
 
 def _obter_ip_cliente(req):
-    ip_cliente = req.environ.get('HTTP_X_FORWARDED_FOR', req.environ.get('REMOTE_ADDR', 'unknown'))
-    if ',' in ip_cliente:
-        ip_cliente = ip_cliente.split(',')[0].strip()
-    return ip_cliente
+    """Quem está tentando entrar, para o limite de tentativas.
+
+    Pelo túnel da Cloudflare, o cloudflared conecta de 127.0.0.1 e a
+    Cloudflare põe o endereço real em CF-Connecting-IP (ela sobrescreve o
+    que o visitante mandar). Antes usávamos o 1º item de X-Forwarded-For,
+    que vem do próprio visitante: mudando esse cabeçalho a cada tentativa,
+    dava para tentar senhas sem nunca ser bloqueado.
+    Os cabeçalhos só valem quando a conexão vem da própria máquina (o
+    cloudflared); na rede local, vale o endereço da conexão, que não dá
+    para falsificar."""
+    direto = req.environ.get('REMOTE_ADDR') or 'unknown'
+    if direto in ('127.0.0.1', '::1'):
+        cf = (req.headers.get('CF-Connecting-IP') or '').strip()
+        if cf:
+            return cf
+    return direto
 
 
 def _ip_esta_bloqueado(ip):
@@ -58,6 +71,7 @@ def login():
         ip_cliente = _obter_ip_cliente(request)
 
         if _ip_esta_bloqueado(ip_cliente):
+            seguranca_log.registrar('login_bloqueado', ip_cliente, usuario=request.form.get('username'))
             flash(_('Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.'))
             return redirect(url_for('auth.login'))
 
@@ -66,6 +80,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             _limpar_tentativas(ip_cliente)
+            seguranca_log.registrar('login_ok', ip_cliente, usuario=username, aparelho=request.user_agent.string)
             login_user(user)
             next_url = request.args.get('next') or request.form.get('next')
             if next_url and next_url.startswith('/') and not next_url.startswith('//'):
@@ -73,6 +88,7 @@ def login():
             return redirect(url_for('auth.dashboard'))
         else:
             _registrar_tentativa_falha(ip_cliente)
+            seguranca_log.registrar('login_falhou', ip_cliente, usuario=username, aparelho=request.user_agent.string)
             flash(_('Usuário ou senha incorretos.'))
     # Instalação nova (Windows, Docker): sem nenhum usuário ainda, a tela
     # de login vira "criar o primeiro" — ver primeiro_acesso()

@@ -60,6 +60,9 @@ class OperatorSocketIO(SocketIO):
                 if not current_user.is_authenticated and not reset_da_tela:
                     logging.getLogger('ucontrol').warning(
                         'Socket: evento %r recusado (sem login)', message)
+                    import seguranca_log
+                    from flask import request
+                    seguranca_log.registrar('socket_recusado', request.headers.get('CF-Connecting-IP') or request.remote_addr, comando=message)
                     return None
                 registro_acoes.registrar_evento(message, args)
                 # Quem cuida de cada tela (destinos.py): ação numa tela de

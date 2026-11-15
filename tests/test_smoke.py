@@ -4732,3 +4732,34 @@ def test_token_csrf_nao_vence_por_tempo():
     import main
     app = main.create_app({'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:', 'TESTING': True})
     assert app.config['WTF_CSRF_TIME_LIMIT'] is None
+
+
+# --- Limite de tentativas de login (blueprints/auth.py) -------------------
+
+def test_login_bloqueia_mesmo_trocando_x_forwarded_for(client):
+    """Antes o limite usava o X-Forwarded-For que o próprio visitante manda:
+    trocando o cabeçalho a cada tentativa, nunca era bloqueado."""
+    from blueprints import auth
+    auth.tentativas_login_por_ip.clear()
+    for i in range(auth.LOGIN_MAX_TENTATIVAS):
+        client.post("/login", data={"username": "x", "password": "errada"},
+                    headers={"X-Forwarded-For": f"10.0.0.{i}", "CF-Connecting-IP": "200.1.2.3"})
+    r = client.post("/login", data={"username": "x", "password": "errada"},
+                    headers={"X-Forwarded-For": "10.9.9.9", "CF-Connecting-IP": "200.1.2.3"}, follow_redirects=True)
+    assert "Muitas tentativas".encode() in r.data
+    # outro visitante (outro endereço real) não é afetado
+    r = client.post("/login", data={"username": "x", "password": "errada"},
+                    headers={"CF-Connecting-IP": "200.9.9.9"}, follow_redirects=True)
+    assert "incorretos".encode() in r.data
+    auth.tentativas_login_por_ip.clear()
+
+
+def test_login_na_rede_local_nao_aceita_cabecalho_falso():
+    """Na rede local (conexão direta, sem o cloudflared), CF-Connecting-IP é
+    ignorado: vale o endereço da conexão."""
+    from types import SimpleNamespace
+    from blueprints.auth import _obter_ip_cliente
+    lan = SimpleNamespace(environ={"REMOTE_ADDR": "192.168.0.20"}, headers={"CF-Connecting-IP": "1.2.3.4"})
+    assert _obter_ip_cliente(lan) == "192.168.0.20"
+    tunel = SimpleNamespace(environ={"REMOTE_ADDR": "127.0.0.1"}, headers={"CF-Connecting-IP": "1.2.3.4"})
+    assert _obter_ip_cliente(tunel) == "1.2.3.4"
