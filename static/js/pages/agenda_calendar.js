@@ -73,3 +73,5 @@ document.getElementById('nextBtn').addEventListener('click', () => {
 
 buildHead();
 loadOrders();
+// Mudou uma ordem em outro aparelho: o calendário acompanha (static/js/ordens_ao_vivo.js)
+ucOrdensAoVivo(() => loadOrders());

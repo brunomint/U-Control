@@ -179,11 +179,10 @@ function addToList() {
 }
 
 
-async function saveList() {
-    const songList = document.getElementById("songList");
-    const items = Array.from(songList.children);
-
-    const data = items.map(item => {
+// A lista como está na tela, no formato que a ordem guarda
+function lerLista() {
+    const items = Array.from(document.getElementById("songList").children);
+    return items.map(item => {
         const link = item.querySelector("a");
         const title = link ? link.textContent : null;
         let url = link ? link.href : null;
@@ -196,6 +195,10 @@ async function saveList() {
 
         return url ? { url, title } : { anyText: title };
     });
+}
+
+async function saveList() {
+    const data = lerLista();
 
     try {
         // Verifica se há data na URL para salvar na ordem correta
@@ -220,6 +223,7 @@ async function saveList() {
                 body: JSON.stringify(data),
             });
         }
+        listaCarregada = JSON.stringify(data);
         alert(_t('Lista salva com sucesso!'));
     } catch (error) {
         console.error("Erro ao salvar a lista:", error);
@@ -439,6 +443,10 @@ function generateBibleUrl(reference) {
     return url;
 }
 
+// Lista como veio do servidor (ou foi salva aqui): se a da tela está
+// diferente, alguém mexeu nela sem salvar
+let listaCarregada = null;
+
 // Função para carregar a lista
 async function loadList() {
     try {
@@ -486,6 +494,7 @@ async function loadList() {
                 updateSongList({ title: item.anyText });
             }
         });
+        listaCarregada = JSON.stringify(lerLista());
     } catch (error) {
         console.error("Erro ao carregar a lista:", error);
     }
@@ -493,6 +502,14 @@ async function loadList() {
 
 // Chamar loadList no carregamento da página
 document.addEventListener("DOMContentLoaded", loadList);
+
+// Mudou a ordem em outro aparelho: a lista acompanha (static/js/ordens_ao_vivo.js),
+// a não ser que alguém esteja mexendo nela aqui sem ter salvo
+ucOrdensAoVivo(() => {
+    if (listaCarregada === null || JSON.stringify(lerLista()) !== listaCarregada) return;
+    document.getElementById("songList").innerHTML = '';
+    loadList();
+});
 
 // Adicionar evento de input para busca de músicas
 document.getElementById("searchInput").addEventListener("input", (event) => {

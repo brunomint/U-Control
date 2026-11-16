@@ -12,6 +12,10 @@
     const frame = document.getElementById('tocador');
     const aviso = document.getElementById('aviso');
     const socket = io();
+    // Qual tela é esta: dentro do palco vem com host=monitor (monitor.js, noMonitor)
+    const minhaTela = params.get('host') === 'monitor' ? 'monitor' : 'public';
+    // O comando é desta tela? (telas: as que seguem quem conduz; ver destinos.telas_do_slide)
+    const paraMim = (d) => !d || !Array.isArray(d.telas) || d.telas.includes(minhaTela);
     let pronto = false;
     let fila = [];
     // Onde a apresentação está (ou está indo): no meio de uma transição o
@@ -79,7 +83,7 @@
     }
 
     function executar(d) {
-        if (d.svg !== svg) return;
+        if (d.svg !== svg || !paraMim(d)) return;
         if (d.cmd === 'goto') irPara(d.slide, d.step);
         else {
             if (atual.slide !== d.slide || atual.step !== d.step) irPara(d.slide, d.step);  // alcança as outras
@@ -127,7 +131,8 @@
     socket.on('connect', function () {
         if (!pronto) return;
         fetch('/api/apresentacao').then(r => r.json()).then(function (e) {
-            if (e && e.svg === svg && e.slides !== null) { irPara(e.slide, e.step); contar(); }
+            // Tela que não segue a passagem fica onde o dono deixou
+            if (e && e.svg === svg && e.slides !== null && paraMim(e)) { irPara(e.slide, e.step); contar(); }
             else contar();
         }).catch(function () {});
     });

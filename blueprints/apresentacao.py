@@ -24,7 +24,8 @@ from extensions import socketio
 
 apresentacao_bp = Blueprint('apresentacao', __name__)
 
-_estado = {'svg': None, 'slide': 0, 'step': 0, 'slides': None, 'steps': None}
+# telas: as que receberam o último comando (só elas acompanham; ver destinos.telas_do_slide)
+_estado = {'svg': None, 'slide': 0, 'step': 0, 'slides': None, 'steps': None, 'telas': None}
 _lock = threading.Lock()
 
 
@@ -48,17 +49,18 @@ def comecar(url):
     svg, slide = parse_url(url)
     if svg:
         with _lock:
-            _estado.update(svg=svg, slide=slide, step=0, slides=None, steps=None)
+            _estado.update(svg=svg, slide=slide, step=0, slides=None, steps=None, telas=None)
 
 
-def ir_para(url):
+def ir_para(url, telas=None):
     """Outro slide da apresentação que já está no ar: as telas pulam pra
-    ele sem recarregar."""
+    ele sem recarregar. telas: só estas ('public'/'monitor'); None = todas."""
     svg, slide = parse_url(url)
+    telas = sorted(telas) if telas is not None else None
     with _lock:
-        _estado.update(svg=svg, slide=slide, step=0, steps=None)
+        _estado.update(svg=svg, slide=slide, step=0, steps=None, telas=telas)
         estado = dict(_estado)
-    socketio.emit('apresentacao_cmd', {'cmd': 'goto', 'svg': svg, 'slide': slide, 'step': 0})
+    socketio.emit('apresentacao_cmd', {'cmd': 'goto', 'svg': svg, 'slide': slide, 'step': 0, 'telas': telas})
     socketio.emit('apresentacao_pos', estado)
 
 
@@ -88,11 +90,18 @@ def handle_apresentacao_cmd(data):
     cmd = (data or {}).get('cmd')
     if cmd not in ('next', 'prev'):
         return
+    import destinos
+    telas = sorted(destinos.telas_do_slide())
+    if not telas:
+        return
     with _lock:
         if not _estado['svg']:
             return
+        _estado['telas'] = telas
         de = {'svg': _estado['svg'], 'slide': _estado['slide'], 'step': _estado['step']}
-    emit('apresentacao_cmd', {'cmd': cmd, **de}, broadcast=True)
+    # Vai pra todas, mas só as telas da lista obedecem (static/js/pages/apresentacao.js):
+    # a tela de quem não segue a passagem fica no slide em que o dono deixou
+    emit('apresentacao_cmd', {'cmd': cmd, **de, 'telas': telas}, broadcast=True)
 
 
 @socketio.on('apresentacao_pos')

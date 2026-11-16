@@ -41,6 +41,8 @@ function handleDateRedirect(ev) {
 }
 
 loadOrders();
+// Mudou uma ordem em outro aparelho: as próximas datas acompanham (static/js/ordens_ao_vivo.js)
+ucOrdensAoVivo(() => loadOrders());
 
 // Nome da igreja no calendário público (blueprints/agenda.py)
 document.getElementById('salvarNomeIgreja').addEventListener('click', async () => {

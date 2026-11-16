@@ -160,6 +160,91 @@ def test_video_e_passagem(app, bruno_e_vitor):
         monitor.disconnect()
 
 
+def test_reiniciar_e_pular_o_video_nao_mexem_no_palco_independente(app, bruno_e_vitor):
+    """Culto de 15/11: o Bruno reiniciou o vídeo e ele recomeçou também no
+    palco, que o Vitor cuidava sem seguir a passagem."""
+    from extensions import socketio
+    bruno, vitor, _, _ = bruno_e_vitor
+    monitor = socketio.test_client(app)
+    monitor.emit('identify', {'role': 'monitor'})
+    publico = socketio.test_client(app)
+    publico.emit('identify', {'role': 'public'})
+    try:
+        bruno.emit('set_display_mode', {'mode': 'public'})
+        vitor.emit('set_display_mode', {'mode': 'monitor'})
+        vitor.emit('seguir_passagem', {'tela': 'monitor', 'ligado': False})
+        bruno.emit('show_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        monitor.get_received(); publico.get_received()
+        bruno.emit('restart_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        bruno.emit('seek_video', {'time': 12})
+        bruno.emit('toggle_video_pause', {'paused': True})
+        no_palco = [m['name'] for m in monitor.get_received()]
+        no_publico = [m['name'] for m in publico.get_received()]
+        for ev in ('video_restart', 'video_seek', 'video_pause'):
+            assert ev not in no_palco, ev
+            assert ev in no_publico, ev
+    finally:
+        monitor.disconnect(); publico.disconnect()
+
+
+def test_reiniciar_o_video_no_palco_nao_mexe_no_publico_de_outro(app, bruno_e_vitor):
+    """O contrário: quem só cuida do palco reinicia; o público do outro, sem seguir, fica."""
+    from extensions import socketio
+    bruno, vitor, _, _ = bruno_e_vitor
+    monitor = socketio.test_client(app)
+    monitor.emit('identify', {'role': 'monitor'})
+    publico = socketio.test_client(app)
+    publico.emit('identify', {'role': 'public'})
+    try:
+        bruno.emit('set_display_mode', {'mode': 'public'})
+        vitor.emit('set_display_mode', {'mode': 'monitor'})
+        bruno.emit('seguir_passagem', {'tela': 'public', 'ligado': False})
+        vitor.emit('show_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        no_publico = [m['name'] for m in publico.get_received()]
+        assert 'display_video' not in no_publico   # primeira vez: já não mudava
+        monitor.get_received()
+        vitor.emit('restart_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        vitor.emit('seek_video', {'time': 5})
+        assert not [m for m in publico.get_received() if m['name'] in ('video_restart', 'video_seek')]
+        no_palco = [m['name'] for m in monitor.get_received()]
+        assert 'video_restart' in no_palco and 'video_seek' in no_palco
+    finally:
+        monitor.disconnect(); publico.disconnect()
+
+
+def test_proximo_slide_nao_avanca_a_apresentacao_no_palco_independente(app, bruno_e_vitor):
+    """Mesma apresentação no público (Bruno) e no palco (Vitor, sem seguir a
+    passagem): o "próximo" do Bruno só vale pro público; o palco fica."""
+    from extensions import socketio
+    from blueprints import apresentacao
+    bruno, vitor, _, _ = bruno_e_vitor
+    tela = socketio.test_client(app)
+    try:
+        bruno.emit('set_display_mode', {'mode': 'public'})
+        vitor.emit('set_display_mode', {'mode': 'monitor'})
+        vitor.emit('seguir_passagem', {'tela': 'monitor', 'ligado': False})
+        apresentacao.comecar('/apresentacao?svg=/static/imagens/x_slide.svg&slide=0')
+        tela.get_received()
+        bruno.emit('apresentacao_cmd', {'cmd': 'next'})
+        cmds = [m['args'][0] for m in tela.get_received() if m['name'] == 'apresentacao_cmd']
+        assert cmds and cmds[-1]['telas'] == ['public']
+        assert apresentacao._estado['telas'] == ['public']
+        # Vitor volta a seguir: o próximo vale pras duas
+        vitor.emit('seguir_passagem', {'tela': 'monitor', 'ligado': True})
+        bruno.emit('apresentacao_cmd', {'cmd': 'next'})
+        cmds = [m['args'][0] for m in tela.get_received() if m['name'] == 'apresentacao_cmd']
+        assert cmds[-1]['telas'] == ['monitor', 'public']
+    finally:
+        tela.disconnect()
+        apresentacao._estado.update(svg=None, telas=None)
+
+
+def test_tela_da_apresentacao_so_obedece_comando_dela():
+    js = open('static/js/pages/apresentacao.js', encoding='utf-8').read()
+    assert "if (d.svg !== svg || !paraMim(d)) return;" in js
+    assert "params.get('host') === 'monitor'" in js
+
+
 def test_tela_preta_de_um_nao_cobre_a_tela_do_outro(bruno_e_vitor):
     bruno, vitor, _, _ = bruno_e_vitor
     bruno.emit('set_display_mode', {'mode': 'public'})

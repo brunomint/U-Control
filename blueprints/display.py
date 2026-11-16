@@ -267,9 +267,11 @@ def handle_show_image(data):
     # Relógio, cronômetro, site… mandados do navegador: valem só nas telas
     # deste aparelho. Antes o "Exibir no telão" do cronômetro, num PC em
     # "Só monitor", punha o cronômetro também no público (teste de 09/11)
+    telas_do_pedido = None   # None = todas (chamada por dentro)
     if (data.get('use_active_mode') or destinos.de_fora_na_passagem(handle_show_image)
             or destinos.de_fora(handle_show_image)):
         mode = display_state.device_mode()
+        telas_do_pedido = destinos.telas_do_modo(mode)
         if mode == 'monitor':
             handle_show_monitor_content({'url': image_url})
             return
@@ -287,7 +289,7 @@ def handle_show_image(data):
         no_ar = display_state._last_image_url if display_state._current_display_mode == 'image' else None
         if apresentacao.parse_url(no_ar)[0] == svg:
             display_state._last_image_url = image_url
-            apresentacao.ir_para(image_url)
+            apresentacao.ir_para(image_url, telas_do_pedido)
             return
         apresentacao.comecar(image_url)
 
@@ -434,12 +436,22 @@ def handle_toggle_video_pause(data):
             display_state._video_state['started_at'] = time.time()
             display_state._video_state['paused'] = False
 
-    if destinos.de_fora_na_passagem(handle_toggle_video_pause):
+    _emitir_ao_video(handle_toggle_video_pause, 'video_pause', {'paused': paused}, data)
+
+
+def _emitir_ao_video(handler, evento, payload, data):
+    """Pausar, reiniciar e pular o vídeo vão só pras telas que a passagem
+    alcança (destinos.py), como o próprio vídeo. Antes o reiniciar e o
+    pular iam pra todas: o vídeo recomeçava na tela que outra pessoa
+    cuidava sem seguir a passagem (culto de 15/11)."""
+    if destinos.de_fora_na_passagem(handler):
         modo = display_state.device_mode()
         if modo == 'monitor':
-            return handle_show_monitor_pause({'paused': paused})
+            for sid in _get_monitor_sids():
+                emit(evento, payload, to=sid)
+            return
         data = {**data, 'exclude_monitor': modo == 'public' or bool(data.get('exclude_monitor'))}
-    emit('video_pause', {'paused': paused}, broadcast=True, skip_sid=_skip_sids(data))
+    emit(evento, payload, broadcast=True, skip_sid=_skip_sids(data))
 
 
 @socketio.on('restart_video')
@@ -450,7 +462,7 @@ def handle_restart_video(data):
         display_state._video_state['started_at'] = time.time()
         display_state._video_state['position_offset'] = 0.0
         display_state._video_state['paused'] = False
-    emit('video_restart', {}, broadcast=True)
+    _emitir_ao_video(handle_restart_video, 'video_restart', {}, data or {})
 
 
 @socketio.on('seek_video')
@@ -467,7 +479,7 @@ def handle_seek_video(data):
         display_state._video_state['position_offset'] = target
         display_state._video_state['started_at'] = time.time()
         # paused permanece como está
-    emit('video_seek', {'time': target}, broadcast=True)
+    _emitir_ao_video(handle_seek_video, 'video_seek', {'time': target}, data)
 
 
 @display_bp.route('/video_state')

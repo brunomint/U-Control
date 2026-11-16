@@ -149,35 +149,15 @@ html, body {
 
 
 /* Ajustes para telas menores */
+/* Telas estreitas (celular, o site num iframe estreito): só menos folga.
+   Antes também limitavam #lyrics a 80%/75% da largura sem centralizar —
+   a área da letra ficava grudada na esquerda e a letra saía deslocada
+   (pedido de 15/11). A largura da letra já é limitada no #section-text. */
 @media (max-width: 768px) {
-  #section-title {
-
-  }
-
-  #lyrics {
-
-  }
-
-  #section-title, #lyrics {
-    padding: 5px; /* Reduz o padding em telas menores */
-    max-width: 80%; /* Ajusta o limite de largura */
-  }
+  #section-title, #lyrics { padding: 5px; }
 }
-
-/* Ajustes para telas muito pequenas, como smartphones */
 @media (max-width: 480px) {
-  #section-title {
-
-  }
-
-  #lyrics {
-
-  }
-
-  #section-title, #lyrics {
-    padding: 3px; /* Reduz ainda mais o padding */
-    max-width: 75%; /* Ajusta o limite de largura para telas pequenas */
-  }
+  #section-title, #lyrics { padding: 3px; }
 }
 
 

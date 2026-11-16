@@ -993,6 +993,10 @@ function panelShow(view, url) {
     panelSave();
 }
 
+// Alguém mudou uma ordem: a aba "Ordem do culto" aberta mostra a nova
+// (static/js/ordens_ao_vivo.js); fechada, ela já recarrega ao abrir
+ucOrdensAoVivo(() => { if (panelState.view === 'ordem') panelLoadOrder(); });
+
 function panelLoadOrder() {
     const list = document.getElementById('ordem-list');
     fetch('/api/culto/proximo').then(r => r.json()).then(d => {

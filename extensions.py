@@ -41,6 +41,18 @@ def _screen_video_reset(message, args):
     return False
 
 
+def _e_tela():
+    """Quem mandou é uma tela (projetor, palco), não um operador? O
+    "pausado no início" só vale vindo dela: o operador pausar ou voltar a
+    barra pro começo passa pela regra de quem cuida de cada tela — antes
+    passava direto e pausava também a tela de outra pessoa."""
+    if not current_user.is_authenticated:
+        return True
+    from flask import request
+    from connections import socketio_clients_by_sid
+    return socketio_clients_by_sid.get(request.sid, {}).get('role') in ('public', 'monitor')
+
+
 class OperatorSocketIO(SocketIO):
     """SocketIO em que todo evento exige operador logado, exceto os de
     PUBLIC_SOCKET_EVENTS. Antes qualquer pessoa que abrisse o site (ex.:
@@ -56,7 +68,7 @@ class OperatorSocketIO(SocketIO):
         def decorator(handler):
             @functools.wraps(handler)
             def guarded(*args, **kwargs):
-                reset_da_tela = _screen_video_reset(message, args)
+                reset_da_tela = _screen_video_reset(message, args) and _e_tela()
                 if not current_user.is_authenticated and not reset_da_tela:
                     logging.getLogger('ucontrol').warning(
                         'Socket: evento %r recusado (sem login)', message)

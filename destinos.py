@@ -220,6 +220,15 @@ def _telas_da_passagem(kind, usuario):
     return minhas, minhas | seguem
 
 
+def telas_do_slide():
+    """Telas que o "próximo/anterior" da apresentação alcança: as deste
+    aparelho que são da pessoa (ou livres) e as que seguem a passagem.
+    Antes ia pra todas: a apresentação avançava também na tela que outra
+    pessoa cuidava sem seguir a passagem (culto de 15/11)."""
+    _, telas = _telas_da_passagem('slide', _usuario())
+    return telas
+
+
 def lembrar_passagem(kind, payload):
     """Conteúdo da passagem que foi ao ar (blueprints/display.py): é o que
     uma tela mostra ao voltar a seguir."""

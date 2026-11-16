@@ -28,6 +28,7 @@ from datetime import datetime
 from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 
+import ordens_ao_vivo
 from extensions import db
 from models_orders import EventoItem, Order, OrderItem, OrderTemplate, SectionTemplate
 
@@ -244,6 +245,7 @@ def save_order(date, data):
         if order:
             db.session.delete(order)
             db.session.commit()
+            ordens_ao_vivo.avisar(date)
         return True
     is_new = order is None
     if is_new:
@@ -251,6 +253,7 @@ def save_order(date, data):
         db.session.add(order)
     _apply_order_fields(order, data, is_new)
     db.session.commit()
+    ordens_ao_vivo.avisar(date)
     return True
 
 
@@ -310,6 +313,7 @@ def save_orders(orders):
                 _apply_order_fields(order, data, is_new=False)
 
         db.session.commit()
+        ordens_ao_vivo.avisar()   # todas
         return True
     except Exception as e:
         db.session.rollback()

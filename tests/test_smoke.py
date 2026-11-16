@@ -2959,11 +2959,12 @@ def test_apresentacao_sincroniza_telas(app, client):
         tela.emit("apresentacao_pos", {"svg": "/static/imagens/x_slide.svg", "slide": 9, "step": 0, "slides": 9, "steps": 0})
         assert client.get("/api/apresentacao").get_json()["slide"] == 1  # outra apresentação: ignora
 
-        # Avançar vai pra todas com a posição de partida
+        # Avançar vai com a posição de partida e as telas que obedecem
+        # (aqui as duas: "Os dois", sem dono; ver tests/test_destinos.py)
         tela.get_received()
         operador.emit("apresentacao_cmd", {"cmd": "next"})
         cmds = [m["args"][0] for m in tela.get_received() if m["name"] == "apresentacao_cmd"]
-        assert cmds == [{"cmd": "next", "svg": svg, "slide": 1, "step": 1}]
+        assert cmds == [{"cmd": "next", "svg": svg, "slide": 1, "step": 1, "telas": ["monitor", "public"]}]
 
         # tela sem login não comanda
         tela.emit("apresentacao_cmd", {"cmd": "next"})
@@ -2974,7 +2975,7 @@ def test_apresentacao_sincroniza_telas(app, client):
         recebidos = tela.get_received()
         assert not [m for m in recebidos if m["name"] == "display_image"]
         assert [m["args"][0] for m in recebidos if m["name"] == "apresentacao_cmd"] == [
-            {"cmd": "goto", "svg": svg, "slide": 2, "step": 0}]
+            {"cmd": "goto", "svg": svg, "slide": 2, "step": 0, "telas": ["monitor", "public"]}]
     finally:
         tela.disconnect()
         operador.disconnect()
@@ -4763,3 +4764,27 @@ def test_login_na_rede_local_nao_aceita_cabecalho_falso():
     assert _obter_ip_cliente(lan) == "192.168.0.20"
     tunel = SimpleNamespace(environ={"REMOTE_ADDR": "127.0.0.1"}, headers={"CF-Connecting-IP": "1.2.3.4"})
     assert _obter_ip_cliente(tunel) == "1.2.3.4"
+
+
+def test_salvar_a_ordem_avisa_as_paginas_abertas(app, logged_in_client):
+    """Pedido de 15/11: mudou a ordem do culto, as outras páginas abertas
+    (painel, /view, agenda) recarregam sozinhas. O aviso leva só a data —
+    vai também pras páginas públicas, sem o conteúdo da ordem."""
+    pagina = ucontrol_main.socketio.test_client(app)   # sem login, como a /view
+    pagina.get_received()
+    try:
+        r = logged_in_client.post('/api/orders/2099-03-01', json={'tipo': 'Culto', 'itens': [{'anyText': 'Oração'}]})
+        assert r.status_code == 200
+        avisos = [m['args'][0] for m in pagina.get_received() if m['name'] == 'ordens_mudaram']
+        assert avisos == [{'datas': ['2099-03-01']}]
+        logged_in_client.delete('/api/orders/2099-03-01')
+        avisos = [m['args'][0] for m in pagina.get_received() if m['name'] == 'ordens_mudaram']
+        assert avisos == [{'datas': ['2099-03-01']}]
+    finally:
+        pagina.disconnect()
+
+
+def test_paginas_que_mostram_a_ordem_recebem_o_aviso(client, logged_in_client):
+    for c, path in ((client, '/view'), (client, '/agenda'), (logged_in_client, '/order'),
+                    (logged_in_client, '/agenda/dashboard'), (logged_in_client, '/control')):
+        assert 'js/ordens_ao_vivo.js' in c.get(path).get_data(as_text=True), path

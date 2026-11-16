@@ -252,3 +252,5 @@ document.getElementById('prevPage').addEventListener('click', () => { currentPag
 document.getElementById('nextPage').addEventListener('click', () => { currentPage = currentPage + 1; renderGrid(); });
 
 document.addEventListener('DOMContentLoaded', loadOrders);
+// Mudou uma ordem em outro aparelho: a lista acompanha (static/js/ordens_ao_vivo.js)
+ucOrdensAoVivo(() => loadOrders());

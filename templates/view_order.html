@@ -100,4 +100,7 @@
 {% if not not_found %}
 <script src="{{ versioned_static('js/pages/view_order.js') }}"></script>
 {% endif %}
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ versioned_static('js/ordens_ao_vivo.js') }}"></script>
+<script src="{{ versioned_static('js/pages/view_order_ao_vivo.js') }}"></script>
 {% endblock %}

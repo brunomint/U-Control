@@ -100,6 +100,8 @@ async function loadList() {
         }
 
         const menu = document.getElementById("menu");
+        // Recarga (ordem mudou): tira a lista anterior, fica o título
+        menu.querySelectorAll('.song-link, .uc-empty').forEach(el => el.remove());
         const dateEl = document.getElementById('orderDateLabel');
         if (dateEl && orderDate) {
             const [y, m, d] = orderDate.split('-').map(Number);
@@ -142,6 +144,8 @@ async function loadList() {
 }
 
 loadList();
+// Mudou a ordem em outro aparelho: a lista acompanha (static/js/ordens_ao_vivo.js)
+ucOrdensAoVivo(() => loadList());
 
 // Função para alternar a visibilidade do menu (mobile)
 function toggleMenu() {

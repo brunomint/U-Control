@@ -72,5 +72,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/vendor/socketio/socket.io.min.js"></script>
+<script src="{{ versioned_static('js/ordens_ao_vivo.js') }}"></script>
 <script src="{{ versioned_static('js/pages/order_list.js') }}"></script>
 {% endblock %}
