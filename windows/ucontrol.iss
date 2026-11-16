@@ -76,10 +76,13 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 
 [Code]
 const
-  // Atualizar: versão "still" de https://download.documentfoundation.org/libreoffice/stable/
-  // e o SHA-256 do .mirrorlist do mesmo arquivo
-  LO_URL = 'https://download.documentfoundation.org/libreoffice/stable/26.2.6/win/x86_64/LibreOffice_26.2.6_Win_x86-64.msi';
-  LO_SHA256 = 'f9877032fd908beb9c0ddf06df4af5c2e85f419c42e14876c4cce5aae5fb2660';
+  // Do ARQUIVO de versões antigas (downloadarchive), que não muda de lugar:
+  // a pasta "stable" tira a versão quando sai outra, e o download dava 404
+  // (instalador da 1.1.0, 15/11). Atualizar: uma versão de
+  // https://downloadarchive.documentfoundation.org/libreoffice/old/ e o
+  // SHA-256 do .mirrorlist do mesmo arquivo (conferido baixando, 15/11)
+  LO_URL = 'https://downloadarchive.documentfoundation.org/libreoffice/old/26.2.6.2/win/x86_64/LibreOffice_26.2.6.2_Win_x86-64.msi';
+  LO_SHA256 = '788ce7d4b56460357f57552cb8cd848e8f2254f28f6e51fa61e0c65a18096373';
 
 var
   DownloadPage: TDownloadWizardPage;
