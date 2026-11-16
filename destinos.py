@@ -17,7 +17,7 @@ A PASSAGEM (música, slides, Bíblia) é de todos: qualquer pessoa logada
 escolhe e avança, sem assumir tela — vale o último toque. Cada tela tem
 "Seguir a passagem" (_seguindo), que só o responsável dela liga/desliga:
 seguindo, a passagem aparece nela (no palco a letra vira cifra; a Bíblia
-não vai pro palco); sem seguir, ela fica com o que o dono pôs. O dono pôr
+e o vídeo não vão pro palco); sem seguir, ela fica com o que o dono pôs. O dono pôr
 outra coisa (relógio, URL, Tela do PC, cronômetro, tela preta, vídeo só
 no palco) desliga o seguir da tela dele. Vídeo é passagem, como a letra.
 
@@ -217,6 +217,11 @@ def _telas_da_passagem(kind, usuario):
     seguem = {t for t in TELAS if _seguindo.get(t)}
     if (kind == 'bible') != _palco_na_biblia:
         seguem.discard('monitor')   # palco na cifra não vira versículo, e vice-versa
+    if kind == 'video':
+        # Vídeo não vai pro palco por seguir (os músicos ficam na cifra), só
+        # se o palco for deste aparelho. Antes, com o palco livre e seguindo,
+        # o play em "Só público" tocava também no retorno (teste de 15/11)
+        seguem.discard('monitor')
     return minhas, minhas | seguem
 
 

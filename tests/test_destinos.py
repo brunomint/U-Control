@@ -245,6 +245,33 @@ def test_tela_da_apresentacao_so_obedece_comando_dela():
     assert "params.get('host') === 'monitor'" in js
 
 
+def test_video_em_so_publico_nao_toca_no_palco_livre_que_segue(app, bruno_e_vitor):
+    """Teste de 15/11: só o Bruno, em "Só público"; palco livre e seguindo
+    a passagem. O play tocava também no retorno de palco."""
+    from extensions import socketio
+    bruno, _, _, _ = bruno_e_vitor
+    monitor = socketio.test_client(app)
+    monitor.emit('identify', {'role': 'monitor'})
+    publico = socketio.test_client(app)
+    publico.emit('identify', {'role': 'public'})
+    try:
+        bruno.emit('set_display_mode', {'mode': 'public'})
+        assert destinos._seguindo['monitor'] is True and destinos.dono('monitor') is None
+        monitor.get_received(); publico.get_received()
+        bruno.emit('show_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        bruno.emit('restart_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        no_palco = [m['name'] for m in monitor.get_received()]
+        assert not set(no_palco) & {'display_video', 'display_monitor_video', 'video_restart'}
+        assert 'display_video' in [m['name'] for m in publico.get_received()]
+        # Em "Os dois", o palco é dele: aí vai
+        bruno.emit('set_display_mode', {'mode': 'all'})
+        monitor.get_received()
+        bruno.emit('show_video', {'video_url': '/static/imagens/Video/espera.mp4'})
+        assert 'display_video' in [m['name'] for m in monitor.get_received()]
+    finally:
+        monitor.disconnect(); publico.disconnect()
+
+
 def test_tela_preta_de_um_nao_cobre_a_tela_do_outro(bruno_e_vitor):
     bruno, vitor, _, _ = bruno_e_vitor
     bruno.emit('set_display_mode', {'mode': 'public'})

@@ -1208,6 +1208,8 @@ def _mostrar_passagem_em(tela):
     p = destinos._passagem
     if not p or ((p['kind'] == 'bible') != destinos._palco_na_biblia and tela == 'monitor'):
         return
+    if p['kind'] == 'video' and tela == 'monitor':
+        return   # vídeo não vai pro palco por seguir (destinos._telas_da_passagem)
     kind, payload = p['kind'], p['payload']
     g.uc_modo_passagem = tela
     try:
