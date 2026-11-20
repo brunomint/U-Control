@@ -61,4 +61,12 @@
             android:layout_gravity="center_horizontal"
             android:visibility="gone" />
     </LinearLayout>
+
+    <!-- Sem internet: abre direto o que está salvo, sem esperar a busca -->
+    <Button
+        android:id="@+id/btnSalvos"
+        style="@style/BotaoDiscreto"
+        android:layout_marginTop="8dp"
+        android:text="@string/abrir_salvos"
+        android:visibility="gone" />
 </LinearLayout>

@@ -17,8 +17,12 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.View
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,13 +34,23 @@ import androidx.appcompat.app.AppCompatActivity
  * - escolher foto/arquivo e baixar PDF/imagem funcionam (o WebView sozinho não faz);
  * - imprimir usa a impressão do Android;
  * - a tela fica acesa nas cifras (/view), para ninguém tocar no meio da música;
- * - sem conexão, uma página de erro com "Tentar de novo".
+ * - sem conexão, uma página de erro com "Tentar de novo" — ou, se a página
+ *   está salva no celular, a versão salva (modo salvo: os arquivos vêm do
+ *   Acervo em vez da rede);
+ * - aberta de uma playlist, a barra "anterior / próxima" embaixo.
  */
 class PaginaActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
     private lateinit var base: String
     private var escolhaDeArquivo: ValueCallback<Array<Uri>>? = null
+    private lateinit var banco: Banco
+    private lateinit var acervo: Acervo
+    /** Entregar as páginas salvas no celular em vez de buscar na rede. */
+    @Volatile private var modoSalvo = false
+    private var playlist = 0L
+    private var posicao = 0
+    private var daPlaylist: List<MusicaSalva> = emptyList()
 
     private val escolherArquivo = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         escolhaDeArquivo?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(r.resultCode, r.data))
@@ -50,6 +64,9 @@ class PaginaActivity : AppCompatActivity() {
         respeitarBarras(findViewById(android.R.id.content))
         base = Servidor.salvo(this)?.endereco ?: return finish()
 
+        banco = Banco.de(this)
+        acervo = Acervo(banco)
+        modoSalvo = intent.getBooleanExtra(EXTRA_SALVO, false)
         web = findViewById(R.id.web)
         // Versão de teste: deixa inspecionar a página pelo Chrome do computador
         if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
@@ -74,13 +91,54 @@ class PaginaActivity : AppCompatActivity() {
             }
         })
 
+        playlist = intent.getLongExtra(EXTRA_PLAYLIST, 0)
+        posicao = savedInstanceState?.getInt(EXTRA_POSICAO) ?: intent.getIntExtra(EXTRA_POSICAO, 0)
+        if (playlist != 0L) prepararPlaylist()
+
         if (savedInstanceState != null) web.restoreState(savedInstanceState)
         else web.loadUrl(base + (intent.getStringExtra(EXTRA_CAMINHO) ?: "/"))
+    }
+
+    private fun prepararPlaylist() {
+        daPlaylist = banco.musicasDaPlaylist(playlist)
+        if (daPlaylist.isEmpty()) return
+        findViewById<View>(R.id.barraPlaylist).visibility = View.VISIBLE
+        findViewById<Button>(R.id.btnAnterior).setOnClickListener { irPara(posicao - 1) }
+        findViewById<Button>(R.id.btnProxima).setOnClickListener { irPara(posicao + 1) }
+        mostrarPosicao()
+    }
+
+    private fun irPara(p: Int) {
+        if (p !in daPlaylist.indices) return
+        posicao = p
+        mostrarPosicao()
+        web.loadUrl("$base/view/${daPlaylist[p].id}")
+    }
+
+    private fun mostrarPosicao() {
+        val nome = banco.nomeDaPlaylist(playlist) ?: ""
+        findViewById<TextView>(R.id.posicao).text =
+            getString(R.string.posicao_playlist, posicao + 1, daPlaylist.size, nome)
+        findViewById<Button>(R.id.btnAnterior).isEnabled = posicao > 0
+        findViewById<Button>(R.id.btnProxima).isEnabled = posicao < daPlaylist.size - 1
+    }
+
+    /** No modo salvo, a faixa de cima diz de quando é a versão que está na tela. */
+    private fun mostrarAviso(url: String?) {
+        val aviso = findViewById<TextView>(R.id.aviso)
+        val salvaEm = if (modoSalvo && url != null && url.startsWith(base)) banco.paginaSalvaEm(acervo.chave(url, base)) else null
+        if (salvaEm == null) {
+            aviso.visibility = View.GONE
+        } else {
+            aviso.text = getString(R.string.versao_salva, Datas.quando(salvaEm))
+            aviso.visibility = View.VISIBLE
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         web.saveState(outState)
+        outState.putInt(EXTRA_POSICAO, posicao)
     }
 
     override fun onPause() {
@@ -129,11 +187,25 @@ class PaginaActivity : AppCompatActivity() {
         override fun onPageFinished(view: WebView, url: String?) {
             view.evaluateJavascript(Arquivos.ponteJs(this@PaginaActivity), null)
             telaAcesa(url)
+            mostrarAviso(url)
+        }
+
+        /** Modo salvo: o que está no celular vem do Acervo; o resto tenta a rede. */
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (!modoSalvo || request.method != "GET") return null
+            return acervo.abrir(acervo.chave(request.url.toString(), base))
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             if (!request.isForMainFrame) return
             val tentar = request.url.toString()
+            // Sem conexão, mas a página está salva: mostra a versão do celular
+            if (!modoSalvo && tentar.startsWith(base) && banco.paginaSalvaEm(acervo.chave(tentar, base)) != null) {
+                modoSalvo = true
+                Toast.makeText(this@PaginaActivity, R.string.sem_conexao_usando_salva, Toast.LENGTH_LONG).show()
+                view.loadUrl(tentar)
+                return
+            }
             view.loadDataWithBaseURL(null, Arquivos.paginaSemConexao(this@PaginaActivity, tentar), "text/html", "UTF-8", tentar)
         }
     }
@@ -175,9 +247,19 @@ class PaginaActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun voltarAoMenu() = runOnUiThread { finish() }
+
+        /** Botão "+ Playlist" que a ponte.js põe na página da cifra. */
+        @JavascriptInterface
+        fun paraPlaylist(id: Int, titulo: String, autor: String) = runOnUiThread {
+            Dialogos.playlists(this@PaginaActivity, MusicaSalva(id, titulo, autor))
+        }
     }
 
     companion object {
         const val EXTRA_CAMINHO = "caminho"
+        /** Abrir do que está salvo no celular (cultos e playlists). */
+        const val EXTRA_SALVO = "salvo"
+        const val EXTRA_PLAYLIST = "playlist"
+        const val EXTRA_POSICAO = "posicao"
     }
 }

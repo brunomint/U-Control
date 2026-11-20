@@ -19,7 +19,8 @@ object Servidor {
     fun salvo(ctx: Context): Igreja? {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val endereco = p.getString("endereco", null) ?: return null
-        return Igreja(endereco, p.getString("nome", "") ?: "", p.getString("versao", "") ?: "")
+        return Igreja(endereco, p.getString("nome", "") ?: "", p.getString("versao", "") ?: "",
+            p.getString("id", "") ?: "")
     }
 
     fun salvar(ctx: Context, igreja: Igreja) {
@@ -27,6 +28,7 @@ object Servidor {
             .putString("endereco", igreja.endereco)
             .putString("nome", igreja.nome)
             .putString("versao", igreja.versao)
+            .putString("id", igreja.id)
             .apply()
     }
 
@@ -53,6 +55,20 @@ object Servidor {
             }
         }
         return t
+    }
+
+    /** GET simples (fora da tela principal). Devolve o texto, ou null se não deu. */
+    fun pegar(url: String, esperaMs: Int = 8000): String? = try {
+        val con = URL(url).openConnection() as HttpURLConnection
+        con.connectTimeout = esperaMs
+        con.readTimeout = esperaMs
+        try {
+            if (con.responseCode == 200) con.inputStream.bufferedReader().use { it.readText() } else null
+        } finally {
+            con.disconnect()
+        }
+    } catch (e: Exception) {
+        null
     }
 
     /** Pergunta "você é um U-Control?". Roda fora da tela principal (faz rede). */

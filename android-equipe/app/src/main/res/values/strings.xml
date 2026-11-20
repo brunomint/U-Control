@@ -27,4 +27,60 @@
     <string name="salvo_em">Salvo em %1$s</string>
     <string name="nao_salvou">Não consegui salvar o arquivo.</string>
     <string name="sem_app_para_abrir">Nenhum app neste celular abre esse link.</string>
+    <!-- Salvos no celular (etapa 2) -->
+    <string name="salvos">Salvos no celular</string>
+    <string name="abrir_salvos">Sem internet? Abrir o que está salvo</string>
+    <string name="atualizar_agora">Atualizar agora</string>
+    <string name="sinc_conferindo">Conferindo o que mudou na igreja…</string>
+    <string name="sinc_salvando_prefixo">Salvando</string>
+    <string name="sinc_salvando">Salvando no celular: %1$d de %2$d…</string>
+    <string name="sinc_tudo_salvo">Tudo salvo no celular · %1$s</string>
+    <string name="sinc_faltou">Salvo, mas %1$d item não baixou. Tento de novo na próxima vez.</string>
+    <string name="sinc_sem_conexao">Sem conexão com o U-Control. O que já está salvo continua aqui.</string>
+
+    <string name="playlists">Minhas playlists</string>
+    <string name="playlists_vazio">Nenhuma playlist ainda. Abra uma cifra e toque em "+ Salvar na playlist", ou crie uma aqui.</string>
+    <string name="playlist_nova">Nova playlist</string>
+    <string name="playlist_nova_mais">+ Nova playlist</string>
+    <string name="playlist_dica_nome">Ex.: Ensaio de sábado</string>
+    <string name="playlist_salvar_titulo">Salvar "%1$s" em…</string>
+    <string name="playlist_salva_em">Salva em %1$s. Fica no celular, mesmo sem internet.</string>
+    <string name="playlist_tirada">Tirada das playlists.</string>
+    <string name="playlist_dica">Toque para abrir · segure ≡ para mudar a ordem · deslize para o lado para tirar</string>
+    <string name="playlist_vazia">Playlist vazia. Toque em "Adicionar música".</string>
+    <string name="playlist_apagar">Apagar playlist</string>
+    <string name="playlist_apagar_pergunta">Apagar a playlist "%1$s"? As músicas continuam no U-Control.</string>
+    <string name="renomear">Renomear</string>
+    <string name="opcoes">Opções</string>
+    <string name="tocar">Tocar</string>
+    <string name="adicionar_musica">Adicionar música</string>
+    <string name="buscar_dica">Nome, autor ou um trecho da letra</string>
+    <string name="buscando">Buscando…</string>
+    <string name="buscar_nada">Nenhuma música encontrada.</string>
+    <string name="buscar_sem_conexao">Sem conexão: mostrando só as músicas já salvas no celular.</string>
+    <string name="ja_esta">"%1$s" já está na playlist.</string>
+    <string name="adicionada">"%1$s" adicionada.</string>
+    <string name="tirada">"%1$s" tirada da playlist.</string>
+    <string name="arrastar">Arrastar para mudar a ordem</string>
+    <string name="fechar">Fechar</string>
+    <string name="salvar">Salvar</string>
+    <string name="apagar">Apagar</string>
+
+    <string name="cultos_proximos">Próximos cultos</string>
+    <string name="cultos_passados">Cultos anteriores</string>
+    <string name="cultos_vazio">Os cultos dos próximos %1$d dias que tiverem músicas aparecem aqui, salvos sozinhos quando o app abre com internet.</string>
+    <string name="culto_apagar">Tirar o culto de %1$s do celular?</string>
+    <string name="dirigente">Dirigente: %1$s</string>
+    <string name="ocupa">Ocupa %1$s no celular. Segure um culto para apagar.</string>
+
+    <string name="anterior">‹ Anterior</string>
+    <string name="proxima">Próxima ›</string>
+    <string name="posicao_playlist">%1$d de %2$d · %3$s</string>
+    <string name="versao_salva">Versão salva no celular em %1$s</string>
+    <string name="sem_conexao_usando_salva">Sem conexão: mostrando a versão salva no celular.</string>
+
+    <plurals name="musicas">
+        <item quantity="one">%d música</item>
+        <item quantity="other">%d músicas</item>
+    </plurals>
 </resources>

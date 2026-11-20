@@ -36,6 +36,10 @@ class InicioActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnProcurar).setOnClickListener { procurar(usarSalvo = false) }
         findViewById<Button>(R.id.btnDigitar).setOnClickListener { pedirEndereco() }
+        findViewById<Button>(R.id.btnSalvos).apply {
+            visibility = if (Servidor.salvo(this@InicioActivity) != null) View.VISIBLE else View.GONE
+            setOnClickListener { startActivity(Intent(this@InicioActivity, SalvosActivity::class.java)) }
+        }
 
         procurar(usarSalvo = !intent.getBooleanExtra(EXTRA_TROCAR, false))
     }

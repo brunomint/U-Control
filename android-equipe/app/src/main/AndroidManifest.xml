@@ -24,6 +24,8 @@
         </activity>
 
         <activity android:name=".MenuActivity" android:exported="false" />
+        <activity android:name=".SalvosActivity" android:exported="false" />
+        <activity android:name=".PlaylistActivity" android:exported="false" />
 
         <activity
             android:name=".PaginaActivity"

@@ -45,6 +45,25 @@
     // Aba nova (ex.: o PDF da cifra em /view/<id>/print): o app não tem abas.
     // Da própria igreja abre aqui mesmo — PDF vira download —; de fora, o
     // app certo abre (PaginaActivity.shouldOverrideUrlLoading).
+    // Página da cifra (/view/<id>): botão "Salvar na playlist", logo abaixo do
+    // autor. Só existe no app — no navegador e no telão a página é a mesma de sempre.
+    var cifra = location.pathname.match(/^\/view\/(\d+)$/);
+    var autor = document.querySelector('.song-header-author');
+    if (cifra && autor && UCApp.paraPlaylist) {
+        var titulo = document.querySelector('.song-header-title');
+        var botao = document.createElement('button');
+        botao.type = 'button';
+        botao.textContent = '+ Salvar na playlist';
+        botao.style.cssText = 'margin-top:8px;padding:6px 14px;border:1px solid #00bcd4;border-radius:16px;' +
+            'background:transparent;color:#00bcd4;font:inherit;font-size:14px;cursor:pointer';
+        botao.addEventListener('click', function () {
+            UCApp.paraPlaylist(parseInt(cifra[1], 10),
+                (titulo ? titulo.textContent : document.title.split(' · ')[0]).trim(),
+                autor.textContent.trim());
+        });
+        autor.insertAdjacentElement('afterend', botao);
+    }
+
     var abrir = window.open;
     window.open = function (url) {
         if (!url) return abrir.apply(window, arguments);

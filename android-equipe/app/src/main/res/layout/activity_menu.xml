@@ -36,6 +36,21 @@
             android:text="@string/cifras" />
 
         <Button
+            android:id="@+id/btnSalvos"
+            style="@style/BotaoGrande"
+            android:layout_marginBottom="4dp"
+            android:text="@string/salvos" />
+
+        <TextView
+            android:id="@+id/estadoSalvos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"
+            android:textColor="#80FFFFFF"
+            android:textSize="12sp" />
+
+        <Button
             android:id="@+id/btnProximo"
             style="@style/BotaoGrande"
             android:text="@string/proximo_culto" />

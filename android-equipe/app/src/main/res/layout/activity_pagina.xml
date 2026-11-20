@@ -1,5 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<WebView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/web"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- "Versão salva no celular em …" (PaginaActivity.modoSalvo) -->
+    <TextView
+        android:id="@+id/aviso"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#2B2B45"
+        android:gravity="center"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <WebView
+        android:id="@+id/web"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Anterior / próxima da playlist -->
+    <LinearLayout
+        android:id="@+id/barraPlaylist"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#1a1a2e"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btnAnterior"
+            style="@style/BotaoDiscreto"
+            android:layout_height="match_parent"
+            android:minWidth="96dp"
+            android:text="@string/anterior" />
+
+        <TextView
+            android:id="@+id/posicao"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnProxima"
+            style="@style/BotaoDiscreto"
+            android:layout_height="match_parent"
+            android:minWidth="96dp"
+            android:text="@string/proxima" />
+    </LinearLayout>
+</LinearLayout>

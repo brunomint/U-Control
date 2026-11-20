@@ -1,6 +1,6 @@
 # App U-Control Equipe (Android)
 
-Status: **etapa 1 pronta para testar no celular (19/11/2026)**. Código em `android-equipe/`, rota do servidor em `blueprints/app_equipe.py`.
+Status: **etapa 1 no celular do Bruno (20/11); etapa 2 (salvos e playlists) pronta para testar (20/11/2026)**. Código em `android-equipe/`, rota do servidor em `blueprints/app_equipe.py`.
 
 ## Para quem é
 
@@ -29,11 +29,23 @@ Os dois apps têm identificação diferente no Android (`com.ucontrol.equipe` e 
 ## Etapas
 
 1. **Base — feito.** Achar a igreja, salvar o endereço, menu (Cifras do culto, Próximo culto, Agenda e escalas, Entrar como operador, Trocar de igreja), arquivos, impressão, tela acesa, página sem conexão.
-2. **Cifras offline.** Com conexão, baixa a ordem e as cifras dos próximos cultos; sem conexão, abre só para ler; volta a conexão, atualiza (aviso `ordens_mudaram`).
+2. **Salvos no celular — feito (20/11).** Ver "Salvos e playlists" abaixo.
 3. **Avisos.** "Quem é você?" (nomes das escalas). Escala, ordem que mudou, ensaio, lembrete na véspera. Precisa: projeto Firebase na conta do Bruno; decidir a proteção do `/api/orders` (em aberto) — se fechar, o app ganha uma chave própria.
 4. **Extras.** Confirmar escala (link de convite), pedal Bluetooth para virar a página, botão "pôr na agenda do celular". A rolagem automática já existe na página da cifra.
 
 Cada etapa é testada no emulador e no celular de verdade antes da seguinte.
+
+## Salvos e playlists (etapa 2)
+
+Pedido do Bruno: salvar permanentemente, num banco próprio do app, "esquema Cifra Club", com várias playlists com nome.
+
+- **Banco SQLite do app** (`Banco.kt`), um por igreja (`id` do /api/identidade), em `files/salvos/<id>/`. Tabelas: cultos, músicas, playlists e os arquivos das páginas salvas.
+- **Como salva** (`Gravador.kt`): abre a página num navegador invisível e guarda tudo o que ela carrega (HTML, CSS, JS, fontes, `/load?date=`). Sem internet, a `PaginaActivity` entrega esses arquivos: a cifra funciona igual (tom, rolagem, partitura), sem copiar código do U-Control para o app. Conteúdo em arquivos por hash (`Acervo.kt`): o CSS de 50 cifras é um arquivo só.
+- **O que salva** (`Sincronia.kt`, quando o app abre com conexão, no máximo a cada 5 min, ou "Atualizar agora"): os cultos dos próximos 15 dias com música (`/api/app/salvar`) e as músicas das playlists (`/api/app/musicas`). Só baixa de novo o que mudou (`versao` de cada culto/música, ou U-Control atualizado). O `last_played` não conta como mudança.
+- **Permanente:** sem conexão nada é apagado. Culto passado fica até a pessoa apagar (segurar na lista); culto futuro que sumiu da agenda da igreja sai. Música apagada no U-Control continua na playlist.
+- **Playlists:** botão "+ Salvar na playlist" na página da cifra (só no app, posto pela `ponte.js`) ou "Adicionar música" (busca no U-Control; sem conexão, entre as já salvas). Arrastar ≡ muda a ordem, deslizar tira. "Tocar" abre com a barra anterior/próxima.
+- **Sem conexão:** "Salvos no celular" no menu e na tela de busca da igreja. Uma página aberta normalmente que falha por falta de conexão cai na versão salva, se houver. Faixa no topo: "Versão salva no celular em …".
+- Precisa do U-Control com `/api/app/salvar` (api 2). Num servidor antigo, o app diz "Sem conexão com o U-Control" e só mostra o que já tinha.
 
 ## Distribuição — em aberto
 

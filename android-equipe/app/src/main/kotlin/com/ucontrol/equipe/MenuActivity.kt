@@ -49,6 +49,18 @@ class MenuActivity : AppCompatActivity() {
         ligar(R.id.btnAgenda, "/agenda")
         ligar(R.id.btnOperador, "/login?next=%2F")
         findViewById<Button>(R.id.btnTrocar).setOnClickListener { trocar() }
+        findViewById<Button>(R.id.btnSalvos).setOnClickListener {
+            startActivity(Intent(this, SalvosActivity::class.java))
+        }
+        Sincronia.ouvir(ouvinte)
+        Sincronia.sincronizar(this)
+    }
+
+    private val ouvinte: (String) -> Unit = { findViewById<TextView>(R.id.estadoSalvos).text = it }
+
+    override fun onPause() {
+        super.onPause()
+        Sincronia.parar(ouvinte)
     }
 
     private fun ligar(id: Int, caminho: String) {
