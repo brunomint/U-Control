@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Na rede da igreja o U-Control responde em http://<IP>:8585 (sem https).
+         O IP muda de rede para rede, então não dá para liberar só um endereço. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

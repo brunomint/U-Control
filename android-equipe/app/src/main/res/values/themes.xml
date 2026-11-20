@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Tema" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">#00bcd4</item>
+        <item name="colorPrimaryDark">#1a1a2e</item>
+        <item name="colorAccent">#00bcd4</item>
+        <item name="android:windowBackground">#1a1a2e</item>
+        <item name="android:statusBarColor">#1a1a2e</item>
+        <item name="android:navigationBarColor">#1a1a2e</item>
+    </style>
+
+    <style name="BotaoGrande" parent="Widget.AppCompat.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:layout_marginBottom">14dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">#00bcd4</item>
+    </style>
+
+    <style name="BotaoDiscreto" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">#B3FFFFFF</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+</resources>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">U-Control Equipe</string>
+
+    <string name="procurando">Procurando a igreja na rede do Wi-Fi…</string>
+    <string name="testando">Testando %1$s…</string>
+    <string name="nao_achou">Não achei o U-Control nesta rede.\n\nConfira se o celular está no Wi-Fi da igreja e se o U-Control está ligado. Fora da igreja, digite o endereço da internet.</string>
+    <string name="qual_igreja">Achei mais de um U-Control. Qual é o seu?</string>
+    <string name="procurar_de_novo">Procurar de novo</string>
+    <string name="digitar_endereco">Digitar o endereço</string>
+    <string name="abrir_mesmo_assim">Abrir %1$s mesmo assim</string>
+    <string name="endereco_titulo">Endereço do U-Control</string>
+    <string name="endereco_explica">Na igreja: o número que aparece no QR code do U-Control (ex.: 192.168.0.50). Pela internet: o endereço do site (ex.: minhaigreja.com).</string>
+    <string name="dica_endereco">192.168.0.50 ou minhaigreja.com</string>
+    <string name="conectar">Conectar</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="endereco_invalido">Esse endereço não parece certo. Confira e tente de novo.</string>
+    <string name="endereco_nao_respondeu">%1$s não respondeu como U-Control.\n\nConfira o endereço e se o U-Control está ligado.</string>
+
+    <string name="cifras">Cifras do culto</string>
+    <string name="proximo_culto">Próximo culto</string>
+    <string name="agenda">Agenda e escalas</string>
+    <string name="operador">Entrar como operador</string>
+    <string name="trocar">Trocar de igreja</string>
+
+    <string name="baixando">Baixando %1$s…</string>
+    <string name="salvo_em">Salvo em %1$s</string>
+    <string name="nao_salvou">Não consegui salvar o arquivo.</string>
+    <string name="sem_app_para_abrir">Nenhum app neste celular abre esse link.</string>
+</resources>
