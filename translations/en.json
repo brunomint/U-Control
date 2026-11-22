@@ -1905,5 +1905,6 @@
   "Arquivo grande demais.": "File too large.",
   "Áudio enviado.": "Audio uploaded.",
   "Não deu pra enviar o áudio:": "Couldn't upload the audio:",
-  "Tema normal": "Normal theme"
+  "Tema normal": "Normal theme",
+  "O Controle não conseguiu abrir.": "The Control page couldn't open it."
 }
