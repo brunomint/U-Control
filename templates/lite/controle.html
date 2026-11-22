@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    {% include "lite/_cabeca.html" %}
+    <title>Controle - U-Control</title>
+</head>
+<body class="uc-app">
+{% macro botao(acao, rotulo, valor='', classe='uc-btn-secondary') %}
+<form method="POST" action="{{ url_for('lite.controle') }}" class="lite-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="acao" value="{{ acao }}">
+    <input type="hidden" name="valor" value="{{ valor }}">
+    <button type="submit" class="uc-btn {{ classe }}">{{ rotulo }}</button>
+</form>
+{% endmacro %}
+<main class="uc-page lite-controle">
+    <p class="lite-navegar">
+        <a href="{{ url_for('lite.inicio', escolher=1) }}">‹ Início</a>
+        <a href="{{ url_for('lite.controle') }}">Atualizar</a>
+        <a href="{{ url_for('auth.logout') }}">Sair ({{ current_user.username }})</a>
+    </p>
+
+    {% for categoria, mensagem in get_flashed_messages(with_categories=true) %}
+    <div class="uc-flash{{ ' uc-flash-error' if categoria == 'erro' }}">{{ mensagem }}</div>
+    {% endfor %}
+    {% if assumir %}
+    <div class="lite-assumir">{{ botao('assumir', 'Assumir e ficar com ' ~ dict(modos)[assumir], assumir, 'uc-btn-live') }}</div>
+    {% endif %}
+
+    <div class="uc-card lite-no-ar">
+        <p><span class="uc-muted">Público:</span> <b>{{ e.publico }}</b>{% if e.neutras.public %} · <b class="lite-alerta">tela {{ e.neutras.public }}</b>{% endif %}</p>
+        <p><span class="uc-muted">Palco:</span> <b>{{ e.palco }}</b>{% if e.neutras.monitor %} · <b class="lite-alerta">tela {{ e.neutras.monitor }}</b>{% endif %}</p>
+        {% if not e.texto_visivel %}<p class="lite-alerta">A letra está escondida.</p>{% endif %}
+        {% if e.preparado %}
+        <p><span class="uc-muted">Preparado:</span> <b>{{ e.preparado }}</b></p>
+        {{ botao('liberar', 'Liberar', classe='uc-btn-live') }}
+        {% endif %}
+    </div>
+
+    <h2 class="lite-titulo">Passar</h2>
+    {% if not e.controle_aberto %}
+    <p class="uc-muted">Anterior e Próximo funcionam com o Controle aberto num computador, com a música ou a Bíblia no painel (como o pedal e o Stream Deck).</p>
+    {% endif %}
+    <div class="lite-passar">
+        {{ botao('anterior', '‹ Anterior', classe='uc-btn-secondary uc-btn-lg') }}
+        {{ botao('proximo', 'Próximo ›', classe='uc-btn-primary uc-btn-lg') }}
+    </div>
+
+    <h2 class="lite-titulo">Minhas telas</h2>
+    <p class="uc-muted">O que os botões abaixo mudam.
+        {% if e.donos.public %}Público com {{ e.donos.public }}.{% endif %}
+        {% if e.donos.monitor %}Palco com {{ e.donos.monitor }}.{% endif %}</p>
+    <div class="lite-botoes">
+        {% for m, nome in modos %}
+        {{ botao('modo', nome, m, 'uc-btn-primary' if e.modo == m else 'uc-btn-secondary') }}
+        {% endfor %}
+    </div>
+
+    <h2 class="lite-titulo">Telas</h2>
+    <div class="lite-botoes">
+        {% for tipo, nome in neutras %}
+        {{ botao(tipo, ('Voltar (tirar ' ~ nome|lower ~ ')') if e.neutra_minha == tipo else nome, classe='uc-btn-live' if e.neutra_minha == tipo else 'uc-btn-secondary') }}
+        {% endfor %}
+        {{ botao('texto', 'Mostrar a letra' if not e.texto_visivel else 'Esconder a letra', 'mostrar' if not e.texto_visivel else 'esconder') }}
+        {{ botao('relogio', 'Relógio') }}
+    </div>
+
+    {% if itens %}
+    <h2 class="lite-titulo">Ordem do culto · {{ chave | data_pt }}</h2>
+    <p class="uc-muted">Abre no painel do Controle do computador, como tocar na Ordem do culto de lá.</p>
+    <ol class="lite-ordem">
+        {% for item in itens %}
+        <li class="lite-ordem-item">
+            {% if item.url %}
+            {{ botao('abrir', item.titulo ~ (' (leitura)' if item.tipo == 'biblia' else ''), item.url) }}
+            {% else %}
+            <span class="uc-muted">{{ item.titulo }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+    {% endif %}
+</main>
+</body>
+</html>

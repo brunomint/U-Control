@@ -1112,6 +1112,18 @@ function setupPanel() {
         const onde = repassarTecla(d && d.direcao < 0 ? 'ArrowUp' : 'ArrowDown');
         responda(onde ? { ok: true, em: onde } : { ok: false, erro: _t('Abra a música ou a Bíblia no painel do Controle.') });
     });
+    // Controle simples (/lite/controle, blueprints/atalhos.py abrir_no_controle):
+    // abre a música ou a leitura no painel, como clicar nela na Ordem do culto
+    socket.on('atalho_abrir', (d, responder) => {
+        const responda = typeof responder === 'function' ? responder : () => {};
+        const url = (d && d.url) || '';
+        const aba = url.startsWith('/lyrics/') ? 'musica' : url.startsWith('/bible') ? 'biblia' : null;
+        if (!aba) { responda({ ok: false }); return; }
+        panelState.open = true;
+        panelApply();
+        panelShow(aba, url);
+        responda({ ok: true, em: aba });
+    });
 
     panelApply();
     if (panelState.open) panelShow(panelState.view);

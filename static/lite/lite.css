@@ -270,3 +270,18 @@ body.lite-neutra-branca .lite-trocar { color: #ccc; }
 .lite-secao .chord { color: #3fcf8e; font-weight: bold; }
 .lite-secao .comment-line { color: #9198b3; font-style: italic; }
 .lite-secao .sem-partitura { color: #f2b84b; }
+
+/* ── /lite/controle ── */
+.lite-form { display: inline-block; margin: 0; }
+.lite-controle .lite-titulo { margin-top: 8px; }
+.lite-no-ar p { margin: 0 0 8px; }
+.lite-alerta { color: #f2b84b; }
+.lite-passar { font-size: 0; } /* sem vão entre os dois botões */
+.lite-passar .lite-form { width: 49%; margin-right: 2%; }
+.lite-passar .lite-form + .lite-form { margin-right: 0; }
+.lite-passar .uc-btn { display: block; width: 100%; padding-top: 22px; padding-bottom: 22px; font-size: 22px; margin: 0; }
+.lite-botoes .uc-btn { margin: 0 8px 8px 0; }
+.lite-ordem-item .lite-form { display: block; }
+.lite-ordem-item .uc-btn { display: block; width: 100%; text-align: left; white-space: normal; margin: 0 0 8px; }
+.lite-ordem-item > span { display: block; padding: 6px 4px 12px; }
+.lite-assumir .uc-btn { margin-bottom: 12px; }

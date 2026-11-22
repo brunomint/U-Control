@@ -15,8 +15,8 @@ copiar tudo à mão."""
 import logging
 import re
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 
 import lite_estado
 
@@ -169,3 +169,31 @@ def cifra(song_id):
     return render_template('lite/cifra.html', song=song, chave=chave, tom=tom, capo=capo,
                            anterior=anterior, proxima=proxima, link=link,
                            **lite_cifras.montar_cifra(song, tom, capo))
+
+
+# ---- Controle simples (Fase 3) ----
+
+@lite_bp.route('/controle', methods=['GET', 'POST'])
+@login_required
+def controle():
+    """Botões do telão por formulário (lite_controle.py). Depois de cada
+    ação volta para a página (POST → redirect), com o resultado no alto."""
+    import lite_cifras
+    import lite_controle
+    if request.method == 'POST':
+        ok, mensagem, extra = lite_controle.acao(request.form.get('acao', ''), request.form.get('valor', ''))
+        if mensagem:
+            flash(mensagem, 'ok' if ok else 'erro')
+        return redirect(url_for('lite.controle', **(extra or {})))
+    chave, ordem, _ = lite_cifras.escolher_ordem(None)
+    itens = []
+    for item in lite_cifras.itens_da_ordem(ordem):
+        if item['tipo'] == 'musica':
+            item['url'] = f"/lyrics/{item['id']}?order={chave}"
+        elif item['tipo'] == 'biblia':
+            from blueprints.bible import generate_bible_url
+            item['url'] = generate_bible_url(item['titulo'])
+        itens.append(item)
+    return render_template('lite/controle.html', e=lite_controle.estado(), modos=lite_controle.MODOS,
+                           neutras=lite_controle.NEUTRAS, chave=chave, itens=itens,
+                           assumir=request.args.get('assumir'))

@@ -38,6 +38,8 @@
         destino = '/lite/monitor';
     } else if (caminho.indexOf('/lyrics/display/public') === 0 || caminho === '/img') {
         destino = '/lite/publico';
+    } else if (caminho === '/control' || caminho === '/presenter' || /^\/lyrics\/\d+$/.test(caminho)) {
+        destino = '/lite/controle';
     } else if (caminho === '/view') {
         destino = '/lite/cifras' + location.search;
     } else if (/^\/view\/\d+$/.test(caminho)) {

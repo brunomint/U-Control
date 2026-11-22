@@ -87,6 +87,7 @@ class OperatorSocketIO(SocketIO):
                     motivo = destinos.autorizar(message, args)
                     if motivo:
                         registro_acoes.registrar_recusa(message, motivo)
+                        g.uc_recusa = motivo   # quem chamou por HTTP (controle simples) mostra o motivo
                         from connections import sala_do_aparelho
                         self.emit('acao_recusada', {'motivo': motivo, 'evento': message},
                                   to=sala_do_aparelho())

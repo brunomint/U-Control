@@ -103,17 +103,36 @@ def _navegar(direcao):
     if apresentacao.no_ar():
         _handler(apresentacao.handle_apresentacao_cmd)({'cmd': 'next' if direcao > 0 else 'prev'})
         return {'ok': True, 'em': 'apresentação'}
+    return _pedir_ao_controle('atalho_navegar', {'direcao': direcao},
+                             tr('O Controle não tem música, Bíblia ou fotos abertas no painel.'))
+
+
+def controle_aberto():
+    """Tem algum Controle aberto que recebe "próximo/anterior"?"""
+    with _lock:
+        return bool(_controles)
+
+
+def abrir_no_controle(url):
+    """Abre a música (/lyrics/<id>) ou a leitura (/bible…) no painel do
+    Controle usado por último, como clicar nela na Ordem do culto. Usado
+    pelo controle simples (/lite/controle)."""
+    return _pedir_ao_controle('atalho_abrir', {'url': url}, tr('O Controle não conseguiu abrir.'))
+
+
+def _pedir_ao_controle(evento, dados, erro_padrao):
+    """Manda `evento` ao Controle usado por último e espera a resposta."""
     with _lock:
         sids = sorted(_controles, key=_controles.get, reverse=True)
     for sid in sids:
         try:
-            resposta = socketio.call('atalho_navegar', {'direcao': direcao}, to=sid, timeout=3)
+            resposta = socketio.call(evento, dados, to=sid, timeout=3)
         except Exception:  # Controle fechado sem avisar / não respondeu
             esquecer(sid)
             continue
         if resposta and resposta.get('ok'):
             return {'ok': True, 'em': resposta.get('em')}
-        return {'ok': False, 'erro': (resposta or {}).get('erro') or tr('O Controle não tem música, Bíblia ou fotos abertas no painel.')}
+        return {'ok': False, 'erro': (resposta or {}).get('erro') or erro_padrao}
     return {'ok': False, 'erro': tr('Nenhum Controle aberto. Abra o Controle (com a música ou a Bíblia no painel).')}
 
 

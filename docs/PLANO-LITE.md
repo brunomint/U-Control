@@ -4,7 +4,8 @@
 > 22/11/2026.
 >
 > **Estado (22/11/2026):** segunda conferência feita (seção 11); Fases 0,
-> 0B, 1 e 1B feitas no branch `lite`, ainda não publicadas. iPad com iOS
+> 0B, 1 e 1B publicadas no Pi em 22/11 (~08:20); Fase 3 feita depois, no
+> branch `lite`, ainda não publicada. iPad com iOS
 > 10.3.4 testado no servidor de teste (Monitor e Público funcionando). A Fase 1 já inclui a
 > tela Público (que o plano chamava de Fase 2). Falta abrir nos aparelhos
 > reais (item 6 da conferência).
@@ -210,6 +211,21 @@ música. Sem login, como as páginas atuais `/view` e `/view/<id>`.
 - Formulários `POST` com CSRF: seção anterior/próxima, blackout, escolher
   música da ordem do culto. Cada botão chama a mesma função de serviço usada
   pelos eventos Socket.IO.
+
+**Feita em 22/11/2026, "igual ao Stream Deck" (decisão do Bruno):**
+- Anterior/Próximo e "abrir música/leitura da ordem" vão para o Controle
+  aberto num PC (`atalhos._navegar`, `atalhos.abrir_no_controle`, que pede
+  `atalho_abrir` ao `control.js`). O servidor não monta estrofe sozinho.
+  Sem Controle aberto, a página avisa.
+- Tela preta/branca/logo, esconder/mostrar a letra e relógio chamam os
+  handlers de socket do Controle (`lite_controle._rodar`), com login e a
+  regra de quem cuida de cada tela. "Minhas telas" (Público, Palco, Os dois,
+  Nenhuma) e "Assumir". Recusa aparece no alto (`g.uc_recusa`, em
+  `extensions.py`). Liberar funciona igual ao do Stream Deck.
+- Sem tempo real, o aparelho não "segura" a tela: `destinos.dono` larga a
+  tela de quem não tem aparelho conectado. Ele mexe numa tela livre, ou
+  numa tela da mesma pessoa logada noutro aparelho.
+- O detector manda `/control`, `/presenter` e `/lyrics/<id>` para lá.
 
 ### Fase 4: acabamento
 - Menu/QR "versão simples", favorito fixo, README e Ajuda em português.

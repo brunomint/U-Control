@@ -34,6 +34,11 @@
         <span>A ordem do culto e a cifra de cada música, com Tom e Capo.</span>
     </a>
 
+    <a class="lite-opcao" href="{{ url_for('lite.controle') }}">
+        <b>Controle</b>
+        <span>{% if logado %}Passar a música, tela preta, relógio{% else %}Para quem opera o telão: pede para entrar{% endif %}.</span>
+    </a>
+
     <p class="lite-rodape">
         {% if logado %}
         <a href="{{ url_for('auth.logout') }}">Sair</a>

@@ -312,6 +312,77 @@ def test_detector_leva_o_view_para_as_cifras():
     assert "'/lite/cifras'" in texto and "'/lite/cifra/'" in texto
 
 
+# ---- Fase 3: controle simples ----
+
+def _acao(c, acao, valor=''):
+    r = c.post('/lite/controle', data={'acao': acao, 'valor': valor})
+    assert r.status_code == 302
+    return r
+
+
+def _mensagens(c):
+    return c.get('/lite/controle').get_data(as_text=True)
+
+
+def test_controle_pede_login_e_funciona_sem_js(client, logged_in_client):
+    r = client.get('/lite/controle')
+    assert r.status_code == 302 and '/login' in r.headers['Location']
+    html = logged_in_client.get('/lite/controle').get_data(as_text=True)
+    assert 'name="csrf_token"' in html and 'Próximo' in html and 'Tela preta' in html
+    assert '<script' not in html and 'socket.io' not in html
+
+
+def test_controle_tela_preta_e_letra(app, logged_in_client, telao_limpo):
+    import display_state
+    from models import LyricsState
+    _acao(logged_in_client, 'modo', 'public')
+    _acao(logged_in_client, 'preta')
+    assert display_state._telas_neutras == {'public': 'preta', 'monitor': None}
+    assert 'Voltar (tirar tela preta)' in _mensagens(logged_in_client)
+    _acao(logged_in_client, 'preta')
+    assert display_state._telas_neutras['public'] is None
+    _acao(logged_in_client, 'texto', 'esconder')
+    with app.app_context():
+        assert LyricsState.query.first().visible is False
+    assert 'Mostrar a letra' in _mensagens(logged_in_client)
+    _acao(logged_in_client, 'texto', 'mostrar')
+    with app.app_context():
+        assert LyricsState.query.first().visible is True
+
+
+def test_controle_respeita_quem_cuida_da_tela(logged_in_client, telao_limpo):
+    import connections
+    import destinos
+    import display_state
+    connections.socketio_clients_by_sid['sid-outro'] = {'device': 'pc-outro', 'usuario': 'vitor'}
+    display_state._device_modes['pc-outro'] = 'public'
+    destinos._donos['public'] = 'vitor'
+    try:
+        r = _acao(logged_in_client, 'modo', 'public')
+        assert 'assumir=public' in r.headers['Location']
+        html = logged_in_client.get(r.headers['Location']).get_data(as_text=True)
+        assert 'O público está com vitor.' in html and 'Assumir e ficar com Público' in html
+        # Tela preta sem a tela: recusada, com o motivo
+        _acao(logged_in_client, 'preta')
+        assert display_state._telas_neutras['public'] is None
+        _acao(logged_in_client, 'assumir', 'public')
+        # O PC do outro deixa de mexer no público; sem tempo real, este
+        # aparelho não segura a tela (ela fica livre), mas mexe nela
+        assert display_state._device_modes['pc-outro'] == 'none'
+        _acao(logged_in_client, 'preta')
+        assert display_state._telas_neutras['public'] == 'preta'
+    finally:
+        connections.socketio_clients_by_sid.pop('sid-outro', None)
+        display_state._device_modes.pop('pc-outro', None)
+
+
+def test_controle_sem_controle_aberto_avisa(logged_in_client):
+    _acao(logged_in_client, 'proximo')
+    assert 'Nenhum Controle aberto' in _mensagens(logged_in_client)
+    _acao(logged_in_client, 'abrir', 'https://fora.com/x')
+    assert 'Item inválido' in _mensagens(logged_in_client)
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {
