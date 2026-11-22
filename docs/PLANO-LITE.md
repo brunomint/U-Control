@@ -129,8 +129,28 @@ páginas. Destrava `/login`, `/links` e as páginas lite.
   `localStorage` com `try/catch`) e abre direto nela da próxima vez; link
   "trocar tela" no canto. Também aceitar `/lite/?tela=publico` e
   `?tela=monitor` para favoritos e atalhos.
+- **Página inicial `/lite/`** (decidido em 22/11): botões grandes Monitor,
+  Público, Cifras do culto e Controle (este só aparece com login, a partir
+  da Fase 3). Monitor, Público e Cifras não pedem login.
+- **Detecção automática** (decidido em 22/11): cada página do app normal
+  começa com um script ES5 pequeno (arquivo próprio em `static/lite/`, sem
+  JS inline) que testa no próprio navegador se há variáveis CSS e JS novo
+  (`fetch` e `Promise`). Não se adivinha pelo nome do navegador, porque o
+  iPadOS se apresenta como "Macintosh".
+  - Tem tudo: segue normal.
+  - Falta algo: vai para a versão simples da mesma página (`/monitor` →
+    `/lite/monitor`, `/lyrics/display/public` → `/lite/?tela=publico`,
+    `/view` e `/view/<id>` → cifras lite quando existirem). Sem versão
+    simples (editores, admin): vai para `/lite/` com o aviso "Esta página
+    precisa de um navegador mais novo".
+  - Manual: `?lite=1` força a versão simples; um link "versão completa"
+    (`?lite=0`) desliga o desvio naquele aparelho, caso o teste erre.
+- **Depois do login**: aparelho antigo vai para `/lite/` e não para o
+  `/dashboard` (o `next` do login vale se apontar para uma página lite).
 - Pronto quando: monitor lite acompanha troca de seção, imagem e blackout feitos
-  no `/control`, no tablet e no iPad (ou na emulação), sem erro de JS.
+  no `/control`, no tablet e no iPad (ou na emulação), sem erro de JS; e um
+  navegador antigo que abre `/`, `/login` → entrar, `/dashboard` ou
+  `/monitor` termina numa página lite que funciona.
 
 ### Fase 2: modo "Público" do lite (mesma página, `tela=publico`)
 - Mesma base e mesmo endpoint, mostrando o que o telão público mostra (letra de
