@@ -4,7 +4,7 @@ Status: **etapa 1 no celular do Bruno (20/11); etapa 2 (salvos e playlists) pron
 
 ## Para quem é
 
-Músicos, dirigentes e operadores, no celular de cada um. O app do telão (`static/U-Control-Screen.apk`, código em `site-igreja/android-webview`) **continua separado e sem mudanças**: ele roda nas TVs, e uma novidade para os músicos nunca pode derrubar o telão.
+Músicos, dirigentes e operadores, no celular de cada um. O app do telão (`static/U-Control-Screen.apk`, código em `site-igreja/android-webview`) **continua separado**: ele roda nas TVs, e uma novidade para os músicos nunca pode derrubar o telão. Única mudança (versão 1.1, 22/11/2026, pedido do Bruno): ele procura o U-Control sozinho na rede, do mesmo jeito deste app (porta 8585 + `/api/identidade`), na primeira vez e quando o endereço salvo para de responder.
 
 Os dois apps têm identificação diferente no Android (`com.ucontrol.equipe` e `com.suaigreja.webview`) e podem ficar no mesmo aparelho.
 
