@@ -38,6 +38,12 @@
         destino = '/lite/monitor';
     } else if (caminho.indexOf('/lyrics/display/public') === 0 || caminho === '/img') {
         destino = '/lite/publico';
+    } else if (caminho === '/view') {
+        destino = '/lite/cifras' + location.search;
+    } else if (/^\/view\/\d+$/.test(caminho)) {
+        destino = '/lite/cifra/' + caminho.split('/')[2] + location.search;
+    } else if (/^\/view\/order\/[0-9-]+$/.test(caminho)) {
+        destino = '/lite/cifras?order=' + caminho.split('/')[3];
     } else if (caminho === '/login' || caminho === '/links') {
         if (forcado) return;   // já está no tema simples
         destino = caminho + (location.search ? location.search + '&' : '?') + 'lite=1';

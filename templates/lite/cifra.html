@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    {% include "lite/_cabeca.html" %}
+    <title>{{ song.title }} - U-Control</title>
+</head>
+<body class="uc-app lite-cifra-pagina">
+{% macro navegar() %}
+<p class="lite-navegar">
+    <a href="{{ url_for('lite.cifras', order=chave) }}">‹ Lista</a>
+    {% if anterior %}<a href="{{ url_for('lite.cifra', song_id=anterior, order=chave) }}">« Anterior</a>{% endif %}
+    {% if proxima %}<a href="{{ url_for('lite.cifra', song_id=proxima, order=chave) }}">Próxima »</a>{% endif %}
+</p>
+{% endmacro %}
+<main class="uc-page">
+    {{ navegar() }}
+    <div class="uc-page-head">
+        <h1>{{ song.title }}</h1>
+        {% if song.author %}<div class="uc-page-sub">{{ song.author }}</div>{% endif %}
+        {% set ficha = song.info or {} %}
+        {% if ficha.get('key') or ficha.get('tempo') or ficha.get('time') %}
+        <div class="uc-muted lite-ficha">
+            {% if ficha.get('key') %}Tom original: {{ ficha.get('key') }}{% endif %}
+            {% if ficha.get('tempo') %} · ♩ {{ ficha.get('tempo') }} BPM{% endif %}
+            {% if ficha.get('time') %} · {{ ficha.get('time') }}{% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="uc-card lite-controles">
+        {% if tom_atual %}
+        <p class="lite-linha">
+            <b>Tom: {{ tom_atual }}</b>
+            <a class="uc-btn uc-btn-sm" href="{{ link(tom=tom - 1 if tom > -11 else tom) }}">−½</a>
+            <a class="uc-btn uc-btn-sm" href="{{ link(tom=tom + 1 if tom < 11 else tom) }}">+½</a>
+            {% if tom %}<a class="uc-btn uc-btn-sm uc-btn-ghost" href="{{ link(tom=0) }}">Original</a>{% endif %}
+        </p>
+        <p class="lite-grade">
+            {% for g in grade %}<a class="lite-tom{{ ' lite-ativo' if g.atual }}" href="{{ link(tom=g.semitons) }}">{{ g.tom }}</a>{% endfor %}
+        </p>
+        {% endif %}
+        <p class="lite-linha">
+            <b>Capo:</b>
+            {% for n in range(0, 10) %}<a class="lite-tom{{ ' lite-ativo' if n == capo }}" href="{{ link(capo=n) }}">{{ n if n else 'sem' }}</a>{% endfor %}
+        </p>
+        {% if formas %}<p class="uc-muted lite-linha">Capo {{ capo }} · formas de {{ formas }}</p>{% endif %}
+        <p class="lite-linha lite-so-com-js" hidden>
+            <button type="button" class="uc-btn uc-btn-sm" id="letraMenor">A−</button>
+            <button type="button" class="uc-btn uc-btn-sm" id="letraMaior">A+</button>
+            <button type="button" class="uc-btn uc-btn-sm" id="rolar">Rolar</button>
+            <span class="uc-muted" id="velocidade"></span>
+        </p>
+    </div>
+
+    {% if tem_partitura %}
+    <p class="uc-flash">Esta música tem partitura: aqui aparece só a cifra.</p>
+    {% endif %}
+
+    <div id="cifra" class="lite-cifra-texto">
+        {% for s in secoes %}
+        <section class="lite-secao">
+            {% if s.title %}<h2>{{ s.title }}</h2>{% endif %}
+            {% if s.sem_partitura %}<p class="uc-muted">(partitura: só aparece na página normal)</p>
+            {% elif s.html %}<pre>{{ s.html | safe }}</pre>{% endif %}
+        </section>
+        {% endfor %}
+    </div>
+
+    {{ navegar() }}
+</main>
+<script src="{{ versioned_static('lite/cifra.js') }}"></script>
+</body>
+</html>

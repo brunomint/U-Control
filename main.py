@@ -480,7 +480,7 @@ def view_song_print(song_id):
     O botão Imprimir em view_song.html decide isso e só manda pra cá
     quando a música não tem nenhuma; music com partitura continua
     usando window.print() (ver imprimirCifra() lá)."""
-    from chord_lines import render_cifra_html_pares, split_bracket_subsections
+    from chord_lines import secoes_cifra
     from weasyprint import HTML as WeasyHTML
     import re as _re
 
@@ -495,56 +495,8 @@ def view_song_print(song_id):
     except (TypeError, ValueError):
         transpose = 0
 
-    PARTITURA_MARKER = '🎼 PARTITURA_INTEGRADA'
-    sections_out = []
-
-    for section in song.get('sections', []):
-        raw_title = (section.get('title') or '').strip()
-        clean_title = raw_title.replace('[', '').replace(']', '').strip()
-        section_text = '\n'.join(section.get('text') or [])
-        section_text = section_text.replace('\r\n', '\n').replace('\r', '\n')
-
-        if PARTITURA_MARKER in clean_title:
-            # Seção que É a partitura inteira, sem letra junto — não tem
-            # texto nenhum pra imprimir aqui.
-            sections_out.append({'title': clean_title.split('_')[0].strip() or None, 'sem_partitura': True, 'html': ''})
-            continue
-
-        if PARTITURA_MARKER in section_text:
-            # Seção mista (letra + partitura embutida no meio do texto)
-            # — imprime só os trechos de texto, com uma nota onde a
-            # partitura ficaria.
-            parts = section_text.split(PARTITURA_MARKER + '_')
-            html_chunks = []
-            for i, part in enumerate(parts):
-                if i == 0:
-                    if part.strip():
-                        html_chunks.append(render_cifra_html_pares(part, transpose))
-                    continue
-                j = 0
-                while j < len(part) and part[j].isdigit():
-                    j += 1
-                remaining = part[j:].strip('\r\n')
-                html_chunks.append('<div class="par"><span class="sem-partitura">(partitura aqui — disponível só na tela)</span></div>')
-                if remaining.strip():
-                    html_chunks.append(render_cifra_html_pares(remaining, transpose))
-            sections_out.append({'title': clean_title or None, 'sem_partitura': False, 'html': '\n\n'.join(html_chunks)})
-            continue
-
-        # Caminho normal — sem partitura em lugar nenhum desta seção.
-        # Ainda pode ter marcadores "[Sub-título]" dentro do texto.
-        subblocks = split_bracket_subsections(section_text)
-        if not subblocks:
-            sections_out.append({'title': clean_title or None, 'sem_partitura': False, 'html': ''})
-            continue
-        # Primeiro sub-bloco herda o título da seção (se não tiver
-        # marcador próprio); os demais viram seções próprias na
-        # impressão, cada um com seu marcador como título.
-        first = True
-        for block in subblocks:
-            title = block['heading'] or (clean_title if first else None)
-            sections_out.append({'title': title, 'sem_partitura': False, 'html': render_cifra_html_pares(block['text'], transpose)})
-            first = False
+    # Mesmas seções da cifra da versão simples (chord_lines.secoes_cifra)
+    sections_out = secoes_cifra(song.get('sections', []), transpose, pares=True)
 
     html_str = render_template('view_song_print.html', song=song, sections=sections_out)
     pdf_bytes = WeasyHTML(string=html_str).write_pdf()

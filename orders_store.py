@@ -148,6 +148,17 @@ def get_next_order(from_date, now=None):
     return order.date, _order_to_dict(order)
 
 
+
+def proximos_cultos(from_date, limite=6):
+    """Cultos com data >= from_date (YYYY-MM-DD), na ordem: lista de
+    (chave, dict). Pula as linhas vazias do calendário, como get_next_order.
+    Usado pela lista de cifras da versão simples (/lite/cifras)."""
+    rows = Order.query.options(
+        selectinload(Order.itens), selectinload(Order.eventos)
+    ).filter(Order.date >= from_date).order_by(Order.date.asc()).limit(120).all()
+    rows = sorted((o for o in rows if _has_culto(o)), key=lambda o: (key_date(o.date), _culto_sort_key(o)))
+    return [(o.date, _order_to_dict(o)) for o in rows[:limite]]
+
 # --------------------------------------------- vários cultos por dia ---
 
 KEY_RE = re.compile(r'^\d{4}-\d{2}-\d{2}(?:-\d{1,2})?$')

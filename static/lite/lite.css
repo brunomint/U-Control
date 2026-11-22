@@ -230,3 +230,43 @@ body.lite-tela-monitor.lite-modo-vazio .lite-conteudo { color: #636a87; }
   text-decoration: none;
 }
 body.lite-neutra-branca .lite-trocar { color: #ccc; }
+
+/* ── /lite/cifras e /lite/cifra/<id> ── */
+.lite-voltar a, .lite-navegar a { display: inline-block; margin: 0 18px 8px 0; font-weight: bold; text-decoration: none; }
+.lite-ordem { list-style: none; margin: 0; padding: 0; }
+.lite-ordem li { margin: 0; }
+.lite-ordem-biblia, .lite-ordem-texto { color: #9198b3; padding: 6px 4px 14px; }
+.lite-outros a { display: block; margin-bottom: 10px; text-decoration: none; }
+.lite-ficha { margin-top: 4px; font-size: 14px; }
+.lite-controles p { margin: 0 0 10px; }
+.lite-controles p:last-child { margin-bottom: 0; }
+.lite-linha .uc-btn { margin: 0 4px 4px 0; }
+.lite-linha b { margin-right: 8px; }
+.lite-tom {
+  display: inline-block;
+  min-width: 40px;
+  margin: 0 4px 6px 0;
+  padding: 7px 8px;
+  text-align: center;
+  background: #1d2236;
+  border: 1px solid #2a3050;
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+}
+.uc-app a.lite-tom { color: #e9ebf4; }
+.uc-app a.lite-tom.lite-ativo { background: #8b6cf6; border-color: #8b6cf6; color: #fff; }
+.lite-cifra-texto { font-size: 16px; }
+.lite-secao h2 { font-size: 14px; color: #b9a8ff; margin: 18px 0 4px; }
+.lite-secao pre {
+  margin: 0;
+  font-family: 'Droid Sans Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-size: 1em;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.lite-secao .chord { color: #3fcf8e; font-weight: bold; }
+.lite-secao .comment-line { color: #9198b3; font-style: italic; }
+.lite-secao .sem-partitura { color: #f2b84b; }

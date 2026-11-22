@@ -133,3 +133,39 @@ def diag_relatorio():
     texto = re.sub(r'[\x00-\x1f\x7f]+', ' ', request.args.get('d', ''))[:_MAX_RELATORIO]
     logger.warning('LITE_DIAG ip=%s %s', request.remote_addr, texto)
     return '', 204
+
+
+# ---- Cifras dos músicos (Fase 1B) ----
+
+@lite_bp.route('/cifras')
+def cifras():
+    """Ordem do culto com link para a cifra de cada música. Sem login, como o /view."""
+    import lite_cifras
+    chave, ordem, proximos = lite_cifras.escolher_ordem(request.args.get('order'))
+    return render_template('lite/cifras.html', chave=chave, ordem=ordem,
+                           itens=lite_cifras.itens_da_ordem(ordem), proximos=proximos)
+
+
+@lite_bp.route('/cifra/<int:song_id>')
+def cifra(song_id):
+    import lite_cifras
+    import orders_store
+    from letra_formato import musica_sem_formato
+    from songs_store import get_song, musica_na_ordem
+    song = musica_na_ordem(musica_sem_formato(get_song(song_id)))
+    if not song:
+        return render_template('lite/cifras.html', chave=None, ordem={}, itens=[], proximos=[],
+                               erro='Música não encontrada.'), 404
+    tom = lite_cifras.normal(lite_cifras.numero(request.args.get('tom'), -11, 11))
+    capo = lite_cifras.numero(request.args.get('capo'), 0, 11)
+    chave = request.args.get('order') if orders_store.KEY_RE.match(request.args.get('order') or '') else None
+    anterior, proxima = lite_cifras.vizinhas(orders_store.get_order(chave), song_id) if chave else (None, None)
+
+    def link(**mudar):
+        """Esta mesma cifra com outro tom/capo (ou outra música), mantendo o resto."""
+        args = {'song_id': song_id, 'order': chave, 'tom': tom, 'capo': capo, **mudar}
+        return url_for('lite.cifra', **{k: v for k, v in args.items() if v})
+
+    return render_template('lite/cifra.html', song=song, chave=chave, tom=tom, capo=capo,
+                           anterior=anterior, proxima=proxima, link=link,
+                           **lite_cifras.montar_cifra(song, tom, capo))

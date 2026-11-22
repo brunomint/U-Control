@@ -229,6 +229,89 @@ def test_monitor_com_conteudo_proprio(app, client, telao_limpo):
     assert _estado(client, 'publico')['linhas'] == ['letra do público']
 
 
+# ---- Fase 1B: cifras dos músicos ----
+
+CIFRAS_DIFICEIS = [
+    'Bm7                  A/C#\n____Junto ao poço estava eu\n G2\nQuando um homem judeu',
+    'C/E  G/B  Am7  F7M(9)', 'Dm7(b5)  G7(#9)  C#m7  Bbsus4', 'Em Deus eu confio', '| G | G7M | C9 | D4 |',
+    'G-D-Em  C', 'F#7(5-)  C-7', 'A E 2x', 'Ab  Eb/G  Fm7  Db7M', 'C° Cº C+ Caug Cdim Cø', 'D(add9)  A(4)  Bm(11)',
+    'E  B/D#  C#m  A//chords', 'Amor//lyrics',
+]
+
+
+def test_transposicao_igual_ao_js():
+    """chord_lines.py (cifra do servidor) e static/js/chord_lines.js (cifra
+    no navegador) dão o mesmo resultado em todos os tons. Pergunta 5 do
+    plano: antes o Python não mantinha o acorde na coluna da sílaba."""
+    import json
+    import shutil
+    import subprocess
+    import chord_lines
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('node não instalado')
+    codigo = ("global.window = {}; require('./static/js/chord_lines.js'); const CL = window.ChordLines;"
+              f"const t = {json.dumps(CIFRAS_DIFICEIS)};"
+              "console.log(JSON.stringify(t.map(x => ({l: x.split('\\n').map(CL.isChordLine),"
+              " s: [-6,-5,-4,-3,-2,-1,1,2,3,4,5,6].map(n => CL.transposeBlockContent(x, n))}))));")
+    js = json.loads(subprocess.run([node, '-e', codigo], capture_output=True, text=True, check=True).stdout)
+    for texto, j in zip(CIFRAS_DIFICEIS, js):
+        assert [chord_lines.is_chord_line(l) for l in texto.split('\n')] == j['l'], texto
+        assert [chord_lines.transpose_block_content(texto, n) for n in [-6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6]] == j['s'], texto
+
+
+def _culto_com_musica(app, chave, texto='G       D\nGraça sublime'):
+    import orders_store
+    import songs_store
+    with app.app_context():
+        ids = []
+        for titulo in ('Primeira', 'Segunda'):
+            sid = songs_store.next_song_id()
+            songs_store.save_song({'id': sid, 'title': titulo, 'author': 'Autor', 'info': {'key': 'G', 'tempo': '72'},
+                                   'sections': [{'title': 'Verso', 'text': [texto]},
+                                                {'title': 'Coro', 'text': ['[Bis]\nC  G\nAleluia']}]})
+            ids.append(sid)
+        orders_store.save_order(chave, {'tipo': 'Culto da noite', 'dirigente': 'Ana', 'itens': [
+            {'title': 'Primeira | Autor', 'url': f'/lyrics/{ids[0]}'},
+            {'isBible': True, 'reference': 'Sl 23'},
+            {'title': 'Segunda', 'url': f'/lyrics/{ids[1]}'},
+        ]})
+    return ids
+
+
+def test_lista_de_cifras_do_culto(app, client):
+    ids = _culto_com_musica(app, '2031-03-02')
+    html = client.get('/lite/cifras?order=2031-03-02').get_data(as_text=True)
+    assert 'Culto da noite' in html and 'Dirigente: Ana' in html
+    assert f'/lite/cifra/{ids[0]}?order=2031-03-02' in html and 'Leitura: Sl 23' in html
+    assert '<script' not in html          # a lista funciona sem JS nenhum
+    assert client.get('/lite/cifras?order=2031-03-09').status_code == 200   # sem culto: aviso, sem erro
+
+
+def test_cifra_com_tom_capo_e_vizinhas(app, client):
+    ids = _culto_com_musica(app, '2031-03-16')
+    url = f'/lite/cifra/{ids[0]}?order=2031-03-16'
+    html = client.get(url).get_data(as_text=True)
+    assert 'Tom: G' in html and 'Tom original: G' in html
+    assert '<span class="chord">G</span>' in html and 'Graça sublime' in html
+    assert '<h2>Bis</h2>' in html                       # [Bis] no texto vira um bloco
+    assert f'/lite/cifra/{ids[1]}?order=2031-03-16' in html   # próxima música da ordem
+    # Tom: +2 → A; Capo 2 → as formas de G de novo
+    html = client.get(url + '&tom=2').get_data(as_text=True)
+    assert 'Tom: A' in html and '<span class="chord">A</span>' in html
+    html = client.get(url + '&tom=2&capo=2').get_data(as_text=True)
+    assert 'Tom: A' in html and 'formas de G' in html and '<span class="chord">G</span>' in html
+    # Grade de tons: o link do Ré muda o tom para +5 (de G para D, o caminho mais curto é -5)
+    assert 'tom=-5' in client.get(url).get_data(as_text=True)
+    assert client.get('/lite/cifra/999999').status_code == 404
+    assert client.get(url + '&tom=abc&capo=99').status_code == 200
+
+
+def test_detector_leva_o_view_para_as_cifras():
+    texto = open(os.path.join(PASTA_LITE, 'detectar.js'), encoding='utf-8').read()
+    assert "'/lite/cifras'" in texto and "'/lite/cifra/'" in texto
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {

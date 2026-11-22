@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    {% include "lite/_cabeca.html" %}
+    <title>Cifras do culto - U-Control</title>
+</head>
+<body class="uc-app">
+<main class="uc-page lite-cifras">
+    <p class="lite-voltar"><a href="{{ url_for('lite.inicio', escolher=1) }}">‹ Início</a></p>
+
+    {% if erro %}
+    <div class="uc-flash uc-flash-error">{{ erro }}</div>
+    {% elif not chave %}
+    <h1>Cifras do culto</h1>
+    <p class="uc-muted">Nenhum culto marcado daqui para a frente.</p>
+    {% else %}
+    <div class="uc-page-head">
+        <h1>{{ chave | data_pt }}</h1>
+        <div class="uc-page-sub">
+            {{ ordem.tipo or 'Culto' }}{% if ordem.horario_culto %} · {{ ordem.horario_culto }}{% endif %}
+            {% if ordem.dirigente %} · Dirigente: {{ ordem.dirigente }}{% endif %}
+        </div>
+    </div>
+
+    {% if not ordem %}
+    <p class="uc-muted">Não existe culto marcado para esta data.</p>
+    {% elif not itens %}
+    <p class="uc-muted">Este culto ainda não tem músicas na ordem.</p>
+    {% else %}
+    <ol class="lite-ordem">
+        {% for item in itens %}
+        {% if item.tipo == 'musica' %}
+        <li><a class="lite-opcao" href="{{ url_for('lite.cifra', song_id=item.id, order=chave) }}">
+            <b>{{ item.titulo }}</b>{% if item.autor %}<span>{{ item.autor }}</span>{% endif %}
+        </a></li>
+        {% else %}
+        <li class="lite-ordem-{{ item.tipo }}">{{ 'Leitura: ' if item.tipo == 'biblia' }}{{ item.titulo }}</li>
+        {% endif %}
+        {% endfor %}
+    </ol>
+    {% endif %}
+    <p><a class="uc-btn uc-btn-secondary" href="{{ url_for('lite.cifras', order=chave) }}">Atualizar</a></p>
+    {% endif %}
+
+    {% if proximos | length > 1 %}
+    <h2 class="lite-titulo">Outros cultos</h2>
+    <p class="lite-outros">
+        {% for k, o in proximos if k != chave %}
+        <a href="{{ url_for('lite.cifras', order=k) }}">{{ k | data_pt }}{% if o.tipo %} · {{ o.tipo }}{% endif %}</a>
+        {% endfor %}
+    </p>
+    {% endif %}
+</main>
+</body>
+</html>

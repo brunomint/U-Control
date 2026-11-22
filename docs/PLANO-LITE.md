@@ -4,7 +4,8 @@
 > 22/11/2026.
 >
 > **Estado (22/11/2026):** segunda conferência feita (seção 11); Fases 0,
-> 0B e 1 feitas no branch `lite`, ainda não publicadas. A Fase 1 já inclui a
+> 0B, 1 e 1B feitas no branch `lite`, ainda não publicadas. iPad com iOS
+> 10.3.4 testado no servidor de teste (Monitor e Público funcionando). A Fase 1 já inclui a
 > tela Público (que o plano chamava de Fase 2). Falta abrir nos aparelhos
 > reais (item 6 da conferência).
 >
@@ -255,6 +256,25 @@ temas animados e transições.
    acordes versus linhas de letra, e o Capo. Se faltar algo, corrigir no
    Python (e cobrir com teste) antes de fazer a Fase 1B. Esta dúvida bloqueia
    a Fase 1B.
+
+   **Resposta (22/11/2026):** a detecção de linha de cifra era igual, mas a
+   transposição do Python não mantinha cada acorde na coluna da sílaba
+   quando o nome mudava de tamanho (Bm7 → F#m7). O `transpose_line` foi
+   corrigido igual ao `transposeLine` do JS. Comparação nas 3.198 seções
+   reais do backup `data_backup_pre_sql/songs.json` + casos difíceis, em
+   todos os tons: 0 diferenças. `tests/test_lite.py`
+   (`test_transposicao_igual_ao_js`) compara com o JS usando o node. Isso
+   também corrige o alinhamento da cifra transposta no PDF de impressão.
+
+   **Fase 1B feita:**
+   - `/lite/cifras?order=` (sem JS; sem `order`, o próximo culto) e
+     `/lite/cifra/<id>?order=&tom=&capo=` (`lite_cifras.py`).
+   - As seções saem de `chord_lines.secoes_cifra`, a mesma montagem do PDF
+     (tirada de `main.py`, saída idêntica nas músicas reais).
+   - Tom (−½, +½, original e a grade dos 12 tons) e Capo (0 a 9) são
+     links.
+   - `static/lite/cifra.js` (opcional) faz A−/A+ e a rolagem automática.
+   - O detector manda `/view`, `/view/<id>` e `/view/order/<data>` para lá.
 
 ## 10. Anexo: varredura das páginas (21/11/2026, v1.1.0)
 

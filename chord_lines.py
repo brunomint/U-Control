@@ -1,8 +1,7 @@
-"""Porta em Python de static/js/chord_lines.js — só o necessário pra
-gerar o HTML de impressão em blueprints/print_song.py (WeasyPrint não
-roda JavaScript, então o realce/transposição de acordes que
-static/js/chord_lines.js faz no navegador precisa acontecer aqui,
-server-side, antes de virar PDF).
+"""Porta em Python de static/js/chord_lines.js — o necessário pra gerar a
+cifra no servidor: o PDF de impressão (/view/<id>/print — WeasyPrint não
+roda JavaScript) e as cifras da versão simples (/lite/cifra/<id>, para
+navegador antigo).
 
 Mantém a MESMA lógica do arquivo JS de propósito — qualquer correção
 feita lá (ex: o achado real sobre barras de compasso "|") também deve
@@ -145,11 +144,16 @@ def _split_preserving_spaces(rest):
 
 
 def transpose_line(line, semitones, names=None):
-    leading = re.match(r'^\s*', line).group(0)
-    rest = line[len(leading):]
-    parts = _split_preserving_spaces(rest)
-    transposed = [p if (p == '' or p.isspace()) else transpose_chord(p, semitones, names) for p in parts]
-    return leading + ''.join(transposed)
+    """Mesma lógica de transposeLine() no .js: cada acorde começa na MESMA
+    coluna de antes (em cima da mesma sílaba), mesmo que o nome mude de
+    tamanho ("Bm7" → "F#m7"); se não couber, fica um espaço depois do
+    anterior. Antes só trocava o texto e a cifra escorregava para o lado."""
+    saida = ''
+    for m in re.finditer(r'\S+', line):
+        transposto = transpose_chord(m.group(0), semitones, names)
+        inicio = max(m.start(), len(saida) + 1) if saida else m.start()
+        saida += ' ' * (inicio - len(saida)) + transposto
+    return saida
 
 
 def transpose_block_content(content, semitones):
@@ -283,3 +287,86 @@ def render_cifra_html_pares(content, semitones=0):
             grupos.append(processed[i])
             i += 1
     return '\n'.join(f'<div class="par">{g}</div>' for g in grupos)
+
+
+def describe_key(chord):
+    """Tom de um acorde: só a nota e maior/menor ("C#m7" → "C#m") — describeKey() no .js."""
+    match = _CHORD_BASE_REGEX.match(chord or '')
+    if not match:
+        return None
+    return match.group(1) + ('m' if _is_minor_suffix(match.group(2)) else '')
+
+
+def first_chord_token(textos):
+    """Primeiro acorde de uma lista de textos (palpite do tom) — detectFirstChordToken() no .js."""
+    for texto in textos:
+        for line in (texto or '').split('\n'):
+            if is_chord_line(line):
+                tokens = chord_tokens(line) or []
+                if tokens:
+                    return tokens[0]
+    return None
+
+
+PARTITURA_MARKER = '🎼 PARTITURA_INTEGRADA'
+
+
+def secoes_cifra(sections, semitones=0, pares=False, nota_partitura='(partitura aqui — disponível só na tela)'):
+    """Seções de uma música prontas para mostrar como cifra no servidor:
+    lista de {'title', 'sem_partitura', 'html', 'texto'} ('texto' = o texto
+    cru do bloco, para achar o tom). Partitura não vira imagem: a seção que
+    é só partitura sai com sem_partitura=True; no meio do texto, vira a
+    `nota_partitura`. "[Sub-título]" no texto abre um bloco novo.
+    pares=True: HTML em pares cifra+letra (impressão, ver
+    render_cifra_html_pares)."""
+    render = render_cifra_html_pares if pares else render_cifra_html
+    nota = (f'<div class="par"><span class="sem-partitura">{html.escape(nota_partitura)}</span></div>' if pares
+            else f'<span class="sem-partitura">{html.escape(nota_partitura)}</span>')
+    saida = []
+    for section in sections or []:
+        raw_title = (section.get('title') or '').strip()
+        clean_title = raw_title.replace('[', '').replace(']', '').strip()
+        section_text = '\n'.join(section.get('text') or [])
+        section_text = section_text.replace('\r\n', '\n').replace('\r', '\n')
+
+        if PARTITURA_MARKER in clean_title:
+            # Seção que É a partitura inteira, sem letra junto
+            saida.append({'title': clean_title.split('_')[0].strip() or None, 'sem_partitura': True, 'html': '', 'texto': ''})
+            continue
+
+        if PARTITURA_MARKER in section_text:
+            # Letra + partitura no meio do texto: só os trechos de texto,
+            # com a nota onde a partitura ficaria
+            parts = section_text.split(PARTITURA_MARKER + '_')
+            chunks, textos = [], []
+            for i, part in enumerate(parts):
+                if i == 0:
+                    if part.strip():
+                        chunks.append(render(part, semitones))
+                        textos.append(part)
+                    continue
+                j = 0
+                while j < len(part) and part[j].isdigit():
+                    j += 1
+                remaining = part[j:].strip('\r\n')
+                chunks.append(nota)
+                if remaining.strip():
+                    chunks.append(render(remaining, semitones))
+                    textos.append(remaining)
+            saida.append({'title': clean_title or None, 'sem_partitura': False,
+                          'html': '\n\n'.join(chunks), 'texto': '\n'.join(textos)})
+            continue
+
+        # Sem partitura; pode ter "[Sub-título]" dentro do texto. O primeiro
+        # bloco herda o título da seção; os outros usam o marcador deles.
+        subblocks = split_bracket_subsections(section_text)
+        if not subblocks:
+            saida.append({'title': clean_title or None, 'sem_partitura': False, 'html': '', 'texto': ''})
+            continue
+        first = True
+        for block in subblocks:
+            title = block['heading'] or (clean_title if first else None)
+            saida.append({'title': title, 'sem_partitura': False,
+                          'html': render(block['text'], semitones), 'texto': block['text']})
+            first = False
+    return saida
