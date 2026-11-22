@@ -28,6 +28,14 @@
         <b>Telão do público</b>
         <span>A letra, a Bíblia e as imagens, como o telão.</span>
     </a>
+    <a class="lite-opcao" href="{{ url_for('lite.inicio', tela='vocal') }}">
+        <b>Letra para os vocais</b>
+        <span>O palco só com a letra, grande e sem os acordes.</span>
+    </a>
+    <a class="lite-opcao" href="{{ url_for('lite.inicio', tela='cronometro') }}">
+        <b>Tempo do pregador</b>
+        <span>O cronômetro do culto em números grandes; sem cronômetro, a hora.</span>
+    </a>
     <p class="uc-muted lite-dica">Este aparelho vai lembrar a escolha e abrir direto nela.</p>
     <a class="lite-opcao" href="{{ url_for('lite.cifras') }}">
         <b>Cifras do culto</b>

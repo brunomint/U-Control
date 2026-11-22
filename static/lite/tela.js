@@ -11,7 +11,11 @@
     var palco = document.getElementById('palco');
     var conteudo = document.getElementById('conteudo');
     var semConexao = document.getElementById('semConexao');
+    var letreiro = document.getElementById('letreiro');
     var rev = '';
+    // Diferença entre a hora do servidor e a deste aparelho (o relógio de
+    // aparelho antigo costuma estar errado): relógio e cronômetro usam a do servidor
+    var diferenca = 0;
     var falhas = 0;
     var ultimo = null;
     var relogio = null;
@@ -71,6 +75,8 @@
 
     function doisDigitos(n) { return n < 10 ? '0' + n : '' + n; }
 
+    function agoraServidor() { return new Date().getTime() + diferenca; }
+
     // ---- Cada modo ----
 
     function desenharLetra(e) {
@@ -112,13 +118,40 @@
     function desenharRelogio() {
         var bloco = el('div', 'lite-relogio');
         function agora() {
-            var d = new Date();
+            var d = new Date(agoraServidor());
             limpar(bloco);
             bloco.appendChild(texto(doisDigitos(d.getHours()) + ':' + doisDigitos(d.getMinutes())));
         }
         agora();
         relogio = setInterval(agora, 1000);
         conteudo.appendChild(bloco);
+    }
+
+    // Tempo que falta (mm:ss); passou do tempo: "+mm:ss" em vermelho
+    function desenharCronometro(e) {
+        var bloco = el('div', 'lite-cronometro');
+        var numero = el('div', 'lite-cronometro-tempo');
+        if (e.titulo) bloco.appendChild(el('div', 'lite-cronometro-titulo', e.titulo));
+        bloco.appendChild(numero);
+        function mostrar() {
+            var ms = e.pausado ? (e.restante || 0) : (e.fim - agoraServidor());
+            var passou = ms < 0;
+            var s = Math.floor(Math.abs(ms) / 1000) + (passou ? 0 : (Math.abs(ms) % 1000 ? 1 : 0));
+            var texto = (passou ? '+' : '') + Math.floor(s / 60) + ':' + doisDigitos(s % 60);
+            numero.className = 'lite-cronometro-tempo' + (passou ? ' lite-passou' : s <= 60 ? ' lite-acabando' : '');
+            limpar(numero);
+            numero.appendChild(document.createTextNode(texto));
+        }
+        mostrar();
+        if (!e.pausado) relogio = setInterval(mostrar, 250);
+        else bloco.appendChild(el('div', 'lite-cronometro-titulo', 'pausado'));
+        conteudo.appendChild(bloco);
+    }
+
+    function desenharLetreiro(texto) {
+        limpar(letreiro);
+        if (texto) letreiro.appendChild(document.createTextNode(texto));
+        mostrar(letreiro, !!texto);
     }
 
     function desenharAvisos(e) {
@@ -156,12 +189,15 @@
             desenharImagem(e.url);
         } else if (e.modo === 'relogio') {
             desenharRelogio();
+        } else if (e.modo === 'cronometro') {
+            desenharCronometro(e);
         } else if (e.modo === 'avisos') {
             desenharAvisos(e);
         } else if (e.modo === 'outro' && e.texto) {
             conteudo.appendChild(el('p', 'lite-espera', e.texto));
         }
         if (e.aviso) conteudo.appendChild(el('p', 'lite-aviso', e.aviso));
+        desenharLetreiro(e.letreiro);
         caber();
     }
 
@@ -193,6 +229,7 @@
             try { e = JSON.parse(xhr.responseText); } catch (erro) { falhou(); return; }
             falhas = 0;
             mostrar(semConexao, false);
+            if (e.agora) diferenca = e.agora - new Date().getTime();
             if (!e.igual && e.rev !== rev) {
                 rev = e.rev;
                 desenhar(e);

@@ -68,7 +68,8 @@ def depois_do_login(padrao):
 # ---- Página inicial e telas (Fase 1) ----
 
 _TELA_COOKIE = 'uc_lite_tela'
-_ROTA_DA_TELA = {'monitor': 'lite.monitor', 'publico': 'lite.publico'}
+_ROTA_DA_TELA = {'monitor': 'lite.monitor', 'publico': 'lite.publico', 'vocal': 'lite.vocal',
+                 'cronometro': 'lite.cronometro'}
 
 
 def _so_caminho(destino):
@@ -107,6 +108,16 @@ def publico():
     return _tela('publico')
 
 
+@lite_bp.route('/vocal')
+def vocal():
+    return _tela('vocal')
+
+
+@lite_bp.route('/cronometro')
+def cronometro():
+    return _tela('cronometro')
+
+
 @lite_bp.route('/api/estado')
 def api_estado():
     """O que a tela mostra agora. ?rev= igual ao atual: só {"rev", "igual"}."""
@@ -115,7 +126,7 @@ def api_estado():
         return jsonify({'erro': 'tela'}), 400
     e = lite_estado.estado(tela)
     if request.args.get('rev') == e['rev']:
-        e = {'rev': e['rev'], 'igual': True}
+        e = {'rev': e['rev'], 'igual': True, 'agora': e['agora']}
     resposta = jsonify(e)
     resposta.headers['Cache-Control'] = 'no-store'
     return resposta
@@ -195,5 +206,6 @@ def controle():
             item['url'] = generate_bible_url(item['titulo'])
         itens.append(item)
     return render_template('lite/controle.html', e=lite_controle.estado(), modos=lite_controle.MODOS,
+                           recado_para=lite_controle.RECADO_PARA,
                            neutras=lite_controle.NEUTRAS, chave=chave, itens=itens,
                            assumir=request.args.get('assumir'))

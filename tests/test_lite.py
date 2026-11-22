@@ -104,7 +104,7 @@ def test_inicio_mostra_as_duas_telas_e_lembra_a_escolha(client):
     client.get('/lite/?tela=publico')
 
 
-@pytest.mark.parametrize('tela', ['monitor', 'publico'])
+@pytest.mark.parametrize('tela', ['monitor', 'publico', 'vocal', 'cronometro'])
 def test_telas_abrem_sem_login_e_sem_js_novo(client, tela):
     r = client.get(f'/lite/{tela}')
     assert r.status_code == 200
@@ -150,7 +150,14 @@ def telao_limpo():
     display_state._last_lyrics_payload = None
     display_state._last_lyrics_payload_monitor = None
     display_state._telas_neutras.update({'public': None, 'monitor': None})
+    from blueprints import countdown, ticker
+    ticker._por_tela.clear()
+    contagem = dict(countdown._countdown_state)
+    countdown._countdown_state['active'] = False
     yield
+    ticker._por_tela.clear()
+    countdown._countdown_state.clear()
+    countdown._countdown_state.update(contagem)
     (telao._public, telao._monitor, display_state._last_lyrics_payload,
      display_state._last_lyrics_payload_monitor, neutras, display_state._current_display_mode) = guardado
     display_state._telas_neutras.update(neutras)
@@ -196,7 +203,8 @@ def test_estado_publico_e_monitor_com_letra(app, client, telao_limpo):
 def test_rev_so_muda_quando_o_conteudo_muda(app, client, telao_limpo):
     _letra_no_ar(app, 'primeira')
     a = _estado(client, 'publico')
-    assert _estado(client, 'publico', rev=a['rev']) == {'rev': a['rev'], 'igual': True}
+    igual = _estado(client, 'publico', rev=a['rev'])
+    assert igual['igual'] and igual['rev'] == a['rev'] and set(igual) == {'rev', 'igual', 'agora'}
     _letra_no_ar(app, 'segunda')
     b = _estado(client, 'publico', rev=a['rev'])
     assert b['rev'] != a['rev'] and b['linhas'] == ['segunda']
@@ -221,7 +229,8 @@ def test_monitor_com_conteudo_proprio(app, client, telao_limpo):
     assert _estado(client, 'monitor')['modo'] == 'relogio'
     assert _estado(client, 'publico')['modo'] == 'letra'
     telao.set_monitor_url('/static/uploads/foto.jpg')
-    assert _estado(client, 'monitor') == {**_estado(client, 'monitor'), 'modo': 'imagem', 'url': '/static/uploads/foto.jpg'}
+    foto = _estado(client, 'monitor')
+    assert foto['modo'] == 'imagem' and foto['url'] == '/static/uploads/foto.jpg'
     # Parte mandada só ao monitor ("Só monitor")
     telao.set_monitor('cifra', '/lyrics/display?host=monitor')
     display_state._last_lyrics_payload_monitor = {**display_state._last_lyrics_payload, 'text': 'C\nsó do palco'}
@@ -381,6 +390,60 @@ def test_controle_sem_controle_aberto_avisa(logged_in_client):
     assert 'Nenhum Controle aberto' in _mensagens(logged_in_client)
     _acao(logged_in_client, 'abrir', 'https://fora.com/x')
     assert 'Item inválido' in _mensagens(logged_in_client)
+
+
+# ---- Recado, letra para os vocais e tempo do pregador ----
+
+def test_vocal_mostra_so_a_letra_do_palco(app, client, telao_limpo):
+    _letra_no_ar(app, 'G       D\nGraça sublime')
+    vocal = _estado(client, 'vocal')
+    assert vocal['modo'] == 'letra' and vocal['linhas'] == ['Graça sublime']
+    assert _estado(client, 'monitor')['modo'] == 'cifra'
+
+
+def test_letreiro_vai_so_para_a_tela_dele(app, client, telao_limpo):
+    from blueprints import ticker
+    _letra_no_ar(app, 'letra')
+    antes = _estado(client, 'monitor')['rev']
+    ticker._por_tela['monitor'] = 'Repete o refrão'
+    mon = _estado(client, 'monitor')
+    assert mon['letreiro'] == 'Repete o refrão' and mon['rev'] != antes
+    assert _estado(client, 'vocal')['letreiro'] == 'Repete o refrão'
+    assert 'letreiro' not in _estado(client, 'publico')
+    assert 'letreiro' not in _estado(client, 'cronometro')
+
+
+def test_tempo_do_pregador(app, client, telao_limpo):
+    import time
+    import telao
+    from blueprints import countdown
+    e = _estado(client, 'cronometro')
+    assert e['modo'] == 'relogio' and abs(e['agora'] - time.time() * 1000) < 5000
+    igual = _estado(client, 'cronometro', rev=e['rev'])
+    assert igual['igual'] and 'agora' in igual      # a hora do servidor vem sempre
+    fim = int(time.time() * 1000) + 300000
+    countdown._countdown_state.update({'active': True, 'paused': False, 'end_timestamp': fim, 'label': 'Pregação'})
+    e = _estado(client, 'cronometro')
+    assert e['modo'] == 'cronometro' and e['fim'] == fim and e['titulo'] == 'Pregação'
+    countdown._countdown_state.update({'paused': True, 'paused_remaining': 61000})
+    assert _estado(client, 'cronometro')['restante'] == 61000
+    # Cronômetro no telão: a tela do público também mostra
+    telao.set_public_url('/countdown')
+    assert _estado(client, 'publico')['modo'] == 'cronometro'
+
+
+def test_controle_manda_e_tira_recado(logged_in_client, telao_limpo):
+    from blueprints import ticker
+    _acao(logged_in_client, 'modo', 'all')
+    r = logged_in_client.post('/lite/controle', data={'acao': 'recado', 'valor': '  Último refrão ', 'para': 'monitor'})
+    assert r.status_code == 302
+    assert ticker._por_tela == {'monitor': 'Último refrão'}
+    html = _mensagens(logged_in_client)
+    assert 'Recado no ar: Último refrão' in html and 'Tirar recado' in html
+    _acao(logged_in_client, 'recado-tirar')
+    assert ticker._por_tela == {}
+    logged_in_client.post('/lite/controle', data={'acao': 'recado', 'valor': '   ', 'para': 'monitor'})
+    assert 'Escreva o recado' in _mensagens(logged_in_client)
 
 
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----

@@ -11,8 +11,11 @@ só redesenha quando ela é outra."""
 import hashlib
 import json
 import re
+import time
 
-TELAS = {'publico': 'public', 'monitor': 'monitor'}
+# Tela da versão simples -> tela de verdade que ela acompanha. 'vocal' é o
+# palco só com a letra (sem acordes); 'cronometro' é o tempo do pregador.
+TELAS = {'publico': 'public', 'monitor': 'monitor', 'vocal': 'monitor', 'cronometro': 'monitor'}
 
 
 def _linhas_da_letra(texto):
@@ -87,7 +90,21 @@ def _letra_visivel():
         return True
 
 
-def _conteudo(tela):
+def _cronometro():
+    """Cronômetro (blueprints/countdown.py) ou None se não está rodando.
+    `fim` e `restante` em ms; o aparelho conta sozinho com a hora do servidor."""
+    from blueprints.countdown import _countdown_state as c
+    if not c.get('active'):
+        return None
+    e = {'modo': 'cronometro', 'titulo': c.get('label') or '', 'pausado': bool(c.get('paused'))}
+    if c.get('paused'):
+        e['restante'] = int(c.get('paused_remaining') or 0)
+    else:
+        e['fim'] = int(c.get('end_timestamp') or 0)
+    return e
+
+
+def _conteudo(tela, so_letra=False):
     import destinos
     import display_state
     import telao
@@ -126,8 +143,10 @@ def _conteudo(tela):
             return {'modo': 'vazio'}
         if tela == 'public' and not _letra_visivel():
             return {'modo': 'vazio'}
-        # Palco: a letra vai como cifra, a não ser que tenham pedido a letra sem cifra
-        como_cifra = tela == 'monitor' and not (destinos._palco_sem_cifra and tipo == 'lyrics')
+        # Palco: a letra vai como cifra, a não ser que tenham pedido a letra sem
+        # cifra ou que seja a tela dos vocais (só letra)
+        como_cifra = (tela == 'monitor' and not so_letra
+                      and not (destinos._palco_sem_cifra and tipo == 'lyrics'))
         return _letra(payload, como_cifra)
     if tipo == 'bible':
         payload = display_state._last_bible_payload
@@ -143,6 +162,8 @@ def _conteudo(tela):
         return {'modo': 'outro', 'texto': 'Vídeo no telão' if foto else ''}
     if tipo == 'clock':
         return {'modo': 'relogio'}
+    if tipo == 'countdown':
+        return _cronometro() or {'modo': 'vazio'}
     if tipo == 'blank':
         return {'modo': 'vazio'}
     rotulo = telao.describe({'kind': tipo, 'url': url}).get('label', '')
@@ -150,17 +171,31 @@ def _conteudo(tela):
 
 
 def estado(tela):
-    """tela: 'publico' ou 'monitor'. Devolve o dict com `rev`."""
+    """tela: uma das TELAS. Devolve o dict com `rev` (muda só quando o
+    conteúdo muda) e `agora` (hora do servidor, em ms: o aparelho antigo
+    pode estar com o relógio errado)."""
     import display_state
+    from blueprints import ticker
     chave = TELAS.get(tela, 'public')
-    neutra = display_state._telas_neutras.get(chave)
-    if neutra:
-        e = {'modo': 'neutra', 'tipo': neutra}
-        if neutra == 'logo':
-            e['url'] = '/logo-igreja.png'
+    if tela == 'cronometro':
+        e = _cronometro() or {'modo': 'relogio'}
     else:
-        e = _conteudo(chave)
+        neutra = display_state._telas_neutras.get(chave)
+        if neutra:
+            e = {'modo': 'neutra', 'tipo': neutra}
+            if neutra == 'logo':
+                e['url'] = '/logo-igreja.png'
+        else:
+            e = _conteudo(chave, so_letra=tela == 'vocal')
+        # Letreiro (aviso/recado) da tela: o recado para a banda vai ao palco
+        if ticker._por_tela.get(chave):
+            e['letreiro'] = ticker._por_tela[chave]
     e['tela'] = tela
     texto = json.dumps(e, sort_keys=True, ensure_ascii=False)
     e['rev'] = hashlib.sha1(texto.encode('utf-8')).hexdigest()[:12]
+    e['agora'] = agora()
     return e
+
+
+def agora():
+    return int(time.time() * 1000)

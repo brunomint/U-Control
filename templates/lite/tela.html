@@ -2,12 +2,13 @@
 <html lang="pt-BR">
 <head>
     {% include "lite/_cabeca.html" %}
-    <title>{{ 'Monitor do palco' if tela == 'monitor' else 'Telão do público' }} - U-Control</title>
+    <title>{{ {'monitor': 'Monitor do palco', 'vocal': 'Letra para os vocais', 'cronometro': 'Tempo do pregador'}.get(tela, 'Telão do público') }} - U-Control</title>
 </head>
 <body class="lite-tela lite-tela-{{ tela }}" data-tela="{{ tela }}">
 <div id="palco" class="lite-palco">
     <div id="conteudo" class="lite-conteudo"><p class="lite-espera">Carregando…</p></div>
 </div>
+<div id="letreiro" class="lite-letreiro" hidden></div>
 <div id="semConexao" class="lite-sem-conexao" hidden>Sem conexão com o U-Control. Tentando de novo…</div>
 <a class="lite-trocar" href="{{ url_for('lite.inicio', escolher=1) }}">trocar tela</a>
 <noscript><p class="lite-espera">Esta tela precisa do JavaScript ligado no navegador para atualizar sozinha.</p></noscript>

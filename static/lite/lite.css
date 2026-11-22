@@ -285,3 +285,25 @@ body.lite-neutra-branca .lite-trocar { color: #ccc; }
 .lite-ordem-item .uc-btn { display: block; width: 100%; text-align: left; white-space: normal; margin: 0 0 8px; }
 .lite-ordem-item > span { display: block; padding: 6px 4px 12px; }
 .lite-assumir .uc-btn { margin-bottom: 12px; }
+
+/* ── Letreiro (recado) e cronômetro nas telas ── */
+.lite-letreiro {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 16px;
+  background: #f2b84b;
+  color: #000;
+  font-size: 32px;
+  font-weight: bold;
+  text-align: center;
+}
+.lite-cronometro { font-weight: bold; }
+.lite-cronometro-titulo { color: #9198b3; font-size: 32px; }
+.lite-cronometro-tempo { font-size: 180px; line-height: 1.1; }
+.lite-cronometro-tempo.lite-acabando { color: #f2b84b; }
+.lite-cronometro-tempo.lite-passou { color: #f04b55; }
+.lite-escolha { display: inline-block; margin: 8px 18px 0 0; font-weight: bold; }
+.lite-recado .uc-input { margin-bottom: 4px; }
+.lite-recado { margin-bottom: 10px; }

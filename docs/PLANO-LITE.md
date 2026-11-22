@@ -227,6 +227,21 @@ música. Sem login, como as páginas atuais `/view` e `/view/<id>`.
   numa tela da mesma pessoa logada noutro aparelho.
 - O detector manda `/control`, `/presenter` e `/lyrics/<id>` para lá.
 
+### Extras feitos em 22/11/2026 (pedido do Bruno)
+- **Recado:** no controle simples, um campo manda um letreiro (o mesmo
+  `set_ticker` do Controle) para o Palco, o Público ou os dois. As telas
+  simples mostram o letreiro da tela delas numa faixa amarela embaixo.
+- **Letra para os vocais** (`/lite/vocal`): o palco só com a letra, sem
+  acordes.
+- **Tempo do pregador** (`/lite/cronometro`): o cronômetro do culto
+  (`blueprints/countdown.py`) em números grandes. Faltando 1 minuto fica
+  amarelo; depois do tempo, "+m:ss" em vermelho. Sem cronômetro, mostra a
+  hora. Quando o telão está no cronômetro, a tela do público também o
+  mostra.
+- A API manda `agora` (hora do servidor) em toda resposta: relógio e
+  cronômetro usam a hora do servidor, porque o relógio de aparelho antigo
+  costuma estar errado.
+
 ### Fase 4: acabamento
 - Menu/QR "versão simples", favorito fixo, README e Ajuda em português.
 

@@ -35,6 +35,15 @@ def _minhas_telas():
     return destinos.telas_do_modo(display_state.device_mode())
 
 
+RECADO_PARA = [('monitor', 'Palco'), ('public', 'Público'), ('ambos', 'Os dois')]
+
+
+def _destino_do_recado():
+    from flask import request
+    para = request.form.get('para', 'monitor')
+    return ['public', 'monitor'] if para == 'ambos' else [para if para in ('public', 'monitor') else 'monitor']
+
+
 def estado():
     """O que a página mostra no alto: o que está em cada tela e as minhas telas."""
     import destinos
@@ -58,7 +67,13 @@ def estado():
         'modo': display_state.device_mode(),
         'donos': destinos.donos(),
         'controle_aberto': atalhos.controle_aberto(),
+        'recados': {t: x for t, x in _letreiros().items() if t in ('public', 'monitor')},
     }
+
+
+def _letreiros():
+    from blueprints import ticker
+    return dict(ticker._por_tela)
 
 
 def acao(nome, valor=''):
@@ -94,6 +109,19 @@ def acao(nome, valor=''):
 
     if nome == 'relogio':
         _, recusa = _rodar(handle_show_image, {'image_url': '/clock'})
+        return recusa is None, recusa, None
+
+    if nome == 'recado':
+        from blueprints.ticker import handle_set_ticker
+        texto = (valor or '').strip()[:200]
+        if not texto:
+            return False, 'Escreva o recado.', None
+        _, recusa = _rodar(handle_set_ticker, {'text': texto, 'targets': _destino_do_recado()})
+        return recusa is None, recusa or 'Recado no ar: ' + texto, None
+
+    if nome == 'recado-tirar':
+        from blueprints.ticker import handle_stop_ticker
+        _, recusa = _rodar(handle_stop_ticker, {'targets': ['public', 'monitor']})
         return recusa is None, recusa, None
 
     if nome in ('modo', 'assumir'):
