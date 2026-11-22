@@ -1,0 +1,152 @@
+/* Tema simples (versão "lite") — docs/PLANO-LITE.md, Fase 0B.
+   As mesmas cores e medidas do tokens.css/app.css, com os valores escritos
+   direto, para navegador antigo (Android WebView 44, Safari do iOS 5–9):
+   sem variáveis CSS, grid, flexbox, gap, clamp, inset, :is/:has nem vh/vw.
+   Layout com block, inline-block e table. tests/test_lite.py confere isso.
+
+   Cores (de tokens.css): fundo #0f1220, superfície #161a2b / #1d2236,
+   linha #2a3050, texto #e9ebf4, apagado #9198b3, roxo #8b6cf6 / #7350ea,
+   texto roxo #b9a8ff, vermelho #f04b55, verde #3fcf8e, perigo #f0707a. */
+
+* { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body.uc-app {
+  margin: 0;
+  background: #0f1220;
+  color: #e9ebf4;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+.uc-app h1, .uc-app h2, .uc-app h3, .uc-app h4 { margin: 0; }
+.uc-app a { color: #b9a8ff; }
+.uc-app button, .uc-app input, .uc-app select, .uc-app textarea { font-family: inherit; font-size: inherit; color: inherit; }
+.uc-app img { border: 0; }
+
+/* ── Página ── */
+.uc-page { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+.uc-page > * { margin-bottom: 20px; }
+.uc-page-head h1 { font-size: 26px; font-weight: bold; }
+.uc-page-sub, .uc-muted { color: #9198b3; }
+.uc-page-sub { margin-top: 2px; }
+.uc-mono { font-family: Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size: 13px; }
+
+/* ── Card ── */
+.uc-card {
+  background: #161a2b;
+  border: 1px solid #2a3050;
+  -webkit-border-radius: 14px;
+  border-radius: 14px;
+  padding: 20px;
+}
+.uc-card-head { margin-bottom: 14px; overflow: hidden; }
+.uc-card-head h2, .uc-card-head h3 { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .08em; color: #9198b3; }
+.uc-card p:first-child { margin-top: 0; }
+.uc-card p:last-child { margin-bottom: 0; }
+.uc-link { color: #b9a8ff; text-decoration: none; font-weight: bold; }
+
+/* ── Botões ── */
+.uc-btn {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 11px 18px;
+  margin: 0 6px 6px 0;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-appearance: none;
+  background: #1d2236;
+  color: #e9ebf4;
+}
+.uc-btn i { margin-right: 6px; }
+.uc-btn[disabled] { opacity: .45; }
+.uc-btn-primary { background: #8b6cf6; color: #fff; }
+.uc-btn-primary:active { background: #7350ea; }
+.uc-btn-secondary { background: #1d2236; border-color: #2a3050; color: #e9ebf4; }
+.uc-btn-ghost { background: transparent; color: #9198b3; }
+.uc-btn-danger { background: #3a2230; color: #f0707a; }
+.uc-btn-live { background: #f04b55; color: #fff; }
+.uc-btn-lg { padding: 14px 22px; font-size: 17px; }
+.uc-btn-sm { padding: 8px 12px; font-size: 14px; -webkit-border-radius: 6px; border-radius: 6px; }
+
+/* ── Formulário ── */
+.uc-form-stack .uc-field, .uc-form-stack > .uc-btn { margin-bottom: 14px; }
+.uc-field { display: block; }
+.uc-field > label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: bold; color: #9198b3; }
+.uc-input {
+  display: block;
+  width: 100%;
+  background: #0f1220;
+  border: 1px solid #2a3050;
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  padding: 11px 12px;
+  color: #e9ebf4;
+  font-size: 16px; /* 16px: o iOS não dá zoom ao tocar no campo */
+  -webkit-appearance: none;
+}
+.uc-input:focus { border-color: #8b6cf6; outline: none; }
+
+/* ── Avisos ── */
+.uc-flash {
+  padding: 12px 16px;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  background: #1d2236;
+  border: 1px solid #2a3050;
+  font-weight: bold;
+}
+.uc-flash-error { border-color: #6b3a48; background: #2a1d2a; }
+
+/* ── Barra do alto (lite/_nav.html) ── */
+.lite-nav { background: #161a2b; border-bottom: 1px solid #2a3050; padding: 8px 16px; overflow: hidden; }
+.lite-nav-marca { float: left; color: #e9ebf4; text-decoration: none; font-weight: bold; font-size: 18px; line-height: 40px; }
+.lite-nav-marca img { width: 32px; height: 32px; vertical-align: middle; margin-right: 8px; }
+.lite-nav-links { float: right; line-height: 40px; }
+.lite-nav-links a { color: #b9a8ff; text-decoration: none; font-weight: bold; margin-left: 16px; }
+
+/* ── /login ── */
+.login-wrap { padding: 40px 16px; }
+.login-card { max-width: 380px; margin: 0 auto; padding: 28px; }
+.login-brand { text-align: center; margin-bottom: 20px; }
+.login-brand img { width: 84px; height: 84px; }
+.login-brand h1 { font-size: 22px; font-weight: bold; margin-top: 6px; }
+.login-brand p { margin: 0; }
+.login-card .uc-flash { margin-bottom: 14px; }
+.login-card .uc-btn { display: block; width: 100%; margin-right: 0; }
+
+/* ── /links ── */
+.links-grid { font-size: 0; margin-right: -16px; } /* font-size 0: sem vão entre os inline-block */
+.link-card {
+  display: inline-block;
+  vertical-align: top;
+  width: 232px;
+  margin: 0 16px 16px 0;
+  padding: 18px;
+  text-align: center;
+  font-size: 16px;
+}
+.link-card h2 { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
+.qr-code { display: inline-block; background: #fff; -webkit-border-radius: 10px; border-radius: 10px; padding: 10px; line-height: 0; }
+.qr-code img { width: 140px; height: 140px; }
+.link-url { color: #9198b3; font-size: 12px; word-wrap: break-word; margin: 12px 0; }
+.link-actions .uc-btn { margin: 0; }
+
+/* ── /lite/diag ── */
+.lite-titulo { font-size: 18px; margin-bottom: 12px; }
+.lite-ua { word-wrap: break-word; }
+.lite-tabela { width: 100%; border-collapse: collapse; }
+.lite-tabela th { text-align: left; color: #9198b3; font-size: 14px; padding: 16px 0 4px; border-bottom: 1px solid #2a3050; }
+.lite-tabela td { padding: 6px 0; border-bottom: 1px solid #1d2236; }
+.lite-tabela td.lite-sim, .lite-tabela td.lite-nao { text-align: right; font-weight: bold; width: 80px; }
+.lite-sim { color: #3fcf8e; }
+.lite-nao { color: #f0707a; }

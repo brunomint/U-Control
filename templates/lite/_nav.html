@@ -1,0 +1,15 @@
+{#- Barra do alto no tema simples (blueprints/lite.py): no lugar do
+    _nav.html normal, que precisa de variáveis CSS e JS novo. Só links. #}
+<nav class="lite-nav" aria-label="{{ _('Navegação principal') }}">
+    <a class="lite-nav-marca" href="{{ url_for('auth.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+        <img src="{{ url_for('static', filename='U-Control_Icon.png') }}" alt="">U-Control
+    </a>
+    <div class="lite-nav-links">
+        <a href="?lite=0">{{ _('Tema normal') }}</a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('auth.logout') }}">{{ _('Sair') }}</a>
+        {% else %}
+        <a href="{{ url_for('auth.login', next=request.path) }}">{{ _('Entrar') }}</a>
+        {% endif %}
+    </div>
+</nav>

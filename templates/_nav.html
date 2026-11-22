@@ -4,6 +4,7 @@
      soltos; grupos com is_menu = menu suspenso (<details>). Estilo em
      static/css/nav.css, que só depende de tokens.css — funciona também
      nas páginas que ainda não migraram pro app.css. -->
+{% if uc_lite %}{% include "lite/_nav.html" %}{% else %}
 <link rel="stylesheet" href="{{ versioned_static('css/tokens.css') }}">
 <link rel="stylesheet" href="{{ versioned_static('css/nav.css') }}">
 <script>
@@ -142,3 +143,4 @@ try { if (window.self !== window.top && window.top.location.origin === location.
     });
 })();
 </script>
+{% endif %}

@@ -11,14 +11,20 @@
     {#- Tema único (static/css/app.css): opt-in por página enquanto a
         migração não termina — a página declara {% set app_theme = true %}
         no topo. As que não declaram continuam só com o próprio CSS. #}
-    {% if app_theme %}
+    {#- Tema simples (blueprints/lite.py, aparelho com ?lite=1): lite.css no
+        lugar de tokens.css+app.css e sem o CSS próprio da página, que usa
+        variáveis/grid. O lite.css traz o que as páginas simples precisam. #}
+    {% set tema_simples = app_theme and uc_lite %}
+    {% if tema_simples %}
+    <link rel="stylesheet" href="{{ versioned_static('lite/lite.css') }}">
+    {% elif app_theme %}
     <meta name="color-scheme" content="dark">
     <link rel="stylesheet" href="{{ versioned_static('css/tokens.css') }}">
     <link rel="stylesheet" href="{{ versioned_static('css/app.css') }}">
     <script src="{{ versioned_static('js/ui.js') }}"></script>
     {% endif %}
     {% block head_extra %}{% endblock %}
-    {% block styles %}{% endblock %}
+    {% if not tema_simples %}{% block styles %}{% endblock %}{% endif %}
 </head>
 <body{% if app_theme %} class="uc-app"{% endif %}>
     {% block content %}{% endblock %}
@@ -27,7 +33,7 @@
        toast aqui, na página pra onde a pessoa foi mandada — antes ficavam
        guardados na sessão e apareciam todos juntos em /usuarios. Repetidos
        aparecem uma vez só. #}
-    {% if app_theme %}{% with avisos = get_flashed_messages(with_categories=true) %}{% if avisos %}
+    {% if app_theme and not tema_simples %}{% with avisos = get_flashed_messages(with_categories=true) %}{% if avisos %}
     <script>
     (function () {
         const avisos = {{ avisos | unique | list | tojson }};

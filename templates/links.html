@@ -31,7 +31,10 @@
             <div class="link-url uc-mono">{{ item.url }}</div>
             <div class="link-actions">
                 <a href="{{ item.url }}" target="_blank" rel="noopener" class="uc-btn uc-btn-secondary uc-btn-sm"><i class="fas fa-up-right-from-square"></i> {{ _('Abrir') }}</a>
+                {#- Copiar usa a área de transferência nova: no tema simples não funciona #}
+                {% if not uc_lite %}
                 <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" onclick="copyUrl('{{ item.url }}')"><i class="fas fa-copy"></i> {{ _('Copiar') }}</button>
+                {% endif %}
             </div>
         </article>
         {% endfor %}

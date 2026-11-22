@@ -1904,5 +1904,6 @@
   "Arquivo": "File",
   "Arquivo grande demais.": "File too large.",
   "Áudio enviado.": "Audio uploaded.",
-  "Não deu pra enviar o áudio:": "Couldn't upload the audio:"
+  "Não deu pra enviar o áudio:": "Couldn't upload the audio:",
+  "Tema normal": "Normal theme"
 }

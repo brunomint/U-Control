@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='U-Control_Icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='U-Control_Icon.png') }}">
+    <title>Diagnóstico do aparelho - U-Control</title>
+    <link rel="stylesheet" href="{{ versioned_static('lite/lite.css') }}">
+</head>
+<body class="uc-app">
+<main class="uc-page">
+    <div class="uc-page-head">
+        <h1>O que este aparelho entende</h1>
+        <div class="uc-page-sub">Página de teste da versão simples do U-Control. Não muda nada no telão.</div>
+    </div>
+
+    <div class="uc-card">
+        <p id="semJs" class="uc-flash uc-flash-error">O JavaScript não rodou neste navegador: está desligado nas configurações ou não funciona aqui. A versão simples precisa dele só para atualizar sozinha.</p>
+        <p id="comJs" class="uc-flash" hidden>JavaScript funcionando.</p>
+        <p class="uc-muted lite-ua" id="ua"></p>
+        <p>
+            <button type="button" class="uc-btn uc-btn-primary uc-btn-lg" id="enviar" hidden>Mandar o resultado ao U-Control</button>
+            <span id="enviado" class="uc-muted"></span>
+        </p>
+    </div>
+
+    <div class="uc-card">
+        <h2 class="lite-titulo">Resultado</h2>
+        <table class="lite-tabela" id="tabela">
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="uc-card">
+        <h2 class="lite-titulo">Tema simples</h2>
+        <p>Neste aparelho as páginas do U-Control estão usando o tema
+            <b>{% if uc_lite %}simples{% else %}normal{% endif %}</b>.</p>
+        <p>
+            {% if uc_lite %}
+            <a class="uc-btn uc-btn-secondary" href="?lite=0">Voltar ao tema normal</a>
+            {% else %}
+            <a class="uc-btn uc-btn-secondary" href="?lite=1">Usar o tema simples neste aparelho</a>
+            {% endif %}
+            <a class="uc-btn uc-btn-ghost" href="{{ url_for('auth.login') }}">Abrir o login</a>
+            <a class="uc-btn uc-btn-ghost" href="/links">Abrir os links</a>
+        </p>
+    </div>
+</main>
+<script src="{{ versioned_static('lite/diag.js') }}"></script>
+</body>
+</html>
