@@ -1,9 +1,11 @@
 """Versão simples ("lite") do U-Control, para tablet e iPad antigos que só
 abrem pelo navegador (plano em docs/PLANO-LITE.md).
 
-O aparelho passa a usar o tema simples (static/lite/lite.css, sem variáveis
-CSS, grid nem flexbox) abrindo qualquer página com ?lite=1; o cookie
-`uc_lite` guarda a escolha. ?lite=0 volta ao tema normal. O tema simples só
+Cookie `uc_lite` do aparelho: '1' = versão simples (?lite=1), '0' = versão
+completa sempre (?lite=0), sem cookie = automático: static/lite/detectar.js
+testa o navegador em cada página normal e manda o antigo para cá.
+Com '1', as páginas que o lite.css cobre usam o tema simples
+(static/lite/lite.css, sem variáveis CSS, grid nem flexbox). O tema simples só
 vale nas páginas que o lite.css cobre (PAGINAS_SIMPLES e as /lite/): as
 outras continuam no tema normal, mesmo com o cookie. Sem o cookie, nada muda.
 
@@ -13,7 +15,10 @@ copiar tudo à mão."""
 import logging
 import re
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask_login import current_user
+
+import lite_estado
 
 logger = logging.getLogger('ucontrol')
 
@@ -47,11 +52,73 @@ def _no_template():
 @lite_bp.after_app_request
 def _guardar_escolha(response):
     pedido = request.args.get('lite')
-    if pedido == '1':
-        response.set_cookie(COOKIE, '1', max_age=_UM_ANO, samesite='Lax')
-    elif pedido == '0' and COOKIE in request.cookies:
-        response.delete_cookie(COOKIE)
+    if pedido in ('0', '1'):
+        response.set_cookie(COOKIE, pedido, max_age=_UM_ANO, samesite='Lax')
     return response
+
+
+def depois_do_login(padrao):
+    """Para onde o login manda: aparelho na versão simples vai para /lite/
+    (o dashboard não funciona nele), a não ser que já fosse para uma página lite."""
+    if not ativo() or padrao.startswith('/lite'):
+        return padrao
+    return url_for('lite.inicio')
+
+
+# ---- Página inicial e telas (Fase 1) ----
+
+_TELA_COOKIE = 'uc_lite_tela'
+_ROTA_DA_TELA = {'monitor': 'lite.monitor', 'publico': 'lite.publico'}
+
+
+def _so_caminho(destino):
+    """Página de onde o aparelho veio (?de=), só se for daqui mesmo."""
+    destino = destino or ''
+    return destino if destino.startswith('/') and not destino.startswith('//') else ''
+
+
+@lite_bp.route('/')
+def inicio():
+    escolhida = request.args.get('tela')
+    if escolhida in _ROTA_DA_TELA:
+        r = redirect(url_for(_ROTA_DA_TELA[escolhida]))
+        r.set_cookie(_TELA_COOKIE, escolhida, max_age=_UM_ANO, samesite='Lax')
+        return r
+    de = _so_caminho(request.args.get('de'))
+    lembrada = request.cookies.get(_TELA_COOKIE)
+    # Abre direto na tela de sempre; "trocar tela" (?escolher=1) e o aviso
+    # de página sem versão simples (?de=) param aqui
+    if lembrada in _ROTA_DA_TELA and not de and not request.args.get('escolher'):
+        return redirect(url_for(_ROTA_DA_TELA[lembrada]))
+    return render_template('lite/inicio.html', de=de, logado=current_user.is_authenticated)
+
+
+def _tela(tela):
+    return render_template('lite/tela.html', tela=tela)
+
+
+@lite_bp.route('/monitor')
+def monitor():
+    return _tela('monitor')
+
+
+@lite_bp.route('/publico')
+def publico():
+    return _tela('publico')
+
+
+@lite_bp.route('/api/estado')
+def api_estado():
+    """O que a tela mostra agora. ?rev= igual ao atual: só {"rev", "igual"}."""
+    tela = request.args.get('tela')
+    if tela not in lite_estado.TELAS:
+        return jsonify({'erro': 'tela'}), 400
+    e = lite_estado.estado(tela)
+    if request.args.get('rev') == e['rev']:
+        e = {'rev': e['rev'], 'igual': True}
+    resposta = jsonify(e)
+    resposta.headers['Cache-Control'] = 'no-store'
+    return resposta
 
 
 @lite_bp.route('/diag')

@@ -180,6 +180,7 @@ def handle_update_lyrics(data):
         from connections import _get_monitor_sids
         for sid in _get_monitor_sids():
             emit('update_lyrics', data, to=sid)
+        display_state._last_lyrics_payload_monitor = data
         return
     if efetivo == 'public':
         data = {**data, 'exclude_monitor': True}
@@ -199,6 +200,8 @@ def handle_update_lyrics(data):
     except Exception:
         logger.exception('Falha ao resolver o tema do telão')
     display_state._last_lyrics_payload = data
+    if not data.get('exclude_monitor'):
+        display_state._last_lyrics_payload_monitor = None   # o monitor recebeu esta também
     display_state._current_display_mode = 'lyrics'
     # Persiste o payload exato (não só em memória) — display_state
     # some a cada restart do servidor; sem isto, api_current_display cai

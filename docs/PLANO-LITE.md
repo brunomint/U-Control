@@ -3,9 +3,22 @@
 > Escrito numa conversa pelo celular e trazido para o repositório em
 > 22/11/2026.
 >
-> **Estado (22/11/2026):** segunda conferência feita (seção 11); Fase 0
-> (`/lite/diag`) e Fase 0B (tema simples) feitas no branch `lite`, ainda não
-> publicadas. Falta abrir nos aparelhos reais (item 6 da conferência).
+> **Estado (22/11/2026):** segunda conferência feita (seção 11); Fases 0,
+> 0B e 1 feitas no branch `lite`, ainda não publicadas. A Fase 1 já inclui a
+> tela Público (que o plano chamava de Fase 2). Falta abrir nos aparelhos
+> reais (item 6 da conferência).
+>
+> Fase 1, como ficou:
+> - `/lite/` (inicial), `/lite/monitor`, `/lite/publico` e
+>   `/lite/api/estado?tela=` (`lite_estado.py` lê o estado das telas
+>   normais, sem guardar nada próprio);
+> - `static/lite/tela.js` (pergunta a cada 1,5 s);
+> - `static/lite/detectar.js` (desvio automático, no `base.html` e nas
+>   telas);
+> - depois do login, o aparelho simples vai para `/lite/`.
+> - Cookie `uc_lite`: `1` = simples, `0` = completa sempre, sem cookie =
+>   automático.
+> - Partitura, vídeo e Tela do PC aparecem só como aviso.
 
 ## 1. Objetivo
 

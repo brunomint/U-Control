@@ -1,13 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='U-Control_Icon.png') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='U-Control_Icon.png') }}">
+    {% include "lite/_cabeca.html" %}
     <title>Diagnóstico do aparelho - U-Control</title>
-    <link rel="stylesheet" href="{{ versioned_static('lite/lite.css') }}">
 </head>
 <body class="uc-app">
 <main class="uc-page">

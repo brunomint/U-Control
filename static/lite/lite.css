@@ -150,3 +150,83 @@ body.uc-app {
 .lite-tabela td.lite-sim, .lite-tabela td.lite-nao { text-align: right; font-weight: bold; width: 80px; }
 .lite-sim { color: #3fcf8e; }
 .lite-nao { color: #f0707a; }
+
+/* ── /lite/ (página inicial) ── */
+.lite-inicio { max-width: 560px; }
+.lite-marca { text-align: center; }
+.lite-marca img { width: 72px; height: 72px; }
+.lite-marca h1 { font-size: 26px; font-weight: bold; margin-top: 6px; }
+.lite-marca p { margin: 2px 0 0; }
+.lite-pergunta { font-size: 18px; font-weight: bold; margin-bottom: 12px; }
+.lite-opcao {
+  display: block;
+  margin-bottom: 14px;
+  padding: 22px 20px;
+  background: #161a2b;
+  border: 1px solid #2a3050;
+  -webkit-border-radius: 14px;
+  border-radius: 14px;
+  color: #e9ebf4;
+  text-decoration: none;
+}
+.uc-app a.lite-opcao { color: #e9ebf4; }
+.lite-opcao:active { border-color: #8b6cf6; background: #1d2236; }
+.lite-opcao b { display: block; font-size: 22px; margin-bottom: 4px; }
+.lite-opcao span { display: block; color: #9198b3; }
+.lite-dica { font-size: 14px; }
+.lite-rodape a { display: inline-block; margin: 0 18px 10px 0; font-weight: bold; text-decoration: none; }
+.uc-flash a { color: #e9ebf4; margin-left: 6px; }
+
+/* ── /lite/monitor e /lite/publico ── */
+body.lite-tela {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.lite-palco { display: table; width: 100%; height: 600px; table-layout: fixed; }
+.lite-conteudo { display: table-cell; vertical-align: middle; text-align: center; padding: 0 2%; }
+.lite-espera { color: #9198b3; font-size: 20px; }
+.lite-aviso { color: #f2b84b; font-size: 16px; margin: 8px 0 0; }
+
+.lite-letra { font-weight: bold; line-height: 1.25; margin: 0 auto; }
+
+.lite-cifra-bloco { display: inline-block; text-align: left; max-width: 100%; }
+.lite-cifra-titulo { color: #9198b3; font-size: .55em; font-weight: bold; margin-bottom: .3em; }
+.lite-cifra { margin: 0; font-family: 'Droid Sans Mono', Menlo, Consolas, 'Courier New', monospace; font-size: 1em; line-height: 1.25; white-space: pre; }
+.lite-cifra .chord { color: #f2b84b; font-weight: bold; }
+.lite-cifra .comment-line { color: #9198b3; font-style: italic; }
+.lite-a-seguir { color: #9198b3; font-size: .55em; margin-top: .5em; }
+
+.lite-biblia { line-height: 1.3; margin: 0 auto; }
+.lite-biblia-ref { color: #b9a8ff; font-weight: bold; font-size: .7em; margin-top: .4em; }
+
+.lite-imagem { max-width: 100%; vertical-align: middle; }
+.lite-relogio { font-size: 120px; font-weight: bold; }
+
+body.lite-neutra-preta, body.lite-neutra-logo { background: #000; }
+body.lite-neutra-branca { background: #fff; }
+body.lite-tela-monitor.lite-modo-vazio .lite-conteudo { color: #636a87; }
+
+.lite-sem-conexao {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 8px 12px;
+  background: #d93a45;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+}
+.lite-trocar {
+  position: fixed;
+  right: 8px;
+  bottom: 6px;
+  color: #636a87;
+  font-size: 13px;
+  text-decoration: none;
+}
+body.lite-neutra-branca .lite-trocar { color: #ccc; }

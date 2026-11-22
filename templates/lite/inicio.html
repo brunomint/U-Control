@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    {% include "lite/_cabeca.html" %}
+    <title>U-Control</title>
+</head>
+<body class="uc-app">
+<main class="uc-page lite-inicio">
+    <div class="lite-marca">
+        <img src="{{ url_for('static', filename='U-Control_Icon.png') }}" alt="">
+        <h1>U-Control</h1>
+        <p class="uc-muted">Versão simples para este aparelho</p>
+    </div>
+
+    {% if de %}
+    <div class="uc-flash uc-flash-error">
+        A página que você abriu precisa de um navegador mais novo.
+        <a href="{{ de }}{{ '&' if '?' in de else '?' }}lite=0">Abrir mesmo assim</a>
+    </div>
+    {% endif %}
+
+    <p class="lite-pergunta">O que este aparelho vai mostrar?</p>
+    <a class="lite-opcao" href="{{ url_for('lite.inicio', tela='monitor') }}">
+        <b>Monitor do palco</b>
+        <span>Cifra da música para os músicos, como o monitor de retorno.</span>
+    </a>
+    <a class="lite-opcao" href="{{ url_for('lite.inicio', tela='publico') }}">
+        <b>Telão do público</b>
+        <span>A letra, a Bíblia e as imagens, como o telão.</span>
+    </a>
+    <p class="uc-muted lite-dica">Este aparelho vai lembrar a escolha e abrir direto nela.</p>
+
+    <p class="lite-rodape">
+        {% if logado %}
+        <a href="{{ url_for('auth.logout') }}">Sair</a>
+        {% else %}
+        <a href="{{ url_for('auth.login', next='/lite/') }}">Entrar</a>
+        {% endif %}
+        <a href="{{ url_for('lite.diag') }}">Testar este aparelho</a>
+        <a href="/dashboard?lite=0">Versão completa</a>
+    </p>
+</main>
+</body>
+</html>

@@ -83,9 +83,10 @@ def login():
             seguranca_log.registrar('login_ok', ip_cliente, usuario=username, aparelho=request.user_agent.string)
             login_user(user)
             next_url = request.args.get('next') or request.form.get('next')
+            from blueprints.lite import depois_do_login
             if next_url and next_url.startswith('/') and not next_url.startswith('//'):
-                return redirect(next_url)
-            return redirect(url_for('auth.dashboard'))
+                return redirect(depois_do_login(next_url))
+            return redirect(depois_do_login(url_for('auth.dashboard')))
         else:
             _registrar_tentativa_falha(ip_cliente)
             seguranca_log.registrar('login_falhou', ip_cliente, usuario=username, aparelho=request.user_agent.string)

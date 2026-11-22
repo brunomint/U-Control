@@ -15,6 +15,9 @@ _last_static_media_url = None
 
 # Último payload de update_lyrics recebido (para display_public carregar ao abrir)
 _last_lyrics_payload = None
+# Parte da música mandada só ao monitor ("Só monitor"): a versão simples
+# do monitor (lite_estado.py) mostra esta, sem mudar a do público
+_last_lyrics_payload_monitor = None
 # Último versículo enviado ao telão (update_bible) — /bible/display busca
 # ao abrir (/api/bible/current); sem isto, a prévia do /control, o monitor
 # ou uma tela recarregada ficavam em "Aguardando versículos..." com o
