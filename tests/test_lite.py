@@ -74,6 +74,15 @@ def test_links_no_tema_simples_usa_a_barra_simples(logged_in_client):
     assert '/static/css/nav.css' in normal and 'copyUrl(' in normal
 
 
+def test_tema_simples_nao_vale_nas_outras_paginas(logged_in_client):
+    """Aparelho marcado como simples: o dashboard (sem versão simples) fica normal."""
+    logged_in_client.get('/login?lite=1')
+    html = logged_in_client.get('/dashboard').get_data(as_text=True)
+    assert 'css/app.css' in html and 'lite/lite.css' not in html
+    assert '/static/css/nav.css' in html
+    logged_in_client.get('/login?lite=0')
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {

@@ -352,9 +352,10 @@ parciais `_*.html` e o `base.html`) e 73 arquivos JS.
      do alto vira `templates/lite/_nav.html` (só links).
    - Sem o cookie, nada muda: `tests/test_lite.py` confere que o `/login`
      normal sai igual.
-   - O `lite.css` traz o que `/login`, `/links` e as páginas lite precisam.
-     Outras páginas no tema simples ficam legíveis, mas sem o layout próprio
-     (são da lista D: usar no PC).
+   - O tema simples só vale nas páginas que o `lite.css` cobre: `/login`,
+     `/links` e as `/lite/` (`PAGINAS_SIMPLES` em `blueprints/lite.py`). As
+     outras ficam no tema normal mesmo com o cookie: sem o CSS próprio
+     elas ficavam sem layout (visto no PC em 22/11).
 6. **Nos aparelhos reais:** pendente. Abrir `http://IP-do-Pi:8585/lite/diag`
    no tablet e no iPad e tocar em "Mandar o resultado ao U-Control": o
    resultado aparece no log do Pi
