@@ -65,6 +65,20 @@
         {{ botao('relogio', 'Relógio') }}
     </div>
 
+    <h2 class="lite-titulo">Cronômetro</h2>
+    {% if e.cronometro %}
+    <p><b>{{ e.cronometro.texto }}</b>{% if e.cronometro.pausado %} <span class="uc-muted">(pausado)</span>{% endif %}</p>
+    <div class="lite-botoes">
+        {% if e.cronometro.pausado %}{{ botao('cronometro-continuar', 'Continuar') }}{% else %}{{ botao('cronometro-pausar', 'Pausar') }}{% endif %}
+        {{ botao('cronometro-zerar', 'Zerar') }}
+    </div>
+    {% else %}
+    <p class="uc-muted">Começa a contar na tela "Tempo do pregador" (e no telão, se ele estiver no cronômetro).</p>
+    {% endif %}
+    <div class="lite-botoes">
+        {% for m in minutos %}{{ botao('cronometro', m ~ ' min', m) }}{% endfor %}
+    </div>
+
     <h2 class="lite-titulo">Recado</h2>
     <p class="uc-muted">Aparece como letreiro na tela escolhida (por exemplo "repete o refrão" para a banda).</p>
     {% for t, texto in e.recados.items() %}

@@ -41,6 +41,11 @@ qualquer aparelho na mesma rede abre o Controle ou as telas pelo endereço
 - **Importar músicas** do Holyrics, OpenLP/OpenLyrics, OpenSong, ChordPro ou texto.
 - **Backup** e exportar/importar músicas e cultos entre instalações.
 - **Atualização** avisada no próprio programa (Windows).
+- **Versão simples para aparelho antigo** (`/lite/`): tablet ou iPad
+  que não roda as telas normais vira monitor de palco, telão, tempo do
+  pregador, leitor de cifras ou controle simples, só pelo navegador. O
+  U-Control percebe o navegador antigo e leva para lá
+  ([docs/PLANO-LITE.md](docs/PLANO-LITE.md)).
 
 ## Instalação
 

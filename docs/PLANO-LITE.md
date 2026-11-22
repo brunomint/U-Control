@@ -4,8 +4,7 @@
 > 22/11/2026.
 >
 > **Estado (22/11/2026):** segunda conferência feita (seção 11); Fases 0,
-> 0B, 1 e 1B publicadas no Pi em 22/11 (~08:20); Fase 3 feita depois, no
-> branch `lite`, ainda não publicada. iPad com iOS
+> 0B, 1, 1B, 3 e os extras publicados no Pi em 22/11; Fase 4 feita. iPad com iOS
 > 10.3.4 testado no servidor de teste (Monitor e Público funcionando). A Fase 1 já inclui a
 > tela Público (que o plano chamava de Fase 2). Falta abrir nos aparelhos
 > reais (item 6 da conferência).
@@ -244,6 +243,14 @@ música. Sem login, como as páginas atuais `/view` e `/view/<id>`.
 
 ### Fase 4: acabamento
 - Menu/QR "versão simples", favorito fixo, README e Ajuda em português.
+
+**Feita em 22/11/2026:**
+- QR code "Versão simples (aparelho antigo)" em `/links`: item `lite.inicio`
+  no `nav_config.py`. O arquivo do QR é gerado ao ligar, como os outros.
+- Tópico "Tablet ou iPad antigo" na Ajuda, em `help.js` e `help_en.js`.
+- Item no README.
+- O controle simples ganhou o cronômetro: iniciar com 5 a 40 min, pausar,
+  continuar e zerar. Só liga o cronômetro, sem mudar o que o telão mostra.
 
 ## 6. Testes
 

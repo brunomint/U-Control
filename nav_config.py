@@ -179,6 +179,11 @@ NAV_ITEMS = [
         "endpoint": "view_song_order", "label": "Visualização Pública", "icon": "fa-eye",
         "group": None, "login_required": False, "contexts": ["qr"],
     },
+    {
+        # Versão simples para aparelho antigo (blueprints/lite.py, docs/PLANO-LITE.md)
+        "endpoint": "lite.inicio", "label": "Versão simples (aparelho antigo)", "icon": "fa-tablet-screen-button",
+        "group": None, "login_required": False, "contexts": ["qr"],
+    },
 ]
 
 GROUP_LABELS = {

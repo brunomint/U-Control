@@ -35,6 +35,7 @@ def _minhas_telas():
     return destinos.telas_do_modo(display_state.device_mode())
 
 
+MINUTOS = [5, 10, 15, 20, 30, 40]
 RECADO_PARA = [('monitor', 'Palco'), ('public', 'Público'), ('ambos', 'Os dois')]
 
 
@@ -68,7 +69,20 @@ def estado():
         'donos': destinos.donos(),
         'controle_aberto': atalhos.controle_aberto(),
         'recados': {t: x for t, x in _letreiros().items() if t in ('public', 'monitor')},
+        'cronometro': _cronometro(),
     }
+
+
+def _cronometro():
+    """Texto do cronômetro para o alto da página, ou None se parado."""
+    import time
+    from blueprints.countdown import _countdown_state as c
+    if not c.get('active'):
+        return None
+    ms = c.get('paused_remaining') if c.get('paused') else c.get('end_timestamp', 0) - time.time() * 1000
+    s = int(abs(ms or 0) // 1000)
+    texto = f"{'+' if (ms or 0) < 0 else ''}{s // 60}:{s % 60:02d}"
+    return {'texto': texto, 'pausado': bool(c.get('paused'))}
 
 
 def _letreiros():
@@ -122,6 +136,27 @@ def acao(nome, valor=''):
     if nome == 'recado-tirar':
         from blueprints.ticker import handle_stop_ticker
         _, recusa = _rodar(handle_stop_ticker, {'targets': ['public', 'monitor']})
+        return recusa is None, recusa, None
+
+    if nome == 'cronometro':
+        from blueprints.countdown import handle_start_countdown
+        try:
+            minutos = int(valor)
+        except ValueError:
+            minutos = 0
+        if not 1 <= minutos <= 180:
+            return False, 'Tempo inválido.', None
+        # Só liga o cronômetro: o telão não muda (quem acompanha é a tela
+        # "Tempo do pregador" e quem já estiver mostrando o cronômetro)
+        _, recusa = _rodar(handle_start_countdown, {'duration_seconds': minutos * 60, 'label': ''})
+        return recusa is None, recusa or f'Cronômetro de {minutos} min rodando.', None
+
+    if nome in ('cronometro-pausar', 'cronometro-continuar', 'cronometro-zerar'):
+        from blueprints import countdown
+        handler = {'cronometro-pausar': countdown.handle_pause_countdown,
+                   'cronometro-continuar': countdown.handle_resume_countdown,
+                   'cronometro-zerar': countdown.handle_reset_countdown}[nome]
+        _, recusa = _rodar(handler, {})
         return recusa is None, recusa, None
 
     if nome in ('modo', 'assumir'):

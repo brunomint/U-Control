@@ -141,6 +141,19 @@ const HELP_SECTIONS = {
             <li><strong>Ordem do culto</strong> (<code>/view</code>)</li>
         </ul>`,
 
+    antigo: `
+        <h2>Tablet ou iPad antigo (versão simples)</h2>
+        <p>Aparelho antigo, que não abre as telas normais (fica em "Carregando…" ou com o visual quebrado), usa a <strong>versão simples</strong>: abra <code>http://&lt;ip-do-computador&gt;:8585/lite/</code> (tem QR code em <a href="/links">Links / QR</a>). O U-Control também percebe sozinho um navegador antigo e leva para lá.</p>
+        <ul>
+            <li><strong>Monitor do palco:</strong> a cifra da parte que está no telão, com a próxima embaixo.</li>
+            <li><strong>Letra para os vocais:</strong> o palco só com a letra, sem acordes.</li>
+            <li><strong>Telão do público:</strong> letra, Bíblia, fotos, avisos e relógio.</li>
+            <li><strong>Tempo do pregador:</strong> o cronômetro do culto em números grandes; sem cronômetro, a hora.</li>
+            <li><strong>Cifras do culto:</strong> a ordem e a cifra de cada música, com Tom e Capo.</li>
+            <li><strong>Controle</strong> (pede login): Anterior/Próximo (com o Controle aberto num computador, como o pedal), tela preta, recado para a banda e cronômetro.</li>
+        </ul>
+        <p>O aparelho lembra a tela escolhida; "trocar tela" fica no canto. Para testar o que o navegador entende, abra <code>/lite/diag</code>. Para usar a versão completa mesmo assim, acrescente <code>?lite=0</code> ao endereço.</p>`,
+
     problemas: `
         <h2>Solução de problemas</h2>
         <h3>O celular não abre o U-Control</h3>

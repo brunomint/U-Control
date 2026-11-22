@@ -206,6 +206,6 @@ def controle():
             item['url'] = generate_bible_url(item['titulo'])
         itens.append(item)
     return render_template('lite/controle.html', e=lite_controle.estado(), modos=lite_controle.MODOS,
-                           recado_para=lite_controle.RECADO_PARA,
+                           recado_para=lite_controle.RECADO_PARA, minutos=lite_controle.MINUTOS,
                            neutras=lite_controle.NEUTRAS, chave=chave, itens=itens,
                            assumir=request.args.get('assumir'))

@@ -446,6 +446,30 @@ def test_controle_manda_e_tira_recado(logged_in_client, telao_limpo):
     assert 'Escreva o recado' in _mensagens(logged_in_client)
 
 
+def test_controle_cronometro(logged_in_client, telao_limpo):
+    from blueprints import countdown
+    _acao(logged_in_client, 'modo', 'all')
+    _acao(logged_in_client, 'cronometro', '10')
+    c = countdown._countdown_state
+    assert c['active'] and not c['paused'] and c['duration_ms'] == 600000
+    html = _mensagens(logged_in_client)
+    assert 'Cronômetro de 10 min rodando.' in html and ('9:59' in html or '10:00' in html) and 'Pausar' in html
+    _acao(logged_in_client, 'cronometro-pausar')
+    assert c['paused'] and 'Continuar' in _mensagens(logged_in_client)
+    _acao(logged_in_client, 'cronometro-continuar')
+    assert not c['paused']
+    _acao(logged_in_client, 'cronometro-zerar')
+    assert not c['active']
+    _acao(logged_in_client, 'cronometro', '999')
+    assert 'Tempo inválido' in _mensagens(logged_in_client) and not c['active']
+
+
+def test_links_tem_o_qr_da_versao_simples(client):
+    html = client.get('/links?lite=0').get_data(as_text=True)
+    assert 'Versão simples (aparelho antigo)' in html and ':8585/lite/' in html
+    assert 'Tablet ou iPad antigo' in client.get('/help').get_data(as_text=True)
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {

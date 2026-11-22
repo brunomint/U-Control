@@ -1906,5 +1906,7 @@
   "Áudio enviado.": "Audio uploaded.",
   "Não deu pra enviar o áudio:": "Couldn't upload the audio:",
   "Tema normal": "Normal theme",
-  "O Controle não conseguiu abrir.": "The Control page couldn't open it."
+  "O Controle não conseguiu abrir.": "The Control page couldn't open it.",
+  "Versão simples (aparelho antigo)": "Simple version (old device)",
+  "Tablet ou iPad antigo": "Old tablet or iPad"
 }

@@ -144,6 +144,19 @@ window.HELP_SECTIONS_I18N = {
             <li><strong>Order of service</strong> (<code>/view</code>)</li>
         </ul>`,
 
+    antigo: `
+        <h2>Old tablet or iPad (simple version)</h2>
+        <p>An old device that can't open the regular screens (stuck on "Loading…" or with a broken layout) uses the <strong>simple version</strong>: open <code>http://&lt;computer-ip&gt;:8585/lite/</code> (there's a QR code in <a href="/links">Links / QR</a>). U-Control also detects an old browser on its own and sends it there.</p>
+        <ul>
+            <li><strong>Stage monitor:</strong> the chords for the part on the big screen, with the next one below.</li>
+            <li><strong>Lyrics for singers:</strong> the stage view with lyrics only, no chords.</li>
+            <li><strong>Public big screen:</strong> lyrics, Bible, photos, announcements and clock.</li>
+            <li><strong>Preacher's timer:</strong> the service countdown in big numbers; with no countdown, the time.</li>
+            <li><strong>Service chords:</strong> the order and each song's chords, with Key and Capo.</li>
+            <li><strong>Control</strong> (login required): Previous/Next (with the Control panel open on a computer, like the pedal), black screen, message to the band and countdown.</li>
+        </ul>
+        <p>The device remembers the chosen screen; "trocar tela" is in the corner. To check what the browser supports, open <code>/lite/diag</code>. To use the full version anyway, add <code>?lite=0</code> to the address.</p>`,
+
     problemas: `
         <h2>Troubleshooting</h2>
         <h3>The phone can't open U-Control</h3>
