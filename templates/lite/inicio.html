@@ -15,7 +15,9 @@
     {% if de %}
     <div class="uc-flash uc-flash-error">
         A página que você abriu precisa de um navegador mais novo.
-        <a href="{{ de }}{{ '&' if '?' in de else '?' }}lite=0">Abrir mesmo assim</a>
+        {#- completa=1: só esta página, sem gravar nada (detectar.js); "Versão
+            completa" no rodapé é que grava "sempre a completa" (?lite=0) #}
+        <a href="{{ de }}{{ '&' if '?' in de else '?' }}completa=1">Abrir mesmo assim</a>
     </div>
     {% endif %}
 

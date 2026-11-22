@@ -34,6 +34,11 @@ Depois: telão público lite e um controle remoto simples.
 
 ## 2. Dados dos aparelhos (preencher)
 
+- **Testado em 22/11/2026 no Pi:** funcionou como planejado, mas lento (o
+  aparelho é fraco). O detector desviou; Tempo do pregador, Vocal, Monitor e
+  Cifras abriram; o Vitor usou o controle simples. Achado: "Abrir mesmo
+  assim" gravava "sempre a completa" e o tablet saía do automático; agora
+  vale só para aquela página (`?completa=1`).
 - Android: **6.0 (Marshmallow)**; modelo **Samsung Galaxy Tab GT-P7510**
   (Galaxy Tab 10.1 Wi-Fi, de 2011; o Android 6 só pode ser ROM customizada);
   motor: **Android WebView 44** (equivale ao Chrome 44, de 2015). Dados lidos

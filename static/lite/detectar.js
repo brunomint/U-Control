@@ -7,11 +7,14 @@
      falta no iOS 10.3: sem ele, o display.js da cifra e o control.js não rodam;
    - páginas do tema do app (data-tema="1"): também variáveis CSS.
    Cookie uc_lite (blueprints/lite.py): '0' = sempre a versão completa,
-   '1' = sempre a simples, sem cookie = este teste decide.
+   '1' = sempre a simples, sem cookie = este teste decide. ?completa=1 no
+   endereço: a versão completa só nesta página, sem gravar nada.
    Só ES5: precisa rodar justamente onde o resto não roda. */
 (function () {
     var cookie = document.cookie || '';
     if (/(^|;\s*)uc_lite=0/.test(cookie)) return;
+    // "Abrir mesmo assim" (aviso da página simples): só esta página
+    if (/[?&]completa=1(&|$)/.test(location.search)) return;
     // Dentro de outra página (prévias do Controle): quem decide é a de fora
     try { if (window.top !== window.self) return; } catch (e) { return; }
 

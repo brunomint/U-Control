@@ -13,10 +13,15 @@ mostra (telao._monitor). O público já volta sozinho do banco
 import json
 import logging
 import os
+import threading
 import time
 
 _caminho = None
 _ultimo = None
+# Várias ações ao mesmo tempo (gunicorn com 16 threads; três aparelhos que
+# caem juntos) gravavam no mesmo telas.json.tmp: uma trocava o arquivo antes
+# da outra e a segunda dava FileNotFoundError (visto no Pi em 22/11/2026)
+_trava = threading.Lock()
 # Logo depois de ligar, os aparelhos ainda estão reconectando: ninguém
 # perde a tela por "não ter aparelho conectado" nesse intervalo
 CARENCIA_S = 120
@@ -58,15 +63,17 @@ def salvar():
     if not _caminho:
         return
     try:
-        dados = _foto()
-        texto = json.dumps(dados, ensure_ascii=False, sort_keys=True)
-        if texto == _ultimo:
-            return
-        tmp = _caminho + '.tmp'
-        with open(tmp, 'w', encoding='utf-8') as f:
-            f.write(texto)
-        os.replace(tmp, _caminho)
-        _ultimo = texto
+        with _trava:
+            # A foto é tirada dentro da trava: a última gravação é sempre a mais nova
+            dados = _foto()
+            texto = json.dumps(dados, ensure_ascii=False, sort_keys=True)
+            if texto == _ultimo:
+                return
+            tmp = f'{_caminho}.{os.getpid()}.{threading.get_ident()}.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                f.write(texto)
+            os.replace(tmp, _caminho)
+            _ultimo = texto
     except Exception:
         log.exception('Falha ao salvar o estado das telas')
 

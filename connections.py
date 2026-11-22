@@ -44,7 +44,9 @@ def handle_connect():
 
 
 @socketio.on('disconnect')
-def handle_disconnect():
+def handle_disconnect(_motivo=None):
+    # python-socketio 5.12+ manda o motivo da desconexão; sem este parâmetro
+    # o flask-socketio tentava, dava TypeError e chamava de novo sem ele
     global socketio_clients_connected
     sid = request.sid
     import destinos

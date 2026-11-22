@@ -98,7 +98,9 @@ def test_inicio_mostra_as_duas_telas_e_lembra_a_escolha(client):
     # "trocar tela" e o aviso de página sem versão simples param na escolha
     assert client.get('/lite/?escolher=1').status_code == 200
     html = client.get('/lite/?de=/control').get_data(as_text=True)
-    assert 'precisa de um navegador mais novo' in html and '/control?lite=0' in html
+    # "Abrir mesmo assim" vale só para aquela página: não grava "sempre a completa"
+    assert 'precisa de um navegador mais novo' in html and '/control?completa=1' in html
+    assert '/control?lite=0' not in html
     # ?de= só aceita caminho daqui
     assert 'evil' not in client.get('/lite/?de=//evil.com').get_data(as_text=True)
     client.get('/lite/?tela=publico')
@@ -319,6 +321,35 @@ def test_cifra_com_tom_capo_e_vizinhas(app, client):
 def test_detector_leva_o_view_para_as_cifras():
     texto = open(os.path.join(PASTA_LITE, 'detectar.js'), encoding='utf-8').read()
     assert "'/lite/cifras'" in texto and "'/lite/cifra/'" in texto
+    assert 'completa=1' in texto   # "Abrir mesmo assim" respeitado só naquela página
+
+
+def test_estado_das_telas_grava_varias_vezes_ao_mesmo_tempo(tmp_path, caplog):
+    """Visto no Pi (22/11/2026): três aparelhos caindo juntos gravavam no mesmo
+    telas.json.tmp e um deles dava FileNotFoundError."""
+    import json
+    import threading
+    import destinos
+    import estado_telas
+    antes = (estado_telas._caminho, estado_telas._ultimo)
+    estado_telas._caminho = str(tmp_path / 'telas.json')
+    try:
+        def gravar(i):
+            for n in range(30):
+                destinos._ultimo_clicado['teste'] = {'i': i, 'n': n}
+                estado_telas.salvar()
+        fios = [threading.Thread(target=gravar, args=(i,)) for i in range(8)]
+        with caplog.at_level('ERROR', logger='ucontrol'):
+            for f in fios:
+                f.start()
+            for f in fios:
+                f.join()
+        assert not [m for m in caplog.messages if 'Falha ao salvar' in m]
+        assert json.loads((tmp_path / 'telas.json').read_text())['ultimo_clicado']['teste']
+        assert not list(tmp_path.glob('*.tmp'))
+    finally:
+        destinos._ultimo_clicado.pop('teste', None)
+        estado_telas._caminho, estado_telas._ultimo = antes
 
 
 # ---- Fase 3: controle simples ----
