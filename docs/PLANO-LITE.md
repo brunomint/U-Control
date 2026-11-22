@@ -51,10 +51,12 @@ Depois: telão público lite e um controle remoto simples.
     fases; o lite continua valendo para o iPad e como plano B.
 - iPad: **iOS 10.3.4**, Safari 10 (lido no login do servidor de teste,
   22/11/2026: "CPU OS 10_3_4", Mobile/14G61; modelo ainda não anotado).
-  O Safari 10.1 tem let/const, arrow, template string, `fetch`, `Promise` e
-  variáveis CSS, mas não `async/await` (Safari 11): 38 dos 76 JS do app não
-  rodam nele, entre eles o `csrf.js` de todas as páginas. Por isso o
-  `detectar.js` exige `async` em todas as páginas.
+  O `/lite/diag` dele (relatório LITE_DIAG, tela 768x1024, densidade 2)
+  só não tem `?.` e `??`: tem let/const, arrow, template string, class,
+  `async/await`, `fetch`, `Promise`, variáveis CSS, flexbox e grid.
+  Pelo acorn, 16 dos 76 JS do app não rodam nele (`...` em objeto, `?.`,
+  `??`), entre eles o `display.js` (cifra do monitor), o `control.js` e o
+  `lyrics_2.js`. Por isso o `detectar.js` testa também `...`, `?.` e `??`.
   - Não é o iPad que já usamos com o U-Control (192.168.0.4): aquele se
     apresenta como "Macintosh" no navegador, ou seja, iPadOS 13 ou mais novo,
     e roda o app normal. O iPad antigo deste plano ainda não foi conectado.

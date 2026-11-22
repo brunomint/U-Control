@@ -2,8 +2,9 @@
    Carregado logo no começo das páginas normais (base.html e as telas).
    Testa no próprio navegador, em vez de adivinhar pelo nome dele (o iPad
    novo se diz "Macintosh"):
-   - toda página: JS novo (let/const, =>, template string, async, fetch,
-     Promise) — o csrf.js de todas usa async; o iOS 10 tem o resto, não ele;
+   - toda página: o JS que o app usa (let/const, =>, template string,
+     async, ...spread, ?. e ??, fetch, Promise). O ?./?? (2020) é o que
+     falta no iOS 10.3: sem ele, o display.js da cifra e o control.js não rodam;
    - páginas do tema do app (data-tema="1"): também variáveis CSS.
    Cookie uc_lite (blueprints/lite.py): '0' = sempre a versão completa,
    '1' = sempre a simples, sem cookie = este teste decide.
@@ -23,7 +24,8 @@
     }
 
     var novo = entende('let a = 1; const b = (x) => `${x}`;') &&
-        entende('async function f() { await 0; }') && !!window.fetch && !!window.Promise;
+        entende('async function f() { await 0; }') &&
+        entende('var o = { ...{} }; var a = o?.b ?? 1;') && !!window.fetch && !!window.Promise;
     if (novo && tema) {
         novo = !!(window.CSS && window.CSS.supports && window.CSS.supports('--a', '0'));
     }
