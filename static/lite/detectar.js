@@ -2,8 +2,9 @@
    Carregado logo no começo das páginas normais (base.html e as telas).
    Testa no próprio navegador, em vez de adivinhar pelo nome dele (o iPad
    novo se diz "Macintosh"):
-   - toda página: JS novo (let/const, =>, template string, fetch, Promise);
-   - páginas do tema do app (data-tema="1"): também variáveis CSS e async.
+   - toda página: JS novo (let/const, =>, template string, async, fetch,
+     Promise) — o csrf.js de todas usa async; o iOS 10 tem o resto, não ele;
+   - páginas do tema do app (data-tema="1"): também variáveis CSS.
    Cookie uc_lite (blueprints/lite.py): '0' = sempre a versão completa,
    '1' = sempre a simples, sem cookie = este teste decide.
    Só ES5: precisa rodar justamente onde o resto não roda. */
@@ -21,10 +22,10 @@
         try { new Function(codigo); return true; } catch (e) { return false; }
     }
 
-    var novo = entende('let a = 1; const b = (x) => `${x}`;') && !!window.fetch && !!window.Promise;
+    var novo = entende('let a = 1; const b = (x) => `${x}`;') &&
+        entende('async function f() { await 0; }') && !!window.fetch && !!window.Promise;
     if (novo && tema) {
-        novo = entende('async function f() { await 0; }') &&
-            !!(window.CSS && window.CSS.supports && window.CSS.supports('--a', '0'));
+        novo = !!(window.CSS && window.CSS.supports && window.CSS.supports('--a', '0'));
     }
     var forcado = /(^|;\s*)uc_lite=1/.test(cookie);
     if (novo && !forcado) return;
