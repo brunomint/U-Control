@@ -4552,35 +4552,121 @@ def test_pacote_leva_temas_e_fundos(app, logged_in_client, tmp_path, monkeypatch
     _limpar_temas(app)
 
 
-def test_avisos_em_slides(app, client, logged_in_client):
+def _limpar_slides(app):
+    import display_state
+    from models import ConjuntoSlides
+    from extensions import db
+    with app.app_context():
+        ConjuntoSlides.query.delete()
+        db.session.commit()
+    display_state._avisos_payload = None
+    if display_state._current_display_mode == "avisos":
+        display_state._current_display_mode = "blank"
+
+
+def test_slides_passando_sozinhos(app, client, logged_in_client):
+    """Os antigos Avisos em slides: um conjunto que passa sozinho em loop."""
     import display_state
     _limpar_temas(app)
-    assert client.get("/avisos").status_code in (302, 401)
+    _limpar_slides(app)
+    assert client.get("/slides").status_code in (302, 401)
+    assert logged_in_client.get("/avisos").headers["Location"].endswith("/slides")   # endereço antigo
+    lista = logged_in_client.get("/api/slides").get_json()["conjuntos"]
+    assert [c["nome"] for c in lista] == ["Avisos"]                     # sempre existe um
+    avisos = lista[0]
     tema = logged_in_client.post("/api/temas", json={"nome": "Avisos", "transicao": {"tipo": "fade", "duracao": 600}}).get_json()["tema"]
-    salvo = logged_in_client.post("/api/avisos", json={
-        "itens": ["Sejam bem-vindos!", "  ", "Culto de oração\nquarta, 19h30"], "tema_id": tema["id"], "segundos": 999, "embaralhar": 1,
-    }).get_json()
-    assert salvo == {"itens": ["Sejam bem-vindos!", "Culto de oração\nquarta, 19h30"], "tema_id": tema["id"], "segundos": 120, "embaralhar": True}
+    salvo = logged_in_client.put(f"/api/slides/{avisos['id']}", json={
+        "nome": "Avisos", "tema_id": tema["id"], "segundos": 999, "embaralhar": 1,
+        "slides": ["Sejam bem-vindos!", {"tipo": "texto", "texto": "  "}, {"tipo": "texto", "texto": "Culto de oração\nquarta, 19h30"}],
+    }).get_json()["conjunto"]
+    assert salvo["slides"] == [{"tipo": "texto", "texto": "Sejam bem-vindos!"}, {"tipo": "texto", "texto": "Culto de oração\nquarta, 19h30"}]
+    assert salvo["segundos"] == 120 and salvo["automatica"] and salvo["embaralhar"]
 
     tela = ucontrol_main.socketio.test_client(app)
     tela.get_received()
-    assert logged_in_client.post("/api/avisos/exibir").get_json()["ok"]
+    assert logged_in_client.post(f"/api/slides/{avisos['id']}/exibir").get_json()["ok"]
     recebido = [m["args"][0] for m in tela.get_received() if m["name"] == "avisos_exibir"][-1]
-    assert recebido["slides"][0] == "Sejam bem-vindos!" and recebido["tema"]["transicao"]["tipo"] == "fade"
-    atual = client.get("/api/current-display").get_json()          # telão recarregado continua os avisos
-    assert atual["mode"] == "avisos" and len(atual["slides"]) == 2
-    assert "Avisos" in logged_in_client.get("/api/telao-status").get_json()["live"]["label"]
+    assert recebido["telas"][0]["texto"] == "Sejam bem-vindos!" and recebido["tema"]["transicao"]["tipo"] == "fade"
+    assert recebido["slides"] == ["Sejam bem-vindos!", "Culto de oração\nquarta, 19h30"]     # texto: lite e histórico
+    atual = client.get("/api/current-display").get_json()          # telão recarregado continua os slides
+    assert atual["mode"] == "avisos" and len(atual["telas"]) == 2
+    assert logged_in_client.get("/api/telao-status").get_json()["live"]["label"] == "Slides · Avisos"
 
-    # Editar com os avisos no ar manda de novo; parar avisa o telão
-    logged_in_client.post("/api/avisos", json={"itens": ["Só um"], "segundos": 5})
+    # Editar com os slides no ar manda de novo; passando sozinho, "próximo" não vale
+    logged_in_client.put(f"/api/slides/{avisos['id']}", json={"nome": "Avisos", "slides": ["Só um"], "segundos": 5})
     assert [m["args"][0]["slides"] for m in tela.get_received() if m["name"] == "avisos_exibir"][-1] == ["Só um"]
-    logged_in_client.post("/api/avisos/parar")
+    assert logged_in_client.post("/api/slides/passo", json={"direcao": 1}).status_code == 409
+    logged_in_client.post("/api/slides/parar")
     assert any(m["name"] == "avisos_parar" for m in tela.get_received())
     assert display_state._current_display_mode == "blank"
-    logged_in_client.post("/api/avisos", json={"itens": []})
-    assert logged_in_client.post("/api/avisos/exibir").status_code == 400   # sem aviso, não exibe
+    logged_in_client.put(f"/api/slides/{avisos['id']}", json={"nome": "Avisos", "slides": []})
+    assert logged_in_client.post(f"/api/slides/{avisos['id']}/exibir").status_code == 400   # sem slide, não exibe
+    assert logged_in_client.post("/api/slides", json={"nome": " "}).status_code == 400       # sem nome, não salva
     tela.disconnect()
+    _limpar_slides(app)
     _limpar_temas(app)
+
+
+def test_slides_lista_na_mao(app, client, logged_in_client):
+    """Diretoria: lista dividida em telas, passada na mão pela página, pelo
+    Stream Deck e mostrada como texto na versão simples."""
+    import display_state
+    import lite_estado
+    from blueprints import atalhos
+    _limpar_slides(app)
+    nomes = [[f"Cargo {n}", f"Pessoa {n}"] for n in range(1, 8)]
+    criado = logged_in_client.post("/api/slides", json={
+        "nome": "Diretoria 2026", "automatica": False,
+        "slides": [{"tipo": "lista", "titulo": "Diretoria 2026", "por_tela": 3, "linhas": nomes + [["", ""]]},
+                   {"tipo": "texto", "texto": "Obrigado!"}],
+    })
+    assert criado.status_code == 201
+    c = criado.get_json()["conjunto"]
+    assert c["automatica"] is False and len(c["slides"][0]["linhas"]) == 7     # linha vazia some
+
+    tela = ucontrol_main.socketio.test_client(app)
+    tela.get_received()
+    assert logged_in_client.post(f"/api/slides/{c['id']}/exibir", json={"pos": 1}).get_json()["ok"]
+    p = [m["args"][0] for m in tela.get_received() if m["name"] == "avisos_exibir"][-1]
+    assert [t.get("parte") for t in p["telas"]] == ["1/3", "2/3", "3/3", None]
+    assert [len(t["linhas"]) for t in p["telas"][:3]] == [3, 3, 1] and p["pos"] == 1
+    assert p["telas"][2]["completar"] == 2 and "completar" not in p["telas"][0]   # mesma altura na última
+    assert p["slides"][0] == "Diretoria 2026 (1/3)\nCargo 1: Pessoa 1\nCargo 2: Pessoa 2\nCargo 3: Pessoa 3"
+    assert logged_in_client.get("/api/telao-status").get_json()["live"]["label"] == "Slides · Diretoria 2026 · 2/4"
+
+    # Próximo pela página; na última tela não dá a volta
+    assert logged_in_client.post("/api/slides/passo", json={"direcao": 1}).get_json()["pos"] == 2
+    assert [m["args"][0] for m in tela.get_received() if m["name"] == "slides_ir"] == [{"pos": 2}]
+    with app.test_request_context():
+        assert lite_estado.estado("publico")["avisos"] == ["Diretoria 2026 (3/3)\nCargo 7: Pessoa 7"]   # versão simples: só a tela atual
+    # Stream Deck: próximo/anterior passam os slides
+    with app.app_context():
+        chave = atalhos.chave()
+    assert client.get(f"/api/atalho/proximo?chave={chave}").get_json()["em"] == "slides"
+    assert client.get(f"/api/atalho/proximo?chave={chave}").get_json()["pos"] == 3      # parou na última
+    assert display_state._avisos_payload["pos"] == 3
+    client.get(f"/api/atalho/anterior?chave={chave}")
+    assert display_state._avisos_payload["pos"] == 2
+    st = logged_in_client.get("/api/telao-status").get_json()
+    assert st["slides"] == {"id": c["id"], "nome": "Diretoria 2026", "pos": 2, "total": 4, "automatica": False}
+
+    # Apagar o que está no ar tira do telão
+    assert logged_in_client.delete(f"/api/slides/{c['id']}").get_json()["ok"]
+    assert display_state._current_display_mode == "blank"
+    tela.disconnect()
+    _limpar_slides(app)
+
+
+def test_slides_store_normaliza_e_divide():
+    import slides_store
+    lista = slides_store.normalizar_slide({"tipo": "lista", "titulo": " T ", "por_tela": 99,
+                                           "linhas": [{"rotulo": "A", "valor": "B"}, ["", "Só nome"], "lixo", ["x" * 300, ""]]})
+    assert lista == {"tipo": "lista", "titulo": "T", "por_tela": 15, "linhas": [["A", "B"], ["", "Só nome"], ["x" * 120, ""]]}
+    assert slides_store.normalizar_slide({"tipo": "lista", "titulo": "", "linhas": [["", ""]]}) is None
+    assert slides_store.normalizar_slide({"tipo": "outro", "texto": "vira texto"}) == {"tipo": "texto", "texto": "vira texto"}
+    telas = slides_store.telas({"slides": [lista]})
+    assert len(telas) == 1 and telas[0]["parte"] == ""
+    assert slides_store.texto_simples(telas[0]) == "T\nA: B\nSó nome\n" + "x" * 120
 
 
 def test_formatacao_de_palavras_na_letra(app, logged_in_client):

@@ -142,7 +142,11 @@ def describe(entry):
     if kind == 'clock':
         return {'kind': kind, 'label': 'Relógio'}
     if kind == 'avisos':
-        return {'kind': kind, 'label': 'Avisos em slides'}
+        from blueprints import slides
+        s = slides.resumo_no_ar()
+        if not s:
+            return {'kind': kind, 'label': 'Slides'}
+        return {'kind': kind, 'label': f"Slides · {s['nome']}" + (f" · {s['pos'] + 1}/{s['total']}" if not s['automatica'] else '')}
     if kind == 'countdown':
         return {'kind': kind, 'label': 'Cronômetro'}
     if kind == 'page' and url.startswith('/apresentacao?'):
@@ -216,7 +220,7 @@ def _resumo_aviso(por_tela):
 def _extras():
     """Coisas que rodam sozinhas e o operador pode esquecer ligadas."""
     import time
-    from blueprints import countdown, ticker
+    from blueprints import countdown, slides, ticker
     targets = sorted(ticker._ticker_targets)
     cd = countdown._countdown_state
     return {
@@ -228,6 +232,7 @@ def _extras():
             'remaining_ms': cd.get('paused_remaining'),
         } if cd.get('active') else None,
         'slideshow': {'interval': _slideshow['interval'], 'count': _slideshow['count']} if _slideshow else None,
+        'slides': slides.resumo_no_ar(),   # /slides no ar: nome, posição, na mão ou sozinho
         'server_now_ms': time.time() * 1000,
     }
 

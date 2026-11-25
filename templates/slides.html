@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% set app_theme = true %}
+
+{% block title %}{{ _('Slides: avisos e listas') }} - U-Control{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ versioned_static('css/pages/temas.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/fundo_animado.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/slides_tela.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/pages/slides.css') }}">
+{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+<main class="uc-page">
+    <div class="uc-page-head">
+        <div>
+            <h1>{{ _('Slides: avisos e listas') }}</h1>
+            <div class="uc-page-sub">{{ _('Avisos, diretoria, ministérios, escalas: slides no telão do público com o visual de um tema. Passam sozinhos ou na mão.') }}</div>
+        </div>
+        <div class="uc-btn-row">
+            <button type="button" class="uc-btn uc-btn-primary" id="sl-novo"><i class="fas fa-plus"></i> {{ _('Novo conjunto') }}</button>
+        </div>
+    </div>
+
+    {#- O que está no telão agora: aparece em qualquer conjunto aberto #}
+    <div class="sl-no-ar" id="sl-no-ar" hidden>
+        <span class="uc-pill uc-pill-live"><i class="fas fa-circle"></i> {{ _('No telão') }}</span>
+        <b id="sl-no-ar-nome"></b>
+        <span id="sl-no-ar-pos"></span>
+        <span class="sl-no-ar-botoes">
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="sl-anterior"><i class="fas fa-chevron-left"></i> {{ _('Anterior') }}</button>
+            <button type="button" class="uc-btn uc-btn-primary uc-btn-sm" id="sl-proximo">{{ _('Próximo') }} <i class="fas fa-chevron-right"></i></button>
+            <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="sl-parar"><i class="fas fa-stop"></i> {{ _('Parar') }}</button>
+        </span>
+    </div>
+
+    <div class="tm-grid">
+        <section class="uc-card">
+            <h2>{{ _('Conjuntos') }}</h2>
+            <div id="sl-lista" class="tm-lista"></div>
+        </section>
+
+        <section class="uc-card" id="sl-editor" hidden>
+            <div class="tm-editor-topo">
+                <input class="uc-input tm-nome" id="sl-nome" maxlength="80" placeholder="{{ _('Nome (ex.: Diretoria 2026)') }}" aria-label="{{ _('Nome do conjunto') }}">
+            </div>
+
+            <div class="sl-colunas">
+                <div>
+                    <div id="sl-slides" class="sl-slides"></div>
+                    <div class="uc-btn-row sl-adicionar">
+                        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-novo="texto"><i class="fas fa-align-center"></i> {{ _('Slide de texto') }}</button>
+                        <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-novo="lista"><i class="fas fa-list"></i> {{ _('Slide de lista') }}</button>
+                    </div>
+                </div>
+
+                <div class="sl-lado">
+                    <div class="tm-previa" id="sl-previa" aria-label="{{ _('Prévia do telão') }}">
+                        <div class="tm-previa-fundo" id="sl-previa-fundo"></div>
+                        <img class="tm-previa-midia" id="sl-previa-img" alt="" hidden>
+                        <video class="tm-previa-midia" id="sl-previa-video" muted loop playsinline hidden></video>
+                        <div class="tm-previa-escurecer" id="sl-previa-escurecer"></div>
+                        <div class="tm-previa-letra" id="sl-previa-letra"><div id="sl-previa-texto"></div></div>
+                    </div>
+                    <div class="sl-previa-nav">
+                        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="sl-previa-ant" aria-label="{{ _('Tela anterior na prévia') }}"><i class="fas fa-chevron-left"></i></button>
+                        <span id="sl-previa-pos"></span>
+                        <button type="button" class="uc-btn uc-btn-ghost uc-btn-sm" id="sl-previa-prox" aria-label="{{ _('Próxima tela na prévia') }}"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+
+                    <label class="tm-controle">{{ _('Tema') }}
+                        <select class="uc-input" id="sl-tema"><option value="">{{ _('Tema padrão') }}</option></select>
+                    </label>
+                    <div class="tm-controle">{{ _('Como passam') }}
+                        <div class="tm-segmentos" id="sl-passagem">
+                            <button type="button" data-valor="sozinho"><i class="fas fa-rotate"></i> {{ _('Sozinhos') }}</button>
+                            <button type="button" data-valor="mao"><i class="fas fa-hand-pointer"></i> {{ _('Na mão') }}</button>
+                        </div>
+                    </div>
+                    <div id="sl-sozinho">
+                        <label class="tm-controle">{{ _('Cada tela fica') }} <output id="sl-segundos-valor"></output>
+                            <input type="range" id="sl-segundos" min="3" max="60" step="1">
+                        </label>
+                        <label class="tm-check"><input type="checkbox" id="sl-embaralhar"> {{ _('Ordem aleatória') }}</label>
+                    </div>
+                    <p class="tm-dica" id="sl-mao-dica" hidden>{{ _('Avance com Anterior/Próximo aqui, as setas ou o pedal no Controle, ou os botões Próximo/Anterior do Stream Deck.') }}</p>
+                    <p class="tm-dica">{{ _('Fundo, letra e transição vêm do tema. Crie e edite em') }} <a href="/temas">{{ _('Temas e fundos') }}</a>.</p>
+                </div>
+            </div>
+
+            <div class="tm-acoes">
+                <button type="button" class="uc-btn uc-btn-primary" id="sl-exibir"><i class="fas fa-play"></i> {{ _('Exibir no telão') }}</button>
+                <button type="button" class="uc-btn uc-btn-secondary" id="sl-salvar"><i class="fas fa-floppy-disk"></i> {{ _('Salvar') }}</button>
+                <button type="button" class="uc-btn uc-btn-ghost" id="sl-duplicar"><i class="fas fa-copy"></i> {{ _('Duplicar') }}</button>
+                <button type="button" class="uc-btn uc-btn-danger" id="sl-apagar"><i class="fas fa-trash"></i> {{ _('Apagar') }}</button>
+                <span class="tm-status" id="sl-status" role="status"></span>
+            </div>
+        </section>
+    </div>
+</main>
+<script id="sl-config" type="application/json">{{ {"porTela": por_tela} | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ versioned_static('js/tema_render.js') }}"></script>
+<script src="{{ versioned_static('js/fundo_animado.js') }}"></script>
+<script src="{{ versioned_static('js/letra_formato.js') }}"></script>
+<script src="{{ versioned_static('js/slides_render.js') }}"></script>
+<script src="{{ versioned_static('js/pages/slides.js') }}"></script>
+{% endblock %}

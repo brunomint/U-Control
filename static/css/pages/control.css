@@ -228,6 +228,11 @@
   color: var(--uc-muted);
 }
 .preview-monitor-note[hidden] { display: none; }
+/* Slides na mão: nome, posição e Anterior/Próximo (control.js mostrarSlidesNaMao) */
+.ctl-slides { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 8px 0 0; font-size: 13px; }
+.ctl-slides[hidden] { display: none; }
+.ctl-slides i.fa-bullhorn { color: var(--uc-faint); }
+.ctl-slides-botoes { display: flex; gap: 4px; margin-left: auto; }
 .preview-monitor-note i { color: var(--uc-faint); }
 .preview-monitor-note b { color: var(--uc-text); font-weight: 700; }
 

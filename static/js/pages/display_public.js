@@ -224,7 +224,7 @@
             bgEscurecer.style.opacity = (imagem || video) ? escurecer / 100 : 0;
         }
 
-        // ── Avisos em slides (blueprints/avisos.py) ─────────────────
+        // ── Slides: avisos e listas (blueprints/slides.py) ──────────
         // O rodízio roda aqui: um aviso por vez, com o tema e a transição dele,
         // em loop. Letra, foto, vídeo, Bíblia ou "Parar" encerram.
         let avisos = null;
@@ -237,31 +237,47 @@
             clearTimeout(avisos.timer);
             avisos = null;
         }
+        // Slides (blueprints/slides.py): 'telas' (texto ou lista, já
+        // divididas). Passando sozinho, o rodízio roda aqui; na mão, o
+        // servidor manda 'slides_ir' com a tela. Payload antigo: 'slides' em texto.
         function exibirAvisos(p) {
-            if (ehMonitor || !p || !p.slides || !p.slides.length) return;
+            const telas = p && (p.telas || p.slides);
+            if (ehMonitor || !telas || !telas.length) return;
+            const mesma = avisos && avisos.conjunto_id != null && avisos.conjunto_id === p.conjunto_id;
             const jaNaTela = !!avisos;
             pararAvisos();
-            const ordem = p.slides.map((_, i) => i);
-            avisos = Object.assign({}, p, { ordem: p.embaralhar ? embaralhar(ordem) : ordem, pos: 0 });
+            const ordem = telas.map((_, i) => i);
+            const naMao = p.telas && p.automatica === false;
+            avisos = Object.assign({}, p, { telas, ordem: p.embaralhar && !naMao ? embaralhar(ordem) : ordem,
+                pos: naMao ? Math.min(Math.max(0, p.pos || 0), telas.length - 1) : 0, naMao });
             showLyricsView();
-            mostrarAviso(jaNaTela);
+            // O mesmo conjunto mandado de novo (editado, tema trocado): sem transição
+            mostrarAviso(jaNaTela && !mesma);
         }
+        socket.on('slides_ir', (d) => {
+            if (!avisos || !avisos.naMao || !d) return;
+            const pos = Math.min(Math.max(0, Number(d.pos) || 0), avisos.telas.length - 1);
+            if (pos === avisos.pos) return;
+            avisos.pos = pos;
+            mostrarAviso(true);
+        });
         function mostrarAviso(animar) {
             const a = avisos;
             if (!a) return;
-            const texto = a.slides[a.ordem[a.pos]] || '';
+            const tela = a.telas[a.ordem[a.pos]] || '';
             const textoEl = document.getElementById('section-text');
             const trocar = () => {
                 if (avisos !== a) return;
                 aplicarTemaCompleto({ tema: a.tema });
-                textoEl.innerHTML = UcFormato.html(texto);   // aceita **negrito**, {amarelo}…{/} (letra_formato.js)
+                textoEl.innerHTML = UcSlides.html(tela);   // texto (com **negrito**, {amarelo}…{/}) ou lista
                 document.getElementById('song-credits').hidden = true;
                 document.getElementById('bible-reference').style.display = 'none';
                 document.getElementById('bible-version').style.display = 'none';
                 adjustFontSize();
             };
             UcTema.trocarComTransicao(textoEl, animar && a.tema ? a.tema.transicao : null, trocar);
-            if (a.slides.length > 1) {
+            if (!a.naMao && a.telas.length > 1) {
+                clearTimeout(a.timer);
                 a.timer = setTimeout(() => {
                     if (avisos !== a) return;
                     a.pos = (a.pos + 1) % a.ordem.length;

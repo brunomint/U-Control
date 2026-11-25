@@ -1,0 +1,15 @@
+/* Lista dos Slides no telão e na prévia (static/js/slides_render.js).
+   Cor, fonte, contorno e alinhamento vêm do tema (herdados do bloco da
+   letra); aqui só a arrumação. Em "em": acompanha o tamanho que o telão
+   escolhe pra caber. */
+.sl-lista { display: inline-flex; flex-direction: column; gap: 0.45em; max-width: 100%; }
+.sl-titulo { font-size: 1.15em; line-height: 1.15; margin-bottom: 0.2em; }
+.sl-parte { font-size: 0.55em; opacity: 0.7; font-weight: 400; white-space: nowrap; }
+/* Duas colunas: o cargo à direita (mais apagado), o nome à esquerda,
+   alinhados pelo meio — lê como "Presidente   Fulano de Tal" */
+.sl-linhas { display: grid; grid-template-columns: auto auto; column-gap: 0.6em; row-gap: 0.28em; justify-content: inherit; }
+.sl-linha { display: contents; }
+.sl-rotulo { font-size: 0.68em; font-weight: 400; opacity: 0.75; text-align: right; align-self: baseline; white-space: nowrap; }
+.sl-valor { text-align: left; align-self: baseline; }
+.sl-linha-uma { display: block; grid-column: 1 / -1; }
+.sl-vazia > span { visibility: hidden; }

@@ -80,7 +80,7 @@ NAV_ITEMS = [
         "group": "criar", "login_required": True, "contexts": ["nav"],
     },
     {
-        "endpoint": "avisos.avisos_page", "label": "Avisos em slides", "icon": "fa-bullhorn",
+        "endpoint": "slides.slides_page", "label": "Slides: avisos e listas", "nav_label": "Slides", "icon": "fa-bullhorn",
         "group": "criar", "login_required": True, "contexts": ["nav"],
     },
 

@@ -103,6 +103,9 @@ def _navegar(direcao):
     if apresentacao.no_ar():
         _handler(apresentacao.handle_apresentacao_cmd)({'cmd': 'next' if direcao > 0 else 'prev'})
         return {'ok': True, 'em': 'apresentação'}
+    from blueprints import slides
+    if slides.no_ar_na_mao():
+        return {**slides.passo(direcao), 'em': 'slides'}
     return _pedir_ao_controle('atalho_navegar', {'direcao': direcao},
                              tr('O Controle não tem música, Bíblia ou fotos abertas no painel.'))
 
@@ -238,7 +241,7 @@ def _relogio():
 # nome -> (descrição na página, função); a descrição é traduzida ao mostrar
 # (atalhos_page), o nome do comando fica (é o endereço)
 COMANDOS = {
-    'proximo': ('Próximo: estrofe ou versículo aberto no painel do Controle, animação do PowerPoint ou página do site no ar', lambda: _navegar(1)),
+    'proximo': ('Próximo: estrofe ou versículo aberto no painel do Controle, slides passando na mão, animação do PowerPoint ou página do site no ar', lambda: _navegar(1)),
     'anterior': ('Anterior', lambda: _navegar(-1)),
     'liberar': ('Liberar o que está preparado', _liberar),
     'tela-preta': ('Tela preta liga/desliga (?telas=public,monitor — sem, só a pública)', lambda: _tela_preta('alternar')),

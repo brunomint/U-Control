@@ -2,7 +2,7 @@
 // Luzes grandes que se movem devagar sobre uma cor de base. Só CSS, e só
 // "transform" e "opacity" animados: a placa de vídeo compõe as camadas sem
 // redesenhar a tela a cada quadro — leve até no Raspberry Pi e na TV.
-// O mesmo código no telão do público, na Bíblia e nas prévias (temas, avisos).
+// O mesmo código no telão do público, na Bíblia e nas prévias (temas, slides).
 window.UcFundoAnimado = (function () {
     const ESTILOS = ['luzes', 'aurora', 'respirar', 'estrelas'];
     // Multiplica as durações do CSS. Antes 1,7/1/0,55: lento demais, ninguém

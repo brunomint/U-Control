@@ -93,13 +93,26 @@ class Setting(db.Model):
     tema_biblia_id = db.Column(db.Integer, nullable=True)
 
 
-# Avisos em slides (blueprints/avisos.py): linha única, como Setting
+# Antigos Avisos em slides: viraram o conjunto "Avisos" de ConjuntoSlides (migração a1f5c8e2d940); a tabela fica só pro histórico
 class AvisosConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     itens = db.Column(db.JSON, nullable=True)        # ["Sejam bem-vindos!", ...]
     tema_id = db.Column(db.Integer, nullable=True)   # None = o tema padrão
     segundos = db.Column(db.Integer, nullable=True)
     embaralhar = db.Column(db.Boolean, nullable=True)
+
+
+# Slides do telão (slides_store.py, página /slides): conjuntos com nome —
+# "Avisos", "Diretoria 2026"... Os Avisos em slides viraram um deles.
+class ConjuntoSlides(db.Model):
+    __tablename__ = 'conjunto_slides'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(80), nullable=False)
+    tema_id = db.Column(db.Integer, nullable=True)       # None = o tema padrão
+    segundos = db.Column(db.Integer, nullable=True)      # passando sozinho: tempo de cada tela
+    automatica = db.Column(db.Boolean, nullable=True)    # True: passa sozinho em loop; False: na mão
+    embaralhar = db.Column(db.Boolean, nullable=True)
+    slides = db.Column(db.JSON, nullable=True)           # [{"tipo": "texto"|"lista", ...}]
 
 
 # Tema do telão do público: fundo + estilo da letra (temas_store.py)

@@ -126,9 +126,11 @@ def _conteudo(tela, so_letra=False):
         proprio = telao._monitor is not None
     else:
         if display_state._current_display_mode == 'avisos' and display_state._avisos_payload:
-            slides = [str(s) for s in (display_state._avisos_payload.get('slides') or []) if str(s).strip()]
-            return {'modo': 'avisos', 'avisos': slides,
-                    'segundos': display_state._avisos_payload.get('segundos') or 8}
+            p = display_state._avisos_payload
+            slides = [str(s) for s in (p.get('slides') or []) if str(s).strip()]
+            if p.get('telas') and not p.get('automatica'):   # na mão: só a tela atual
+                slides = slides[p.get('pos', 0):p.get('pos', 0) + 1] or slides[:1]
+            return {'modo': 'avisos', 'avisos': slides, 'segundos': p.get('segundos') or 8}
         entrada = telao._public_entry()
         proprio = False
     if not entrada:

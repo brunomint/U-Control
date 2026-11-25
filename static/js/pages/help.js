@@ -50,8 +50,13 @@ const HELP_SECTIONS = {
             <li><strong>Vídeos de fundo:</strong> envie na página de temas; o U-Control deixa o vídeo leve (sem som, até 1080p; 720p no Raspberry Pi).</li>
             <li>Salvar um tema muda o telão na hora, se ele estiver em uso.</li>
         </ul>
-        <h3>Avisos em slides</h3>
-        <p>Em <a href="/avisos">Criar → Avisos em slides</a>, escreva os avisos (um por caixa), escolha o tema e o tempo de cada um e toque em <strong>Exibir no telão</strong>. Eles passam sozinhos, em loop, até você tocar em <strong>Parar</strong> ou mandar uma música, foto, vídeo ou a Bíblia.</p>
+        <h3>Slides: avisos e listas</h3>
+        <p>Em <a href="/slides">Criar → Slides</a> ficam conjuntos de slides com nome: <strong>Avisos</strong>, <strong>Diretoria 2026</strong>, <strong>Ministérios</strong>… Cada um tem seu tema e dois tipos de slide:</p>
+        <ul>
+            <li><strong>Texto:</strong> um aviso, com a mesma formatação da letra.</li>
+            <li><strong>Lista:</strong> um título e linhas de duas partes (ex.: <em>Presidente</em> e <em>Fulano de Tal</em>). Se passar das <em>linhas por tela</em>, vira várias telas sozinha. Dá para colar várias linhas de uma vez (“Presidente: Fulano”, uma por linha).</li>
+        </ul>
+        <p>Toque em <strong>Exibir no telão</strong>. Um conjunto passa <strong>sozinho</strong>, em loop, ou <strong>na mão</strong>: aí avance com Anterior/Próximo na página, com as setas ou o pedal no Controle (aparece uma barrinha embaixo da prévia) ou com Próximo/Anterior do Stream Deck. Para ao tocar em <strong>Parar</strong> ou ao mandar uma música, foto, vídeo ou a Bíblia.</p>
         <h3>Destacar palavras na letra</h3>
         <p>No editor da música (e nos avisos), escreva:</p>
         <ul>

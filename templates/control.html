@@ -58,6 +58,15 @@
         <!-- O que o monitor de palco mostra quando é diferente do público
              (Modo monitor, Modo público, tela dividida) — vem de telao.py -->
         <p class="preview-monitor-note" id="preview-monitor-note" hidden></p>
+        <!-- Slides passando na mão (blueprints/slides.py): Anterior/Próximo
+             aqui, ou as setas/pedal com o foco no Controle -->
+        <div class="ctl-slides" id="ctl-slides" hidden>
+            <i class="fas fa-bullhorn"></i> <b id="ctl-slides-nome"></b> <span id="ctl-slides-pos"></span>
+            <span class="ctl-slides-botoes">
+                <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" id="ctl-slides-ant" aria-label="{{ _('Slide anterior') }}"><i class="fas fa-chevron-left"></i></button>
+                <button type="button" class="uc-btn uc-btn-primary uc-btn-sm" id="ctl-slides-prox" aria-label="{{ _('Próximo slide') }}"><i class="fas fa-chevron-right"></i></button>
+            </span>
+        </div>
 
         <div class="live-actions">
             <div class="telas-neutras" role="group" aria-label="{{ _('Telas neutras') }}">

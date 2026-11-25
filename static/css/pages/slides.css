@@ -1,0 +1,29 @@
+/* Página "Slides: avisos e listas" (templates/slides.html). Lista,
+   prévia e controles vêm de temas.css. */
+.sl-colunas { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .sl-colunas { grid-template-columns: minmax(0, 1fr); } }
+.sl-lado { display: grid; gap: 10px; position: sticky; top: 76px; }
+@media (max-width: 1100px) { .sl-lado { position: static; } }
+
+.sl-slides { display: grid; gap: 10px; }
+.sl-adicionar { margin-top: 10px; }
+
+/* Um slide no editor */
+.sl-slide { border: 1px solid var(--uc-line); border-radius: var(--uc-r-sm); background: var(--uc-surface-2); padding: 8px 10px 10px; }
+.sl-slide.foco { border-color: var(--uc-accent); }
+.sl-slide-topo { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12px; color: var(--uc-muted); }
+.sl-slide-topo .sl-tipo { font-weight: 700; color: var(--uc-text); }
+.sl-slide-topo .sl-telas { flex: 1; }
+.sl-slide textarea { width: 100%; resize: vertical; }
+.sl-campos { display: grid; gap: 6px; }
+.sl-titulo-linha { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.sl-por-tela { width: 72px; }
+.sl-linha-ed { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) auto; gap: 6px; }
+.sl-colar { display: grid; gap: 6px; margin-top: 6px; }
+.sl-colar textarea { font-size: 13px; }
+
+.sl-previa-nav { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--uc-muted); }
+
+/* Barra "No telão" com Anterior/Próximo/Parar */
+.sl-no-ar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 14px; padding: 10px 12px; border: 1px solid var(--uc-line); border-radius: var(--uc-r); background: var(--uc-surface); }
+.sl-no-ar-botoes { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }

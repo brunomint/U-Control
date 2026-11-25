@@ -52,8 +52,13 @@ window.HELP_SECTIONS_I18N = {
             <li><strong>Background videos:</strong> upload them on the themes page; U-Control makes the video light (no sound, up to 1080p; 720p on Raspberry Pi).</li>
             <li>Saving a theme changes the screen right away if it is in use.</li>
         </ul>
-        <h3>Announcement slides</h3>
-        <p>In <a href="/avisos">Create → Announcement slides</a>, write the announcements (one per box), choose the theme and how long each stays, and tap <strong>Show on screen</strong>. They play by themselves in a loop until you tap <strong>Stop</strong> or send a song, photo, video or the Bible.</p>
+        <h3>Slides: announcements and lists</h3>
+        <p>In <a href="/slides">Create → Slides</a> you keep named slide sets: <strong>Announcements</strong>, <strong>Board 2026</strong>, <strong>Ministries</strong>… Each has its own theme and two kinds of slide:</p>
+        <ul>
+            <li><strong>Text:</strong> an announcement, with the same formatting as lyrics.</li>
+            <li><strong>List:</strong> a title and two-part lines (e.g. <em>President</em> and <em>John Smith</em>). Beyond the <em>lines per screen</em>, it splits into several screens by itself. You can paste many lines at once (“President: John”, one per line).</li>
+        </ul>
+        <p>Tap <strong>Show on screen</strong>. A set plays <strong>by itself</strong> in a loop, or <strong>by hand</strong>: then advance with Previous/Next on the page, the arrow keys or pedal in the Control page (a small bar appears under the preview) or Stream Deck Next/Previous. It stops when you tap <strong>Stop</strong> or send a song, photo, video or the Bible.</p>
         <h3>Highlight words in the lyrics</h3>
         <p>In the song editor (and in announcements), write:</p>
         <ul>

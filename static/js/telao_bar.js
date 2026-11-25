@@ -19,7 +19,7 @@
         'Letra': _t('Letra'), 'Cifra': _t('Cifra'), 'Bíblia': _t('Bíblia'),
         'Foto': _t('Foto'), 'Imagem': _t('Imagem'), 'Vídeo': _t('Vídeo'),
         'Relógio': _t('Relógio'), 'Cronômetro': _t('Cronômetro'),
-        'Apresentação': _t('Apresentação'), 'Página': _t('Página'),
+        'Apresentação': _t('Apresentação'), 'Página': _t('Página'), 'Slides': _t('Slides'),
     };
     const tipo = n => (Object.prototype.hasOwnProperty.call(TIPOS, n) ? TIPOS[n] : n);
     window.ucTelaoLabel = function (label) {
@@ -76,6 +76,8 @@
     function render(st) {
         if (!st || !st.live) return;
         lastStatus = st;
+        // A página aberta também quer saber (ex.: /slides mostra o que está passando)
+        window.dispatchEvent(new CustomEvent('uc-telao-status', { detail: st }));
         if (offline) return;
         const parts = [];
         parts.push(

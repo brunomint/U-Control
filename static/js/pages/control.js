@@ -564,7 +564,28 @@ function applyTelaoStatus(st) {
     applyServerMode(myMode(st));
     TelasNeutras.mostrar(st);
     renderPreview();
+    mostrarSlidesNaMao(st.slides);
 }
+
+// Slides passando na mão (blueprints/slides.py): barrinha embaixo da prévia;
+// as setas e o pedal (teclado, mais abaixo) também passam
+let slidesNaMao = null;
+function mostrarSlidesNaMao(s) {
+    slidesNaMao = s && !s.automatica ? s : null;
+    const barra = document.getElementById('ctl-slides');
+    if (!barra) return;
+    barra.hidden = !slidesNaMao;
+    if (!slidesNaMao) return;
+    document.getElementById('ctl-slides-nome').textContent = slidesNaMao.nome;
+    document.getElementById('ctl-slides-pos').textContent = _t('tela {n} de {total}', { n: slidesNaMao.pos + 1, total: slidesNaMao.total });
+    document.getElementById('ctl-slides-ant').disabled = slidesNaMao.pos <= 0;
+    document.getElementById('ctl-slides-prox').disabled = slidesNaMao.pos >= slidesNaMao.total - 1;
+}
+function passarSlide(direcao) {
+    fetch('/api/slides/passo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ direcao }) }).catch(() => {});
+}
+document.getElementById('ctl-slides-ant')?.addEventListener('click', () => passarSlide(-1));
+document.getElementById('ctl-slides-prox')?.addEventListener('click', () => passarSlide(1));
 
 function renderPreview() {
     TelasNeutras.setPrevia(previewView);   // aviso de tela neutra da tela mostrada
@@ -1091,6 +1112,12 @@ function setupPanel() {
         const teclaSecao = panelState.view === 'musica' && /^[1-9a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey;
         if (!teclaSecao && !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.key)) return;
         if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        // Slides na mão no telão: é isso que está na tela, as setas passam eles
+        if (slidesNaMao && !teclaSecao) {
+            e.preventDefault();
+            passarSlide(['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key) ? -1 : 1);
+            return;
+        }
         if (repassarTecla(e.key)) e.preventDefault();
     });
 

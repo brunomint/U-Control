@@ -77,7 +77,7 @@ def _descrever(kind, url):
         return tipo, dados.get('reference') or '', _texto_da_biblia(dados), _tema_em_texto(temas_store.tema_da_biblia())
     if tipo == 'avisos':
         dados = display_state._avisos_payload or {}
-        return tipo, '', _texto_dos_avisos(dados), _tema_em_texto(dados.get('tema'))
+        return tipo, dados.get('nome') or '', _texto_dos_avisos(dados), _tema_em_texto(dados.get('tema'))
     if tipo == 'vazio':
         return tipo, '', '', ''
     return tipo, telao._file_name(url) or '', '', ''
