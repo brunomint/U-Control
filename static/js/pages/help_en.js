@@ -157,6 +157,19 @@ window.HELP_SECTIONS_I18N = {
         </ul>
         <p>The device remembers the chosen screen; "trocar tela" is in the corner. To check what the browser supports, open <code>/lite/diag</code>. To use the full version anyway, add <code>?lite=0</code> to the address.</p>`,
 
+    obs: `
+        <h2>Streaming (OBS)</h2>
+        <p>In OBS, add a <strong>Browser source</strong> with the address <code>http://&lt;computer-ip&gt;:8585/lyrics/display/obs</code>. The background is transparent: the lyrics show over the camera, without chords, stage notes or repeat signs. During intros and solos the song title shows for a few seconds.</p>
+        <p>By default the lyrics sit in a <strong>band at the bottom of the video</strong> (up to 35% of the height) and the font shrinks to fit. You can change it by adding options to the address (joined with <code>&amp;</code>):</p>
+        <ul>
+            <li><code>?pos=bottom</code> (default), <code>?pos=top</code> or <code>?pos=center</code> (middle, using almost the whole screen)</li>
+            <li><code>?altura=25</code>: how much of the video height the lyrics may use, in %. Smaller = lower band and smaller text</li>
+            <li><code>?size=6</code>: maximum text size (default 8)</li>
+            <li><code>?color=yellow</code> or <code>?color=%23ffd84d</code>: text color</li>
+            <li><code>?shadow=0</code>: no black outline</li>
+        </ul>
+        <p>Example, low band with yellow text: <code>/lyrics/display/obs?pos=bottom&amp;altura=25&amp;color=yellow</code>. After changing the address, click <em>Refresh</em> in the source properties.</p>`,
+
     problemas: `
         <h2>Troubleshooting</h2>
         <h3>The phone can't open U-Control</h3>

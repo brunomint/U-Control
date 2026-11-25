@@ -582,6 +582,8 @@ def test_capa_no_telao_e_legenda_no_obs():
     assert 'capaDaMusica(' in open(os.path.join(raiz, 'display_public.js'), encoding='utf-8').read()
     obs = open(os.path.join(raiz, 'display_obs.js'), encoding='utf-8').read()
     assert 'mostrarLegenda(data.musica, data.autor)' in obs and 'LEGENDA_MS = 8000' in obs
+    # Letra numa faixa embaixo por padrão (35% da altura); no centro, 85%
+    assert "(pos === 'center' ? 85 : 35)" in obs and 'altura / 100' in obs
 
 
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----

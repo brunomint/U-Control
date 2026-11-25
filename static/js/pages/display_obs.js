@@ -4,6 +4,10 @@ const pos    = params.get('pos')    || 'bottom';   // top | center | bottom
 const size   = params.get('size')   || '8';        // número em vw
 const color  = params.get('color')  || 'white';
 const shadow = params.get('shadow') !== '0';       // default on
+// Quanto da altura do vídeo a letra pode ocupar (%): embaixo ou em cima, uma
+// faixa (35%), para a câmera continuar aparecendo; no centro, quase tudo.
+// A fonte diminui até a letra caber. ?altura=85 volta ao jeito antigo.
+const altura = Math.min(95, Math.max(10, parseFloat(params.get('altura')) || (pos === 'center' ? 85 : 35)));
 
 const overlay = document.getElementById('overlay');
 const root    = document.documentElement;
@@ -69,8 +73,8 @@ function adjustFontSize() {
         const el  = document.getElementById('section-text');
         let fs = parseFloat(size);
         el.style.fontSize = fs + 'vw';
-        while (el.scrollHeight > window.innerHeight * 0.85 && fs > 2) {
-            fs -= 0.2;
+        while (el.scrollHeight > window.innerHeight * altura / 100 && fs > 1) {
+            fs -= 0.1;
             el.style.fontSize = fs + 'vw';
         }
     });

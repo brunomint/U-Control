@@ -154,6 +154,19 @@ const HELP_SECTIONS = {
         </ul>
         <p>O aparelho lembra a tela escolhida; "trocar tela" fica no canto. Para testar o que o navegador entende, abra <code>/lite/diag</code>. Para usar a versão completa mesmo assim, acrescente <code>?lite=0</code> ao endereço.</p>`,
 
+    obs: `
+        <h2>Transmissão (OBS)</h2>
+        <p>No OBS, adicione uma <strong>Fonte de navegador</strong> com o endereço <code>http://&lt;ip-do-computador&gt;:8585/lyrics/display/obs</code>. O fundo é transparente: a letra aparece por cima da câmera, sem acordes, sem notas de palco e sem os sinais de repetição. Na introdução e no solo aparece por alguns segundos o nome da música.</p>
+        <p>Por padrão a letra fica numa <strong>faixa no pé do vídeo</strong> (até 35% da altura) e a fonte diminui sozinha para caber. Dá para mudar acrescentando opções ao endereço (separadas por <code>&amp;</code>):</p>
+        <ul>
+            <li><code>?pos=bottom</code> (embaixo, padrão), <code>?pos=top</code> (em cima) ou <code>?pos=center</code> (no meio, ocupando quase a tela toda)</li>
+            <li><code>?altura=25</code>: quanto da altura do vídeo a letra pode ocupar, em %. Menor = faixa mais baixa e letra menor</li>
+            <li><code>?size=6</code>: tamanho máximo da letra (o padrão é 8)</li>
+            <li><code>?color=yellow</code> ou <code>?color=%23ffd84d</code>: cor da letra</li>
+            <li><code>?shadow=0</code>: sem o contorno preto</li>
+        </ul>
+        <p>Exemplo, faixa baixa com letra amarela: <code>/lyrics/display/obs?pos=bottom&amp;altura=25&amp;color=yellow</code>. Depois de mudar o endereço, clique em <em>Atualizar a página</em> nas propriedades da fonte.</p>`,
+
     problemas: `
         <h2>Solução de problemas</h2>
         <h3>O celular não abre o U-Control</h3>
