@@ -1965,5 +1965,9 @@
   "Slide de texto": "Text slide",
   "Sozinhos": "By themselves",
   "Tela anterior na prévia": "Previous screen in the preview",
-  "Uma por linha. Ex.: Presidente: Fulano de Tal": "One per line. E.g.: President: John Smith"
+  "Uma por linha. Ex.: Presidente: Fulano de Tal": "One per line. E.g.: President: John Smith",
+  "Começa só com o título; cada Próximo mostra mais uma linha. Bom para valores e para apresentar a diretoria.": "Starts with just the title; each Next shows one more line. Good for amounts and for introducing the board.",
+  "Mostrar uma linha por clique": "Show one line per click",
+  "Uma linha por clique funciona melhor com \"Na mão\".": "One line per click works best with \"By hand\".",
+  "{n} cliques": "{n} clicks"
 }

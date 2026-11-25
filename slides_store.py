@@ -5,9 +5,10 @@ e transição de temas_store.py), e passando sozinho em loop ou na mão.
 Tipos de slide (docs/PLANO-APRESENTACOES.md):
   {"tipo": "texto", "texto": "Culto de oração\\nquarta, 19h30"}
       (aceita a formatação dos avisos: **negrito**, {amarelo}…{/})
-  {"tipo": "lista", "titulo": "Diretoria 2026", "por_tela": 6,
+  {"tipo": "lista", "titulo": "Diretoria 2026", "por_tela": 6, "aos_poucos": false,
    "linhas": [["Presidente", "Fulano de Tal"], ["Tesoureiro", "Ciclano"]]}
-      — se passar de por_tela linhas, vira várias telas ("2/3").
+      — se passar de por_tela linhas, vira várias telas ("2/3");
+      aos_poucos: cada Próximo revela mais uma linha (começa só no título).
 
 O que vai pro telão são as TELAS (telas()), já divididas; o telão só desenha
 (static/js/slides_render.js). Os antigos Avisos em slides viraram o conjunto
@@ -59,7 +60,8 @@ def normalizar_slide(slide):
         if not linhas and not titulo:
             return None
         return {'tipo': 'lista', 'titulo': titulo, 'linhas': linhas,
-                'por_tela': _inteiro(slide.get('por_tela'), *POR_TELA, POR_TELA_PADRAO)}
+                'por_tela': _inteiro(slide.get('por_tela'), *POR_TELA, POR_TELA_PADRAO),
+                'aos_poucos': bool(slide.get('aos_poucos'))}
     texto = str(slide.get('texto') or '').strip()[:MAX_TEXTO]
     return {'tipo': 'texto', 'texto': texto} if texto else None
 
@@ -133,7 +135,7 @@ def apagar(conjunto_id):
 def telas(conjunto):
     """As telas que o telão mostra, na ordem: a lista longa já dividida."""
     saida = []
-    for slide in conjunto.get('slides') or []:
+    for i, slide in enumerate(conjunto.get('slides') or []):
         if slide['tipo'] != 'lista':
             saida.append(dict(slide))
             continue
@@ -146,7 +148,14 @@ def telas(conjunto):
             # mesmo tamanho das outras telas da lista (o telão aumenta até caber)
             if len(grupos) > 1 and len(grupo) < por_tela:
                 tela['completar'] = por_tela - len(grupo)
-            saida.append(tela)
+            if not slide.get('aos_poucos'):
+                saida.append(tela)
+                continue
+            # Uma linha por clique: a mesma tela, revelando de 0 (só o
+            # título) até todas. 'grupo' diz ao telão que é a mesma tela
+            # (só a linha nova entra, sem a transição do tema)
+            for k in range(len(grupo) + 1):
+                saida.append({**tela, 'mostrar': k, 'grupo': f'{i}.{n}'})
     return saida
 
 
@@ -158,6 +167,9 @@ def texto_simples(tela):
         titulo = tela.get('titulo') or ''
         if tela.get('parte'):
             titulo = f"{titulo} ({tela['parte']})".strip()
-        linhas = [': '.join(p for p in linha if p) for linha in tela.get('linhas') or []]
+        visiveis = tela.get('linhas') or []
+        if 'mostrar' in tela:
+            visiveis = visiveis[:tela['mostrar']]
+        linhas = [': '.join(p for p in linha if p) for linha in visiveis]
         return '\n'.join([titulo] + linhas if titulo else linhas)
     return tela.get('texto') or ''

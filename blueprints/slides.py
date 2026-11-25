@@ -30,7 +30,8 @@ def payload(conjunto, pos=0):
             # 'slides' em texto: versão simples (/lite) e histórico do telão
             'slides': [slides_store.texto_simples(t) for t in telas],
             'segundos': conjunto['segundos'], 'automatica': conjunto['automatica'],
-            'embaralhar': conjunto['embaralhar'] and conjunto['automatica'],
+            # embaralhar desmontaria a lista revelada aos poucos
+            'embaralhar': conjunto['embaralhar'] and conjunto['automatica'] and not any('mostrar' in t for t in telas),
             'pos': max(0, min(pos, len(telas) - 1)) if telas else 0,
             'tema': temas_store.resolver({'tema_id': conjunto['tema_id']} if conjunto['tema_id'] else None)}
 

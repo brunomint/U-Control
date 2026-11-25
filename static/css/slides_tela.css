@@ -13,3 +13,8 @@
 .sl-valor { text-align: left; align-self: baseline; }
 .sl-linha-uma { display: block; grid-column: 1 / -1; }
 .sl-vazia > span { visibility: hidden; }
+/* Lista revelada aos poucos: a linha ainda escondida guarda o lugar; a nova entra subindo */
+.sl-oculta > span, .sl-linha-uma.sl-oculta { visibility: hidden; }
+.sl-entra > span, .sl-linha-uma.sl-entra { animation: sl-entra 0.55s ease-out both; }
+@keyframes sl-entra { from { opacity: 0; transform: translateY(0.35em); } to { opacity: 1; transform: none; } }
+.sl-entra > span { display: inline-block; }

@@ -265,11 +265,15 @@
             const a = avisos;
             if (!a) return;
             const tela = a.telas[a.ordem[a.pos]] || '';
+            const anterior = a.ultima;
+            a.ultima = tela;
             const textoEl = document.getElementById('section-text');
+            // Mesma lista revelando mais uma linha: sem a transição do tema
+            if (UcSlides.mesmaLista(tela, anterior)) animar = false;
             const trocar = () => {
                 if (avisos !== a) return;
                 aplicarTemaCompleto({ tema: a.tema });
-                textoEl.innerHTML = UcSlides.html(tela);   // texto (com **negrito**, {amarelo}…{/}) ou lista
+                textoEl.innerHTML = UcSlides.html(tela, anterior);   // texto (com **negrito**, {amarelo}…{/}) ou lista
                 document.getElementById('song-credits').hidden = true;
                 document.getElementById('bible-reference').style.display = 'none';
                 document.getElementById('bible-version').style.display = 'none';

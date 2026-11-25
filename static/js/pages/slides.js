@@ -20,6 +20,7 @@
     let alterado = false;
     let previaPos = 0;       // tela mostrada na prévia
     let noAr = null;         // resumo do que está no telão (blueprints/slides.py resumo_no_ar)
+    let previaAnterior = null;   // tela anterior da prévia (revelar aos poucos anima só a linha nova)
 
     // ── Telas (igual a slides_store.telas: a lista longa vira várias) ──
     function telas(c) {
@@ -31,9 +32,14 @@
             const grupos = [];
             for (let k = 0; k < linhas.length; k += por) grupos.push(linhas.slice(k, k + por));
             if (!grupos.length) grupos.push([]);
-            grupos.forEach((g, n) => saida.push({ slide: i, tela: { tipo: 'lista', titulo: s.titulo, linhas: g,
-                parte: grupos.length > 1 ? `${n + 1}/${grupos.length}` : '',
-                completar: grupos.length > 1 && g.length < por ? por - g.length : 0 } }));
+            grupos.forEach((g, n) => {
+                const tela = { tipo: 'lista', titulo: s.titulo, linhas: g,
+                    parte: grupos.length > 1 ? `${n + 1}/${grupos.length}` : '',
+                    completar: grupos.length > 1 && g.length < por ? por - g.length : 0 };
+                if (!s.aos_poucos) { saida.push({ slide: i, tela }); return; }
+                // Uma linha por clique: de só o título até todas (slides_store.telas)
+                for (let k = 0; k <= g.length; k++) saida.push({ slide: i, tela: Object.assign({}, tela, { mostrar: k, grupo: `${i}.${n + 1}` }) });
+            });
         });
         return saida;
     }
@@ -60,7 +66,9 @@
         const lista = telas(atual);
         previaPos = Math.max(0, Math.min(previaPos, lista.length - 1));
         const el = $('sl-previa-texto'), letra = $('sl-previa-letra');
-        el.innerHTML = lista.length ? UcSlides.html(lista[previaPos].tela) : esc(_t('Adicione um slide'));
+        const tela = lista.length ? lista[previaPos].tela : null;
+        el.innerHTML = tela ? UcSlides.html(tela, previaAnterior) : esc(_t('Adicione um slide'));
+        previaAnterior = tela;
         if (t.texto) {
             UcTema.aplicarTexto(letra, el, t.texto);
             UcTema.ajustar(letra, el, t.texto.tamanho_max * $('sl-previa').clientWidth / 100, 'px', 0.5);
@@ -111,6 +119,9 @@
                         <input class="uc-input sl-por-tela" data-campo="por_tela" type="number" min="2" max="15" value="${slide.por_tela}">
                     </label>
                 </div>
+                <label class="tm-check" title="${esc(_t('Começa só com o título; cada Próximo mostra mais uma linha. Bom para valores e para apresentar a diretoria.'))}">
+                    <input type="checkbox" data-campo="aos_poucos"${slide.aos_poucos ? ' checked' : ''}> ${esc(_t('Mostrar uma linha por clique'))}
+                </label>
                 <div class="sl-linhas-ed">${slide.linhas.map((_, k) => linhaLista(slide, i, k)).join('')}</div>
                 <div class="uc-btn-row">
                     <button type="button" class="uc-btn uc-btn-secondary uc-btn-sm" data-acao="mais-linha"><i class="fas fa-plus"></i> ${esc(_t('Linha'))}</button>
@@ -128,6 +139,11 @@
             const s = atual.slides[posicao(div)];
             const campo = e.target.dataset.campo;
             if (campo === 'por_tela') s.por_tela = Math.max(2, Math.min(15, Number(e.target.value) || CONFIG.porTela));
+            else if (campo === 'aos_poucos') {
+                s.aos_poucos = e.target.checked;
+                // Passando sozinho, um clique por linha raramente é o que se quer: avisa
+                if (s.aos_poucos && atual.automatica !== false) toast(_t('Uma linha por clique funciona melhor com "Na mão".'));
+            }
             else if (campo) s[campo] = e.target.value;
             else if (e.target.dataset.parte != null) {
                 const k = Number(e.target.closest('[data-linha]').dataset.linha);
@@ -186,7 +202,9 @@
         const lista = telas(atual);
         document.querySelectorAll('.sl-slide').forEach((card, i) => {
             const n = lista.filter(x => x.slide === i).length;
-            card.querySelector('.sl-telas').textContent = atual.slides[i].tipo === 'lista' && n > 1 ? _t('vira {n} telas', { n }) : '';
+            const s = atual.slides[i];
+            card.querySelector('.sl-telas').textContent = s.tipo !== 'lista' || n < 2 ? ''
+                : s.aos_poucos ? _t('{n} cliques', { n }) : _t('vira {n} telas', { n });
         });
     }
 

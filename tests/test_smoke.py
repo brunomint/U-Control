@@ -4661,7 +4661,8 @@ def test_slides_store_normaliza_e_divide():
     import slides_store
     lista = slides_store.normalizar_slide({"tipo": "lista", "titulo": " T ", "por_tela": 99,
                                            "linhas": [{"rotulo": "A", "valor": "B"}, ["", "Só nome"], "lixo", ["x" * 300, ""]]})
-    assert lista == {"tipo": "lista", "titulo": "T", "por_tela": 15, "linhas": [["A", "B"], ["", "Só nome"], ["x" * 120, ""]]}
+    assert lista == {"tipo": "lista", "titulo": "T", "por_tela": 15, "aos_poucos": False,
+                     "linhas": [["A", "B"], ["", "Só nome"], ["x" * 120, ""]]}
     assert slides_store.normalizar_slide({"tipo": "lista", "titulo": "", "linhas": [["", ""]]}) is None
     assert slides_store.normalizar_slide({"tipo": "outro", "texto": "vira texto"}) == {"tipo": "texto", "texto": "vira texto"}
     telas = slides_store.telas({"slides": [lista]})
@@ -4874,3 +4875,33 @@ def test_paginas_que_mostram_a_ordem_recebem_o_aviso(client, logged_in_client):
     for c, path in ((client, '/view'), (client, '/agenda'), (logged_in_client, '/order'),
                     (logged_in_client, '/agenda/dashboard'), (logged_in_client, '/control')):
         assert 'js/ordens_ao_vivo.js' in c.get(path).get_data(as_text=True), path
+
+
+def test_slides_lista_aos_poucos(app, client, logged_in_client):
+    """Lista com "uma linha por clique": começa no título, cada Próximo
+    revela mais uma linha (mesmo 'grupo': o telão não refaz a transição)."""
+    import display_state
+    import lite_estado
+    import slides_store
+    _limpar_slides(app)
+    linhas = [["Dízimos", "R$ 12.340,00"], ["Ofertas", "R$ 3.210,50"], ["Total", "R$ 15.550,50"]]
+    telas = slides_store.telas({"slides": [slides_store.normalizar_slide(
+        {"tipo": "lista", "titulo": "Outubro", "linhas": linhas, "aos_poucos": True})]})
+    assert [t["mostrar"] for t in telas] == [0, 1, 2, 3] and {t["grupo"] for t in telas} == {"0.1"}
+    assert slides_store.texto_simples(telas[0]) == "Outubro"
+    assert slides_store.texto_simples(telas[2]) == "Outubro\nDízimos: R$ 12.340,00\nOfertas: R$ 3.210,50"
+
+    c = logged_in_client.post("/api/slides", json={"nome": "Relatório", "automatica": True, "embaralhar": True, "slides": [
+        {"tipo": "lista", "titulo": "Outubro", "linhas": linhas, "aos_poucos": True}]}).get_json()["conjunto"]
+    assert c["slides"][0]["aos_poucos"] is True
+    logged_in_client.post(f"/api/slides/{c['id']}/exibir")
+    assert display_state._avisos_payload["embaralhar"] is False      # embaralhar desmontaria a lista
+
+    logged_in_client.put(f"/api/slides/{c['id']}", json={**c, "automatica": False})
+    logged_in_client.post(f"/api/slides/{c['id']}/exibir")
+    logged_in_client.post("/api/slides/passo", json={"direcao": 1})
+    with app.test_request_context():
+        assert lite_estado.estado("publico")["avisos"] == ["Outubro\nDízimos: R$ 12.340,00"]
+    logged_in_client.post("/api/slides/parar")
+    _limpar_slides(app)
+
