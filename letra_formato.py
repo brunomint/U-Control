@@ -35,6 +35,24 @@ def sem_divisao(texto):
     return '\n'.join(l for l in re.split(r'\r?\n', texto) if not _DIVISAO.match(l))
 
 
+_REPETICAO = re.compile(r'(^|\s)(?:/:|:/)(?:\s+|$)')
+_SO_REPETICAO = re.compile(r'^\s*(?:(?:/:|:/)\s*)+$')
+
+
+def sem_repeticao(texto):
+    """Tira os sinais de repetição "/:" e ":/" (bis), que são para os músicos:
+    o telão do público mostra só a letra. Mesma regra de UcFormato.semRepeticao."""
+    if not texto or not isinstance(texto, str):
+        return texto
+    saida = []
+    for linha in re.split(r'\r?\n', texto):
+        if _SO_REPETICAO.match(linha):
+            continue
+        limpa = _REPETICAO.sub(r'\1', linha)
+        saida.append(linha if limpa == linha else limpa.strip())
+    return '\n'.join(saida)
+
+
 def musica_sem_formato(song):
     """Cópia da música (dict de songs_store) com a letra sem as marcações e sem as linhas "||"."""
     if not song:

@@ -18,13 +18,17 @@ import time
 TELAS = {'publico': 'public', 'monitor': 'monitor', 'vocal': 'monitor', 'cronometro': 'monitor'}
 
 
-def _linhas_da_letra(texto):
+def _linhas_da_letra(texto, publico=True):
     """Letra para o público: sem cifra, sem notas de palco (//), sem os
-    "___" de alinhamento e sem linhas vazias — como display_public.js."""
+    "___" de alinhamento, sem os sinais de repetição (/: :/) e sem linhas
+    vazias — como display_public.js."""
     from chord_lines import is_chord_line
-    from letra_formato import limpar, sem_divisao
+    from letra_formato import limpar, sem_divisao, sem_repeticao
     linhas = []
-    for linha in (sem_divisao(limpar(texto or '')) or '').split('\n'):
+    texto = sem_divisao(limpar(texto or '')) or ''
+    if publico:   # no palco (vocais) o "/:" fica: é para quem canta
+        texto = sem_repeticao(texto) or ''
+    for linha in texto.split('\n'):
         if is_chord_line(linha) or linha.strip().startswith('//'):
             continue
         linha = re.sub(r'_+', '', linha)
@@ -48,7 +52,7 @@ def _titulo_da_musica(payload):
         return ''
 
 
-def _letra(payload, como_cifra):
+def _letra(payload, como_cifra, publico=True):
     tipo = payload.get('type') or 'text'
     e = {
         'modo': 'cifra' if como_cifra else 'letra',
@@ -63,7 +67,7 @@ def _letra(payload, como_cifra):
         if payload.get('nextTitle'):
             e['a_seguir'] = payload['nextTitle']
     else:
-        e['linhas'] = _linhas_da_letra(payload.get('text'))
+        e['linhas'] = _linhas_da_letra(payload.get('text'), publico)
     if tipo == 'mixed':
         e['aviso'] = 'Esta parte tem partitura: só aparece na tela normal.'
     return e
@@ -147,7 +151,7 @@ def _conteudo(tela, so_letra=False):
         # cifra ou que seja a tela dos vocais (só letra)
         como_cifra = (tela == 'monitor' and not so_letra
                       and not (destinos._palco_sem_cifra and tipo == 'lyrics'))
-        return _letra(payload, como_cifra)
+        return _letra(payload, como_cifra, publico=tela == 'public')
     if tipo == 'bible':
         payload = display_state._last_bible_payload
         if tela == 'monitor' and display_state._last_bible_payload_monitor:

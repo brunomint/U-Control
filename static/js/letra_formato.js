@@ -63,5 +63,20 @@ window.UcFormato = (function () {
         return String(texto || '').split(/\r?\n/).filter(linha => !DIVISAO.test(linha)).join('\n');
     }
 
-    return { html, limpar, partes, semDivisao, CORES, TAMANHOS };
+    // Sinais de repetição "/:" e ":/" (bis) são para os músicos: o telão do
+    // público e o OBS mostram só a letra. Linha que era só o sinal some.
+    // Mesma regra de sem_repeticao em letra_formato.py.
+    const REPETICAO = /(^|\s)(?:\/:|:\/)(?:\s+|$)/g;
+    const SO_REPETICAO = /^\s*(?:(?:\/:|:\/)\s*)+$/;
+    function semRepeticao(texto) {
+        return String(texto || '').split(/\r?\n/)
+            .filter(linha => !SO_REPETICAO.test(linha))
+            .map(linha => {
+                const limpa = linha.replace(REPETICAO, '$1');
+                return limpa === linha ? linha : limpa.trim();
+            })
+            .join('\n');
+    }
+
+    return { html, limpar, partes, semDivisao, semRepeticao, CORES, TAMANHOS };
 })();

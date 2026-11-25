@@ -501,6 +501,41 @@ def test_links_tem_o_qr_da_versao_simples(client):
     assert 'Tablet ou iPad antigo' in client.get('/help').get_data(as_text=True)
 
 
+# ---- Sinais de repetição (/: :/) fora do telão do público ----
+
+REPETICOES = ['/: Ele era um, um dos maiorais. :/', '/:', ':/', 'Sopra /: meio da linha', 'http://site.com/:x',
+              '  /: Glória ao Rei :/ (2x)', 'Normal sem sinal', '/: :/']
+
+
+def test_sem_repeticao_igual_ao_js():
+    import json
+    import shutil
+    import subprocess
+    from letra_formato import sem_repeticao
+    texto = '\n'.join(REPETICOES)
+    py = sem_repeticao(texto)
+    assert py.split('\n') == ['Ele era um, um dos maiorais.', 'Sopra meio da linha', 'http://site.com/:x',
+                               'Glória ao Rei (2x)', 'Normal sem sinal']
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('node não instalado')
+    codigo = ("global.window = {}; require('./static/js/letra_formato.js');"
+              f"console.log(JSON.stringify(window.UcFormato.semRepeticao({json.dumps(texto)})));")
+    assert json.loads(subprocess.run([node, '-e', codigo], capture_output=True, text=True, check=True).stdout) == py
+
+
+def test_telao_simples_sem_repeticao_e_vocal_com(app, client, telao_limpo):
+    _letra_no_ar(app, 'G       D\n/: Graça sublime :/\n:/')
+    assert _estado(client, 'publico')['linhas'] == ['Graça sublime']
+    assert _estado(client, 'vocal')['linhas'] == ['/: Graça sublime :/', ':/']
+
+
+def test_telas_do_publico_usam_sem_repeticao():
+    raiz = os.path.join(os.path.dirname(__file__), '..', 'static', 'js', 'pages')
+    for pagina in ('display_public.js', 'display_obs.js'):
+        assert 'UcFormato.semRepeticao(' in open(os.path.join(raiz, pagina), encoding='utf-8').read(), pagina
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {

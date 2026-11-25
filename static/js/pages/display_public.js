@@ -24,7 +24,8 @@
         // frases"); o gate de linha inteira resolve isso de raiz.
         const formatLyrics = (text) => {
             if (!text) return '';
-            const withoutChords = ChordLines.stripChordLines(UcFormato.semDivisao(text));
+            // "/:" e ":/" (repetição) são para os músicos: aqui só a letra
+            const withoutChords = ChordLines.stripChordLines(UcFormato.semRepeticao(UcFormato.semDivisao(text)));
             // **negrito**, *itálico*, {amarelo}cor{/}, {grande}tamanho{/} (static/js/letra_formato.js);
             // o texto também passa a ir protegido (antes ia cru pro innerHTML)
             return UcFormato.html(withoutChords.split('\n')
