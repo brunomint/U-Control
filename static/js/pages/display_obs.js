@@ -57,39 +57,24 @@ function adjustFontSize() {
 
 window.addEventListener('resize', adjustFontSize);
 
-// ── Remoção de acordes (igual ao display_public.html) ────────────
-function formatLyrics(text) {
-    // Marcações de formatação (static/js/letra_formato.js) saem: a limpeza de cifra abaixo tira "/" e "#"
-    // "/:" e ":/" (repetição) saem antes: a limpeza abaixo tira a "/" e sobrava o ":"
-    const lines = UcFormato.semRepeticao(UcFormato.semDivisao(UcFormato.limpar(text))).split('\n');
-    return lines.map(line => {
-        // Remove notas privadas de palco
-        if (line.trim().startsWith('//')) return '';
+// ── Só a letra (mesma regra do telão do público, display_public.js) ──
+// Tira a linha de cifra inteira (ChordLines.stripChordLines). Antes caçava
+// acorde palavra por palavra e apagava "E" e "A" da letra ("A graça de
+// Deus" saía "graça de Deus"). Sem as marcações de formatação, notas de
+// palco (//), "___" de alinhamento e sinais de repetição (/: :/).
+function escapar(texto) {
+    return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
-        const testLine = line.replace(/[\s_]+/g, ' ').trim();
-        if (/^[A-G0-9#♯♭b°º\/\(\)+maijndugse\s]+$/i.test(testLine) && testLine.length > 0) {
-            if (!/[a-záàâãéèêíïóôõöúçñ]{5,}/i.test(testLine)) return '';
-        }
-        let cleaned = line
-            .replace(/\b([CDFGB])(?:[b#♭♯])?(?:\d+)?(?:m|maj|min|dim|aug|sus|add)?(?:\d+)?(?:\([^)]*\))?(?:\/[CDEFGAB](?:[b#♭♯])?)?\b(?![a-záàâãéèêíïóôõöúçñ])/gi, '')
-            .replace(/\(\d+\)/g, '')
-            .replace(/\s+\d+\s+/g, ' ')
-            .replace(/[#♯♭°º]/g, '')
-            .replace(/_/g, '')
-            .replace(/\(\s*\)/g, '')
-            .replace(/\[\s*\]/g, '')
-            .replace(/\|\s*[A-G](?:[b#♭♯])?(?:m|maj|min|dim|aug|sus|add)?\d*(?:\([^)]*\))?(?:\/[A-G](?:[b#♭♯])?)?\s*\|/gi, '')
-            .replace(/\|/g, '')
-            .replace(/(^|\s)([A-G])(?=\s|$)/g, '$1')
-            .replace(/\b([A-G])\/(?:[A-G](?:\d+)?(?:[b#♭♯])?)?\b/gi, '')
-            .replace(/\//g, '')
-            .replace(/\+/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        return cleaned;
-    })
-    .filter(l => l !== '')
-    .join('<br>');
+function formatLyrics(text) {
+    const letra = ChordLines.stripChordLines(
+        UcFormato.semRepeticao(UcFormato.semDivisao(UcFormato.limpar(text))));
+    return letra.split('\n')
+        .filter(line => !line.trim().startsWith('//'))
+        .map(line => line.replace(/_+/g, '').trim())
+        .filter(line => line !== '')
+        .map(escapar)
+        .join('<br>');
 }
 
 // ── SocketIO ─────────────────────────────────────────────────────

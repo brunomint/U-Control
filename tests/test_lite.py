@@ -536,6 +536,34 @@ def test_telas_do_publico_usam_sem_repeticao():
         assert 'UcFormato.semRepeticao(' in open(os.path.join(raiz, pagina), encoding='utf-8').read(), pagina
 
 
+
+def test_obs_nao_apaga_e_nem_a_da_letra(client):
+    """O OBS caçava acorde palavra por palavra e apagava "E" e "A" da letra
+    ("A graça de Deus" saía "graça de Deus"). Agora tira a linha de cifra
+    inteira, como o telão do público."""
+    import json
+    import shutil
+    import subprocess
+    assert 'js/chord_lines.js' in client.get('/lyrics/display/obs').get_data(as_text=True)
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('node não instalado')
+    texto = ('Bm       G   A         Bm\n/: Ele era um, um dos maiorais. :/\nE muito rico também\n'
+             'A graça de Deus\n// nota do palco\nG/B C B7 Em\n____Junto ao poço **estava** eu\n<b>x</b>')
+    codigo = ("const fs=require('fs'),vm=require('vm');const c={window:{}};vm.createContext(c);"
+              "vm.runInContext(fs.readFileSync('static/js/chord_lines.js','utf8'),c);"
+              "vm.runInContext(fs.readFileSync('static/js/letra_formato.js','utf8'),c);"
+              "c.UcFormato=c.window.UcFormato;c.ChordLines=c.window.ChordLines;"
+              "const s=fs.readFileSync('static/js/pages/display_obs.js','utf8');"
+              "for(const n of ['function escapar(','function formatLyrics(']){const a=s.indexOf(n);"
+              "let f=s.indexOf('{',a),k=0;for(;f<s.length;f++){if(s[f]=='{')k++;if(s[f]=='}'){k--;if(!k)break;}}"
+              "vm.runInContext(s.slice(a,f+1),c);}"
+              f"console.log(JSON.stringify(c.formatLyrics({json.dumps(texto)})));")
+    saida = json.loads(subprocess.run([node, '-e', codigo], capture_output=True, text=True, check=True).stdout)
+    assert saida.split('<br>') == ['Ele era um, um dos maiorais.', 'E muito rico também', 'A graça de Deus',
+                                   'Junto ao poço estava eu', '&lt;b&gt;x&lt;/b&gt;']
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {
