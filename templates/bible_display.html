@@ -9,6 +9,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/bible_display.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/fundo_animado.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -43,5 +44,6 @@
 {% block scripts %}
 <script src="/static/vendor/socketio/socket.io.min.js"></script>
 <script src="{{ versioned_static('js/tema_render.js') }}"></script>
+<script src="{{ versioned_static('js/fundo_animado.js') }}"></script>
 <script src="{{ versioned_static('js/pages/bible_display.js') }}"></script>
 {% endblock %}

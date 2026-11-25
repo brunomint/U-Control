@@ -201,7 +201,8 @@
             const t = temaAtual || {};
             const imagem = t.type === 'image' && t.url;
             const video = t.type === 'video' && t.url;
-            bgLayer.style.background = (t.type === 'color' && t.color) || (t.type === 'gradient' && t.css) || '#000';
+            bgLayer.style.background = (t.type === 'color' && t.color) || (t.type === 'gradient' && t.css) || (t.type === 'animado' && t.base) || '#000';
+            UcFundoAnimado.montar(bgLayer, t.type === 'animado' ? t : null);   // mesmo fundo: não recomeça
             if (imagem) {
                 if (bgImg.getAttribute('src') !== t.url) bgImg.src = t.url;
                 bgImg.style.display = 'block';
@@ -280,6 +281,7 @@
         function mostrarFundo(sim) {
             fundoVisivel = sim;
             bgLayer.style.display = sim ? 'block' : 'none';
+            UcFundoAnimado.pausar(bgLayer, !sim);
             if (sim && bgVideo.getAttribute('src')) bgVideo.play().catch(() => {});
             else bgVideo.pause();
         }

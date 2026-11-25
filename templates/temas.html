@@ -10,6 +10,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{{ versioned_static('css/pages/temas.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/fundo_animado.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -88,6 +89,7 @@ Na cidade do nosso Deus</textarea>
                         <button type="button" data-fundo="gradient" role="tab">{{ _('Degradê') }}</button>
                         <button type="button" data-fundo="image" role="tab">{{ _('Imagem') }}</button>
                         <button type="button" data-fundo="video" role="tab">{{ _('Vídeo') }}</button>
+                        <button type="button" data-fundo="animado" role="tab">{{ _('Animado') }}</button>
                     </div>
                     <div class="tm-fundo-painel" data-painel="color">
                         <input type="color" id="tm-fundo-cor" value="#000000" aria-label="{{ _('Cor do fundo') }}">
@@ -104,6 +106,30 @@ Na cidade do nosso Deus</textarea>
                     <div class="tm-fundo-painel" data-painel="video">
                         <div id="tm-videos-escolha" class="tm-midias"></div>
                         <p class="tm-dica">{{ _('Envie vídeos em "Vídeos de fundo", mais abaixo.') }}</p>
+                    </div>
+                    <div class="tm-fundo-painel tm-animado" data-painel="animado">
+                        <p class="tm-dica">{{ _('Luzes que se movem devagar atrás da letra. Leve: não usa vídeo.') }}</p>
+                        <div class="tm-controle">{{ _('Estilo') }}
+                            <div class="tm-segmentos" id="tm-anim-estilo">
+                                <button type="button" data-valor="luzes">{{ _('Luzes') }}</button>
+                                <button type="button" data-valor="aurora">{{ _('Aurora') }}</button>
+                                <button type="button" data-valor="respirar">{{ _('Respirar') }}</button>
+                                <button type="button" data-valor="estrelas">{{ _('Estrelas') }}</button>
+                            </div>
+                        </div>
+                        <div class="tm-linha">
+                            <label class="tm-controle tm-cor">{{ _('Luz 1') }} <input type="color" id="tm-anim-cor1"></label>
+                            <label class="tm-controle tm-cor">{{ _('Luz 2') }} <input type="color" id="tm-anim-cor2"></label>
+                            <label class="tm-controle tm-cor">{{ _('Luz 3') }} <input type="color" id="tm-anim-cor3"></label>
+                            <label class="tm-controle tm-cor">{{ _('Fundo') }} <input type="color" id="tm-anim-base"></label>
+                        </div>
+                        <div class="tm-controle">{{ _('Velocidade') }}
+                            <div class="tm-segmentos" id="tm-anim-velocidade">
+                                <button type="button" data-valor="lenta">{{ _('Lenta') }}</button>
+                                <button type="button" data-valor="normal">{{ _('Normal') }}</button>
+                                <button type="button" data-valor="rapida">{{ _('Rápida') }}</button>
+                            </div>
+                        </div>
                     </div>
                     <label class="tm-controle" id="tm-escurecer-linha">{{ _('Escurecer a imagem ou o vídeo') }} <output id="tm-escurecer-valor">0%</output>
                         <input type="range" id="tm-escurecer" min="0" max="80" step="5" value="0">
@@ -227,5 +253,6 @@ Na cidade do nosso Deus</textarea>
 
 {% block scripts %}
 <script src="{{ versioned_static('js/tema_render.js') }}"></script>
+<script src="{{ versioned_static('js/fundo_animado.js') }}"></script>
 <script src="{{ versioned_static('js/pages/temas.js') }}"></script>
 {% endblock %}

@@ -84,6 +84,8 @@ window.UcTema = (function () {
         if (!fundo) return '#000';
         if (fundo.type === 'color') return fundo.color;
         if (fundo.type === 'gradient') return fundo.css;
+        // Animado: a versão parada (as luzes em si: static/js/fundo_animado.js)
+        if (fundo.type === 'animado') return window.UcFundoAnimado ? UcFundoAnimado.css(fundo) : (fundo.base || '#000');
         return '#000';
     }
 

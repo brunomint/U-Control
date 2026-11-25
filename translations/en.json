@@ -1909,5 +1909,16 @@
   "O Controle não conseguiu abrir.": "The Control page couldn't open it.",
   "Versão simples (aparelho antigo)": "Simple version (old device)",
   "Tablet ou iPad antigo": "Old tablet or iPad",
-  "Transmissão (OBS)": "Streaming (OBS)"
+  "Transmissão (OBS)": "Streaming (OBS)",
+  "Luzes que se movem devagar atrás da letra. Leve: não usa vídeo.": "Lights that slowly move behind the lyrics. Lightweight: no video.",
+  "Estilo": "Style",
+  "Luzes": "Lights",
+  "Respirar": "Breathe",
+  "Estrelas": "Stars",
+  "Luz 1": "Light 1",
+  "Luz 2": "Light 2",
+  "Luz 3": "Light 3",
+  "Lenta": "Slow",
+  "Normal": "Normal",
+  "Rápida": "Fast"
 }

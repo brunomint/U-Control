@@ -130,6 +130,7 @@ function aplicarTemaBiblia(tema) {
     if (ehMonitorBiblia || !tema) {
         document.body.classList.remove('com-tema');
         camada.hidden = true;
+        UcFundoAnimado.desmontar(camada);
         video.pause();
         video.removeAttribute('src');
         textos.forEach(el => limpar(el, ['fontFamily', 'fontWeight', 'fontStyle', 'color', 'textTransform', 'textShadow', 'lineHeight', 'textAlign']));
@@ -143,6 +144,7 @@ function aplicarTemaBiblia(tema) {
     document.body.classList.add('com-tema');
     camada.hidden = false;
     camada.style.background = UcTema.fundoCss(f);
+    UcFundoAnimado.montar(camada, f);
     const ehImagem = f.type === 'image' && f.url, ehVideo = f.type === 'video' && f.url;
     img.hidden = !ehImagem;
     if (ehImagem && img.getAttribute('src') !== f.url) img.src = f.url;

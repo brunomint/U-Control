@@ -55,6 +55,12 @@ TEXTO_PADRAO = {
 
 FUNDO_PADRAO = {'type': 'color', 'color': '#000000'}
 
+# Fundo animado (static/js/fundo_animado.js, os mesmos nomes)
+ESTILOS_ANIMADOS = ('luzes', 'aurora', 'respirar', 'estrelas')
+VELOCIDADES = ('lenta', 'normal', 'rapida')
+ANIMADO_PADRAO = {'type': 'animado', 'estilo': 'luzes', 'cores': ['#4c1d95', '#0e7490', '#1e3a8a'],
+                  'base': '#05050c', 'velocidade': 'normal'}
+
 # Troca de um slide da letra para o próximo (só no telão do público).
 # "nenhuma" é o que o telão sempre fez: troca na hora.
 TRANSICOES = ('nenhuma', 'fade', 'deslizar', 'zoom')
@@ -110,6 +116,16 @@ def normalizar_fundo(fundo):
         limpo = {'type': 'gradient', 'css': fundo['css'][:300]}
     elif tipo in ('image', 'video') and isinstance(fundo.get('url'), str) and fundo['url'].startswith('/static/'):
         limpo = {'type': tipo, 'url': fundo['url'][:500]}
+    elif tipo == 'animado':
+        # Luzes que se movem (static/js/fundo_animado.js): estilo, 3 cores e a base
+        cores = [c for c in (fundo.get('cores') or []) if isinstance(c, str) and _COR.match(c)][:3]
+        cores += ANIMADO_PADRAO['cores'][len(cores):]
+        base = fundo.get('base')
+        limpo = {'type': 'animado',
+                 'estilo': fundo.get('estilo') if fundo.get('estilo') in ESTILOS_ANIMADOS else ANIMADO_PADRAO['estilo'],
+                 'cores': cores,
+                 'base': base if isinstance(base, str) and _COR.match(base) else ANIMADO_PADRAO['base'],
+                 'velocidade': fundo.get('velocidade') if fundo.get('velocidade') in VELOCIDADES else 'normal'}
     if limpo and tipo in ('image', 'video'):
         escurecer = _numero(fundo.get('escurecer'), 0, 80, 0)
         if escurecer:

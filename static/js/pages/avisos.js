@@ -44,6 +44,7 @@
         const f = t.fundo || {};
         const img = $('av-previa-img'), video = $('av-previa-video');
         $('av-previa-fundo').style.background = UcTema.fundoCss(f);
+        UcFundoAnimado.montar($('av-previa-fundo'), f);
         img.hidden = !(f.type === 'image' && f.url);
         video.hidden = !(f.type === 'video' && f.url);
         if (!img.hidden && img.getAttribute('src') !== f.url) img.src = f.url;

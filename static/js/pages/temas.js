@@ -20,6 +20,7 @@
         const f = atual.fundo || { type: 'color', color: '#000000' };
         const img = $('tm-previa-img'), video = $('tm-previa-video');
         $('tm-previa-fundo').style.background = UcTema.fundoCss(f);
+        UcFundoAnimado.montar($('tm-previa-fundo'), f);
         img.hidden = !(f.type === 'image' && f.url);
         video.hidden = !(f.type === 'video' && f.url);
         if (!img.hidden && img.getAttribute('src') !== f.url) img.src = f.url;
@@ -69,6 +70,7 @@
         marcarSegmento('tm-posicao', t.posicao);
         const f = atual.fundo || {};
         if (f.type === 'color') $('tm-fundo-cor').value = f.color;
+        preencherAnimado(f.type === 'animado' ? f : ANIMADO_PADRAO);
         const e = Number(f.escurecer) || 0;
         $('tm-escurecer').value = e;
         $('tm-escurecer-valor').textContent = e + '%';
@@ -138,6 +140,34 @@
             mudou();
         }
     });
+
+    // Animado (static/js/fundo_animado.js): estilo, 3 luzes, base e velocidade
+    const ANIMADO_PADRAO = { type: 'animado', estilo: 'luzes', cores: ['#4c1d95', '#0e7490', '#1e3a8a'], base: '#05050c', velocidade: 'normal' };
+    function preencherAnimado(f) {
+        marcarSegmento('tm-anim-estilo', f.estilo);
+        marcarSegmento('tm-anim-velocidade', f.velocidade);
+        [0, 1, 2].forEach(i => { $('tm-anim-cor' + (i + 1)).value = f.cores[i]; });
+        $('tm-anim-base').value = f.base;
+    }
+    function animadoDoFormulario(mudanca) {
+        const f = atual.fundo && atual.fundo.type === 'animado' ? atual.fundo : ANIMADO_PADRAO;
+        return Object.assign({}, f, {
+            cores: [1, 2, 3].map(i => $('tm-anim-cor' + i).value),
+            base: $('tm-anim-base').value,
+        }, mudanca);
+    }
+    // Abrir a aba já põe o animado (o que estava escolhido ou o padrão)
+    document.querySelector('.tm-abas [data-fundo="animado"]').addEventListener('click', () => {
+        if (atual && (!atual.fundo || atual.fundo.type !== 'animado')) trocarFundo(animadoDoFormulario({}));
+    });
+    [['tm-anim-estilo', 'estilo'], ['tm-anim-velocidade', 'velocidade']].forEach(([id, chave]) => {
+        $(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+            marcarSegmento(id, b.dataset.valor);
+            trocarFundo(animadoDoFormulario({ [chave]: b.dataset.valor }));
+        }));
+    });
+    ['tm-anim-cor1', 'tm-anim-cor2', 'tm-anim-cor3', 'tm-anim-base'].forEach(id =>
+        $(id).addEventListener('input', () => trocarFundo(animadoDoFormulario({}))));
 
     function marcarMidiaAtiva() {
         const url = atual && atual.fundo ? atual.fundo.url : null;

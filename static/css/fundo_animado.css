@@ -1,0 +1,67 @@
+/* Fundo animado dos temas (static/js/fundo_animado.js).
+   Só transform e opacity nas animações: a placa de vídeo cuida, sem
+   redesenhar a tela. Tamanhos em % do contêiner: o mesmo visual no telão
+   e nas prévias pequenas. --uc-fa-vel multiplica as durações. */
+.uc-fa {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  --uc-fa-vel: 1;
+}
+.uc-fa-pausado *, .uc-fa-pausado { animation-play-state: paused !important; }
+
+.uc-fa-bolha {
+  position: absolute;
+  width: 85%;
+  height: 151%;           /* 85% da largura numa tela 16:9: um círculo */
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--uc-fa-cor), transparent);
+  opacity: 0.85;
+  will-change: transform;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+/* Luzes: três luzes passeando */
+.uc-fa-luzes .uc-fa-b1 { left: -25%; top: -60%; animation-name: uc-fa-vagar1; animation-duration: calc(23s * var(--uc-fa-vel)); }
+.uc-fa-luzes .uc-fa-b2 { left: 40%;  top: -5%;  animation-name: uc-fa-vagar2; animation-duration: calc(29s * var(--uc-fa-vel)); }
+.uc-fa-luzes .uc-fa-b3 { left: 5%;   top: 10%;  animation-name: uc-fa-vagar3; animation-duration: calc(35s * var(--uc-fa-vel)); opacity: 0.6; }
+
+@keyframes uc-fa-vagar1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(45%, 30%) scale(1.2); } }
+@keyframes uc-fa-vagar2 { from { transform: translate(0, 0) scale(1.1); } to { transform: translate(-40%, -25%) scale(0.9); } }
+@keyframes uc-fa-vagar3 { from { transform: translate(-10%, 20%) scale(0.8); } to { transform: translate(30%, -20%) scale(1.15); } }
+
+/* Aurora: faixas largas ondulando de lado */
+.uc-fa-aurora .uc-fa-bolha { width: 170%; height: 110%; left: -35%; opacity: 0.75; }
+.uc-fa-aurora .uc-fa-b1 { top: -45%; animation-name: uc-fa-onda1; animation-duration: calc(19s * var(--uc-fa-vel)); }
+.uc-fa-aurora .uc-fa-b2 { top: -5%;  animation-name: uc-fa-onda2; animation-duration: calc(25s * var(--uc-fa-vel)); }
+.uc-fa-aurora .uc-fa-b3 { top: 40%;  animation-name: uc-fa-onda1; animation-duration: calc(31s * var(--uc-fa-vel)); opacity: 0.5; }
+
+@keyframes uc-fa-onda1 { from { transform: translateX(-15%) scaleY(0.7) rotate(-4deg); } to { transform: translateX(15%) scaleY(1.1) rotate(3deg); } }
+@keyframes uc-fa-onda2 { from { transform: translateX(12%) scaleY(1) rotate(3deg); opacity: 0.45; } to { transform: translateX(-12%) scaleY(0.75) rotate(-3deg); opacity: 0.85; } }
+
+/* Respirar: uma luz no centro que cresce e diminui, com outras duas em volta */
+.uc-fa-respirar .uc-fa-b1 { left: 7.5%; top: -25%; animation-name: uc-fa-pulso; animation-duration: calc(9s * var(--uc-fa-vel)); }
+.uc-fa-respirar .uc-fa-b2 { left: -45%; top: -10%; animation-name: uc-fa-vagar2; animation-duration: calc(31s * var(--uc-fa-vel)); opacity: 0.5; }
+.uc-fa-respirar .uc-fa-b3 { left: 60%;  top: -40%; animation-name: uc-fa-vagar3; animation-duration: calc(37s * var(--uc-fa-vel)); opacity: 0.45; }
+
+@keyframes uc-fa-pulso { from { transform: scale(0.75); opacity: 0.55; } to { transform: scale(1.15); opacity: 0.95; } }
+
+/* Estrelas: pontos piscando devagar sobre duas luzes fracas */
+.uc-fa-estrelas .uc-fa-bolha { opacity: 0.45; }
+.uc-fa-estrelas .uc-fa-b1 { left: -20%; top: -50%; animation-name: uc-fa-vagar1; animation-duration: calc(41s * var(--uc-fa-vel)); }
+.uc-fa-estrelas .uc-fa-b2 { left: 45%;  top: 0;    animation-name: uc-fa-vagar2; animation-duration: calc(47s * var(--uc-fa-vel)); }
+.uc-fa-estrela {
+  position: absolute;
+  height: 0;
+  border-radius: 50%;
+  opacity: 0.2;
+  will-change: opacity;
+  animation-name: uc-fa-piscar;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+@keyframes uc-fa-piscar { from { opacity: 0.1; } to { opacity: 0.9; } }
