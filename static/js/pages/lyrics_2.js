@@ -334,6 +334,13 @@ let currentTheme = CONFIG.theme;
             ? UcFormato.partes(rawSectionText(sections[index])).length : 1;
         function avancar() {
             const idx = passos[passoAtual];
+            // Música recém-aberta (nada dela no ar): o 1º "próximo" mostra a
+            // seção onde o operador está, em vez de pular pra seguinte
+            if (semNadaNoAr) {
+                manterParte = true;
+                loadSection(idx !== undefined ? idx : currentSectionIndex);
+                return true;
+            }
             if (idx === currentSectionIndex && parteAtual < partesDe(idx) - 1) {
                 parteAtual++;
                 manterParte = true;
@@ -344,6 +351,11 @@ let currentTheme = CONFIG.theme;
         }
         function voltar() {
             const idx = passos[passoAtual];
+            if (semNadaNoAr) {
+                manterParte = true;
+                loadSection(idx !== undefined ? idx : currentSectionIndex);
+                return true;
+            }
             if (idx === currentSectionIndex && parteAtual > 0) {
                 parteAtual--;
                 manterParte = true;
@@ -491,7 +503,9 @@ let currentTheme = CONFIG.theme;
         function refreshAfterTranspose() {
             $('#sections-list').empty();
             createSectionLinks();
-            highlightActiveSection(currentSectionIndex);
+            // Nada desta música no ar: muda o tom só na tela do operador
+            const silencioso = semNadaNoAr;
+            highlightActiveSection(currentSectionIndex, silencioso);
             updateTomDisplay();
             saveTransposeOffset();
             // fromRemote=true: reenvia sem re-emitir section_changed (a seção
@@ -499,7 +513,7 @@ let currentTheme = CONFIG.theme;
             // (false) DE PROPÓSITO — isto é uma ação real do operador (mudou
             // o tom), precisa preparar de novo, diferente do resync de
             // section_changed de outra aba (ver loadSection/socket.on acima).
-            loadSection(currentSectionIndex, true);
+            loadSection(currentSectionIndex, true, silencioso);
         }
 
         window.transposeStep = function(semitones) {
@@ -888,7 +902,9 @@ $('#clear-lyrics').click(function() {
                 console.log(`✅ Seção ${index} carregada:`, section.title);
             }
             
-            highlightActiveSection(index);
+            // silent (abrir a música / restaurar): marca onde o operador está,
+            // mas só fica vermelha (no ar) se o telão estiver mesmo nela
+            highlightActiveSection(index, silent);
             currentSectionIndex = index; // Atualiza o índice da seção atual
             renderFaixa();
             
@@ -937,13 +953,40 @@ $('#clear-lyrics').click(function() {
             el.textContent = _t('Público: parte {n} de {total}', { n: parte + 1, total });
         }
 
-        function highlightActiveSection(index) {
+        // A seção vermelha é a que está no ar. Abrir outra música (a anunciada)
+        // carregava a 1ª seção em silêncio e já a pintava de vermelho, sem ela
+        // estar no telão — e a seta "próximo" pulava direto pra 2ª seção.
+        // Agora: em silêncio, cor normal; o primeiro "próximo" mostra ela.
+        let semNadaNoAr = false;
+
+        function marcarNoAr(activeSection) {
+            activeSection.addClass('active');
+            activeSection.find(`.parte-bloco[data-parte="${parteAtual}"]`).addClass('no-ar');
+        }
+
+        // Página aberta/recarregada no meio da música: a seção que o telão
+        // mostra continua vermelha
+        function conferirNoAr(index, activeSection) {
+            fetch('/api/current-display').then(r => r.json()).then(d => {
+                if (!d || d.mode !== 'lyrics' || String(d.songId) !== String(songId)) return;
+                if (Number(d.sectionIndex) !== index || currentSectionIndex !== index || !semNadaNoAr) return;
+                semNadaNoAr = false;
+                marcarNoAr(activeSection);
+            }).catch(() => {});
+        }
+
+        function highlightActiveSection(index, silencioso = false) {
             $('.section-link').removeClass('active');
+            $('.parte-bloco').removeClass('no-ar');
             // Com ordem: o cartão do passo atual (o mesmo Coro aparece várias vezes)
             const activeSection = temOrdem ? $(`.section-link[data-passo="${passoAtual}"]`) : $(`.section-link[data-index="${index}"]`);
-            activeSection.addClass('active');
-            $('.parte-bloco').removeClass('no-ar');
-            activeSection.find(`.parte-bloco[data-parte="${parteAtual}"]`).addClass('no-ar');
+            if (silencioso) {
+                semNadaNoAr = true;
+                conferirNoAr(index, activeSection);
+            } else {
+                semNadaNoAr = false;
+                marcarNoAr(activeSection);
+            }
             
             // Scroll automático para manter a seção ativa visível na tela
             if (activeSection.length) {
