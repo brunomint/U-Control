@@ -5,7 +5,9 @@
 // O mesmo código no telão do público, na Bíblia e nas prévias (temas, avisos).
 window.UcFundoAnimado = (function () {
     const ESTILOS = ['luzes', 'aurora', 'respirar', 'estrelas'];
-    const VELOCIDADES = { lenta: 1.7, normal: 1, rapida: 0.55 };
+    // Multiplica as durações do CSS. Antes 1,7/1/0,55: lento demais, ninguém
+    // via mexer (medido 25/11: 'lenta' mudava ~1/255 da tela em 5 s)
+    const VELOCIDADES = { lenta: 0.8, normal: 0.45, rapida: 0.25 };
     const ESTRELAS = 70;
 
     function div(classe, estilo) {
