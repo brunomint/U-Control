@@ -68,6 +68,10 @@ def _letra(payload, como_cifra, publico=True):
             e['a_seguir'] = payload['nextTitle']
     else:
         e['linhas'] = _linhas_da_letra(payload.get('text'), publico)
+        if publico and not e['linhas']:
+            # Parte sem letra (introdução, solo): capa com título e autor, como o telão
+            e['modo'] = 'capa'
+            e['autor'] = payload.get('autor') or ''
     if tipo == 'mixed':
         e['aviso'] = 'Esta parte tem partitura: só aparece na tela normal.'
     return e

@@ -198,3 +198,8 @@ html, body {
     padding: 0 4vw; pointer-events: none;
 }
 #song-credits[hidden] { display: none; }
+
+/* Capa da música na parte sem letra (introdução, solo, final): título e
+   autor no lugar da letra, com a cor e a fonte do tema (display_public.js) */
+#section-text .capa-musica { line-height: 1.15; }
+#section-text .capa-autor { font-size: .45em; font-weight: 700; opacity: .85; margin-top: .4em; }

@@ -36,7 +36,28 @@ function refreshVisibility() {
 }
 
 // ── Utilitários ──────────────────────────────────────────────────
+// Introdução/solo (parte sem letra): o nome da música numa legenda pequena
+// no pé da tela, por alguns segundos — a câmera mostra a banda tocando e
+// uma capa grande taparia a imagem
+const LEGENDA_MS = 8000;
+let legendaTimer = null;
+
+function esconderLegenda() {
+    clearTimeout(legendaTimer);
+    document.getElementById('legenda').classList.remove('visivel');
+}
+
+function mostrarLegenda(musica, autor) {
+    esconderLegenda();
+    if (!musica || lyricsHidden) return;
+    document.getElementById('legenda-musica').textContent = musica;
+    document.getElementById('legenda-autor').textContent = autor || '';
+    document.getElementById('legenda').classList.add('visivel');
+    legendaTimer = setTimeout(esconderLegenda, LEGENDA_MS);
+}
+
 function setContent(html) {
+    esconderLegenda();
     document.getElementById('section-text').innerHTML = html;
     hasContent = !!html;
     adjustFontSize();
@@ -100,7 +121,9 @@ function setBibleLabels(reference, version) {
 
 socket.on('update_lyrics', (data) => {
     setBibleLabels(null, null); // referência/versão são só de Bíblia
-    setContent(formatLyrics(data.textoPublico || data.text || ''));   // divisão "||": só a parte
+    const letra = formatLyrics(data.textoPublico || data.text || '');   // divisão "||": só a parte
+    setContent(letra);
+    if (!letra) mostrarLegenda(data.musica, data.autor);
 });
 
 socket.on('update_bible', (data) => {
@@ -120,6 +143,7 @@ socket.on('update_bible', (data) => {
 
 socket.on('lyrics_visibility_changed', (data) => {
     lyricsHidden = !data.visible;
+    if (lyricsHidden) esconderLegenda();
     refreshVisibility();
 });
 

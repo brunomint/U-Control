@@ -767,6 +767,10 @@ $('#clear-lyrics').click(function() {
                 nextTitle: nextSec ? nextSec.title : null,
                 nextText: nextClean,
                 ficha: FICHA,
+                // Capa da música (título e autor) no telão e no OBS quando a
+                // parte não tem letra: introdução, solo, final
+                musica: CONFIG.title || '',
+                autor: CONFIG.author || '',
                 orderDate: CONFIG.orderDate || null,  // tema do culto (temas_store.resolver)
                 creditos: CREDITOS && (passo <= 0 || passo === passos.length - 1) ? CREDITOS : null,
             };

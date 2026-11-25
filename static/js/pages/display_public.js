@@ -5,9 +5,18 @@
         socket.on('connect', () => socket.emit('identify', {
             role: new URLSearchParams(location.search).get('host') === 'monitor' ? 'monitor' : 'public' }));
     
-        const updateLyricsDisplay = (title, text, songId) => {
+        const escaparHtml = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // Parte sem letra (introdução, solo, final): em vez da tela vazia, a
+        // capa da música com título e autor, no estilo do tema
+        const capaDaMusica = capa => !capa || !capa.musica ? '' :
+            `<div class="capa-musica">${escaparHtml(capa.musica)}</div>` +
+            (capa.autor ? `<div class="capa-autor">${escaparHtml(capa.autor)}</div>` : '');
+
+        const updateLyricsDisplay = (title, text, songId, capa) => {
             $('#section-title').text(title);
-            $('#section-text').html(formatLyrics(text));
+            const letra = formatLyrics(text);
+            $('#section-text').html(letra || capaDaMusica(capa));
             saveToLocalStorage(title, text, songId);
             // Referência/versão são só de Bíblia — some ao voltar pra música.
             document.getElementById('bible-reference').style.display = 'none';
@@ -96,7 +105,7 @@
                         exibirAvisos(data);
                     } else if (data && data.mode === 'lyrics' && data.title) {
                         aplicarTemaCompleto(data);  // antes o fundo sumia ao recarregar o telão
-                        updateLyricsDisplay(data.title, data.textoPublico || data.text || '', data.id || null);
+                        updateLyricsDisplay(data.title, data.textoPublico || data.text || '', data.id || null, data);
                     } else if (data && data.mode === 'image' && data.image_url) {
                         if (data.is_static) { showImage(data.image_url, data.zoom); }
                         // Rota da letra/cifra: mostra a letra aqui mesmo (abrir
@@ -456,7 +465,7 @@
             showLyricsView();
             const trocar = () => {
                 aplicarTemaCompleto(data);  // antes do texto: o tamanho da letra depende do estilo
-                updateLyricsDisplay(data.title, textoTela, data.id);
+                updateLyricsDisplay(data.title, textoTela, data.id, data);
                 const creditos = document.getElementById('song-credits');
                 creditos.textContent = data.creditos || '';
                 creditos.hidden = !data.creditos;

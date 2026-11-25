@@ -101,6 +101,17 @@
         conteudo.appendChild(bloco);
     }
 
+    // Parte sem letra (introdução, solo): título e autor da música
+    function desenharCapa(e) {
+        var bloco = el('div', 'lite-caber lite-letra');
+        bloco.appendChild(texto(e.musica || ''));
+        if (e.autor) {
+            var autor = el('div', 'lite-capa-autor', e.autor);
+            bloco.appendChild(autor);
+        }
+        conteudo.appendChild(bloco);
+    }
+
     function desenharBiblia(e) {
         var bloco = el('div', 'lite-caber lite-biblia');
         bloco.appendChild(el('div', 'lite-biblia-texto', e.texto));
@@ -183,6 +194,8 @@
             desenharLetra(e);
         } else if (e.modo === 'cifra') {
             desenharCifra(e);
+        } else if (e.modo === 'capa') {
+            desenharCapa(e);
         } else if (e.modo === 'biblia') {
             desenharBiblia(e);
         } else if (e.modo === 'imagem') {

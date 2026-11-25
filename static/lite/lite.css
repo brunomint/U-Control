@@ -307,3 +307,4 @@ body.lite-neutra-branca .lite-trocar { color: #ccc; }
 .lite-escolha { display: inline-block; margin: 8px 18px 0 0; font-weight: bold; }
 .lite-recado .uc-input { margin-bottom: 4px; }
 .lite-recado { margin-bottom: 10px; }
+.lite-capa-autor { font-size: .45em; opacity: .85; margin-top: .4em; }

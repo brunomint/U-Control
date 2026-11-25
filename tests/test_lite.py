@@ -564,6 +564,26 @@ def test_obs_nao_apaga_e_nem_a_da_letra(client):
                                    'Junto ao poço estava eu', '&lt;b&gt;x&lt;/b&gt;']
 
 
+
+def test_capa_na_parte_sem_letra(app, client, telao_limpo):
+    """Introdução/solo (só cifra ou nota): o telão mostra título e autor."""
+    import display_state
+    _letra_no_ar(app, 'G  D  Em  C\n// Intr. (2x)')
+    display_state._last_lyrics_payload['autor'] = 'Asaph Borba'
+    pub = _estado(client, 'publico')
+    assert pub['modo'] == 'capa' and pub['musica'] == 'Hino Lite' and pub['autor'] == 'Asaph Borba'
+    assert _estado(client, 'monitor')['modo'] == 'cifra'     # o palco continua com a cifra
+
+
+def test_capa_no_telao_e_legenda_no_obs():
+    raiz = os.path.join(os.path.dirname(__file__), '..', 'static', 'js', 'pages')
+    lyrics = open(os.path.join(raiz, 'lyrics_2.js'), encoding='utf-8').read()
+    assert "musica: CONFIG.title" in lyrics and "autor: CONFIG.author" in lyrics
+    assert 'capaDaMusica(' in open(os.path.join(raiz, 'display_public.js'), encoding='utf-8').read()
+    obs = open(os.path.join(raiz, 'display_obs.js'), encoding='utf-8').read()
+    assert 'mostrarLegenda(data.musica, data.autor)' in obs and 'LEGENDA_MS = 8000' in obs
+
+
 # ---- Regras da seção 4 do plano (sem rede: só lendo os arquivos) ----
 
 CSS_PROIBIDO = {
