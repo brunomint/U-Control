@@ -593,9 +593,12 @@ function renderPreview() {
     url1 = comoMonitor(url1);
     url2 = comoMonitor(url2);
     const norm = u => (u && u.startsWith('/static/') ? '/img' : (u || 'about:blank'));
+    // A cifra do palco muda o &section= a cada seção (servidor), mas a página
+    // já acompanha pelo tempo real: só recarrega se mudar OUTRA coisa
+    const semSecao = u => String(u || '').replace(/([?&])(section|passo)=\d+&?/g, '$1').replace(/[?&]$/, '');
     const f1 = document.getElementById('iframe1');
     const f2 = document.getElementById('iframe2');
-    if (url1 && (f1.getAttribute('src') !== norm(url1) || f2.getAttribute('src') !== norm(url2))) {
+    if (url1 && (semSecao(f1.getAttribute('src')) !== semSecao(norm(url1)) || semSecao(f2.getAttribute('src')) !== semSecao(norm(url2)))) {
         updateIframes(url1, url2);
     }
     // Cifra (vista do público): o público vê a letra e o palco a cifra —

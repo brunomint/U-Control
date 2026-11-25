@@ -168,6 +168,26 @@ def mostrar_se_escondido():
     emit('lyrics_visibility_changed', {'visible': True}, broadcast=True)
 
 
+def _cifra_do_palco_em_dia(data):
+    """O palco mostrando a cifra guarda o endereço dela com a seção
+    (telao._monitor, &section=…). Ele era gravado ao tocar "Cifra" e não
+    mudava mais: toda tela que recarregava (a prévia do palco no Controle ao
+    alternar Público/Palco, o /monitor) abria naquela seção antiga. Agora a
+    seção que foi ao palco atualiza o endereço."""
+    import telao
+    from blueprints.display import _url_cifra_monitor
+    m = telao._monitor
+    if not m or data.get('songId') is None or data.get('sectionIndex') is None:
+        return
+    nova = _url_cifra_monitor(data)
+    if m.get('kind') == 'cifra':
+        m['url'] = nova
+    elif m.get('kind') == 'split':
+        for lado in ('url1', 'url2'):
+            if telao.kind_of_url(m.get(lado, '')) == 'cifra':
+                m[lado] = nova
+
+
 # Evento WebSocket para transmitir letras de músicas
 @socketio.on('update_lyrics')
 def handle_update_lyrics(data):
@@ -181,6 +201,9 @@ def handle_update_lyrics(data):
         for sid in _get_monitor_sids():
             emit('update_lyrics', data, to=sid)
         display_state._last_lyrics_payload_monitor = data
+        _cifra_do_palco_em_dia(data)
+        import telao
+        telao.broadcast_status()
         return
     if efetivo == 'public':
         data = {**data, 'exclude_monitor': True}
@@ -219,6 +242,8 @@ def handle_update_lyrics(data):
     except Exception:
         logger.exception('Falha ao persistir last_payload de update_lyrics')
     emit('update_lyrics', data, broadcast=True, skip_sid=_skip_sids(data))
+    if not data.get('exclude_monitor'):
+        _cifra_do_palco_em_dia(data)   # o palco recebeu esta seção
     telao.set_public('lyrics', '/lyrics/display/public')
     telao.broadcast_status()
 

@@ -524,3 +524,23 @@ def test_escolhas_das_telas_sobrevivem_a_um_reinicio(app, bruno_e_vitor, tmp_pat
     assert destinos._palco_na_biblia
     assert telao._monitor and telao._monitor['url'] == '/bible/display'
     bruno.connect(); vitor.connect()   # o fixture desconecta no fim
+
+
+def test_endereco_da_cifra_do_palco_acompanha_a_secao(app, bruno_e_vitor):
+    """Visto no culto (24/11): o palco na Cifra guardava &section= de quando
+    o operador tocou "Cifra"; a prévia do palco, ao recarregar, voltava pro
+    1º verso. Agora cada seção que vai ao palco atualiza o endereço."""
+    from extensions import socketio
+    bruno, _, _, _ = bruno_e_vitor
+    monitor = socketio.test_client(app)
+    monitor.emit('identify', {'role': 'monitor'})
+    try:
+        bruno.emit('set_display_mode', {'mode': 'all'})
+        bruno.emit('seguir_passagem', {'tela': 'monitor', 'ligado': True})
+        _secao(bruno, 0)
+        bruno.emit('show_image', {'image_url': '/lyrics/display', 'exclude_monitor': False})
+        assert telao._monitor['kind'] == 'cifra'
+        _secao(bruno, 2)
+        assert '&section=2&' in telao._monitor['url'] + '&'
+    finally:
+        monitor.disconnect()
