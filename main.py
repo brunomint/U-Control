@@ -218,6 +218,9 @@ def create_app(config=None):
     app.register_blueprint(agenda_bp)
     app.register_blueprint(app_equipe_bp)
     app.register_blueprint(lite_bp)
+    # Busca de músicas: índice em memória refeito quando uma música muda
+    import busca_musicas
+    busca_musicas.ligar_eventos()
     app.register_blueprint(logo_igreja_bp)
     app.register_blueprint(lyrics_bp)
     app.register_blueprint(display_bp)
@@ -366,29 +369,10 @@ def api_songs_search():
     de propósito: o JSON é serializado com ensure_ascii=True por padrão,
     então "música" vira "m\\u00fasica" no texto salvo — um LIKE '%música%'
     não bateria com acento nenhum. Carregar e comparar em Python evita
-    esse problema."""
-    from sqlalchemy.orm import selectinload
-    from models_songs import Song
-
-    query = (request.args.get('q') or '').strip().lower()
-    if not query:
-        return jsonify([])
-
-    songs = Song.query.options(selectinload(Song.sections)).order_by(Song.title.asc()).all()
-    results = []
-    for song in songs:
-        if query in song.title.lower() or query in song.author.lower():
-            results.append({'id': song.id, 'title': song.title, 'author': song.author})
-            continue
-        for section in song.sections:
-            texto = '\n'.join(section.text or [])
-            if query in texto.lower():
-                results.append({'id': song.id, 'title': song.title, 'author': song.author})
-                break
-        if len(results) >= 30:
-            break
-
-    return jsonify(results)
+    esse problema. Hoje a busca é no índice em memória de busca_musicas.py
+    (sem acento, refeito quando uma música muda)."""
+    import busca_musicas
+    return jsonify(busca_musicas.buscar(request.args.get('q') or '', limite=30))
 
 @app.route('/view/<int:song_id>')
 def view_song(song_id):

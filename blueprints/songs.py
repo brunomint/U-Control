@@ -306,27 +306,7 @@ def delete_song(song_id):
 
 @songs_bp.route("/search", methods=["GET"])
 def search():
-    query = request.args.get("q", "").lower()
-    if not query:
-        return jsonify([])  # Retorna lista vazia se não houver consulta
-
-    # Carregar as músicas do arquivo sempre que a pesquisa for feita
-    songs = load_songs()  # Carrega as músicas do arquivo
-
-    results = []
-    for song in songs:
-        # Verificar se o título ou autor contém a consulta
-        if query in song["title"].lower() or query in song["author"].lower():
-            if song not in results:  # Evita duplicatas
-                results.append(song)
-            continue
-
-        # Verificar se a letra contém a consulta
-        for section in song["sections"]:
-            for line in section["text"]:
-                if query in line.lower():
-                    if song not in results:  # Evita duplicatas
-                        results.append(song)
-                    break
-
-    return jsonify(results)
+    """Busca por título, autor ou letra (busca_musicas.py: índice em memória,
+    só id/título/autor — antes devolvia as músicas inteiras)."""
+    import busca_musicas
+    return jsonify(busca_musicas.buscar(request.args.get("q", "")))
