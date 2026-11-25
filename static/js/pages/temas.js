@@ -111,6 +111,8 @@
     $('tm-nome').addEventListener('input', () => { atual.nome = $('tm-nome').value; alterado = true; $('tm-status').textContent = _t('Alterações não salvas'); });
     $('tm-exemplo').addEventListener('input', desenharPrevia);
     window.addEventListener('resize', desenharPrevia);
+    // A fonte do tema carregou depois: mede a prévia de novo (senão corta)
+    if (document.fonts) document.fonts.addEventListener('loadingdone', () => desenharPrevia());
 
     // ── Fundo ───────────────────────────────────────────────────────
     function mostrarPainelFundo(tipo) {

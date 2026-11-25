@@ -101,6 +101,8 @@
     $('av-embaralhar').addEventListener('change', mudou);
     $('av-salvar').addEventListener('click', salvar);
     window.addEventListener('resize', desenharPrevia);
+    // A fonte do tema carregou depois: mede a prévia de novo (senão corta)
+    if (document.fonts) document.fonts.addEventListener('loadingdone', () => desenharPrevia());
     window.addEventListener('beforeunload', (e) => { if (alterado) { e.preventDefault(); e.returnValue = ''; } });
 
     $('av-exibir').addEventListener('click', () => {

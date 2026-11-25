@@ -509,6 +509,10 @@
     
         window.addEventListener('load', adjustFontSize);
         window.addEventListener('resize', adjustFontSize);  // antes 'resize ' (com espaço): nunca disparava
+        // Tema com fonte própria (Merriweather, Roboto...): a letra era medida
+        // com a fonte reserva e, quando a do tema chegava (mais larga),
+        // transbordava e cortava a última linha. Mede de novo quando carrega.
+        if (document.fonts) document.fonts.addEventListener('loadingdone', adjustFontSize);
 
         $(document).ready(initializeApp);
 
